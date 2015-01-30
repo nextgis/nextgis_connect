@@ -26,6 +26,8 @@ from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 
 from settings_dialog import SettingsDialog
+from plugin_settings import PluginSettings
+from tree_panel import TreePanel
 
 
 class NGWConnectPlugin:
@@ -62,6 +64,15 @@ class NGWConnectPlugin:
         self.menu = self.tr(u'&NGW Connect')
         self.toolbar = self.iface.addToolBar(self.tr(u'NGW Connect'))
         self.toolbar.setObjectName(u'NGWConnectPluginToolbar')
+
+        # Dock tree panel
+        self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
+
+        self.iface.addDockWidget(PluginSettings.dock_area(), self.dockWidget)
+        self.dockWidget.setFloating(PluginSettings.dock_floating())
+        self.dockWidget.resize(PluginSettings.dock_size())
+        self.dockWidget.move(PluginSettings.dock_pos())
+        self.dockWidget.setVisible(PluginSettings.dock_visibility())
 
 
     # noinspection PyMethodMayBeStatic
@@ -198,8 +209,20 @@ class NGWConnectPlugin:
                 action)
             self.iface.removeToolBarIcon(action)
 
+        mw = self.iface.mainWindow()
+        PluginSettings.set_dock_area(mw.dockWidgetArea(self.dockWidget))
+        PluginSettings.set_dock_floating(self.dockWidget.isFloating())
+        PluginSettings.set_dock_pos(self.dockWidget.pos())
+        PluginSettings.set_dock_size(self.dockWidget.size())
+        PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
+
+        del self.dockWidget
+
+
+
     def show_panel(self):
-        pass
+        self.dockWidget.show()
+
 
     def settings(self):
         sett_dialog = SettingsDialog()

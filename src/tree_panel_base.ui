@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ResourcePanel</class>
+ <widget class="QMainWindow" name="ResourcePanel">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>247</width>
+    <height>262</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTreeView" name="qtwResources"/>
+    </item>
+    <item>
+     <widget class="QComboBox" name="cmbConnection"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionAppendVectorLayer"/>
+  </widget>
+  <action name="actionAppendVectorLayer">
+   <property name="text">
+    <string>Append</string>
+   </property>
+   <property name="toolTip">
+    <string>Append vector layer</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

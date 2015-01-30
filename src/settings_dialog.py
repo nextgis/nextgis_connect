@@ -34,7 +34,7 @@ from PyQt4 import uic
 from PyQt4.QtGui import QDialog
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
-from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as PluginSettings
+from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as PluginSettings  # !!! Shared connection settings !!!
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
