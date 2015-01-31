@@ -188,7 +188,7 @@ class NGWConnectPlugin:
         self.add_action(
             icon_path,
             text=self.tr(u'Show NGW panel'),
-            callback=self.show_panel,
+            callback=self.dockWidget.show,
             parent=self.iface.mainWindow())
 
         #Settings
@@ -216,12 +216,8 @@ class NGWConnectPlugin:
         PluginSettings.set_dock_size(self.dockWidget.size())
         PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
 
+        self.iface.removeDockWidget(self.dockWidget)
         del self.dockWidget
-
-
-
-    def show_panel(self):
-        self.dockWidget.show()
 
 
     def settings(self):
