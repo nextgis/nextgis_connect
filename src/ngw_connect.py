@@ -65,14 +65,6 @@ class NGWConnectPlugin:
         self.toolbar = self.iface.addToolBar(self.tr(u'NGW Connect'))
         self.toolbar.setObjectName(u'NGWConnectPluginToolbar')
 
-        # Dock tree panel
-        self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
-
-        self.iface.addDockWidget(PluginSettings.dock_area(), self.dockWidget)
-        self.dockWidget.setFloating(PluginSettings.dock_floating())
-        self.dockWidget.resize(PluginSettings.dock_size())
-        self.dockWidget.move(PluginSettings.dock_pos())
-        self.dockWidget.setVisible(PluginSettings.dock_visibility())
 
 
     # noinspection PyMethodMayBeStatic
@@ -182,6 +174,13 @@ class NGWConnectPlugin:
 
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        # Dock tree panel
+        self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
+        self.iface.addDockWidget(PluginSettings.dock_area(), self.dockWidget)
+        self.dockWidget.setFloating(PluginSettings.dock_floating())
+        self.dockWidget.resize(PluginSettings.dock_size())
+        self.dockWidget.move(PluginSettings.dock_pos())
+        self.dockWidget.setVisible(PluginSettings.dock_visibility())
 
         #Tools for NGW communicate
         icon_path = self.plugin_dir + '/icon.png'
