@@ -31,6 +31,9 @@
    </layout>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
@@ -43,14 +46,42 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionAppendVectorLayer"/>
+   <addaction name="actionAddAsGeoJSON"/>
+   <addaction name="actionAddWFS"/>
+   <addaction name="separator"/>
+   <addaction name="actionCreateNewGroup"/>
   </widget>
-  <action name="actionAppendVectorLayer">
+  <action name="actionAddAsGeoJSON">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
-    <string>Append</string>
+    <string>Add GeoJSON</string>
    </property>
    <property name="toolTip">
-    <string>Append vector layer</string>
+    <string>Add vector layer as GeoJSON</string>
+   </property>
+  </action>
+  <action name="actionAddWFS">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Add WFS</string>
+   </property>
+   <property name="toolTip">
+    <string>Add WFS layers</string>
+   </property>
+  </action>
+  <action name="actionCreateNewGroup">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Create new group</string>
+   </property>
+   <property name="toolTip">
+    <string>Create new resource group</string>
    </property>
   </action>
  </widget>

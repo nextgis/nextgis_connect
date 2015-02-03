@@ -24,26 +24,26 @@
 """
 import os
 from PyQt4 import uic
-from PyQt4.QtGui import QDockWidget, QMainWindow
-from PyQt4.QtCore import Qt
+from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon
+from PyQt4.QtCore import Qt, QModelIndex
 from qgis.core import QgsMessageLog
 from qgis.gui import QgsMessageBar
+from ngw_api.core.ngw_error import NGWError
+from ngw_api.core.ngw_group_resource import NGWGroupResource
+from ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from ngw_api.core.ngw_wfs_service import NGWWfsService
 
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
+from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_as_wfs_layers
+from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
 from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel
 from ngw_api.core.ngw_resource_factory import NGWResourceFactory
-
-__author__ = 'NextGIS'
-__date__ = 'January 2015'
-__copyright__ = '(C) 2015, NextGIS'
-
-# This will get replaced with a git SHA1 when you do a git archive
-__revision__ = '$Format:%H$'
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'tree_panel_base.ui'))
+
+ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
 
 
 class TreePanel(QDockWidget):
@@ -65,7 +65,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.iface = iface
 
+        # actions
+        self.actionAddAsGeoJSON.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddOgrLayer.svg')))
+        self.actionAddAsGeoJSON.triggered.connect(self.add_json_layer)
+        self.actionAddWFS.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddWfsLayer.svg')))
+        self.actionAddWFS.triggered.connect(self.add_wfs_layer)
+        self.actionCreateNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
+        self.actionCreateNewGroup.triggered.connect(self.create_group)
+
+        #signals
         self.cmbConnection.currentIndexChanged[str].connect(self.reinit_tree)
+
+        #update state
         self.update_conn_list()
 
     def update_conn_list(self):
@@ -100,9 +111,61 @@ class TreeControl(QMainWindow, FORM_CLASS):
             QgsMessageLog.logMessage(error_message, level=QgsMessageLog.CRITICAL)
             return
 
-        self._root_item = QNGWResourceItem(root_rsc, None)
+        #setup new qt model
+        self._root_item = QNGWFakeRootItem(root_rsc, None)
         self._resource_model = QNGWResourcesModel(self._root_item)
         self.trvResources.setModel(self._resource_model)
+        #expand root item
+        self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
 
+        #reconnect signals
+        self.trvResources.selectionModel().currentChanged.connect(self.active_item_chg)
+
+        #save last selected connection
         NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
+
+    def active_item_chg(self, selected, deselected):
+        ngw_resource = selected.data(Qt.UserRole)
+        # enable/dis geojson button
+        self.actionAddAsGeoJSON.setEnabled(isinstance(ngw_resource, NGWVectorLayer))
+        # enable/dis wfs button
+        self.actionAddWFS.setEnabled(isinstance(ngw_resource, NGWWfsService))
+        # enable/dis new group button
+        self.actionCreateNewGroup.setEnabled(isinstance(ngw_resource, NGWGroupResource))
+
+    def add_json_layer(self):
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        print sel_index.isValid()
+        if sel_index.isValid():
+            ngw_resource = sel_index.data(Qt.UserRole)
+
+            try:
+                add_resource_as_geojson(ngw_resource)
+            except NGWError as ex:
+                error_mes = ex.message or ''
+                self.iface.messageBar().pushMessage(self.tr('Error'),
+                                                error_mes,
+                                                level=QgsMessageBar.CRITICAL)
+                QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
+
+    def add_wfs_layer(self):
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        print sel_index.isValid()
+        if sel_index.isValid():
+            ngw_resource = sel_index.data(Qt.UserRole)
+
+            try:
+                add_resource_as_wfs_layers(ngw_resource)
+            except NGWError as ex:
+                error_mes = ex.message or ''
+                self.iface.messageBar().pushMessage(self.tr('Error'),
+                                                error_mes,
+                                                level=QgsMessageBar.CRITICAL)
+                QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
+
+
+    def create_group(self):
+        pass
+
+
 
