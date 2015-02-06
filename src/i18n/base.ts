@@ -59,60 +59,65 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="62"/>
+        <location filename="tree_panel_base.ui" line="64"/>
         <source>Add GeoJSON</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="65"/>
+        <location filename="tree_panel_base.ui" line="67"/>
         <source>Add vector layer as GeoJSON</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="73"/>
+        <location filename="tree_panel_base.ui" line="75"/>
         <source>Add WFS</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="76"/>
+        <location filename="tree_panel_base.ui" line="78"/>
         <source>Add WFS layers</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="84"/>
+        <location filename="tree_panel_base.ui" line="86"/>
         <source>Create new group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="87"/>
+        <location filename="tree_panel_base.ui" line="89"/>
         <source>Create new resource group</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="95"/>
+        <location filename="tree_panel_base.ui" line="97"/>
         <source>Settings</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="100"/>
+        <location filename="tree_panel_base.ui" line="102"/>
         <source>Refresh</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="tree_panel_base.ui" line="113"/>
+        <source>Open map in browser</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>TreeControl</name>
     <message>
-        <location filename="tree_panel.py" line="121"/>
+        <location filename="tree_panel.py" line="127"/>
         <source>Error on fetch resources: </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="122"/>
+        <location filename="tree_panel.py" line="128"/>
         <source>ERROR</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="205"/>
+        <location filename="tree_panel.py" line="213"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -120,7 +125,7 @@
 <context>
     <name>TreePanel</name>
     <message>
-        <location filename="tree_panel.py" line="55"/>
+        <location filename="tree_panel.py" line="59"/>
         <source>NGW Resources</source>
         <translation type="unfinished"></translation>
     </message>

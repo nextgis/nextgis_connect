@@ -60,60 +60,65 @@
         <translation>Панель инструментов </translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="62"/>
+        <location filename="tree_panel_base.ui" line="64"/>
         <source>Add GeoJSON</source>
         <translation>Добавть GeoJSON</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="65"/>
+        <location filename="tree_panel_base.ui" line="67"/>
         <source>Add vector layer as GeoJSON</source>
         <translation>Добавть как векторный слой GeoJSON</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="73"/>
+        <location filename="tree_panel_base.ui" line="75"/>
         <source>Add WFS</source>
         <translation>Добавить WFS</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="76"/>
+        <location filename="tree_panel_base.ui" line="78"/>
         <source>Add WFS layers</source>
         <translation>Добавить WFS слои</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="84"/>
+        <location filename="tree_panel_base.ui" line="86"/>
         <source>Create new group</source>
         <translation>Создать новую группу</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="87"/>
+        <location filename="tree_panel_base.ui" line="89"/>
         <source>Create new resource group</source>
         <translation>Создать новую группу ресурсов</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="95"/>
+        <location filename="tree_panel_base.ui" line="97"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="tree_panel_base.ui" line="100"/>
+        <location filename="tree_panel_base.ui" line="102"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
+    </message>
+    <message>
+        <location filename="tree_panel_base.ui" line="113"/>
+        <source>Open map in browser</source>
+        <translation>Открыть карту в браузере</translation>
     </message>
 </context>
 <context>
     <name>TreeControl</name>
     <message>
-        <location filename="tree_panel.py" line="121"/>
+        <location filename="tree_panel.py" line="127"/>
         <source>Error on fetch resources: </source>
         <translation>Ошибка при получении ресурсов: </translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="122"/>
+        <location filename="tree_panel.py" line="128"/>
         <source>ERROR</source>
         <translation>ОШИБКА</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="205"/>
+        <location filename="tree_panel.py" line="213"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -121,7 +126,7 @@
 <context>
     <name>TreePanel</name>
     <message>
-        <location filename="tree_panel.py" line="55"/>
+        <location filename="tree_panel.py" line="59"/>
         <source>NGW Resources</source>
         <translation>Ресурсы NGW</translation>
     </message>
