@@ -39,6 +39,7 @@ from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_a
 from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
 from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel
 from ngw_api.core.ngw_resource_factory import NGWResourceFactory
+from settings_dialog import SettingsDialog
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -73,6 +74,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddWFS.triggered.connect(self.add_wfs_layer)
         self.actionCreateNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
+        self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings')))
+        self.actionSettings.triggered.connect(self.action_settings)
 
         #update state
         self.update_conn_list()
@@ -80,7 +83,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         #signals
         self.cmbConnection.currentIndexChanged[str].connect(self.reinit_tree)
-
 
     def update_conn_list(self):
         self.cmbConnection.clear()
@@ -201,6 +203,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             self.reinit_tree(self.cmbConnection.currentText())
             # TODO: need more flex update
+
+    def action_settings(self):
+        sett_dialog = SettingsDialog()
+        sett_dialog.show()
+        sett_dialog.exec_()
+
+        self.update_conn_list()
 
 
 

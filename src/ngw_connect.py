@@ -186,17 +186,8 @@ class NGWConnectPlugin:
         icon_path = self.plugin_dir + '/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Show NGW panel'),
+            text=self.tr(u'Show/Hide NGW panel'),
             callback=self.dockWidget.show,
-            parent=self.iface.mainWindow())
-
-        #Settings
-        self.add_group_separator()
-        icon_path = self.plugin_dir + '/icon.png'
-        self.add_action(
-            icon_path,
-            text=self.tr(u'Settings'),
-            callback=self.settings,
             parent=self.iface.mainWindow())
 
 
@@ -217,9 +208,3 @@ class NGWConnectPlugin:
 
         self.iface.removeDockWidget(self.dockWidget)
         del self.dockWidget
-
-
-    def settings(self):
-        sett_dialog = SettingsDialog()
-        sett_dialog.show()
-        sett_dialog.exec_()

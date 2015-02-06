@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>247</width>
-    <height>262</height>
+    <width>270</width>
+    <height>337</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,6 +50,8 @@
    <addaction name="actionAddWFS"/>
    <addaction name="separator"/>
    <addaction name="actionCreateNewGroup"/>
+   <addaction name="separator"/>
+   <addaction name="actionSettings"/>
   </widget>
   <action name="actionAddAsGeoJSON">
    <property name="enabled">
@@ -82,6 +84,14 @@
    </property>
    <property name="toolTip">
     <string>Create new resource group</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Settings</string>
    </property>
   </action>
  </widget>
