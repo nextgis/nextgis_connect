@@ -90,6 +90,8 @@ class NGWConnectPlugin:
         enabled_flag=True,
         add_to_menu=True,
         add_to_toolbar=True,
+        checkable=False,
+        is_checked=False,
         status_tip=None,
         whats_this=None,
         parent=None):
@@ -134,8 +136,15 @@ class NGWConnectPlugin:
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
-        action.triggered.connect(callback)
         action.setEnabled(enabled_flag)
+        action.setCheckable(checkable)
+        if checkable:
+            action.setChecked(is_checked)
+
+        if not checkable:
+            action.triggered.connect(callback)
+        else:
+            action.toggled.connect(callback)
 
         if status_tip is not None:
             action.setStatusTip(status_tip)
@@ -187,7 +196,9 @@ class NGWConnectPlugin:
         self.add_action(
             icon_path,
             text=self.tr(u'Show/Hide NGW panel'),
-            callback=self.dockWidget.show,
+            checkable=True,
+            is_checked=PluginSettings.dock_visibility(),
+            callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
 
 
