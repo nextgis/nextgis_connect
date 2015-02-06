@@ -50,7 +50,7 @@ class NGWConnectPlugin:
         locale_path = path.join(
             self.plugin_dir,
             'i18n',
-            'NGWConnect_{}.qm'.format(locale))
+            'ngw_connect_{}.qm'.format(locale))
 
         if path.exists(locale_path):
             self.translator = QTranslator()
