@@ -74,7 +74,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddWFS.triggered.connect(self.add_wfs_layer)
         self.actionCreateNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
-        self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings')))
+        self.actionRefresh.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionRefresh.svg')))
+        self.actionRefresh.triggered.connect(self.action_refresh)
+        self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')))
         self.actionSettings.triggered.connect(self.action_settings)
 
         #update state
@@ -104,7 +106,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if not name_of_conn:
             return
+
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+
+        if not conn_sett:
+            return
 
         # setup ngw api
         rsc_factory = NGWResourceFactory(conn_sett)
@@ -203,6 +209,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             self.reinit_tree(self.cmbConnection.currentText())
             # TODO: need more flex update
+
+    def action_refresh(self):
+        self.reinit_tree(self.cmbConnection.currentText())  # TODO: more smart update (selected and childs)
 
     def action_settings(self):
         sett_dialog = SettingsDialog()

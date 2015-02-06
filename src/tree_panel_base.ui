@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>270</width>
-    <height>337</height>
+    <width>295</width>
+    <height>349</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -51,6 +51,7 @@
    <addaction name="separator"/>
    <addaction name="actionCreateNewGroup"/>
    <addaction name="separator"/>
+   <addaction name="actionRefresh"/>
    <addaction name="actionSettings"/>
   </widget>
   <action name="actionAddAsGeoJSON">
@@ -92,6 +93,11 @@
    </property>
    <property name="text">
     <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionRefresh">
+   <property name="text">
+    <string>Refresh</string>
    </property>
   </action>
  </widget>
