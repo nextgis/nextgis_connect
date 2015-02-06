@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>295</width>
+    <width>293</width>
     <height>349</height>
    </rect>
   </property>
@@ -48,6 +48,8 @@
    </attribute>
    <addaction name="actionAddAsGeoJSON"/>
    <addaction name="actionAddWFS"/>
+   <addaction name="separator"/>
+   <addaction name="actionOpenMapInBrowser"/>
    <addaction name="separator"/>
    <addaction name="actionCreateNewGroup"/>
    <addaction name="separator"/>
@@ -98,6 +100,17 @@
   <action name="actionRefresh">
    <property name="text">
     <string>Refresh</string>
+   </property>
+  </action>
+  <action name="actionOpenMapInBrowser">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Open map in browser</string>
+   </property>
+   <property name="toolTip">
+    <string>Open map in browser</string>
    </property>
   </action>
  </widget>

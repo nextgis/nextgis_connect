@@ -23,15 +23,19 @@
  ***************************************************************************/
 """
 import os
+import subprocess
+import webbrowser
 from PyQt4 import uic
 from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon
 from PyQt4.QtCore import Qt, QModelIndex
 from qgis.core import QgsMessageLog
 from qgis.gui import QgsMessageBar
+import sys
 from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
 from ngw_api.core.ngw_resource_creator import ResourceCreator
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
 
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
@@ -72,6 +76,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddAsGeoJSON.triggered.connect(self.add_json_layer)
         self.actionAddWFS.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddWfsLayer.svg')))
         self.actionAddWFS.triggered.connect(self.add_wfs_layer)
+        self.actionOpenMapInBrowser.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionOpenMap.svg')))
+        self.actionOpenMapInBrowser.triggered.connect(self.action_open_map)
         self.actionCreateNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
         self.actionRefresh.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionRefresh.svg')))
@@ -147,6 +153,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddWFS.setEnabled(isinstance(ngw_resource, NGWWfsService))
         # enable/dis new group button
         self.actionCreateNewGroup.setEnabled(isinstance(ngw_resource, NGWGroupResource))
+        # enable/dis webmap
+        self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
 
     def disable_tools(self):
         self.actionAddAsGeoJSON.setEnabled(False)
@@ -220,6 +228,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.update_conn_list()
 
+    def action_open_map(self):
+        sel_index = self.trvResources.selectionModel().currentIndex()
 
-
-
+        if sel_index.isValid():
+            ngw_resource = sel_index.data(Qt.UserRole)
+            url = ngw_resource.get_display_url()
+            if sys.platform == 'darwin':    # in case of OS X
+                subprocess.Popen(['open', url])
+            else:
+                webbrowser.open_new_tab(url)
