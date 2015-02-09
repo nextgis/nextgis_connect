@@ -160,6 +160,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddAsGeoJSON.setEnabled(False)
         self.actionAddWFS.setEnabled(False)
         self.actionCreateNewGroup.setEnabled(False)
+        self.actionOpenMapInBrowser.setEnabled(False)
 
     def add_json_layer(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
