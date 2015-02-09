@@ -182,6 +182,9 @@ class NGWConnectPlugin:
 
 
     def initGui(self):
+        #import pydevd
+        #pydevd.settrace('localhost', port=5566, stdoutToServer=True, stderrToServer=True, suspend=False)
+
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         # Dock tree panel
         self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
