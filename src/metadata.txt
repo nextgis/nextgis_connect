@@ -10,7 +10,7 @@
 name=NGW Connect
 qgisMinimumVersion=2.6
 description=QGIS plugin for operating NGW resources
-version=0.3
+version=0.4
 author=NextGIS
 email=info@nextgis.com
 
@@ -19,7 +19,11 @@ email=info@nextgis.com
 # Optional items:
 
 # Uncomment the following line and add your changelog:
-changelog= 0.3:
+changelog= 0.4:
+        * Fix resmeta error
+        * Fix WFS
+        * Fix WMS icon
+    0.3:
         * Fix errors
         * Add encoding for geosjon layers
     0.2:
