@@ -26,7 +26,7 @@ import os
 import subprocess
 import webbrowser
 from PyQt4 import uic
-from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon
+from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon, QDialogButtonBox, QInputDialog, QLineEdit
 from PyQt4.QtCore import Qt, QModelIndex
 from qgis.core import QgsMessageLog
 from qgis.gui import QgsMessageBar
@@ -107,6 +107,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def reinit_tree(self, name_of_conn):
         # clear tree and states
+        QgsMessageLog.logMessage("reinit_tree")
+
         self.trvResources.setModel(None)
         self.disable_tools()
 
@@ -192,18 +194,32 @@ class TreeControl(QMainWindow, FORM_CLASS):
                                                 level=QgsMessageBar.CRITICAL)
                 QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
 
-
     def create_group(self):
+        new_group_name, res = QInputDialog.getText(
+            self,
+            self.tr("Set new group name"),
+            self.tr("New group name:"),
+            QLineEdit.Normal,
+            self.tr("New group"),
+            Qt.Dialog
+        )
+
+        if (res is False or new_group_name == ""):
+            return
+
+        self.__create_group(new_group_name)
+
+    def __create_group(self, new_group_name):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
         if sel_index.isValid():
             ngw_resource = sel_index.data(Qt.UserRole)
 
-            new_group_name = 'New group'
             existing_chd_names = [ch.common.display_name for ch in ngw_resource.get_children()]
+
             if new_group_name in existing_chd_names:
                 id = 1
-                while(new_group_name+str(id) in existing_chd_names):
+                while(new_group_name + str(id) in existing_chd_names):
                     id += 1
                 new_group_name += str(id)
 
@@ -211,9 +227,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 ResourceCreator.create_group(ngw_resource, new_group_name)
             except NGWError as ex:
                 error_mes = ex.message or ''
-                self.iface.messageBar().pushMessage(self.tr('Error'),
-                                                error_mes,
-                                                level=QgsMessageBar.CRITICAL)
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    error_mes,
+                    level=QgsMessageBar.CRITICAL
+                )
                 QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
 
             self.reinit_tree(self.cmbConnection.currentText())
