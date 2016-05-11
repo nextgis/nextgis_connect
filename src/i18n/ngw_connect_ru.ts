@@ -62,12 +62,12 @@
     <message>
         <location filename="tree_panel_base.ui" line="64"/>
         <source>Add GeoJSON</source>
-        <translation>Добавть GeoJSON</translation>
+        <translation>Добавить GeoJSON</translation>
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="67"/>
         <source>Add vector layer as GeoJSON</source>
-        <translation>Добавть как векторный слой GeoJSON</translation>
+        <translation>Добавить как векторный слой GeoJSON</translation>
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="75"/>
