@@ -10,7 +10,7 @@
 name=NGW Connect
 qgisMinimumVersion=2.6
 description=QGIS plugin for operating NGW resources
-version=0.4
+version=0.4.6
 author=NextGIS
 email=info@nextgis.com
 

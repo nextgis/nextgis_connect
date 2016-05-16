@@ -25,6 +25,8 @@ from os import path
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 
+from qgis.core import QgsMapLayer
+
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 from tree_panel import TreePanel
@@ -180,7 +182,6 @@ class NGWConnectPlugin:
 
         self.actions.append(sep_action)
 
-
     def initGui(self):
         #import pydevd
         #pydevd.settrace('localhost', port=5566, stdoutToServer=True, stderrToServer=True, suspend=False)
@@ -204,9 +205,31 @@ class NGWConnectPlugin:
             callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
 
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject,
+            self.tr(u"NGW Connect"),
+            u"id1",
+            QgsMapLayer.VectorLayer,
+            True
+        )
+
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource,
+            self.tr(u"NGW Connect"),
+            u"id2",
+            QgsMapLayer.VectorLayer,
+            True
+        )
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject
+        )
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource
+        )
+        
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&NGW Connect'),

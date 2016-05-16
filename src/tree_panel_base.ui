@@ -17,6 +17,9 @@
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
      <widget class="QTreeView" name="trvResources">
+      <property name="contextMenuPolicy">
+       <enum>Qt::CustomContextMenu</enum>
+      </property>
       <property name="rootIsDecorated">
        <bool>true</bool>
       </property>
@@ -52,6 +55,7 @@
    <addaction name="actionOpenMapInBrowser"/>
    <addaction name="separator"/>
    <addaction name="actionCreateNewGroup"/>
+   <addaction name="actionImportQGISProject"/>
    <addaction name="separator"/>
    <addaction name="actionRefresh"/>
    <addaction name="actionSettings"/>
@@ -87,6 +91,17 @@
    </property>
    <property name="toolTip">
     <string>Create new resource group</string>
+   </property>
+  </action>
+  <action name="actionImportQGISProject">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Import current project</string>
+   </property>
+   <property name="toolTip">
+    <string>Import current qgis project</string>
    </property>
   </action>
   <action name="actionSettings">
