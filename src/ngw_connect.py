@@ -212,12 +212,26 @@ class NGWConnectPlugin:
             QgsMapLayer.VectorLayer,
             True
         )
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject,
+            self.tr(u"NGW Connect"),
+            u"id1",
+            QgsMapLayer.RasterLayer,
+            True
+        )
 
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr(u"NGW Connect"),
             u"id2",
             QgsMapLayer.VectorLayer,
+            True
+        )
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource,
+            self.tr(u"NGW Connect"),
+            u"id2",
+            QgsMapLayer.RasterLayer,
             True
         )
 
@@ -229,7 +243,7 @@ class NGWConnectPlugin:
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        
+
         for action in self.actions:
             self.iface.removePluginMenu(
                 self.tr(u'&NGW Connect'),

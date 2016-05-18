@@ -107,8 +107,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS()
         self._resource_model.errorOccurred.connect(self.model_error_process)
-        self._resource_model.qgisProjectImportStarted.connect(self.__importStarted)
-        self._resource_model.qgisProjectImportFinished.connect(self.__importFinished)
+        # self._resource_model.qgisProjectImportStarted.connect(self.__importStarted)
+        # self._resource_model.qgisProjectImportFinished.connect(self.__importFinished)
+        self._resource_model.jobStarted.connect(self.__modelJobStarted)
+        self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
+        self._resource_model.jobFinished.connect(self.__modelJobFinished)
+        self.blocked_jobs = {
+            self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE: self.tr("NGW Resource is being created"),
+            self._resource_model.JOB_DELETE_NGW_RESOURCE: self.tr("NGW Resource is being deleted"),
+            self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
+            self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
+        }
+
         # update state
         self.update_conn_list()
         self.reinit_tree(self.cmbConnection.currentText())
@@ -122,7 +132,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         error_mes = "Error in unknown operation"
         if code == QNGWResourceModelError.LoadResourceError:
-            error_mes = self.tr("Loading resource error. Check your connection settings. See logs for detailes.")
+            error_mes = self.tr("Loading resource error. Check your connection settings. See logs for details.")
         if code == QNGWResourceModelError.CreateGroupError:
             error_mes = self.tr("Creating ngw group resource error.")
         if code == QNGWResourceModelError.CreateLayerError:
@@ -138,6 +148,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
             PluginSettings._product,
             level=QgsMessageLog.CRITICAL
         )
+
+    def __modelJobStarted(self, job_id):
+        if job_id in self.blocked_jobs:
+            self.progressDlg = QgsBusyIndicatorDialog()
+            self.progressDlg.setWindowTitle(self.blocked_jobs[job_id])
+            self.progressDlg.show()
+
+    def __modelJobStatusChanged(self, job_id, status):
+        if job_id in self.blocked_jobs:
+            self.progressDlg.setMessage(status)
+
+    def __modelJobFinished(self, job_id):
+        if job_id in self.blocked_jobs:
+            self.progressDlg.close()
 
     def update_conn_list(self):
         self.cmbConnection.clear()
@@ -209,17 +233,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # enable/dis webmap
         self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
 
-        # import functions are able when ngw group is selected
-        # self.actionImportQGISProject.setEnabled(isinstance(ngw_resource, NGWGroupResource))
-        # self.actionImportQGISResource.setEnabled(isinstance(ngw_resource, NGWGroupResource))
-
     def disable_tools(self):
         self.actionAddAsGeoJSON.setEnabled(False)
         self.actionAddWFS.setEnabled(False)
         self.actionCreateNewGroup.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
-        # self.actionImportQGISProject.setEnabled(False)
-        # self.actionImportQGISResource.setEnabled(False)
 
     def add_json_layer(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
@@ -265,15 +283,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         sel_index = self.trvResources.selectionModel().currentIndex()
-        # self._resource_model.createGroupInResource(new_group_name, sel_index)
         self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
-
-        # if sel_index.isValid():
-        #     ngw_resource = sel_index.data(Qt.UserRole)
-        #     self.__create_group(new_group_name, ngw_resource)
-
-        #     self.reinit_tree(self.cmbConnection.currentText())
-        #     # TODO: need more flex update
 
     def action_refresh(self):
         self.reinit_tree(self.cmbConnection.currentText())  # TODO: more smart update (selected and childs)
@@ -298,13 +308,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def action_import_qgis_project(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
-        # if not sel_index.isValid():
-        #     QMessageBox.critical(
-        #         self,
-        #         self.tr("Import QGIS project error"),
-        #         self.tr("There is no selected ngw group for import")
-        #     )
-        #     return
 
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
@@ -330,28 +333,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
                 return
 
-        self._resource_model.tryImportCurentQGISProject(new_group_name, sel_index)
-
-    def __importStarted(self):
-        self.progressDlg = QgsBusyIndicatorDialog(self.tr(""))
-        self.progressDlg.setWindowTitle(u"Import current project...")
-        self.progressDlg.show()
-
-    def __importFinished(self):
-        self.progressDlg.close()
+        self._resource_model.tryImportCurentQGISProject(new_group_name, sel_index, self.iface)
 
     def action_import_layer(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-
         sel_index = self.trvResources.selectionModel().currentIndex()
-        # if not sel_index.isValid():
-        #     QMessageBox.critical(
-        #         self,
-        #         self.tr("Import QGIS project error"),
-        #         self.tr("Cann't create root group for project")
-        #     )
-        #     return
-
         self._resource_model.createNGWLayer(qgs_map_layer, sel_index)
 
     def slotCustomContextMenu(self, qpoint):
@@ -378,18 +364,3 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if res == QMessageBox.Yes:
             selected_index = self.trvResources.selectionModel().currentIndex()
             self._resource_model.deleteResource(selected_index)
-        # ngw_resource_index = self.trvResources.selectionModel().currentIndex()
-        # if ngw_resource_index.isValid():
-        #     ngw_resource = ngw_resource_index.data(Qt.UserRole)
-
-        #     try:
-        #         NGWResource.delete_resource(ngw_resource)
-        #     except NGWError as e:
-        #         print 'Unable to delete resource  with id %d: %s' % (ngw_resource.common.id, e.message)
-        #         QgsMessageLog.logMessage(
-        #             'Unable to delete resource  with id %d: %s' % (ngw_resource.common.id, e.message),
-        #             'NGW Connect',
-        #             QgsMessageLog.CRITICAL
-        #         )
-        # self.reinit_tree(self.cmbConnection.currentText())
-        # TODO: need more flex update_conn_list
