@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>NGW Connect settings</string>
+   <string>Settings</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

@@ -23,28 +23,32 @@
  ***************************************************************************/
 """
 import os
+import json
 import subprocess
 import webbrowser
 from PyQt4 import uic
 from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon, QInputDialog, QLineEdit, QMenu, QMessageBox, QAction
 from PyQt4.QtCore import Qt, QModelIndex
-from qgis.core import QgsMessageLog, QgsProject, QgsLayerTreeLayer, QgsLayerTreeGroup
-from qgis.gui import QgsMessageBar, QgsBusyIndicatorDialog
+from qgis.core import QgsMessageLog, QgsProject
+from qgis.gui import QgsMessageBar
 import sys
 from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
-from ngw_api.core.ngw_resource_creator import ResourceCreator
+# from ngw_api.core.ngw_resource_creator import ResourceCreator
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
-from ngw_api.core.ngw_resource import NGWResource
+# from ngw_api.core.ngw_resource import NGWResource
+from ngw_api.core.ngw_error import NGWError
 
+from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_as_wfs_layers
 from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
-from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
-from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel, QNGWResourceModelError
-from ngw_api.core.ngw_resource_factory import NGWResourceFactory
+from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
+# from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
+# from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel
+# from ngw_api.core.ngw_resource_factory import NGWResourceFactory
 from settings_dialog import SettingsDialog
 
 from plugin_settings import PluginSettings
@@ -57,11 +61,11 @@ ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
 
 class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
-        #init dock
+        # init dock
         super(TreePanel, self).__init__(parent)
-        self.setWindowTitle(self.tr('NGW Resources'))
+        self.setWindowTitle(self.tr('NextGIS Resources'))
 
-        #init internal control
+        # init internal control
         self.inner_control = TreeControl(iface, self)
         self.inner_control.setWindowFlags(Qt.Widget)
         self.setWidget(self.inner_control)
@@ -74,6 +78,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.iface = iface
 
+        self.trvResources = NGWResourcesTreeView(self)
+        self.nrw_reorces_tree_container.addWidget(self.trvResources)
         # actions
         self.actionAddAsGeoJSON.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddOgrLayer.svg')))
         self.actionAddAsGeoJSON.triggered.connect(self.add_json_layer)
@@ -107,8 +113,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS()
         self._resource_model.errorOccurred.connect(self.model_error_process)
-        # self._resource_model.qgisProjectImportStarted.connect(self.__importStarted)
-        # self._resource_model.qgisProjectImportFinished.connect(self.__importFinished)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
@@ -117,7 +121,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_DELETE_NGW_RESOURCE: self.tr("NGW Resource is being deleted"),
             self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
             self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
+            self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("NGW WFS service is being created"),
         }
+
+        self.trvResources.setModel(self._resource_model)
 
         # update state
         self.update_conn_list()
@@ -127,41 +134,83 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.cmbConnection.currentIndexChanged[str].connect(self.reinit_tree)
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
 
-    def model_error_process(self, code, msg):
-        QgsMessageLog.logMessage("model_error_process code: %d" % code)
+    def model_error_process(self, job, exception):
+        QgsMessageLog.logMessage("model error process job: %d" % job)
+        QgsMessageLog.logMessage("JOB_CREATE_NGW_WFS_SERVICE: %d" % self._resource_model.JOB_CREATE_NGW_WFS_SERVICE)
+        #QgsMessageLog.logMessage("exception: %s" % str(type(exception)))
+        #QgsMessageLog.logMessage("exception: %s" % exception)
 
         error_mes = "Error in unknown operation"
-        if code == QNGWResourceModelError.LoadResourceError:
+        if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
             error_mes = self.tr("Loading resource error. Check your connection settings. See logs for details.")
-        if code == QNGWResourceModelError.CreateGroupError:
+        elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
             error_mes = self.tr("Creating ngw group resource error.")
-        if code == QNGWResourceModelError.CreateLayerError:
+        elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
             error_mes = self.tr("Creating ngw layer resource error.")
+        elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
+            error_mes = self.tr("Creating ngw wfs service error. See logs for details.")
 
         self.iface.messageBar().pushMessage(
             self.tr('Error'),
             error_mes,
-            level=QgsMessageBar.CRITICAL)
-
-        QgsMessageLog.logMessage(
-            "%s\n\t %s" % (error_mes, msg),
-            PluginSettings._product,
-            level=QgsMessageLog.CRITICAL
+            level=QgsMessageBar.CRITICAL
         )
+
+        if isinstance(exception, NGWError):
+            try:
+                exeption_dict = json.loads(exception.message)
+                exeption_type = exeption_dict.get("exception", "")
+
+                name_of_conn = self.cmbConnection.currentText()
+                if exeption_type == "HTTPForbidden":
+                    conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
+                    dlg.leName.setDisabled(True)
+                    dlg.leUrl.setDisabled(True)
+                    dlg.setWindowTitle(
+                        self.tr("Access denied. Enter your login.")
+                    )
+                    res = dlg.exec_()
+                    QgsMessageLog.logMessage("res: %d" % res)
+                    if res:
+                        conn_sett = dlg.ngw_connection_settings
+                        NgwPluginSettings.save_ngw_connection(conn_sett)
+                        self.reinit_tree(name_of_conn)
+                    del dlg
+
+                ngw_err_msg = exeption_dict.get("message", "")
+
+                QgsMessageLog.logMessage(
+                    "%s\n\t %s" % (error_mes, ngw_err_msg),
+                    PluginSettings._product,
+                    level=QgsMessageLog.CRITICAL
+                )
+
+            except Exception as e:
+                QgsMessageLog.logMessage(
+                    "Error when proccess NGW Error: %s" % (e),
+                    PluginSettings._product,
+                    level=QgsMessageLog.CRITICAL
+                )
+        else:
+
+            QgsMessageLog.logMessage(
+                "%s\n\t %s" % (error_mes, exception),
+                PluginSettings._product,
+                level=QgsMessageLog.CRITICAL
+            )
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
-            self.progressDlg = QgsBusyIndicatorDialog()
-            self.progressDlg.setWindowTitle(self.blocked_jobs[job_id])
-            self.progressDlg.show()
+            self.trvResources.addBlockedJob(self.blocked_jobs[job_id])
 
     def __modelJobStatusChanged(self, job_id, status):
         if job_id in self.blocked_jobs:
-            self.progressDlg.setMessage(status)
+            self.trvResources.addJobStatus(self.blocked_jobs[job_id], status)
 
     def __modelJobFinished(self, job_id):
         if job_id in self.blocked_jobs:
-            self.progressDlg.close()
+            self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
 
     def update_conn_list(self):
         self.cmbConnection.clear()
@@ -184,12 +233,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.disable_tools()
 
         if not name_of_conn:
+            self.trvResources.showWelcomeMessage()
             return
+        self.trvResources.hideWelcomeMessage()
 
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
 
         if not conn_sett:
             return
+
+        # if conn_sett
 
         # setup ngw api
         # rsc_factory = NGWResourceFactory(conn_sett)
@@ -209,8 +262,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # self._resource_model = QNGWResourcesModel(self._root_item)
         # self.trvResources.setModel(self._resource_model)
         self._resource_model.resetModel(conn_sett)
-
-        self.trvResources.setModel(self._resource_model)
 
         # expand root item
         self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
@@ -341,14 +392,31 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.createNGWLayer(qgs_map_layer, sel_index)
 
     def slotCustomContextMenu(self, qpoint):
+        index = self.trvResources.indexAt(qpoint)
+
+        if not index.isValid():
+            return
+
+        ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
+
         menu = QMenu()
+
+        if isinstance(ngw_resource, NGWGroupResource):
+            actionNewGroup = menu.addAction(self.tr("New group"))
+            actionNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
+            actionNewGroup.triggered.connect(self.create_group)
+
+        elif isinstance(ngw_resource, NGWVectorLayer):
+            menu.addAction(self.actionAddAsGeoJSON)
+            actionNewWFSService = menu.addAction(self.tr("Create WFS service"))
+            # actionNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, '.png')))
+            actionNewWFSService.triggered.connect(self.create_wfs_service)
+        elif isinstance(ngw_resource, NGWWfsService):
+            menu.addAction(self.actionAddWFS)
+
         actionDelete = menu.addAction(self.tr("Delete"))
         actionDelete.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')))
         actionDelete.triggered.connect(self.delete_curent_ngw_resource)
-
-        actionNewGroup = menu.addAction(self.tr("New group"))
-        actionNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
-        actionNewGroup.triggered.connect(self.create_group)
 
         menu.exec_(self.trvResources.viewport().mapToGlobal(qpoint))
 
@@ -364,3 +432,118 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if res == QMessageBox.Yes:
             selected_index = self.trvResources.selectionModel().currentIndex()
             self._resource_model.deleteResource(selected_index)
+
+    def create_wfs_service(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        self._resource_model.createWFSForVector(selected_index)
+
+
+# from PyQt4.QtCore import 
+from PyQt4 import QtGui
+
+
+class Overlay(QtGui.QWidget):
+    def __init__(self, parent):
+        QtGui.QWidget.__init__(self, parent)
+        # self.resize(parent.size())
+        palette = QtGui.QPalette(self.palette())
+        palette.setColor(palette.Background, Qt.transparent)
+        self.setPalette(palette)
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter()
+        painter.begin(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.fillRect(event.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 150)))
+        painter.setPen(QtGui.QPen(Qt.NoPen))
+
+
+class MessageOverlay(Overlay):
+    def __init__(self, parent, text):
+        Overlay.__init__(self, parent)
+        self.layout = QtGui.QHBoxLayout(self)
+        self.setLayout(self.layout)
+
+        self.text = QtGui.QLabel(text, self)
+        self.text.setAlignment(Qt.AlignCenter)
+        self.text.setOpenExternalLinks(True)
+        self.text.setWordWrap(True)
+        self.layout.addWidget(self.text)
+
+
+class ProcessOverlay(Overlay):
+    def __init__(self, parent):
+        Overlay.__init__(self, parent)
+        self.layout = QtGui.QHBoxLayout(self)
+        self.setLayout(self.layout)
+
+        self.text = QtGui.QLabel(self)
+        self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.text.setOpenExternalLinks(True)
+        self.text.setWordWrap(True)
+        self.layout.addWidget(self.text)
+
+    def write(self, jobs):
+        text = ""
+        for job_name, job_status in jobs.items():
+            text += "<strong>%s</strong><br/>" % job_name
+            if job_status != "":
+                text += "%s<br/>" % job_status
+
+        self.text.setText(text)
+
+
+class NGWResourcesTreeView(QtGui.QTreeView):
+    def __init__(self, parent):
+        QtGui.QTreeView.__init__(self, parent)
+
+        self.setHeaderHidden(True)
+        self.setContextMenuPolicy(Qt.CustomContextMenu)
+
+        # no ngw connectiond message
+        self.no_ngw_connections_overlay = MessageOverlay(
+            self,
+            self.tr(
+                "No active connections to nextgis.com. Please create a connection. You can get your nextgis.com instance for free <a href='http://my.nextgis.com/'>here</a>!"
+            )
+        )
+        self.no_ngw_connections_overlay.hide()
+
+        self.ngw_job_block_overlay = ProcessOverlay(
+            self,
+        )
+        self.ngw_job_block_overlay.hide()
+
+        self.jobs = {}
+
+    def resizeEvent(self, event):
+        self.no_ngw_connections_overlay.resize(event.size())
+        self.ngw_job_block_overlay.resize(event.size())
+        event.accept()
+
+    def showWelcomeMessage(self):
+        self.no_ngw_connections_overlay.show()
+
+    def hideWelcomeMessage(self):
+        self.no_ngw_connections_overlay.hide()
+
+    def addBlockedJob(self, job_name):
+        self.jobs.update(
+            {job_name: ""}
+        )
+        self.ngw_job_block_overlay.write(self.jobs)
+
+        self.ngw_job_block_overlay.show()
+
+    def addJobStatus(self, job_name, status):
+        if job_name in self.jobs:
+            self.jobs[job_name] = status
+            self.ngw_job_block_overlay.write(self.jobs)
+
+    def removeBlockedJob(self, job_name):
+        if job_name in self.jobs:
+            self.jobs.pop(job_name)
+            self.ngw_job_block_overlay.write(self.jobs)
+
+        if len(self.jobs) == 0:
+            self.ngw_job_block_overlay.hide()

@@ -28,12 +28,12 @@ from ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSe
 class PluginSettings(CommonPluginSettings):
 
     _company_name = 'NextGIS'
-    _product = 'NGWConnect'
+    _product = 'NextGISConnect'
 
     @classmethod
     def dock_area(cls):
         settings = cls.get_settings()
-        return settings.value('/ui/dockWidgetArea', Qt.RightDockWidgetArea,  type=int)
+        return settings.value('/ui/dockWidgetArea', Qt.RightDockWidgetArea, type=int)
 
     @classmethod
     def set_dock_area(cls, val):
