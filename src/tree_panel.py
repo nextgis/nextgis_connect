@@ -434,8 +434,19 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.deleteResource(selected_index)
 
     def create_wfs_service(self):
+        ret_obj_num, res = QInputDialog.getInt(
+            self,
+            self.tr("Create WFS service"),
+            self.tr("The number of objects returned by default"),
+            1000,
+            0,
+            2147483647
+        )
+        if res is False:
+            return
+
         selected_index = self.trvResources.selectionModel().currentIndex()
-        self._resource_model.createWFSForVector(selected_index)
+        self._resource_model.createWFSForVector(selected_index, ret_obj_num)
 
 
 # from PyQt4.QtCore import 
@@ -454,7 +465,7 @@ class Overlay(QtGui.QWidget):
         painter = QtGui.QPainter()
         painter.begin(self)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 150)))
+        painter.fillRect(event.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 200)))
         painter.setPen(QtGui.QPen(Qt.NoPen))
 
 
@@ -474,14 +485,41 @@ class MessageOverlay(Overlay):
 class ProcessOverlay(Overlay):
     def __init__(self, parent):
         Overlay.__init__(self, parent)
-        self.layout = QtGui.QHBoxLayout(self)
+        self.layout = QtGui.QVBoxLayout(self)
         self.setLayout(self.layout)
+
+        spacer_before = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacer_after = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        self.layout.addItem(spacer_before)
+
+        self.central_widget = QtGui.QWidget(self)
+        # self.central_widget.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.central_widget_layout = QtGui.QVBoxLayout(self.central_widget)
+        self.central_widget.setLayout(self.central_widget_layout)
+        self.layout.addWidget(self.central_widget)
+
+        self.layout.addItem(spacer_after)
+
+        self.progress = QtGui.QProgressBar(self)
+        self.progress.setMinimum(0)
+        self.progress.setMaximum(0)
+        self.progress.setValue(0)
+        self.progress.setTextVisible(False)
+        self.central_widget_layout.addWidget(self.progress)
+        self.setStyleSheet(
+            """
+                QProgressBar {
+                    border: 1px solid grey;
+                    border-radius: 5px;
+                }
+            """
+        )
 
         self.text = QtGui.QLabel(self)
         self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
-        self.layout.addWidget(self.text)
+        self.central_widget_layout.addWidget(self.text)
 
     def write(self, jobs):
         text = ""
