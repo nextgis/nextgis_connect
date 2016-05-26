@@ -363,26 +363,22 @@ class TreeControl(QMainWindow, FORM_CLASS):
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
-        if current_project_title == u'':
-            new_group_name, res = QInputDialog.getText(
+        new_group_name, res = QInputDialog.getText(
+            self,
+            self.tr("Set import project name"),
+            self.tr("Import project name:"),
+            QLineEdit.Normal,
+            current_project_title,
+            Qt.Dialog
+        )
+
+        if new_group_name == u'':
+            QMessageBox.critical(
                 self,
-                self.tr("Set import project name"),
-                self.tr("Import project name:"),
-                QLineEdit.Normal,
-                current_project_title,
-                Qt.Dialog
+                self.tr("Import QGIS project error"),
+                self.tr("Empty import project name")
             )
-
-            if res is False:
-                return
-
-            if new_group_name == "":
-                QMessageBox.critical(
-                    self,
-                    self.tr("Import QGIS project error"),
-                    self.tr("Empty import project name")
-                )
-                return
+            return
 
         self._resource_model.tryImportCurentQGISProject(new_group_name, sel_index, self.iface)
 
