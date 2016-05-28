@@ -52,7 +52,7 @@ class NGConnectPlugin:
         locale_path = path.join(
             self.plugin_dir,
             'i18n',
-            'ngw_connect_{}.qm'.format(locale))
+            'nextgis_connect_{}.qm'.format(locale))
 
         if path.exists(locale_path):
             self.translator = QTranslator()
