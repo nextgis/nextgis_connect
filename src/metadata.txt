@@ -25,23 +25,23 @@ changelog=0.5.1
     0.5.0
         * Release experimental
     0.4.20
-        * Take into account layer visibility in project importing
+        * Take into account layer visibility during project import
     0.4.19
-        * Push vector to ngw in EPSG: 4326
+        * Push vector to Web GIS in EPSG: 4326
     0.4.16
-        * Add dialog to set the number of objects returned by default for wfs service
+        * Add dialog to set the number of objects returned by default for WFS service
     0.4.15
         * Add progress bar
     0.4.14
-        * Add wfs creation from ngw vector layer
-        * Improve ngw resources context menu
+        * Add WFS creation from ngw vector layer
+        * Improve resources context menu
     0.4.13
         * Handle authorization error (HTTPForbidden) error 
     0.4.12
         * Rename plugin
     0.4.11
         * Change visualization of operating process
-        * Add message inviting you to register on my.nextgis.com if thre is not any ngw connections.
+        * Add message inviting you to register on my.nextgis.com if there are no connections.
     0.4:
         * Fix resmeta error
         * Fix WFS
