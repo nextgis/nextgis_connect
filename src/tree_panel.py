@@ -141,13 +141,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         error_mes = "Error in unknown operation"
         if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
-            error_mes = self.tr("Loading resource error. Check your connection settings. See logs for details.")
+            error_mes = self.tr("Loading resource error. Check your connection settings. See log for details.")
         elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
-            error_mes = self.tr("Creating ngw group resource error.")
+            error_mes = self.tr("Creating group resource error.")
         elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
-            error_mes = self.tr("Creating ngw layer resource error.")
+            error_mes = self.tr("Creating layer resource error.")
         elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
-            error_mes = self.tr("Creating ngw wfs service error. See logs for details.")
+            error_mes = self.tr("Creating WFS service error. See log for details.")
 
         self.iface.messageBar().pushMessage(
             self.tr('Error'),
@@ -374,8 +374,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if new_group_name == u'':
             QMessageBox.critical(
                 self,
-                self.tr("Import QGIS project error"),
-                self.tr("Empty import project name")
+                self.tr("Project import error"),
+                self.tr("Empty project name")
             )
             return
 
@@ -418,8 +418,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
             self,
-            self.tr("Delete ngw resource"),
-            self.tr("Are you sure you want to remove the ngw resource?"),
+            self.tr("Delete resource"),
+            self.tr("Are you sure you want to remove this resource?"),
             QMessageBox.Yes and QMessageBox.No,
             QMessageBox.Yes
         )
