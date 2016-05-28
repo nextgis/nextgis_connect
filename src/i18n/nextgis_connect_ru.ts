@@ -31,7 +31,7 @@
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="32"/>
         <source>Create a new NGW connection</source>
-        <translation>Создать новое соединение</translation>
+        <translation>Создать новое подключение</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="41"/>
@@ -74,7 +74,7 @@
     <message>
         <location filename="ng_connect.py" line="199"/>
         <source>Show/Hide NextGIS Connect panel</source>
-        <translation>Показать/Скрыть панель NGW</translation>
+        <translation>Показать/Скрыть панель NextGIS Connect</translation>
     </message>
 </context>
 <context>
@@ -82,7 +82,7 @@
     <message>
         <location filename="tree_panel.py" line="540"/>
         <source>No active connections to NextGIS.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
-        <translation>Нет настроенных подключений к nextgis.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
+        <translation>Нет настроенных подключений к NextGIS.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
 </context>
 <context>
@@ -115,7 +115,7 @@
     <message>
         <location filename="tree_panel_base.ui" line="72"/>
         <source>Add WFS layers</source>
-        <translation>Добавить WFS слои</translation>
+        <translation>Добавить слои WFS</translation>
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="80"/>
@@ -135,7 +135,7 @@
     <message>
         <location filename="tree_panel_base.ui" line="94"/>
         <source>Import current qgis project</source>
-        <translation>Импортировать текущий qgis проект</translation>
+        <translation>Импортировать текущий QGIS проект</translation>
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="102"/>
@@ -188,7 +188,7 @@
     <message>
         <location filename="tree_panel.py" line="144"/>
         <source>Loading resource error. Check your connection settings. See logs for details.</source>
-        <translation>Ошибка загрузки ресурса. Проверьте настройки подклбчения. Подробности в логах.</translation>
+        <translation>Ошибка загрузки ресурса. Проверьте настройки подключения. Подробности в логах.</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="146"/>
@@ -203,7 +203,7 @@
     <message>
         <location filename="tree_panel.py" line="150"/>
         <source>Creating ngw wfs service error. See logs for details.</source>
-        <translation>Ошибка создания wfs сервиса.</translation>
+        <translation>Ошибка создания сервиса WFS. Подробности в логах.</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="319"/>
@@ -228,7 +228,7 @@
     <message>
         <location filename="tree_panel.py" line="402"/>
         <source>New group</source>
-        <translation>Новая группв</translation>
+        <translation>Новая группа</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="367"/>
@@ -253,7 +253,7 @@
     <message>
         <location filename="tree_panel.py" line="434"/>
         <source>Create WFS service</source>
-        <translation>Создать WFS сервис</translation>
+        <translation>Создать сервис WFS</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="414"/>
@@ -268,12 +268,12 @@
     <message>
         <location filename="tree_panel.py" line="421"/>
         <source>Are you sure you want to remove the ngw resource?</source>
-        <translation>Вы уверены что хотите удалить ресурс?</translation>
+        <translation>Вы уверены, что хотите удалить ресурс?</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="434"/>
         <source>The number of objects returned by default</source>
-        <translation>Количестко объектов, возвращаемых по-умолчанию</translation>
+        <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
 </context>
 <context>
