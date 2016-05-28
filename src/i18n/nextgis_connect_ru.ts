@@ -46,7 +46,7 @@
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="57"/>
         <source>URL</source>
-        <translation></translation>
+        <translation>URL</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="67"/>
@@ -64,12 +64,12 @@
     <message>
         <location filename="ng_connect.py" line="247"/>
         <source>&amp;NextGIS Connect</source>
-        <translation></translation>
+        <translation>&amp;NextGIS Connect</translation>
     </message>
     <message>
         <location filename="ng_connect.py" line="229"/>
         <source>NextGIS Connect</source>
-        <translation></translation>
+        <translation>NextGIS Connect</translation>
     </message>
     <message>
         <location filename="ng_connect.py" line="199"/>
@@ -134,8 +134,8 @@
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="94"/>
-        <source>Import current qgis project</source>
-        <translation>Импортировать текущий QGIS проект</translation>
+        <source>Import layers from current project</source>
+        <translation>Импортировать слои из текущего проекта</translation>
     </message>
     <message>
         <location filename="tree_panel_base.ui" line="102"/>
@@ -157,17 +157,17 @@
     <name>TreeControl</name>
     <message>
         <location filename="tree_panel.py" line="106"/>
-        <source>Import selected</source>
-        <translation>Импортировать выбранное</translation>
+        <source>Import selected layer</source>
+        <translation>Импортировать выбранный слой</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="119"/>
-        <source>NGW Resource is being created</source>
+        <source>Resource is being created</source>
         <translation>Ресурс создается</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="120"/>
-        <source>NGW Resource is being deleted</source>
+        <source>Resource is being deleted</source>
         <translation>Ресурс удаляется</translation>
     </message>
     <message>
@@ -182,7 +182,7 @@
     </message>
     <message>
         <location filename="tree_panel.py" line="123"/>
-        <source>NGW WFS service is being created</source>
+        <source>WFS service is being created</source>
         <translation>WFS сервис создается</translation>
     </message>
     <message>
@@ -192,18 +192,18 @@
     </message>
     <message>
         <location filename="tree_panel.py" line="146"/>
-        <source>Creating ngw group resource error.</source>
-        <translation>Ошибка создания группы ресурсов.</translation>
+        <source>Creating group resource error.</source>
+        <translation>Ошибка создания группы.</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="148"/>
-        <source>Creating ngw layer resource error.</source>
+        <source>Creating layer resource error.</source>
         <translation>Ошибка создания слоя.</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="150"/>
-        <source>Creating ngw wfs service error. See logs for details.</source>
-        <translation>Ошибка создания сервиса WFS. Подробности в логах.</translation>
+        <source>Creating WFS service error. See log for details.</source>
+        <translation>Ошибка создания сервиса WFS. Подробности в логе.</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="319"/>
@@ -233,7 +233,7 @@
     <message>
         <location filename="tree_panel.py" line="367"/>
         <source>Set import project name</source>
-        <translation>Задайте имя импортируемого проекта</translation>
+        <translation>Задайте имя для импортируемого проекта</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="367"/>
@@ -242,13 +242,13 @@
     </message>
     <message>
         <location filename="tree_panel.py" line="377"/>
-        <source>Import QGIS project error</source>
-        <translation>Ошибка импорта QGIS проекта</translation>
+        <source>Project import error</source>
+        <translation>Ошибка импорта проекта</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="377"/>
-        <source>Empty import project name</source>
-        <translation>Пустое имя импортируемого проекта</translation>
+        <source>Empty project name</source>
+        <translation>Пустое имя проекта</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="434"/>
@@ -262,13 +262,13 @@
     </message>
     <message>
         <location filename="tree_panel.py" line="421"/>
-        <source>Delete ngw resource</source>
+        <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="421"/>
-        <source>Are you sure you want to remove the ngw resource?</source>
-        <translation>Вы уверены, что хотите удалить ресурс?</translation>
+        <source>Are you sure you want to remove this resource?</source>
+        <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="434"/>
