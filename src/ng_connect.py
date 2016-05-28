@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- NGWConnectPlugin
+ NGConnectPlugin
                                  A QGIS plugin
  NGW Connect
                               -------------------
@@ -25,12 +25,14 @@ from os import path
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 
+from qgis.core import QgsMapLayer
+
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 from tree_panel import TreePanel
 
 
-class NGWConnectPlugin:
+class NGConnectPlugin:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
@@ -61,11 +63,9 @@ class NGWConnectPlugin:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&NGW Connect')
-        self.toolbar = self.iface.addToolBar(self.tr(u'NGW Connect'))
-        self.toolbar.setObjectName(u'NGWConnectPluginToolbar')
-
-
+        self.menu = self.tr(u'&NextGIS Connect')
+        self.toolbar = self.iface.addToolBar(self.tr(u'NextGIS Connect'))
+        self.toolbar.setObjectName(u'NextGISConnectPluginToolbar')
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -80,7 +80,7 @@ class NGWConnectPlugin:
         :rtype: QString
         """
         # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
-        return QCoreApplication.translate('NGWConnectPlugin', message)
+        return QCoreApplication.translate('NGConnectPlugin', message)
 
     def add_action(
         self,
@@ -94,7 +94,8 @@ class NGWConnectPlugin:
         is_checked=False,
         status_tip=None,
         whats_this=None,
-        parent=None):
+        parent=None
+    ):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -180,10 +181,9 @@ class NGWConnectPlugin:
 
         self.actions.append(sep_action)
 
-
     def initGui(self):
-        #import pydevd
-        #pydevd.settrace('localhost', port=5566, stdoutToServer=True, stderrToServer=True, suspend=False)
+        # import pydevd
+        # pydevd.settrace('localhost', port=5566, stdoutToServer=True, stderrToServer=True, suspend=False)
 
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         # Dock tree panel
@@ -194,22 +194,58 @@ class NGWConnectPlugin:
         self.dockWidget.move(PluginSettings.dock_pos())
         self.dockWidget.setVisible(PluginSettings.dock_visibility())
 
-        #Tools for NGW communicate
+        # Tools for NGW communicate
         icon_path = self.plugin_dir + '/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Show/Hide NGW panel'),
+            text=self.tr(u'Show/Hide NextGIS Connect panel'),
             checkable=True,
             is_checked=PluginSettings.dock_visibility(),
             callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
 
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject,
+            self.tr(u"NextGIS Connect"),
+            u"id1",
+            QgsMapLayer.VectorLayer,
+            True
+        )
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject,
+            self.tr(u"NextGIS Connect"),
+            u"id11",
+            QgsMapLayer.RasterLayer,
+            True
+        )
+
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource,
+            self.tr(u"NextGIS Connect"),
+            u"id2",
+            QgsMapLayer.VectorLayer,
+            True
+        )
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource,
+            self.tr(u"NextGIS Connect"),
+            u"id22",
+            QgsMapLayer.RasterLayer,
+            True
+        )
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject
+        )
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource
+        )
+
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&NGW Connect'),
+                self.tr(u'&NextGIS Connect'),
                 action)
             self.iface.removeToolBarIcon(action)
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 /***************************************************************************
- NGW Connect
+ NG Connect
                                  A QGIS plugin
  QGIS plugin for operating NGW resources
                              -------------------
@@ -30,14 +30,14 @@ def classFactory(iface):  # pylint: disable=invalid-name
     :param iface: A QGIS interface instance.
     :type iface: QgsInterface
     """
-    #check
-    import ngw_api
-    try:
-        ngw_api.check_env()
-    except EnvironmentError, ex:
-        from qgis.gui import QgsMessageBar
-        iface.messageBar().pushMessage("NGWConnext Error", ex.message, level=QgsMessageBar.CRITICAL)
-        raise
+    # check
+    # import ngw_api
+    # try:
+    #     ngw_api.check_env()
+    # except EnvironmentError, ex:
+    #     from qgis.gui import QgsMessageBar
+    #     iface.messageBar().pushMessage("NGWConnext Error", ex.message, level=QgsMessageBar.CRITICAL)
+    #     raise
 
-    from .ngw_connect import NGWConnectPlugin
-    return NGWConnectPlugin(iface)
+    from .ng_connect import NGConnectPlugin
+    return NGConnectPlugin(iface)

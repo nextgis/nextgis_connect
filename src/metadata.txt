@@ -7,10 +7,11 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=NGW Connect
+name=NextGIS Connect
 qgisMinimumVersion=2.6
-description=QGIS plugin for operating NGW resources
-version=0.4
+description=Create, connect and use your own fully-functional Web GIS at NextGIS.
+about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. This is beta! We'd love to hear feedback about your experience at http://nextgis.ru/en/contact.
+version=0.5.0
 author=NextGIS
 email=info@nextgis.com
 
@@ -19,7 +20,27 @@ email=info@nextgis.com
 # Optional items:
 
 # Uncomment the following line and add your changelog:
-changelog= 0.4:
+changelog=0.5.0
+        * Release experimental
+    0.4.20
+        * Take into account layer visibility in project importing
+    0.4.19
+        * Push vector to ngw in EPSG: 4326
+    0.4.16
+        * Add dialog to set the number of objects returned by default for wfs service
+    0.4.15
+        * Add progress bar
+    0.4.14
+        * Add wfs creation from ngw vector layer
+        * Improve ngw resources context menu
+    0.4.13
+        * Handle authorization error (HTTPForbidden) error 
+    0.4.12
+        * Rename plugin
+    0.4.11
+        * Change visualization of operating process
+        * Add message inviting you to register on my.nextgis.com if thre is not any ngw connections.
+    0.4:
         * Fix resmeta error
         * Fix WFS
         * Fix WMS icon
@@ -36,8 +57,8 @@ changelog= 0.4:
 tags=nextgis, web, tool, server
 
 homepage=
-tracker=https://github.com/nextgis/ngw_connect/issues
-repository=https://github.com/nextgis/ngw_connect
+tracker=https://github.com/nextgis/nextgis_connect/issues
+repository=https://github.com/nextgis/nextgis_connect
 icon=icon.png
 # experimental flag
 experimental=True

@@ -16,14 +16,7 @@
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QTreeView" name="trvResources">
-      <property name="rootIsDecorated">
-       <bool>true</bool>
-      </property>
-      <attribute name="headerVisible">
-       <bool>false</bool>
-      </attribute>
-     </widget>
+     <layout class="QVBoxLayout" name="nrw_reorces_tree_container"/>
     </item>
     <item>
      <widget class="QComboBox" name="cmbConnection"/>
@@ -52,6 +45,7 @@
    <addaction name="actionOpenMapInBrowser"/>
    <addaction name="separator"/>
    <addaction name="actionCreateNewGroup"/>
+   <addaction name="actionImportQGISProject"/>
    <addaction name="separator"/>
    <addaction name="actionRefresh"/>
    <addaction name="actionSettings"/>
@@ -87,6 +81,17 @@
    </property>
    <property name="toolTip">
     <string>Create new resource group</string>
+   </property>
+  </action>
+  <action name="actionImportQGISProject">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Import current project</string>
+   </property>
+   <property name="toolTip">
+    <string>Import current qgis project</string>
    </property>
   </action>
   <action name="actionSettings">
