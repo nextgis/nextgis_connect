@@ -9,7 +9,7 @@
                              -------------------
         begin                : 2015-01-30
         git sha              : $Format:%H$
-        copyright            : (C) 2014 by NextGIS
+        copyright            : (C) 2014-2016 by NextGIS
         email                : info@nextgis.com
  ***************************************************************************/
 
@@ -104,7 +104,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
 
         self.actionImportQGISResource = QAction(
-            self.tr("Import selected"),
+            self.tr("Import selected layer"),
             self.iface.legendInterface()
         )
         self.actionImportQGISResource.triggered.connect(self.action_import_layer)
