@@ -116,11 +116,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
         self.blocked_jobs = {
-            self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE: self.tr("NGW Resource is being created"),
-            self._resource_model.JOB_DELETE_NGW_RESOURCE: self.tr("NGW Resource is being deleted"),
+            self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE: self.tr("Resource is being created"),
+            self._resource_model.JOB_DELETE_NGW_RESOURCE: self.tr("Resource is being deleted"),
             self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
             self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
-            self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("NGW WFS service is being created"),
+            self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
         }
 
         self.trvResources.setModel(self._resource_model)
