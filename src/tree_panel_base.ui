@@ -91,7 +91,7 @@
     <string>Import current project</string>
    </property>
    <property name="toolTip">
-    <string>Import current qgis project</string>
+    <string>Import layers from current project</string>
    </property>
   </action>
   <action name="actionSettings">
