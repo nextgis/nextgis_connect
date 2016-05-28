@@ -1,5 +1,7 @@
 # NGW_connect
-QGIS plugin for operating NextGIS Web resources
+QGIS plugin for operating NextGIS.com and NextGIS Web resources
+
+![](https://raw.githubusercontent.com/nextgis/nextgis_connect/master/image/connect-screenshot.png)
 
 License
 -------------
