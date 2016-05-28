@@ -39,7 +39,6 @@ from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
 # from ngw_api.core.ngw_resource import NGWResource
-from ngw_api.core.ngw_error import NGWError
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
