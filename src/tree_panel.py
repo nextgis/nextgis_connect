@@ -79,6 +79,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.trvResources = NGWResourcesTreeView(self)
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
+
         # actions
         self.actionAddAsGeoJSON.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddOgrLayer.svg')))
         self.actionAddAsGeoJSON.triggered.connect(self.add_json_layer)
@@ -91,7 +92,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISProject.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionQGISImport.svg')))
         self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
         self.actionRefresh.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionRefresh.svg')))
-        self.actionRefresh.triggered.connect(self.action_refresh)
+        self.actionRefresh.triggered.connect(self.reinit_tree)
         self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')))
         self.actionSettings.triggered.connect(self.action_settings)
 
@@ -126,18 +127,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources.setModel(self._resource_model)
 
         # update state
-        self.update_conn_list()
-        self.reinit_tree(self.cmbConnection.currentText())
+        self.reinit_tree()
 
         # signals
-        self.cmbConnection.currentIndexChanged[str].connect(self.reinit_tree)
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
 
     def model_error_process(self, job, exception):
         QgsMessageLog.logMessage("model error process job: %d" % job)
         QgsMessageLog.logMessage("JOB_CREATE_NGW_WFS_SERVICE: %d" % self._resource_model.JOB_CREATE_NGW_WFS_SERVICE)
-        #QgsMessageLog.logMessage("exception: %s" % str(type(exception)))
-        #QgsMessageLog.logMessage("exception: %s" % exception)
 
         error_mes = "Error in unknown operation"
         if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
@@ -160,7 +157,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 exeption_dict = json.loads(exception.message)
                 exeption_type = exeption_dict.get("exception", "")
 
-                name_of_conn = self.cmbConnection.currentText()
+                name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
                 if exeption_type == "HTTPForbidden":
                     conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
@@ -174,7 +171,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     if res:
                         conn_sett = dlg.ngw_connection_settings
                         NgwPluginSettings.save_ngw_connection(conn_sett)
-                        self.reinit_tree(name_of_conn)
+                        self.reinit_tree()
                     del dlg
 
                 ngw_err_msg = exeption_dict.get("message", "")
@@ -211,25 +208,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
 
-    def update_conn_list(self):
-        self.cmbConnection.clear()
-        self.cmbConnection.addItems(NgwPluginSettings.get_ngw_connection_names())
-        self.set_active_conn_from_sett()
-
-    def set_active_conn_from_sett(self):
-        last_connection = NgwPluginSettings.get_selected_ngw_connection_name()
-        idx = self.cmbConnection.findText(last_connection)
-        if idx == -1 and self.cmbConnection.count() > 0:
-            self.cmbConnection.setCurrentIndex(0)
-        else:
-            self.cmbConnection.setCurrentIndex(idx)
-
-    def reinit_tree(self, name_of_conn):
+    def reinit_tree(self):
         # clear tree and states
-        QgsMessageLog.logMessage("reinit_tree")
-
-        # self.trvResources.setModel(None)
         self.disable_tools()
+
+        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
 
         if not name_of_conn:
             self.trvResources.showWelcomeMessage()
@@ -269,7 +252,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources.selectionModel().currentChanged.connect(self.active_item_chg)
 
         # save last selected connection
-        NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
+        # NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
 
     def active_item_chg(self, selected, deselected):
         ngw_resource = selected.data(Qt.UserRole)
@@ -299,9 +282,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 add_resource_as_geojson(ngw_resource)
             except NGWError as ex:
                 error_mes = ex.message or ''
-                self.iface.messageBar().pushMessage(self.tr('Error'),
-                                                error_mes,
-                                                level=QgsMessageBar.CRITICAL)
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    error_mes,
+                    level=QgsMessageBar.CRITICAL
+                )
                 QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
 
     def add_wfs_layer(self):
@@ -314,9 +299,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 add_resource_as_wfs_layers(ngw_resource)
             except NGWError as ex:
                 error_mes = ex.message or ''
-                self.iface.messageBar().pushMessage(self.tr('Error'),
-                                                error_mes,
-                                                level=QgsMessageBar.CRITICAL)
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    error_mes,
+                    level=QgsMessageBar.CRITICAL
+                )
                 QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
 
     def create_group(self):
@@ -335,15 +322,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
         sel_index = self.trvResources.selectionModel().currentIndex()
         self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
 
-    def action_refresh(self):
-        self.reinit_tree(self.cmbConnection.currentText())  # TODO: more smart update (selected and childs)
-
     def action_settings(self):
         sett_dialog = SettingsDialog()
         sett_dialog.show()
         sett_dialog.exec_()
 
-        self.update_conn_list()
+        self.reinit_tree()
 
     def action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()

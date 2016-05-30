@@ -18,9 +18,6 @@
     <item>
      <layout class="QVBoxLayout" name="nrw_reorces_tree_container"/>
     </item>
-    <item>
-     <widget class="QComboBox" name="cmbConnection"/>
-    </item>
    </layout>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
