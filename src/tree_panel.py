@@ -26,9 +26,11 @@ import os
 import json
 import subprocess
 import webbrowser
+import functools
+
 from PyQt4 import uic
-from PyQt4.QtGui import QDockWidget, QMainWindow, QIcon, QInputDialog, QLineEdit, QMenu, QMessageBox, QAction
-from PyQt4.QtCore import Qt, QModelIndex
+from PyQt4.QtGui import *
+from PyQt4.QtCore import *
 from qgis.core import QgsMessageLog, QgsProject
 from qgis.gui import QgsMessageBar
 import sys
@@ -103,6 +105,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
         #     self.iface.legendInterface()
         # )
         # self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
+
+        self.helpAction = QAction(
+            QIcon(os.path.join(ICONS_PATH, 'help.svg')),
+            self.tr("Open help page"),
+            self.iface.legendInterface()
+        )
+        url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
+        self.helpAction.triggered.connect(
+            functools.partial(
+                QDesktopServices.openUrl,
+                QUrl(url)
+            )
+        )
+        self.mainToolBar.addAction(self.helpAction)
 
         self.actionImportQGISResource = QAction(
             self.tr("Import selected layer"),
@@ -514,6 +530,8 @@ class NGWResourcesTreeView(QtGui.QTreeView):
     def __init__(self, parent):
         QtGui.QTreeView.__init__(self, parent)
 
+        # self.setStyleSheet("margin-bottom: 20px")
+
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
 
@@ -531,11 +549,22 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         )
         self.ngw_job_block_overlay.hide()
 
-        self.jobs = {}
+        # self.label = QLabel("Help!", self)
+        # self.label.setStyleSheet("background:transparent")
+        # self.label.setAttribute(Qt.WA_TranslucentBackground)
+        # self.label.setAlignment(Qt.AlignCenter)
+
+        # self.jobs = {}
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
+
+        # self.label.setFixedWidth(self.width())
+        # p = self.geometry().bottomLeft()
+        # p.setY(p.y() - 2 * self.label.geometry().height())
+        # self.label.move(p)
+
         event.accept()
 
     def showWelcomeMessage(self):
