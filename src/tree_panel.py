@@ -27,6 +27,7 @@ import json
 import subprocess
 import webbrowser
 import functools
+from urlparse import urlparse
 
 from PyQt4 import uic
 from PyQt4.QtGui import *
@@ -76,11 +77,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __init__(self, iface, parent=None):
         super(TreeControl, self).__init__(parent)
         self.setupUi(self)
-
         self.iface = iface
-
-        self.trvResources = NGWResourcesTreeView(self)
-        self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
         # actions
         self.actionAddAsGeoJSON.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddOgrLayer.svg')))
@@ -98,28 +95,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')))
         self.actionSettings.triggered.connect(self.action_settings)
 
-        # actions on qgis resources
-        # self.actionImportQGISProject = QAction(
-        #     QIcon(os.path.join(ICONS_PATH, 'mActionQGISImport.svg')),
-        #     self.tr("Import current project"),
-        #     self.iface.legendInterface()
-        # )
-        # self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
-
-        self.helpAction = QAction(
-            QIcon(os.path.join(ICONS_PATH, 'help.svg')),
-            self.tr("Open help page"),
-            self.iface.legendInterface()
-        )
-        url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
-        self.helpAction.triggered.connect(
-            functools.partial(
-                QDesktopServices.openUrl,
-                QUrl(url)
-            )
-        )
-        self.mainToolBar.addAction(self.helpAction)
-
         self.actionImportQGISResource = QAction(
             self.tr("Import selected layer"),
             self.iface.legendInterface()
@@ -128,7 +103,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS()
-        self._resource_model.errorOccurred.connect(self.model_error_process)
+        self._resource_model.errorOccurred.connect(self.__model_error_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
@@ -140,15 +115,39 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
         }
 
+        # ngw resources view
+        self.trvResources = NGWResourcesTreeView(self)
         self.trvResources.setModel(self._resource_model)
+        self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
+
+        self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
         # update state
         self.reinit_tree()
 
-        # signals
-        self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
+        # Help message label
+        url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
+        self.helpMessageLabel.setText(
+            ' <span style="font-weight:bold;font-size:12px;color:blue;">?    </span><a href="%s">%s</a>' % (
+                url,
+                self.tr("Help")
+            )
+        )
 
-    def model_error_process(self, job, exception):
+        # ----------------------------------------------
+        # Configurate new WebGIS InfoWidget
+        # This widget may be useful in the future
+        self.webGISCreationMessageWidget.setVisible(False)
+        # self.webGISCreationMessageCloseLable.linkActivated.connect(self.__closeNewWebGISInfoWidget)
+        # if PluginSettings.webgis_creation_message_closed_by_user():
+        #     self.webGISCreationMessageWidget.setVisible(False)
+        # ----------------------------------------------
+
+    # def __closeNewWebGISInfoWidget(self, link):
+    #     self.webGISCreationMessageWidget.setVisible(False)
+    #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
+
+    def __model_error_process(self, job, exception):
         QgsMessageLog.logMessage("model error process job: %d" % job)
         QgsMessageLog.logMessage("JOB_CREATE_NGW_WFS_SERVICE: %d" % self._resource_model.JOB_CREATE_NGW_WFS_SERVICE)
 
@@ -174,9 +173,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 exeption_type = exeption_dict.get("exception", "")
 
                 name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
-                if exeption_type == "HTTPForbidden":
+
+                if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
                     conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+                    print "conn_sett: ", conn_sett
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
+                    dlg.leWebGIS.setDisabled(True)
                     dlg.leName.setDisabled(True)
                     dlg.leUrl.setDisabled(True)
                     dlg.setWindowTitle(
@@ -228,11 +230,25 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # clear tree and states
         self.disable_tools()
 
-        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+        # ----------------------------------------------
+        # Configurate new WebGIS InfoWidget
+        # This widget may be useful in the future
+        # Check show message for creation new web gis
+        # if not PluginSettings.webgis_creation_message_closed_by_user():
+        #     for conn_name in NgwPluginSettings.get_ngw_connection_names():
+        #         conn_settings = NgwPluginSettings.get_ngw_connection(conn_name)
+        #         o = urlparse(conn_settings.server_url)
+        #         if o.hostname.find("nextgis.com") != -1:
+        #             self.webGISCreationMessageWidget.setVisible(False)
+        #             break
+        # ----------------------------------------------
 
+        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
         if not name_of_conn:
             self.trvResources.showWelcomeMessage()
+            self._resource_model.cleanModel()
             return
+
         self.trvResources.hideWelcomeMessage()
 
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
@@ -240,25 +256,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if not conn_sett:
             return
 
-        # if conn_sett
-
-        # setup ngw api
-        # rsc_factory = NGWResourceFactory(conn_sett)
-
-        # try:
-        #     root_rsc = rsc_factory.get_root_resource()
-        # except Exception, e:
-        #     error_message = self.tr('Error on fetch resources: ') + e.message
-        #     self.iface.messageBar().pushMessage(self.tr('ERROR'),
-        #                                         error_message,
-        #                                         level=QgsMessageBar.CRITICAL)
-        #     QgsMessageLog.logMessage(error_message, level=QgsMessageLog.CRITICAL)
-        #     return
-
-        # setup new qt model
-        # self._root_item = QNGWFakeRootItem(root_rsc, None)
-        # self._resource_model = QNGWResourcesModel(self._root_item)
-        # self.trvResources.setModel(self._resource_model)
         self._resource_model.resetModel(conn_sett)
 
         # expand root item
@@ -554,7 +551,7 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         # self.label.setAttribute(Qt.WA_TranslucentBackground)
         # self.label.setAlignment(Qt.AlignCenter)
 
-        # self.jobs = {}
+        self.jobs = {}
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())

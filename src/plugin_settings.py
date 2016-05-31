@@ -79,3 +79,13 @@ class PluginSettings(CommonPluginSettings):
     def set_dock_visibility(cls, val):
         settings = cls.get_settings()
         settings.setValue('/ui/dockWidgetIsVisible', val)
+
+    @classmethod
+    def webgis_creation_message_closed_by_user(cls):
+        settings = cls.get_settings()
+        return settings.value('/ui/webGisCreationMessageClosedByUser', False, type=bool)
+
+    @classmethod
+    def set_webgis_creation_message_closed_by_user(cls, val):
+        settings = cls.get_settings()
+        settings.setValue('/ui/webGisCreationMessageClosedByUser', val)

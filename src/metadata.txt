@@ -21,6 +21,8 @@ email=info@nextgis.com
 
 # Uncomment the following line and add your changelog:
 changelog=0.5.2
+        * Add simple and advanced modes for New/Edit connection settings dialog 
+        * Add help link
         * Remove connections listbox from working panel
         * Change icon
     0.5.1

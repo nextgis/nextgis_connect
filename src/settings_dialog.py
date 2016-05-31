@@ -51,9 +51,9 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.btnEdit.clicked.connect(self.edit_connection)
         self.btnDelete.clicked.connect(self.delete_connection)
 
-        self.cmbConnections.currentIndexChanged.connect(self.save_active_connection)
-
         self.populate_connection_list()
+
+        self.cmbConnections.currentIndexChanged.connect(self.save_active_connection)
 
     def save_active_connection(self, index_of_conn):
         PluginSettings.set_selected_ngw_connection_name(
