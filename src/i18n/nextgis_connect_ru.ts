@@ -60,7 +60,7 @@
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="61"/>
         <source>&lt;a href=&quot;advanced&quot;&gt;Advanced settings&lt;/a&gt;</source>
-        <translation>Расширенные настройки</translation>
+        <translation>&lt;a href=&quot;advanced&quot;&gt;Расширенные настройки&lt;/a&gt;</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="87"/>
