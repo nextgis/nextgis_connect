@@ -59,23 +59,23 @@
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="61"/>
-        <source>&lt;a href=&quot;advanced&quot;&gt;Advansed settings&lt;/a&gt;</source>
-        <translation type="unfinished"></translation>
+        <source>&lt;a href=&quot;advanced&quot;&gt;Advanced settings&lt;/a&gt;</source>
+        <translation>Расширенные настройки</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="87"/>
         <source>administrator</source>
-        <translation type="unfinished"></translation>
+        <translation>administrator</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="108"/>
         <source>As guest</source>
-        <translation type="unfinished"></translation>
+        <translation>Как гость</translation>
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="121"/>
         <source>Web GIS</source>
-        <translation type="unfinished"></translation>
+        <translation>Веб ГИС</translation>
     </message>
 </context>
 <context>
