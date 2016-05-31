@@ -387,7 +387,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         index = self.trvResources.indexAt(qpoint)
 
         if not index.isValid():
-            return
+            index = self._resource_model.index(
+                0,
+                0,
+                QModelIndex()
+            )
 
         ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
 
