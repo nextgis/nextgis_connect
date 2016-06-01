@@ -217,6 +217,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources = NGWResourcesTreeView(self)
         self.trvResources.setModel(self._resource_model)
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
+        self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
 
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
@@ -232,7 +233,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
         )
 
-        self.iface.currentLayerChanged.connect(self.__checkImportActions) 
+        self.iface.currentLayerChanged.connect(self.__checkImportActions)
 
         # ----------------------------------------------
         # Configurate new WebGIS InfoWidget
@@ -399,7 +400,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # self.actionAddAsGeoJSON.setEnabled(False)
         # self.actionAddWFS.setEnabled(False)
         self.actionExport.setEnabled(False)
-        #self.actionCreateNewGroup.setEnabled(False)
+        # self.actionCreateNewGroup.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
@@ -422,7 +423,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
 
         menu = QMenu()
-
         if isinstance(ngw_resource, NGWGroupResource):
             menu.addAction(self.actionCreateNewGroup)
         elif isinstance(ngw_resource, NGWVectorLayer):
@@ -437,6 +437,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         menu.addAction(self.actionDeleteResource)
 
         menu.exec_(self.trvResources.viewport().mapToGlobal(qpoint))
+
+    def trvDoubleClickProcess(self, index):
+        ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
+        if isinstance(ngw_resource, NGWWebMap):
+            self.__action_open_map()
 
     def __action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
@@ -663,10 +668,10 @@ class ProcessOverlay(Overlay):
 
 
 class NGWResourcesTreeView(QtGui.QTreeView):
+    itemDoubleClicked = pyqtSignal(object)
+
     def __init__(self, parent):
         QtGui.QTreeView.__init__(self, parent)
-
-        # self.setStyleSheet("margin-bottom: 20px")
 
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -685,23 +690,20 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         )
         self.ngw_job_block_overlay.hide()
 
-        # self.label = QLabel("Help!", self)
-        # self.label.setStyleSheet("background:transparent")
-        # self.label.setAttribute(Qt.WA_TranslucentBackground)
-        # self.label.setAlignment(Qt.AlignCenter)
-
         self.jobs = {}
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
 
-        # self.label.setFixedWidth(self.width())
-        # p = self.geometry().bottomLeft()
-        # p.setY(p.y() - 2 * self.label.geometry().height())
-        # self.label.move(p)
-
         event.accept()
+
+    def mouseDoubleClickEvent(self, e):
+        index = self.indexAt(e.pos())
+        if index.isValid():
+            self.itemDoubleClicked.emit(index)
+
+        super(NGWResourcesTreeView, self).mouseDoubleClickEvent(e)
 
     def showWelcomeMessage(self):
         self.no_ngw_connections_overlay.show()
