@@ -368,7 +368,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # expand root item
         self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
-
         # reconnect signals
         self.trvResources.selectionModel().currentChanged.connect(self.active_item_chg)
 
@@ -521,7 +520,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         sel_index = self.trvResources.selectionModel().currentIndex()
-        print "sel_index: ", sel_index
         if sel_index is None:
             sel_index = self._resource_model.index(0, 0, QModelIndex())
         self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
@@ -691,6 +689,13 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         self.ngw_job_block_overlay.hide()
 
         self.jobs = {}
+
+    def setModel(self, model):
+        model.rowsInserted.connect(self.__insertRowsProcess)
+        super(NGWResourcesTreeView, self).setModel(model)
+
+    def __insertRowsProcess(self, parent, start, end):
+        self.setExpanded(parent, True)
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
