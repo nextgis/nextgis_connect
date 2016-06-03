@@ -101,7 +101,7 @@
     <name>NGWResourcesTreeView</name>
     <message>
         <location filename="tree_panel.py" line="667"/>
-        <source>No active connections to NextGIS.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
+        <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет настроенных подключений к NextGIS.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
 </context>
