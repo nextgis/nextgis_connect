@@ -286,7 +286,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
                     print "conn_sett: ", conn_sett
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
-                    dlg.leWebGIS.setDisabled(True)
                     dlg.leName.setDisabled(True)
                     dlg.leUrl.setDisabled(True)
                     dlg.setWindowTitle(
