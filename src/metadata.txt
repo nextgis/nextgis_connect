@@ -21,6 +21,7 @@ email=info@nextgis.com
 
 # Uncomment the following line and add your changelog:
 changelog=0.5.6
+        * Check URL when add new connection or edit one
         * Return to one mode connection settings dialog
     0.5.5
         * Unfold the folded group, when added new resource 

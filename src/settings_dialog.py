@@ -70,7 +70,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
             conn_sett = PluginSettings.get_ngw_connection(conn_name)
 
         dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
-        dlg.setWindowTitle(self.tr("Edit NGW connection"))
+        dlg.setWindowTitle(self.tr("Edit connection"))
         if dlg.exec_():
             new_conn_sett = dlg.ngw_connection_settings
             # if conn was renamed - remove old
