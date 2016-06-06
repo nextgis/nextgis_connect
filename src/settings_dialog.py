@@ -45,7 +45,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
-        self.setFixedSize(self.size())
+        # self.setFixedSize(self.size())
 
         self.btnNew.clicked.connect(self.new_connection)
         self.btnEdit.clicked.connect(self.edit_connection)
