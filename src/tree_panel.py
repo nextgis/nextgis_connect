@@ -180,6 +180,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # Add new toolbar
         self.main_tool_bar = self.addToolBar("main")
         self.main_tool_bar.setFloatable(False)
+        self.main_tool_bar.setMovable(False)
         self.main_tool_bar.addAction(self.actionExport)
         toolbutton = QToolButton()
         toolbutton.setPopupMode(QToolButton.InstantPopup)
