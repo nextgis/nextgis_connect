@@ -11,7 +11,7 @@ name=NextGIS Connect
 qgisMinimumVersion=2.6
 description=Create, connect and use your own fully-functional Web GIS at NextGIS.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. This is beta! We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.5.6
+version=0.5.7
 author=NextGIS
 email=info@nextgis.com
 
@@ -20,8 +20,12 @@ email=info@nextgis.com
 # Optional items:
 
 # Uncomment the following line and add your changelog:
-changelog=0.5.6
-        * Check URL when add new connection or edit one
+changelog=0.5.7
+        * Can use cyrillic symbols in auth data
+        * Disable service items (like loading...) in resources tree
+        * Create group in the nearest parent group of selected resource
+    0.5.6
+        * Check URL when add new connesction or edit one
         * Return to one mode connection settings dialog
     0.5.5
         * Unfold the folded group, when added new resource 

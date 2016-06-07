@@ -286,9 +286,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
                     conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
                     print "conn_sett: ", conn_sett
-                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
-                    dlg.leName.setDisabled(True)
-                    dlg.leUrl.setDisabled(True)
+                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
                     dlg.setWindowTitle(
                         self.tr("Access denied. Enter your login.")
                     )
@@ -315,9 +313,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     level=QgsMessageLog.CRITICAL
                 )
         else:
-
             QgsMessageLog.logMessage(
-                "%s\n\t %s" % (error_mes, exception),
+                "%s\n\t %s" % (
+                    error_mes,
+                    exception,
+                ),
                 PluginSettings._product,
                 level=QgsMessageLog.CRITICAL
             )
