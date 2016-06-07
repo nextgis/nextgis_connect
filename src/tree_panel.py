@@ -32,7 +32,7 @@ from urlparse import urlparse
 from PyQt4 import uic
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-from qgis.core import QgsMessageLog, QgsProject, QgsMapLayer
+from qgis.core import QgsMessageLog, QgsProject, QgsMapLayer, QgsVectorLayer, QgsRasterLayer
 from qgis.gui import QgsMessageBar
 import sys
 from ngw_api.core.ngw_error import NGWError
@@ -252,9 +252,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __checkImportActions(self, current_qgis_layer):
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
-        elif isinstance(current_qgis_layer, QgsMapLayer):
+        elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
             self.actionImportQGISResource.setEnabled(True)
-        print "current_qgis_layer: ", current_qgis_layer
 
     def __model_error_process(self, job, exception):
         QgsMessageLog.logMessage("model error process job: %d" % job)
