@@ -178,10 +178,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionSettings.triggered.connect(self.action_settings)
 
         # Add new toolbar
-        self.main_tool_bar = self.addToolBar("main")
-        self.main_tool_bar.setIconSize(QSize(24, 24))
-        self.main_tool_bar.setFloatable(False)
-        self.main_tool_bar.setMovable(False)
+        self.main_tool_bar = NGWPanelToolBar(self)
+        self.addToolBar(self.main_tool_bar)
         self.main_tool_bar.addAction(self.actionExport)
         toolbutton = QToolButton()
         toolbutton.setPopupMode(QToolButton.InstantPopup)
@@ -584,8 +582,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.createWFSForVector(selected_index, ret_obj_num)
 
 
-# from PyQt4.QtCore import 
 from PyQt4 import QtGui
+
+
+class NGWPanelToolBar(QtGui.QToolBar):
+    def __init__(self, parent):
+        QtGui.QToolBar.__init__(self, parent)
+        self.setIconSize(QSize(24, 24))
+
+    def contextMenuEvent(self, event):
+        event.accept()
 
 
 class Overlay(QtGui.QWidget):
