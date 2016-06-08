@@ -179,6 +179,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # Add new toolbar
         self.main_tool_bar = self.addToolBar("main")
+        self.main_tool_bar.setIconSize(QSize(24, 24))
         self.main_tool_bar.setFloatable(False)
         self.main_tool_bar.setMovable(False)
         self.main_tool_bar.addAction(self.actionExport)
@@ -521,6 +522,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         sel_index = self.trvResources.selectionModel().currentIndex()
         if sel_index is None:
             sel_index = self._resource_model.index(0, 0, QModelIndex())
+
         self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
 
     def action_import_qgis_project(self):
