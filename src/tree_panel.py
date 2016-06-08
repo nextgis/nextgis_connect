@@ -65,6 +65,7 @@ class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
         # init dock
         super(TreePanel, self).__init__(parent)
+
         self.setWindowTitle(self.tr('NextGIS Resources'))
 
         # init internal control
@@ -76,11 +77,12 @@ class TreePanel(QDockWidget):
 class TreeControl(QMainWindow, FORM_CLASS):
     def __init__(self, iface, parent=None):
         super(TreeControl, self).__init__(parent)
+
         self.setupUi(self)
         self.iface = iface
 
         # Do not use ui toolbar
-        self.removeToolBar(self.mainToolBar)
+        # self.removeToolBar(self.mainToolBar)
 
         # actions
         self.actionExport = QAction(
@@ -178,8 +180,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionSettings.triggered.connect(self.action_settings)
 
         # Add new toolbar
-        self.main_tool_bar = NGWPanelToolBar(self)
+        self.main_tool_bar = NGWPanelToolBar()
         self.addToolBar(self.main_tool_bar)
+
         self.main_tool_bar.addAction(self.actionExport)
         toolbutton = QToolButton()
         toolbutton.setPopupMode(QToolButton.InstantPopup)
@@ -244,6 +247,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         #     self.webGISCreationMessageWidget.setVisible(False)
         # ----------------------------------------------
 
+        self.main_tool_bar.setIconSize(QSize(24, 24))
     # def __closeNewWebGISInfoWidget(self, link):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
@@ -586,11 +590,17 @@ from PyQt4 import QtGui
 
 
 class NGWPanelToolBar(QtGui.QToolBar):
-    def __init__(self, parent):
-        QtGui.QToolBar.__init__(self, parent)
+    def __init__(self):
+        QtGui.QToolBar.__init__(self, None)
+
         self.setIconSize(QSize(24, 24))
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
     def contextMenuEvent(self, event):
+        event.accept()
+
+    def resizeEvent(self, event):
+        QtGui.QToolBar.setIconSize(self, QSize(24, 24))
         event.accept()
 
 
