@@ -450,10 +450,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if sel_index.isValid():
             ngw_resource = sel_index.data(Qt.UserRole)
             url = ngw_resource.get_display_url()
-            if sys.platform == 'darwin':    # in case of OS X
-                subprocess.Popen(['open', url])
-            else:
-                webbrowser.open_new_tab(url)
+            QDesktopServices.openUrl(QUrl(url))
+            # if sys.platform == 'darwin':    # in case of OS X
+            #     subprocess.Popen(['open', url])
+            # else:
+            #     webbrowser.open_new_tab(url)
 
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
