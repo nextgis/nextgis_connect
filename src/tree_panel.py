@@ -688,8 +688,12 @@ class NGWResourcesTreeView(QtGui.QTreeView):
     def __init__(self, parent):
         QtGui.QTreeView.__init__(self, parent)
 
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.header().setStretchLastSection(False)
+        self.header().setResizeMode(QHeaderView.ResizeToContents)
 
         # no ngw connectiond message
         self.no_ngw_connections_overlay = MessageOverlay(
@@ -718,7 +722,7 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         self.no_ngw_connections_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
 
-        event.accept()
+        QtGui.QTreeView.resizeEvent(self, event)
 
     def mouseDoubleClickEvent(self, e):
         index = self.indexAt(e.pos())
