@@ -11,7 +11,7 @@ name=NextGIS Connect
 qgisMinimumVersion=2.6
 description=Create, connect and use your own fully-functional Web GIS at NextGIS.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. This is beta! We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.5.11
+version=0.6.0
 author=NextGIS
 email=info@nextgis.com
 
@@ -20,7 +20,9 @@ email=info@nextgis.com
 # Optional items:
 
 # Uncomment the following line and add your changelog:
-changelog=0.5.11
+changelog=0.6.0
+        * Release
+    0.5.11
         * Fix opening webmap in linux
         * Add scrollbar to panel
     0.5.7
