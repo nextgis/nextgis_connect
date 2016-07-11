@@ -22,6 +22,7 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.7.3
+        * Improve coneection settings dialog
         * Fix import layers with same names on project import
     0.7.2
         * Transfer delimitedtext layers to nextgis.com

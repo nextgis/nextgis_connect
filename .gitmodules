@@ -1,4 +1,4 @@
 [submodule "src/ngw_api"]
     path = src/ngw_api
     url = https://github.com/nextgis/ngw_external_api_python.git
-    branch = de3219a
+    branch = 2271ac1
