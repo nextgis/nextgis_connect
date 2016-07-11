@@ -51,14 +51,18 @@ from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 # from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
 # from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel
 # from ngw_api.core.ngw_resource_factory import NGWResourceFactory
-from settings_dialog import SettingsDialog
 
+from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'tree_panel_base.ui'))
 
 ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
+
+
+def qgisLog(msg, level=QgsMessageLog.INFO):
+    QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
 
 class TreePanel(QDockWidget):
@@ -259,18 +263,19 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportQGISResource.setEnabled(True)
 
     def __model_error_process(self, job, exception):
-        QgsMessageLog.logMessage("model error process job: %d" % job)
-        QgsMessageLog.logMessage("JOB_CREATE_NGW_WFS_SERVICE: %d" % self._resource_model.JOB_CREATE_NGW_WFS_SERVICE)
+        qgisLog("model error process job: %d" % job)
 
-        error_mes = "Error in unknown operation"
+        error_mes = "Error in unknown operation."
         if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
-            error_mes = self.tr("Loading resource error. Check your connection settings. See log for details.")
+            error_mes = self.tr("Loading resource error. Check your connection settings.")
         elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
             error_mes = self.tr("Creating group resource error.")
         elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
             error_mes = self.tr("Creating layer resource error.")
         elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
             error_mes = self.tr("Creating WFS service error. See log for details.")
+
+        error_mes += " " + self.tr("See log for details.")
 
         self.iface.messageBar().pushMessage(
             self.tr('Error'),
@@ -302,25 +307,22 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
                 ngw_err_msg = exeption_dict.get("message", "")
 
-                QgsMessageLog.logMessage(
+                qgisLog(
                     "%s\n\t %s" % (error_mes, ngw_err_msg),
-                    PluginSettings._product,
                     level=QgsMessageLog.CRITICAL
                 )
 
             except Exception as e:
-                QgsMessageLog.logMessage(
+                qgisLog(
                     "Error when proccess NGW Error: %s" % (e),
-                    PluginSettings._product,
                     level=QgsMessageLog.CRITICAL
                 )
         else:
-            QgsMessageLog.logMessage(
+            qgisLog(
                 "%s\n\t %s" % (
                     error_mes,
                     exception,
                 ),
-                PluginSettings._product,
                 level=QgsMessageLog.CRITICAL
             )
 
