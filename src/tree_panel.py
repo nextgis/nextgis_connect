@@ -24,33 +24,26 @@
 """
 import os
 import json
-import subprocess
-import webbrowser
-import functools
-from urlparse import urlparse
 
 from PyQt4 import uic
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-from qgis.core import QgsMessageLog, QgsProject, QgsMapLayer, QgsVectorLayer, QgsRasterLayer
+
+from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer
 from qgis.gui import QgsMessageBar
-import sys
+
 from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
-# from ngw_api.core.ngw_resource_creator import ResourceCreator
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
-# from ngw_api.core.ngw_resource import NGWResource
+
+from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_as_wfs_layers
 from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
-from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
-# from ngw_api.qt.qt_ngw_fake_root_item import QNGWFakeRootItem
-# from ngw_api.qt.qt_ngw_resource_model import QNGWResourcesModel
-# from ngw_api.core.ngw_resource_factory import NGWResourceFactory
 
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
@@ -81,6 +74,8 @@ class TreePanel(QDockWidget):
 class TreeControl(QMainWindow, FORM_CLASS):
     def __init__(self, iface, parent=None):
         super(TreeControl, self).__init__(parent)
+
+        # parent.destroyed.connect(self.__stop)
 
         self.setupUi(self)
         self.iface = iface
@@ -119,21 +114,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
         self.menuImport.addAction(self.actionImportQGISProject)
-
-        # self.actionAddAsGeoJSON.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddOgrLayer.svg')))
-        # self.actionAddAsGeoJSON.triggered.connect(self.add_json_layer)
-        # self.actionAddWFS.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionAddWfsLayer.svg')))
-        # self.actionAddWFS.triggered.connect(self.add_wfs_layer)
-        # self.actionOpenMapInBrowser.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionOpenMap.svg')))
-        # self.actionOpenMapInBrowser.triggered.connect(self.__action_open_map)
-        # self.actionCreateNewGroup.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.png')))
-        # self.actionCreateNewGroup.triggered.connect(self.create_group)
-        # self.actionImportQGISProject.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionQGISImport.svg')))
-        # self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
-        # self.actionRefresh.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionRefresh.svg')))
-        # self.actionRefresh.triggered.connect(self.reinit_tree)
-        # self.actionSettings.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')))
-        # self.actionSettings.triggered.connect(self.action_settings)
 
         self.actionCreateNewGroup = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.svg')),
@@ -207,7 +187,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.main_tool_bar.addAction(self.actionSettings)
 
         # ngw resources model
-        self._resource_model = QNGWResourcesModel4QGIS()
+        self._resource_model = QNGWResourcesModel4QGIS(self)
         self._resource_model.errorOccurred.connect(self.__model_error_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
@@ -252,6 +232,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # ----------------------------------------------
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
+
     # def __closeNewWebGISInfoWidget(self, link):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
@@ -371,7 +352,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.resetModel(conn_sett)
 
         # expand root item
-        self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
+        # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
+
         # reconnect signals
         self.trvResources.selectionModel().currentChanged.connect(self.active_item_chg)
 
@@ -477,40 +459,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
                 QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
 
-    # def add_json_layer(self):
-    #     sel_index = self.trvResources.selectionModel().currentIndex()
-    #     # print sel_index.isValid()
-    #     if sel_index.isValid():
-    #         ngw_resource = sel_index.data(Qt.UserRole)
-
-    #         try:
-    #             add_resource_as_geojson(ngw_resource)
-    #         except NGWError as ex:
-    #             error_mes = ex.message or ''
-    #             self.iface.messageBar().pushMessage(
-    #                 self.tr('Error'),
-    #                 error_mes,
-    #                 level=QgsMessageBar.CRITICAL
-    #             )
-    #             QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
-
-    # def add_wfs_layer(self):
-    #     sel_index = self.trvResources.selectionModel().currentIndex()
-
-    #     if sel_index.isValid():
-    #         ngw_resource = sel_index.data(Qt.UserRole)
-
-    #         try:
-    #             add_resource_as_wfs_layers(ngw_resource)
-    #         except NGWError as ex:
-    #             error_mes = ex.message or ''
-    #             self.iface.messageBar().pushMessage(
-    #                 self.tr('Error'),
-    #                 error_mes,
-    #                 level=QgsMessageBar.CRITICAL
-    #             )
-    #             QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
-
     def create_group(self):
         new_group_name, res = QInputDialog.getText(
             self,
@@ -589,12 +537,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.createWFSForVector(selected_index, ret_obj_num)
 
 
-from PyQt4 import QtGui
-
-
-class NGWPanelToolBar(QtGui.QToolBar):
+class NGWPanelToolBar(QToolBar):
     def __init__(self):
-        QtGui.QToolBar.__init__(self, None)
+        QToolBar.__init__(self, None)
 
         self.setIconSize(QSize(24, 24))
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -603,33 +548,33 @@ class NGWPanelToolBar(QtGui.QToolBar):
         event.accept()
 
     def resizeEvent(self, event):
-        QtGui.QToolBar.setIconSize(self, QSize(24, 24))
+        QToolBar.setIconSize(self, QSize(24, 24))
         event.accept()
 
 
-class Overlay(QtGui.QWidget):
+class Overlay(QWidget):
     def __init__(self, parent):
-        QtGui.QWidget.__init__(self, parent)
+        QWidget.__init__(self, parent)
         # self.resize(parent.size())
-        palette = QtGui.QPalette(self.palette())
+        palette = QPalette(self.palette())
         palette.setColor(palette.Background, Qt.transparent)
         self.setPalette(palette)
 
     def paintEvent(self, event):
-        painter = QtGui.QPainter()
+        painter = QPainter()
         painter.begin(self)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QtGui.QBrush(QtGui.QColor(255, 255, 255, 200)))
-        painter.setPen(QtGui.QPen(Qt.NoPen))
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.fillRect(event.rect(), QBrush(QColor(255, 255, 255, 200)))
+        painter.setPen(QPen(Qt.NoPen))
 
 
 class MessageOverlay(Overlay):
     def __init__(self, parent, text):
         Overlay.__init__(self, parent)
-        self.layout = QtGui.QHBoxLayout(self)
+        self.layout = QHBoxLayout(self)
         self.setLayout(self.layout)
 
-        self.text = QtGui.QLabel(text, self)
+        self.text = QLabel(text, self)
         self.text.setAlignment(Qt.AlignCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
@@ -639,22 +584,22 @@ class MessageOverlay(Overlay):
 class ProcessOverlay(Overlay):
     def __init__(self, parent):
         Overlay.__init__(self, parent)
-        self.layout = QtGui.QVBoxLayout(self)
+        self.layout = QVBoxLayout(self)
         self.setLayout(self.layout)
 
-        spacer_before = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        spacer_after = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
+        spacer_before = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        spacer_after = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.layout.addItem(spacer_before)
 
-        self.central_widget = QtGui.QWidget(self)
+        self.central_widget = QWidget(self)
         # self.central_widget.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.central_widget_layout = QtGui.QVBoxLayout(self.central_widget)
+        self.central_widget_layout = QVBoxLayout(self.central_widget)
         self.central_widget.setLayout(self.central_widget_layout)
         self.layout.addWidget(self.central_widget)
 
         self.layout.addItem(spacer_after)
 
-        self.progress = QtGui.QProgressBar(self)
+        self.progress = QProgressBar(self)
         self.progress.setMinimum(0)
         self.progress.setMaximum(0)
         self.progress.setValue(0)
@@ -669,7 +614,7 @@ class ProcessOverlay(Overlay):
             """
         )
 
-        self.text = QtGui.QLabel(self)
+        self.text = QLabel(self)
         self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
@@ -685,11 +630,11 @@ class ProcessOverlay(Overlay):
         self.text.setText(text)
 
 
-class NGWResourcesTreeView(QtGui.QTreeView):
+class NGWResourcesTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
 
     def __init__(self, parent):
-        QtGui.QTreeView.__init__(self, parent)
+        QTreeView.__init__(self, parent)
 
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setHeaderHidden(True)
@@ -719,13 +664,14 @@ class NGWResourcesTreeView(QtGui.QTreeView):
         super(NGWResourcesTreeView, self).setModel(model)
 
     def __insertRowsProcess(self, parent, start, end):
-        self.setExpanded(parent, True)
+        if not parent.isValid():
+            self.expand(self.model().index(start, end, parent))
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
 
-        QtGui.QTreeView.resizeEvent(self, event)
+        QTreeView.resizeEvent(self, event)
 
     def mouseDoubleClickEvent(self, e):
         index = self.indexAt(e.pos())

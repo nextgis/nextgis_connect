@@ -207,35 +207,42 @@ class NGConnectPlugin:
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISProject,
             self.tr(u"NextGIS Connect"),
-            u"id1",
-            QgsMapLayer.VectorLayer,
+            u"",
+            QgsMapLayer.RasterLayer,
             True
         )
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISProject,
             self.tr(u"NextGIS Connect"),
-            u"id11",
-            QgsMapLayer.RasterLayer,
+            u"",
+            QgsMapLayer.VectorLayer,
             True
         )
 
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr(u"NextGIS Connect"),
-            u"id2",
-            QgsMapLayer.VectorLayer,
+            u"",
+            QgsMapLayer.RasterLayer,
             True
         )
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr(u"NextGIS Connect"),
-            u"id22",
-            QgsMapLayer.RasterLayer,
+            u"",
+            QgsMapLayer.VectorLayer,
             True
         )
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISProject
+        )
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportQGISResource
+        )
+        # Hack - qgis delete only one action, we have two same actions
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISProject
         )
@@ -257,4 +264,3 @@ class NGConnectPlugin:
         PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
 
         self.iface.removeDockWidget(self.dockWidget)
-        del self.dockWidget
