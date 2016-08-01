@@ -30,7 +30,7 @@
     </message>
     <message>
         <location filename="ngw_connection_edit_dialog_base.ui" line="32"/>
-        <source>Create a new NGW connection</source>
+        <source>Create new connection</source>
         <translation>Создать новое подключение</translation>
     </message>
     <message>
