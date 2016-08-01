@@ -220,8 +220,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
         )
 
-        self.iface.currentLayerChanged.connect(self.__checkImportActions)
-
         # ----------------------------------------------
         # Configurate new WebGIS InfoWidget
         # This widget may be useful in the future
@@ -233,11 +231,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
+
     # def __closeNewWebGISInfoWidget(self, link):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
 
-    def __checkImportActions(self, current_qgis_layer):
+    def checkImportActionsAvailability(self, current_qgis_layer):
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
         elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
