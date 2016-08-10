@@ -43,6 +43,8 @@ from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_as_wfs_layers
+
+from ngw_api.qt.qt_ngw_resource_base_model import QNGWResourcesModelExeption
 from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
 from settings_dialog import SettingsDialog
@@ -243,23 +245,26 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportQGISResource.setEnabled(True)
 
     def __model_error_process(self, job, exception):
-        error_mes = "Error in unknown operation."
-        if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
-            error_mes = self.tr("Loading resource error. Check your connection settings.")
-        elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
-            error_mes = self.tr("Creating group resource error.")
-        elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
-            error_mes = self.tr("Creating layer resource error.")
-        elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
-            error_mes = self.tr("Creating WFS service error. See log for details.")
+        # qgisLog("__model_error_process: %s" % type(exception))
+        # qgisLog("__model_error_process: %s" % exception)
 
-        error_mes += " " + self.tr("See log for details.")
+        # error_mes = "Error in unknown operation."
+        # if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
+        #     error_mes = self.tr("Loading resource error. Check your connection settings.")
+        # elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
+        #     error_mes = self.tr("Creating group resource error.")
+        # elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
+        #     error_mes = self.tr("Creating layer resource error.")
+        # elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
+        #     error_mes = self.tr("Creating WFS service error. See log for details.")
 
-        self.iface.messageBar().pushMessage(
-            self.tr('Error'),
-            error_mes,
-            level=QgsMessageBar.CRITICAL
-        )
+        # error_mes += " " + self.tr("See log for details.")
+
+        # self.iface.messageBar().pushMessage(
+        #     self.tr('Error'),
+        #     error_mes,
+        #     level=QgsMessageBar.CRITICAL
+        # )
 
         if isinstance(exception, NGWError):
             try:
@@ -269,40 +274,61 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
 
                 if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
+
+                    self.iface.messageBar().pushMessage(
+                        self.tr('Error'),
+                        "WebGIS access denied",
+                        level=QgsMessageBar.CRITICAL
+                    )
+
                     conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
-                    print "conn_sett: ", conn_sett
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
                     dlg.setWindowTitle(
                         self.tr("Access denied. Enter your login.")
                     )
                     res = dlg.exec_()
-                    QgsMessageLog.logMessage("res: %d" % res)
                     if res:
                         conn_sett = dlg.ngw_connection_settings
                         NgwPluginSettings.save_ngw_connection(conn_sett)
                         self.reinit_tree()
                     del dlg
+                else:
+                    self.iface.messageBar().pushMessage(
+                        self.tr('Error'),
+                        "Webgis return: %s" % exeption_dict.get("message", ""),
+                        level=QgsMessageBar.CRITICAL
+                    )
+                # ngw_err_msg = exeption_dict.get("message", "")
 
-                ngw_err_msg = exeption_dict.get("message", "")
-
-                qgisLog(
-                    "%s\n\t %s" % (error_mes, ngw_err_msg),
-                    level=QgsMessageLog.CRITICAL
-                )
+                # qgisLog(
+                #     "%s\n\t %s" % (error_mes, ngw_err_msg),
+                #     level=QgsMessageLog.CRITICAL
+                # )
 
             except Exception as e:
                 qgisLog(
                     "Error when proccess NGW Error: %s" % (e),
                     level=QgsMessageLog.CRITICAL
                 )
-        else:
-            qgisLog(
-                "%s\n\t %s" % (
-                    error_mes,
-                    exception,
-                ),
-                level=QgsMessageLog.CRITICAL
+        elif isinstance(exception, QNGWResourcesModelExeption):
+            self.iface.messageBar().pushMessage(
+                self.tr('Error'),
+                "Plugin error: %s" % exception,
+                level=QgsMessageBar.CRITICAL
             )
+        else:
+            self.iface.messageBar().pushMessage(
+                self.tr('Error'),
+                "Unknown error: %s" % exception,
+                level=QgsMessageBar.CRITICAL
+            )
+            # qgisLog(
+            #     "%s\n\t %s" % (
+            #         error_mes,
+            #         exception,
+            #     ),
+            #     level=QgsMessageLog.CRITICAL
+            # )
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
