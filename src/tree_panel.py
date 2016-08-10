@@ -243,8 +243,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportQGISResource.setEnabled(True)
 
     def __model_error_process(self, job, exception):
-        qgisLog("model error process job: %d" % job)
-
         error_mes = "Error in unknown operation."
         if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
             error_mes = self.tr("Loading resource error. Check your connection settings.")
