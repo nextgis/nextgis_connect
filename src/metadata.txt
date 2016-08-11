@@ -12,7 +12,7 @@ name=NextGIS Connect
 qgisMinimumVersion=2.6
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.7.9
+version=0.7.10
 author=NextGIS
 email=info@nextgis.com
 
@@ -23,6 +23,7 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.8
+        * Rename id, type, source fields when importing vector layers
         * Display progress of layers and project import
         * Transfer delimited text layers to nextgis.com
         * Different icons for different types of vector layers

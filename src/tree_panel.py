@@ -191,6 +191,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS(self)
         self._resource_model.errorOccurred.connect(self.__model_error_process)
+        self._resource_model.warningOccurred.connect(self.__model_warning_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
@@ -233,7 +234,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
-
     # def __closeNewWebGISInfoWidget(self, link):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
@@ -243,6 +243,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportQGISResource.setEnabled(False)
         elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
             self.actionImportQGISResource.setEnabled(True)
+
+    def __model_warning_process(self, job, msg):
+        self.iface.messageBar().pushMessage(
+            self.tr('Warning'),
+            msg,
+            level=QgsMessageBar.WARNING
+        )
 
     def __model_error_process(self, job, exception):
         # qgisLog("__model_error_process: %s" % type(exception))
