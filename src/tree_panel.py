@@ -276,7 +276,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if isinstance(exception, NGWError):
             try:
                 exeption_dict = json.loads(exception.message)
-                exeption_type = exeption_dict.get("exception", "")
+                exeption_type = exeption_dict.get("exception")
 
                 name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
 
@@ -299,6 +299,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                         NgwPluginSettings.save_ngw_connection(conn_sett)
                         self.reinit_tree()
                     del dlg
+                elif exeption_type == "ConnectionError":
+                    self.iface.messageBar().pushMessage(
+                        self.tr('Error'),
+                        "Webgis connection failed. See logs for detail.",
+                        level=QgsMessageBar.CRITICAL
+                    )
+                    qgisLog(
+                        "Webgis connection failed: %s" % exeption_dict.get("message", ""),
+                        level=QgsMessageLog.CRITICAL
+                    )
                 else:
                     self.iface.messageBar().pushMessage(
                         self.tr('Error'),
@@ -326,7 +336,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             self.iface.messageBar().pushMessage(
                 self.tr('Error'),
-                "Unknown error: %s" % exception,
+                "%s: %s" % (type(exception), exception),
                 level=QgsMessageBar.CRITICAL
             )
             # qgisLog(
