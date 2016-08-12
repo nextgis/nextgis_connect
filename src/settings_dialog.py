@@ -31,7 +31,8 @@ __revision__ = '$Format:%H$'
 
 import os
 from PyQt4 import uic
-from PyQt4.QtGui import QDialog
+from PyQt4 import QtCore
+from PyQt4 import QtGui
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as PluginSettings  # !!! Shared connection settings !!!
@@ -41,7 +42,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings_dialog_base.ui'))
 
 
-class SettingsDialog(QDialog, FORM_CLASS):
+class SettingsDialog(QtGui.QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
@@ -52,6 +53,16 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.btnDelete.clicked.connect(self.delete_connection)
 
         self.populate_connection_list()
+
+        self.chSanitizeRenameFields.setCheckState(
+            QtCore.Qt.Checked if PluginSettings.get_sanitize_rename_fields() else QtCore.Qt.Unchecked
+        )
+        self.chSanitizeRenameFields.stateChanged.connect(self.sanitizeOptionsChanged)
+
+        self.chSanitizeFixGeometry.setCheckState(
+            QtCore.Qt.Checked if PluginSettings.get_sanitize_fix_geometry() else QtCore.Qt.Unchecked
+        )
+        self.chSanitizeFixGeometry.stateChanged.connect(self.sanitizeOptionsChanged)
 
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
@@ -107,4 +118,15 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
     def reject(self):
         PluginSettings.set_selected_ngw_connection_name(self.cmbConnections.currentText())
-        QDialog.reject(self)
+        QtGui.QDialog.reject(self)
+
+    def sanitizeOptionsChanged(self, state):
+        optionWidget = self.sender()
+
+        option = (state == QtCore.Qt.Checked)
+
+        if optionWidget is self.chSanitizeRenameFields:
+            PluginSettings.set_sanitize_rename_fields(option)
+
+        if optionWidget is self.chSanitizeFixGeometry:
+            PluginSettings.set_sanitize_fix_geometry(option)

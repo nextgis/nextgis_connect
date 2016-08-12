@@ -312,7 +312,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 else:
                     self.iface.messageBar().pushMessage(
                         self.tr('Error'),
-                        "Webgis return: %s" % exeption_dict.get("message", ""),
+                        exeption_dict.get("message", ""),
                         level=QgsMessageBar.CRITICAL
                     )
                 # ngw_err_msg = exeption_dict.get("message", "")
