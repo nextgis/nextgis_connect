@@ -389,7 +389,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if not conn_sett:
             return
 
-        self._resource_model.resetModel(conn_sett)
+        if not self._resource_model.isCurrentConnectionSame(conn_sett):
+            self._resource_model.resetModel(conn_sett)
 
         # expand root item
         # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
