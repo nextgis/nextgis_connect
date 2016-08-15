@@ -100,7 +100,7 @@
       <item row="1" column="1">
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.com/docs_ngweb/source/layers.html#ngw-create-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;See documentation &lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.com/docs_ngcom/source/data_upload.html#vector-data&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;See documentation &lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>
         <property name="textFormat">
          <enum>Qt::RichText</enum>

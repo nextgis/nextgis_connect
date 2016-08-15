@@ -96,7 +96,7 @@
     <message>
         <location filename="settings_dialog_base.ui" line="83"/>
         <source>Fix incorrect geometries</source>
-        <translation>Исправлять не корректные геометрии</translation>
+        <translation>Исправлять некорректные геометрии</translation>
     </message>
     <message>
         <location filename="settings_dialog_base.ui" line="93"/>
@@ -106,7 +106,12 @@
     <message>
         <location filename="settings_dialog_base.ui" line="103"/>
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.com/docs_ngweb/source/layers.html#ngw-create-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;See documentation &lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.ru/docs_ngweb/source/layers.html#ngw-create-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;См. документацию&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+        <translation type="obsolete">&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.ru/docs_ngweb/source/layers.html#ngw-create-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;См. документацию&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="settings_dialog_base.ui" line="103"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.com/docs_ngcom/source/data_upload.html#vector-data&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;See documentation &lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.ru/docs_ngcom/source/data_upload.html#ngcom-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;См. документацию&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
 </context>
 <context>
@@ -163,7 +168,7 @@
 <context>
     <name>NGWResourcesTreeView</name>
     <message>
-        <location filename="tree_panel.py" line="689"/>
+        <location filename="tree_panel.py" line="693"/>
         <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет настроенных подключений к NextGIS.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
@@ -171,7 +176,7 @@
 <context>
     <name>QGISResourceJob</name>
     <message>
-        <location filename="ngw_resource_model_4qgis.py" line="335"/>
+        <location filename="ngw_resource_model_4qgis.py" line="330"/>
         <source>We&apos;ve renamed fields {0} for layer &apos;{1}&apos;. Style for this layer may become invalid.</source>
         <translation>Мы переименовали поля {0} для слоя &apos;{1}&apos;. Стили этого слоя могут оказаться некорректными.</translation>
     </message>
@@ -320,7 +325,7 @@
         <translation type="obsolete">Ошибка создания сервиса WFS. Подробности в логе.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="496"/>
+        <location filename="tree_panel.py" line="500"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -330,42 +335,42 @@
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="504"/>
+        <location filename="tree_panel.py" line="508"/>
         <source>Set new group name</source>
         <translation>Задайте имя группы</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="504"/>
+        <location filename="tree_panel.py" line="508"/>
         <source>New group name:</source>
         <translation>Имя новой группы:</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="504"/>
+        <location filename="tree_panel.py" line="508"/>
         <source>New group</source>
         <translation>Новая группа</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="528"/>
+        <location filename="tree_panel.py" line="532"/>
         <source>Set import project name</source>
         <translation>Задайте имя для импортируемого проекта</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="528"/>
+        <location filename="tree_panel.py" line="532"/>
         <source>Import project name:</source>
         <translation>Имя импортируемого проекта:</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="538"/>
+        <location filename="tree_panel.py" line="542"/>
         <source>Project import error</source>
         <translation>Ошибка импорта проекта</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="538"/>
+        <location filename="tree_panel.py" line="542"/>
         <source>Empty project name</source>
         <translation>Пустое имя проекта</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="566"/>
+        <location filename="tree_panel.py" line="570"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>
     </message>
@@ -375,17 +380,17 @@
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="553"/>
+        <location filename="tree_panel.py" line="557"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="553"/>
+        <location filename="tree_panel.py" line="557"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="566"/>
+        <location filename="tree_panel.py" line="570"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
