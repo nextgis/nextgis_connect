@@ -155,7 +155,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self
         )
         self.actionRefresh.setToolTip(self.tr("Refresh"))
-        self.actionRefresh.triggered.connect(self.reinit_tree)
+        self.actionRefresh.triggered.connect(self.__action_refresh_tree)
 
         self.actionSettings = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')),
@@ -359,7 +359,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
 
-    def reinit_tree(self):
+    def reinit_tree(self, force=False):
         # clear tree and states
         self.disable_tools()
 
@@ -389,7 +389,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if not conn_sett:
             return
 
-        if not self._resource_model.isCurrentConnectionSame(conn_sett):
+        if not self._resource_model.isCurrentConnectionSame(conn_sett) or force:
             self._resource_model.resetModel(conn_sett)
 
         # expand root item
@@ -400,6 +400,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # save last selected connection
         # NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
+
+    def __action_refresh_tree(self):
+        self.reinit_tree(True)
 
     def active_item_chg(self, selected, deselected):
         ngw_resource = selected.data(Qt.UserRole)
