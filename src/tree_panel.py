@@ -709,7 +709,10 @@ class NGWResourcesTreeView(QTreeView):
 
     def __insertRowsProcess(self, parent, start, end):
         if not parent.isValid():
-            self.expand(self.model().index(start, end, parent))
+            self.expand(self.model().index(start, 0, parent))
+        else:
+            self.expand(parent)
+            self.setCurrentIndex(self.model().index(end, parent.column(), parent))
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
