@@ -37,6 +37,8 @@ from ngw_api.core.ngw_group_resource import NGWGroupResource
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
+from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
+from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
 
 from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 
@@ -49,6 +51,8 @@ from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
+# from dialog_choose_qgis_layer import DialogChooseQGISLayer
+from dialog_choose_style import DialogChooseNGWStyle
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'tree_panel_base.ui'))
@@ -125,6 +129,33 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateNewGroup.setToolTip(self.tr("Create new resource group"))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
+        # Create style ------------------------------------------------------
+        # self.actionCreateStyle = QAction(
+        #     QIcon(),
+        #     self.tr("Create style"),
+        #     self
+        # )
+        # self.actionCreateStyle.setToolTip(self.tr("Create style"))
+        # self.actionCreateStyle.triggered.connect(self.create_style)
+
+        # Create web map ------------------------------------------------------
+        self.actionCreateWebMap4Layer = QAction(
+            QIcon(),
+            self.tr("Create Web Map"),
+            self
+        )
+        self.actionCreateWebMap4Layer.setToolTip(self.tr("Create Web Map"))
+        self.actionCreateWebMap4Layer.triggered.connect(self.create_web_map_for_layer)
+
+        self.actionCreateWebMap4Style = QAction(
+            QIcon(),
+            self.tr("Create Web Map"),
+            self
+        )
+        self.actionCreateWebMap4Style.setToolTip(self.tr("Create Web Map"))
+        self.actionCreateWebMap4Style.triggered.connect(self.create_web_map_for_style)
+
+        #Create WFS service ---------------------------------------------------
         self.actionCreateWFSService = QAction(
             QIcon(),
             self.tr("Create WFS service"),
@@ -190,6 +221,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS(self)
+
         self._resource_model.errorOccurred.connect(self.__model_error_process)
         self._resource_model.warningOccurred.connect(self.__model_warning_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
@@ -201,6 +233,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
             self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
             self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
+            self._resource_model.JOB_CREATE_NGW_WEB_MAP: self.tr("Web map is being created"),
+            self._resource_model.JOB_CREATE_NGW_STYLE: self.tr("Style for layer is being created"),
         }
 
         # ngw resources view
@@ -457,10 +491,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWVectorLayer):
             menu.addAction(self.actionExport)
             menu.addAction(self.actionCreateWFSService)
+            menu.addAction(self.actionCreateWebMap4Layer)
         elif isinstance(ngw_resource, NGWWfsService):
             menu.addAction(self.actionExport)
         elif isinstance(ngw_resource, NGWWebMap):
             menu.addAction(self.actionOpenMapInBrowser)
+        elif isinstance(ngw_resource, (NGWQGISVectorStyle, NGWMapServerStyle)):
+            menu.addAction(self.actionCreateWebMap4Style)
 
         menu.addSeparator()
         menu.addAction(self.actionDeleteResource)
@@ -516,7 +553,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if (res is False or new_group_name == ""):
             return
 
-        sel_index = self.trvResources.selectionModel().currentIndex()
+        sel_index = self.trvResources.selectedIndex()
+        QgsMessageLog.logMessage("create group: sel_index: %s " % sel_index)
+
         if sel_index is None:
             sel_index = self._resource_model.index(0, 0, QModelIndex())
 
@@ -579,6 +618,41 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         selected_index = self.trvResources.selectionModel().currentIndex()
         self._resource_model.createWFSForVector(selected_index, ret_obj_num)
+
+    def create_web_map_for_style(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        self._resource_model.createMapForStyle(selected_index)
+
+    def create_web_map_for_layer(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        self._resource_model.updateResourceWithLoadChildren(selected_index)
+
+        dlg = DialogChooseNGWStyle(self.tr("Get style from layer"), selected_index, self._resource_model, self)
+        result = dlg.exec_()
+        if result:
+            ngw_resource_style_id = None
+            if not dlg.needCreateNewStyle() and dlg.selectedStyle():
+                ngw_resource_style_id = dlg.selectedStyle()
+
+            self._resource_model.createMapForLayer(
+                selected_index,
+                ngw_resource_style_id
+            )
+
+    # def create_style(self):
+    #     dlg = DialogChooseQGISLayer(self.tr("Get style from layer"), self.iface, self)
+    #     result = dlg.exec_()
+    #     if result:
+    #         selected_index = self.trvResources.selectionModel().currentIndex()
+    #         selected_layer = dlg.layers.currentLayer()
+
+    #         if selected_layer is None:
+    #             return
+
+    #         self._resource_model.createStyleForLayer(
+    #             selected_index,
+    #             selected_layer
+    #         )
 
 
 class NGWPanelToolBar(QToolBar):
@@ -704,15 +778,27 @@ class NGWResourcesTreeView(QTreeView):
         self.jobs = {}
 
     def setModel(self, model):
-        model.rowsInserted.connect(self.__insertRowsProcess)
-        super(NGWResourcesTreeView, self).setModel(model)
+        self._source_model = model
+        self._source_model.rowsInserted.connect(self.__insertRowsProcess)
+        self._source_model.focusedResource.connect(self.__focuseResource)
+
+        super(NGWResourcesTreeView, self).setModel(self._source_model)
+
+    def selectedIndex(self):
+        return self.selectionModel().currentIndex()
 
     def __insertRowsProcess(self, parent, start, end):
         if not parent.isValid():
-            self.expand(self.model().index(start, 0, parent))
+            self.expandAll()
         else:
-            self.expand(parent)
-            self.setCurrentIndex(self.model().index(end, parent.column(), parent))
+            self.expand(
+                parent
+            )
+
+    def __focuseResource(self, index):
+        self.setCurrentIndex(
+            index
+        )
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
