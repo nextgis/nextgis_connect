@@ -24,6 +24,7 @@
 """
 import os
 import json
+import functools
 
 from PyQt4 import uic
 from PyQt4.QtGui import *
@@ -51,8 +52,9 @@ from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
-# from dialog_choose_qgis_layer import DialogChooseQGISLayer
-from dialog_choose_style import DialogChooseNGWStyle
+
+from dialog_choose_style import DialogWebMapCreation
+from dialog_qgis_proj_import import DialogImportQGISProj
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'tree_panel_base.ui'))
@@ -108,7 +110,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("Import current project"),
             self.iface.legendInterface()
         )
-        self.actionImportQGISProject.triggered.connect(self.action_import_qgis_project)
+        self.actionImportQGISProject.triggered.connect(self.import_qgis_project)
 
         self.menuImport = QMenu(
             self.tr("Add to Web GIS"),
@@ -554,37 +556,45 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         sel_index = self.trvResources.selectedIndex()
-        QgsMessageLog.logMessage("create group: sel_index: %s " % sel_index)
 
         if sel_index is None:
             sel_index = self._resource_model.index(0, 0, QModelIndex())
 
         self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
 
-    def action_import_qgis_project(self):
+    def import_qgis_project(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
-        new_group_name, res = QInputDialog.getText(
-            self,
-            self.tr("Set import project name"),
-            self.tr("Import project name:"),
-            QLineEdit.Normal,
-            current_project_title,
-            Qt.Dialog
-        )
+        # new_group_name, res = QInputDialog.getText(
+        #     self,
+        #     self.tr("Set import project name"),
+        #     self.tr("Import project name:"),
+        #     QLineEdit.Normal,
+        #     current_project_title,
+        #     Qt.Dialog
+        # )
 
-        if new_group_name == u'':
-            QMessageBox.critical(
-                self,
-                self.tr("Project import error"),
-                self.tr("Empty project name")
+        # if new_group_name == u'':
+        #     QMessageBox.critical(
+        #         self,
+        #         self.tr("Project import error"),
+        #         self.tr("Empty project name")
+        #     )
+        #     return
+        dlg = DialogImportQGISProj(current_project_title, self)
+        result = dlg.exec_()
+        if result:
+            self.qgis_proj_import_responce = self._resource_model.tryImportCurentQGISProject(
+                dlg.getProjName(),
+                sel_index,
+                self.iface
             )
-            return
-
-        self._resource_model.tryImportCurentQGISProject(new_group_name, sel_index, self.iface)
+            self.qgis_proj_import_responce.done.connect(
+                functools.partial(self.open_create_web_map, dlg.needOpenMap())
+            )
 
     def action_import_layer(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
@@ -627,17 +637,27 @@ class TreeControl(QMainWindow, FORM_CLASS):
         selected_index = self.trvResources.selectionModel().currentIndex()
         self._resource_model.updateResourceWithLoadChildren(selected_index)
 
-        dlg = DialogChooseNGWStyle(self.tr("Get style from layer"), selected_index, self._resource_model, self)
+        dlg = DialogWebMapCreation(selected_index, self._resource_model, self)
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
             if not dlg.needCreateNewStyle() and dlg.selectedStyle():
                 ngw_resource_style_id = dlg.selectedStyle()
 
-            self._resource_model.createMapForLayer(
+            self.create_map_responce = self._resource_model.createMapForLayer(
                 selected_index,
                 ngw_resource_style_id
             )
+
+            self.create_map_responce.done.connect(
+                functools.partial(self.open_create_web_map, dlg.needOpenMap())
+            )
+
+    def open_create_web_map(self, need_open_map, index):
+        if need_open_map:
+            ngw_resource = index.data(Qt.UserRole)
+            url = ngw_resource.get_display_url()
+            QDesktopServices.openUrl(QUrl(url))
 
     # def create_style(self):
     #     dlg = DialogChooseQGISLayer(self.tr("Get style from layer"), self.iface, self)
@@ -790,10 +810,10 @@ class NGWResourcesTreeView(QTreeView):
     def __insertRowsProcess(self, parent, start, end):
         if not parent.isValid():
             self.expandAll()
-        else:
-            self.expand(
-                parent
-            )
+        # else:
+        #     self.expand(
+        #         parent
+        #     )
 
     def __focuseResource(self, index):
         self.setCurrentIndex(
