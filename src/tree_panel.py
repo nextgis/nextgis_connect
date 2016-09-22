@@ -29,6 +29,7 @@ import functools
 from PyQt4 import uic
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from PyQt4.QtNetwork import *
 
 from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer
 from qgis.gui import QgsMessageBar
@@ -45,7 +46,7 @@ from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from ngw_api.qgis.resource_to_map import add_resource_as_geojson, add_resource_as_wfs_layers
+from ngw_api.qgis.resource_to_map import *
 
 from ngw_api.qt.qt_ngw_resource_base_model import QNGWResourcesModelExeption
 from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
@@ -99,6 +100,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
+        # Import to QGIS ------------------------------------------------------
         self.actionImportQGISResource = QAction(
             self.tr("Import selected layer"),
             self.iface.legendInterface()
@@ -157,7 +159,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWebMap4Style.setToolTip(self.tr("Create Web Map"))
         self.actionCreateWebMap4Style.triggered.connect(self.create_web_map_for_style)
 
-        #Create WFS service ---------------------------------------------------
+        # Download QGIS style as QML file -------------------------------------
+        self.actionDownload = QAction(
+            QIcon(),
+            self.tr("Download as QML"),
+            self
+        )
+        self.actionDownload.setToolTip(self.tr("Download style as QML file"))
+        self.actionDownload.triggered.connect(self.downloadQML)
+
+        # Create WFS service --------------------------------------------------
         self.actionCreateWFSService = QAction(
             QIcon(),
             self.tr("Create WFS service"),
@@ -166,6 +177,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWFSService.setToolTip(self.tr("Create WFS service"))
         self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
 
+        # Delete resource -----------------------------------------------------
         self.actionDeleteResource = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')),
             self.tr("Delete"),
@@ -174,6 +186,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionDeleteResource.setToolTip(self.tr("Delete resource"))
         self.actionDeleteResource.triggered.connect(self.delete_curent_ngw_resource)
 
+        # Open map ------------------------------------------------------------
         self.actionOpenMapInBrowser = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionOpenMap.svg')),
             self.tr("Open map in browser"),
@@ -270,21 +283,45 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
+        self.checkImportActionsAvailability()
+        self.iface.currentLayerChanged.connect(
+            self.checkImportActionsAvailability
+        )
+        QgsMapLayerRegistry.instance().layersAdded.connect(
+            self.checkImportActionsAvailability
+        )
+        QgsMapLayerRegistry.instance().layersRemoved.connect(
+            self.checkImportActionsAvailability
+        )
+
     # def __closeNewWebGISInfoWidget(self, link):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
 
-    def checkImportActionsAvailability(self, current_qgis_layer):
+    def checkImportActionsAvailability(self):
+        current_qgis_layer = self.iface.mapCanvas().currentLayer()
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
         elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
             self.actionImportQGISResource.setEnabled(True)
+
+        self.actionImportQGISProject.setEnabled(
+            QgsMapLayerRegistry.instance().count() != 0
+        )
 
     def __model_warning_process(self, job, msg):
         self.iface.messageBar().pushMessage(
             self.tr('Warning'),
             msg,
             level=QgsMessageBar.WARNING
+        )
+
+    def __msg_in_qgis_mes_bar(self, message, level=QgsMessageBar.INFO, duration=0):
+        self.iface.messageBar().pushMessage(
+            self.tr('NextGIS Connect'),
+            message,
+            level,
+            duration,
         )
 
     def __model_error_process(self, job, exception):
@@ -319,7 +356,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
 
                     self.iface.messageBar().pushMessage(
-                        self.tr('Error'),
+                        self.tr('NextGIS Connect Error'),
                         "WebGIS access denied",
                         level=QgsMessageBar.CRITICAL
                     )
@@ -337,7 +374,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     del dlg
                 elif exeption_type == "ConnectionError":
                     self.iface.messageBar().pushMessage(
-                        self.tr('Error'),
+                        self.tr('NextGIS Connect Error'),
                         "Webgis connection failed. See logs for detail.",
                         level=QgsMessageBar.CRITICAL
                     )
@@ -347,7 +384,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     )
                 else:
                     self.iface.messageBar().pushMessage(
-                        self.tr('Error'),
+                        self.tr('NextGIS Connect Error'),
                         exeption_dict.get("message", ""),
                         level=QgsMessageBar.CRITICAL
                     )
@@ -365,13 +402,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
         elif isinstance(exception, QNGWResourcesModelExeption):
             self.iface.messageBar().pushMessage(
-                self.tr('Error'),
+                self.tr('NextGIS Connect  Error'),
                 "Plugin error: %s" % exception,
                 level=QgsMessageBar.CRITICAL
             )
         else:
             self.iface.messageBar().pushMessage(
-                self.tr('Error'),
+                self.tr('NextGIS Connect Error'),
                 "%s: %s" % (type(exception), exception),
                 level=QgsMessageBar.CRITICAL
             )
@@ -452,7 +489,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 ngw_resource,
                 (
                     NGWWfsService,
-                    NGWVectorLayer
+                    NGWVectorLayer,
+                    NGWQGISVectorStyle
                 )
             )
         )
@@ -498,7 +536,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
             menu.addAction(self.actionExport)
         elif isinstance(ngw_resource, NGWWebMap):
             menu.addAction(self.actionOpenMapInBrowser)
-        elif isinstance(ngw_resource, (NGWQGISVectorStyle, NGWMapServerStyle)):
+        elif isinstance(ngw_resource, NGWQGISVectorStyle):
+            menu.addAction(self.actionExport)
+            menu.addAction(self.actionCreateWebMap4Style)
+            menu.addAction(self.actionDownload)
+        elif isinstance(ngw_resource, NGWMapServerStyle):
             menu.addAction(self.actionCreateWebMap4Style)
 
         menu.addSeparator()
@@ -526,10 +568,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
         if sel_index.isValid():
-            ngw_resource = sel_index.data(Qt.UserRole)
+            ngw_resource = sel_index.data(QNGWResourceItemExt.NGWResourceRole)
             try:
                 if isinstance(ngw_resource, NGWVectorLayer):
                     add_resource_as_geojson(ngw_resource)
+                if isinstance(ngw_resource, NGWQGISVectorStyle):
+                    ngw_layer = sel_index.parent().data(QNGWResourceItemExt.NGWResourceRole)
+                    add_resource_as_geojson_with_style(ngw_layer, ngw_resource)
                 elif isinstance(ngw_resource, NGWWfsService):
                     add_resource_as_wfs_layers(ngw_resource)
 
@@ -658,6 +703,36 @@ class TreeControl(QMainWindow, FORM_CLASS):
             ngw_resource = index.data(Qt.UserRole)
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
+
+    def downloadQML(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        ngw_qgis_style = selected_index.data(QNGWResourceItemExt.NGWResourceRole)
+        url = ngw_qgis_style.download_qml_url()
+
+        filepath = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save QML"),
+            filter=self.tr("QGIS Layer style file (*.qml)")
+        )
+        # QDesktopServices.openUrl(QUrl(url))
+
+        if filepath == "":
+            return
+
+        self.dwn_qml_filepath = filepath
+        self.dwn_qml_manager = QNetworkAccessManager(self)
+        self.dwn_qml_manager.finished.connect(self.saveQML)
+        self.dwn_qml_manager.get(QNetworkRequest(QUrl(url)))
+        # self.__msg_in_qgis_mes_bar(self.tr("QML file is being downloaded"), duration=1)
+
+    def saveQML(self, reply):
+        file = QFile(self.dwn_qml_filepath)
+        if file.open(QIODevice.WriteOnly):
+            file.write(reply.readAll())
+            file.close()
+            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), duration=2)
+        else:
+            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), QgsMessageBar.CRITICAL)
 
     # def create_style(self):
     #     dlg = DialogChooseQGISLayer(self.tr("Get style from layer"), self.iface, self)

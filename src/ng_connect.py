@@ -194,10 +194,6 @@ class NGConnectPlugin:
         self.dockWidget.move(PluginSettings.dock_pos())
         self.dockWidget.setVisible(PluginSettings.dock_visibility())
 
-        self.iface.currentLayerChanged.connect(
-            self.dockWidget.inner_control.checkImportActionsAvailability
-        )
-
         # Tools for NGW communicate
         icon_path = self.plugin_dir + '/icon.png'
         self.add_action(
