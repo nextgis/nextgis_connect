@@ -105,7 +105,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("Import selected layer"),
             self.iface.legendInterface()
         )
-        self.actionImportQGISResource.triggered.connect(self.action_import_layer)
+        self.actionImportQGISResource.triggered.connect(self.import_layer)
         self.actionImportQGISResource.setEnabled(False)
 
         self.actionImportQGISProject = QAction(
@@ -125,6 +125,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.menuImport.addAction(self.actionImportQGISResource)
         self.menuImport.addAction(self.actionImportQGISProject)
 
+        # Create new group ----------------------------------------------------
         self.actionCreateNewGroup = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.svg')),
             self.tr("Create new group"),
@@ -133,7 +134,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateNewGroup.setToolTip(self.tr("Create new resource group"))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
-        # Create style ------------------------------------------------------
+        # Create style --------------------------------------------------------
         # self.actionCreateStyle = QAction(
         #     QIcon(),
         #     self.tr("Create style"),
@@ -216,13 +217,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.addToolBar(self.main_tool_bar)
 
         self.main_tool_bar.addAction(self.actionExport)
-        toolbutton = QToolButton()
-        toolbutton.setPopupMode(QToolButton.InstantPopup)
-        toolbutton.setMenu(self.menuImport)
-        toolbutton.setIcon(self.menuImport.icon())
-        toolbutton.setText(self.menuImport.title())
-        toolbutton.setToolTip(self.menuImport.title())
-        self.main_tool_bar.addWidget(toolbutton)
+        self.toolbuttonImport = QToolButton()
+        self.toolbuttonImport.setPopupMode(QToolButton.InstantPopup)
+        self.toolbuttonImport.setMenu(self.menuImport)
+        self.toolbuttonImport.setIcon(self.menuImport.icon())
+        self.toolbuttonImport.setText(self.menuImport.title())
+        self.toolbuttonImport.setToolTip(self.menuImport.title())
+
+        self.main_tool_bar.addWidget(self.toolbuttonImport)
         self.main_tool_bar.addSeparator()
 
         self.main_tool_bar.addAction(self.actionCreateNewGroup)
@@ -309,6 +311,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             QgsMapLayerRegistry.instance().count() != 0
         )
 
+        self.toolbuttonImport.setEnabled(
+            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled()
+        )
+
     def __model_warning_process(self, job, msg):
         self.iface.messageBar().pushMessage(
             self.tr('Warning'),
@@ -325,27 +331,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
     def __model_error_process(self, job, exception):
-        # qgisLog("__model_error_process: %s" % type(exception))
-        # qgisLog("__model_error_process: %s" % exception)
-
-        # error_mes = "Error in unknown operation."
-        # if job == self._resource_model.JOB_LOAD_NGW_RESOURCE_CHILDREN:
-        #     error_mes = self.tr("Loading resource error. Check your connection settings.")
-        # elif job == self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE:
-        #     error_mes = self.tr("Creating group resource error.")
-        # elif job == self._resource_model.JOB_IMPORT_QGIS_RESOURCE:
-        #     error_mes = self.tr("Creating layer resource error.")
-        # elif job == self._resource_model.JOB_CREATE_NGW_WFS_SERVICE:
-        #     error_mes = self.tr("Creating WFS service error. See log for details.")
-
-        # error_mes += " " + self.tr("See log for details.")
-
-        # self.iface.messageBar().pushMessage(
-        #     self.tr('Error'),
-        #     error_mes,
-        #     level=QgsMessageBar.CRITICAL
-        # )
-
         if isinstance(exception, NGWError):
             try:
                 exeption_dict = json.loads(exception.message)
@@ -388,12 +373,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                         exeption_dict.get("message", ""),
                         level=QgsMessageBar.CRITICAL
                     )
-                # ngw_err_msg = exeption_dict.get("message", "")
-
-                # qgisLog(
-                #     "%s\n\t %s" % (error_mes, ngw_err_msg),
-                #     level=QgsMessageLog.CRITICAL
-                # )
 
             except Exception as e:
                 qgisLog(
@@ -412,13 +391,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 "%s: %s" % (type(exception), exception),
                 level=QgsMessageBar.CRITICAL
             )
-            # qgisLog(
-            #     "%s\n\t %s" % (
-            #         error_mes,
-            #         exception,
-            #     ),
-            #     level=QgsMessageLog.CRITICAL
-            # )
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
@@ -480,10 +452,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def active_item_chg(self, selected, deselected):
         ngw_resource = selected.data(Qt.UserRole)
         # TODO: NEED REFACTORING! Make isCompatible methods!
-        # enable/dis geojson button
-        # self.actionAddAsGeoJSON.setEnabled(isinstance(ngw_resource, NGWVectorLayer))
-        # enable/dis wfs button
-        # self.actionAddWFS.setEnabled(isinstance(ngw_resource, NGWWfsService))
         self.actionExport.setEnabled(
             isinstance(
                 ngw_resource,
@@ -494,16 +462,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
             )
         )
-        # enable/dis new group button
-        # self.actionCreateNewGroup.setEnabled(isinstance(ngw_resource, NGWGroupResource))
         # enable/dis webmap
         self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
 
     def disable_tools(self):
-        # self.actionAddAsGeoJSON.setEnabled(False)
-        # self.actionAddWFS.setEnabled(False)
         self.actionExport.setEnabled(False)
-        # self.actionCreateNewGroup.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
@@ -585,7 +548,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     error_mes,
                     level=QgsMessageBar.CRITICAL
                 )
-                QgsMessageLog.logMessage(error_mes, level=QgsMessageLog.CRITICAL)
+                qgisLog(error_mes, level=QgsMessageLog.CRITICAL)
 
     def create_group(self):
         new_group_name, res = QInputDialog.getText(
@@ -605,7 +568,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if sel_index is None:
             sel_index = self._resource_model.index(0, 0, QModelIndex())
 
-        self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
+        self.create_group_resp = self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
+        self.create_group_resp.done.connect(
+            self.trvResources.setCurrentIndex
+        )
 
     def import_qgis_project(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
@@ -613,38 +579,28 @@ class TreeControl(QMainWindow, FORM_CLASS):
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
-        # new_group_name, res = QInputDialog.getText(
-        #     self,
-        #     self.tr("Set import project name"),
-        #     self.tr("Import project name:"),
-        #     QLineEdit.Normal,
-        #     current_project_title,
-        #     Qt.Dialog
-        # )
-
-        # if new_group_name == u'':
-        #     QMessageBox.critical(
-        #         self,
-        #         self.tr("Project import error"),
-        #         self.tr("Empty project name")
-        #     )
-        #     return
         dlg = DialogImportQGISProj(current_project_title, self)
         result = dlg.exec_()
         if result:
-            self.qgis_proj_import_responce = self._resource_model.tryImportCurentQGISProject(
+            self.qgis_proj_import_response = self._resource_model.tryImportCurentQGISProject(
                 dlg.getProjName(),
                 sel_index,
                 self.iface
             )
-            self.qgis_proj_import_responce.done.connect(
+            self.create_map_response.done.connect(
+                self.trvResources.setCurrentIndex
+            )
+            self.qgis_proj_import_response.done.connect(
                 functools.partial(self.open_create_web_map, dlg.needOpenMap())
             )
 
-    def action_import_layer(self):
+    def import_layer(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
         sel_index = self.trvResources.selectionModel().currentIndex()
-        self._resource_model.createNGWLayer(qgs_map_layer, sel_index)
+        self.import_layer_response = self._resource_model.createNGWLayer(qgs_map_layer, sel_index)
+        self.import_layer_response.done.connect(
+            self.trvResources.setCurrentIndex
+        )
 
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
@@ -657,7 +613,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if res == QMessageBox.Yes:
             selected_index = self.trvResources.selectionModel().currentIndex()
-            self._resource_model.deleteResource(selected_index)
+            self.delete_resource_response = self._resource_model.deleteResource(selected_index)
+            self.delete_resource_response.done.connect(
+                self.trvResources.setCurrentIndex
+            )
 
     def create_wfs_service(self):
         ret_obj_num, res = QInputDialog.getInt(
@@ -689,12 +648,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
             if not dlg.needCreateNewStyle() and dlg.selectedStyle():
                 ngw_resource_style_id = dlg.selectedStyle()
 
-            self.create_map_responce = self._resource_model.createMapForLayer(
+            self.create_map_response = self._resource_model.createMapForLayer(
                 selected_index,
                 ngw_resource_style_id
             )
 
-            self.create_map_responce.done.connect(
+            self.create_map_response.done.connect(
+                self.trvResources.setCurrentIndex
+            )
+            self.create_map_response.done.connect(
                 functools.partial(self.open_create_web_map, dlg.needOpenMap())
             )
 
@@ -712,6 +674,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         filepath = QFileDialog.getSaveFileName(
             self,
             self.tr("Save QML"),
+            "%s.qml" % ngw_qgis_style.common.display_name,
             filter=self.tr("QGIS Layer style file (*.qml)")
         )
         # QDesktopServices.openUrl(QUrl(url))
@@ -723,7 +686,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.dwn_qml_manager = QNetworkAccessManager(self)
         self.dwn_qml_manager.finished.connect(self.saveQML)
         self.dwn_qml_manager.get(QNetworkRequest(QUrl(url)))
-        # self.__msg_in_qgis_mes_bar(self.tr("QML file is being downloaded"), duration=1)
 
     def saveQML(self, reply):
         file = QFile(self.dwn_qml_filepath)
@@ -733,6 +695,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), duration=2)
         else:
             self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), QgsMessageBar.CRITICAL)
+
+        reply.deleteLater()
 
     # def create_style(self):
     #     dlg = DialogChooseQGISLayer(self.tr("Get style from layer"), self.iface, self)
@@ -875,7 +839,7 @@ class NGWResourcesTreeView(QTreeView):
     def setModel(self, model):
         self._source_model = model
         self._source_model.rowsInserted.connect(self.__insertRowsProcess)
-        self._source_model.focusedResource.connect(self.__focuseResource)
+        # self._source_model.focusedResource.connect(self.__focuseResource)
 
         super(NGWResourcesTreeView, self).setModel(self._source_model)
 
@@ -890,10 +854,10 @@ class NGWResourcesTreeView(QTreeView):
         #         parent
         #     )
 
-    def __focuseResource(self, index):
-        self.setCurrentIndex(
-            index
-        )
+    # def __focuseResource(self, index):
+    #     self.setCurrentIndex(
+    #         index
+    #     )
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
