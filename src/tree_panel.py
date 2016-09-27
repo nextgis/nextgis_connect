@@ -101,6 +101,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
 
+        # Rename ngw resource --------------------------------------------------
+        self.actionRename = QAction(
+            QIcon(),
+            self.tr("Rename"),
+            self
+        )
+        self.actionRename.triggered.connect(self.rename_ngw_resource)
+
         # Export to QGIS ------------------------------------------------------
         self.actionExport = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionExport.svg')),
@@ -261,6 +269,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
             self._resource_model.JOB_CREATE_NGW_WEB_MAP: self.tr("Web map is being created"),
             self._resource_model.JOB_CREATE_NGW_STYLE: self.tr("Style for layer is being created"),
+            self._resource_model.JOB_RENAME_RESOURCE: self.tr("Resource is being renamed"),
         }
 
         # ngw resources view
@@ -397,7 +406,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             else:
                 self.__msg_in_qgis_mes_bar(
-                    prefix + exeption_dict.get("message", ""),
+                    prefix + "WebGIS answered - " + exeption_dict.get("message", ""),
                     level=level
                 )
 
@@ -504,6 +513,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         menu = QMenu()
         menu.addAction(self.actionOpenInNGW)
+        menu.addAction(self.actionRename)
 
         if isinstance(ngw_resource, NGWGroupResource):
             menu.addAction(self.actionCreateNewGroup)
@@ -539,6 +549,25 @@ class TreeControl(QMainWindow, FORM_CLASS):
             ngw_resource = sel_index.data(Qt.UserRole)
             url = ngw_resource.get_absolute_url()
             QDesktopServices.openUrl(QUrl(url))
+
+    def rename_ngw_resource(self):
+        sel_index = self.trvResources.selectionModel().currentIndex()
+
+        if sel_index.isValid():
+            new_name, res = QInputDialog.getText(
+                self,
+                self.tr("Cahnge resource name"),
+                "",
+                text=sel_index.data(Qt.DisplayRole)
+            )
+
+            if res is False or new_name == "":
+                return
+
+            self.rename_resource_resp = self._resource_model.renameResource(sel_index, new_name)
+            self.rename_resource_resp.done.connect(
+                self.trvResources.setCurrentIndex
+            )
 
     def __action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
