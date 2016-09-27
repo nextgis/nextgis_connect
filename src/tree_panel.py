@@ -93,7 +93,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # Do not use ui toolbar
         # self.removeToolBar(self.mainToolBar)
 
-        # actions
+        # Open ngw resource in browser ----------------------------------------
+        self.actionOpenInNGW = QAction(
+            QIcon(),
+            self.tr("Open in WebGIS"),
+            self
+        )
+        self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
+
+        # Export to QGIS ------------------------------------------------------
         self.actionExport = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionExport.svg')),
             self.tr("Add to QGIS"),
@@ -101,7 +109,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
-        # Import to QGIS ------------------------------------------------------
+        # Import to NGW -------------------------------------------------------
         self.actionImportQGISResource = QAction(
             self.tr("Import selected layer"),
             self.iface.legendInterface()
@@ -495,6 +503,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
 
         menu = QMenu()
+        menu.addAction(self.actionOpenInNGW)
+
         if isinstance(ngw_resource, NGWGroupResource):
             menu.addAction(self.actionCreateNewGroup)
         elif isinstance(ngw_resource, NGWVectorLayer):
@@ -522,6 +532,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if isinstance(ngw_resource, NGWWebMap):
             self.__action_open_map()
 
+    def open_ngw_resource_page(self):
+        sel_index = self.trvResources.selectionModel().currentIndex()
+
+        if sel_index.isValid():
+            ngw_resource = sel_index.data(Qt.UserRole)
+            url = ngw_resource.get_absolute_url()
+            QDesktopServices.openUrl(QUrl(url))
+
     def __action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
@@ -529,10 +547,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             ngw_resource = sel_index.data(Qt.UserRole)
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
-            # if sys.platform == 'darwin':    # in case of OS X
-            #     subprocess.Popen(['open', url])
-            # else:
-            #     webbrowser.open_new_tab(url)
 
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
