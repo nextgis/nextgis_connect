@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>375</width>
-    <height>214</height>
+    <height>237</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -114,6 +114,16 @@
        </widget>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cbForceImport">
+     <property name="text">
+      <string>Stop import qgis project when first layer import fail</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
    <item>

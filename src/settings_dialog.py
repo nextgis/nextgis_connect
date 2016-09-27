@@ -64,6 +64,11 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         )
         self.chSanitizeFixGeometry.stateChanged.connect(self.sanitizeOptionsChanged)
 
+        self.cbForceImport.setCheckState(
+            QtCore.Qt.Unchecked if PluginSettings.get_force_qgis_project_import() else QtCore.Qt.Checked
+        )
+        self.cbForceImport.stateChanged.connect(self.forceImportChanged)
+
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
         if dlg.exec_():
@@ -130,3 +135,7 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
 
         if optionWidget is self.chSanitizeFixGeometry:
             PluginSettings.set_sanitize_fix_geometry(option)
+
+    def forceImportChanged(self, state):
+        option = (state != QtCore.Qt.Checked)
+        PluginSettings.set_force_qgis_project_import(option)

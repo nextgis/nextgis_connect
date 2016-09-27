@@ -25,6 +25,7 @@
 import os
 import json
 import functools
+import traceback
 
 from PyQt4 import uic
 from PyQt4.QtGui import *
@@ -315,13 +316,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled()
         )
 
-    def __model_warning_process(self, job, msg):
-        self.iface.messageBar().pushMessage(
-            self.tr('Warning'),
-            msg,
-            level=QgsMessageBar.WARNING
-        )
-
     def __msg_in_qgis_mes_bar(self, message, level=QgsMessageBar.INFO, duration=0):
         self.iface.messageBar().pushMessage(
             self.tr('NextGIS Connect'),
@@ -330,66 +324,78 @@ class TreeControl(QMainWindow, FORM_CLASS):
             duration,
         )
 
+    def __model_warning_process(self, job, exception):
+        self.__model_exception_process(job, exception, QgsMessageBar.WARNING)
+
     def __model_error_process(self, job, exception):
+        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL)
+
+    def __model_exception_process(self, job, exception, level):
         if isinstance(exception, NGWError):
-            try:
-                exeption_dict = json.loads(exception.message)
-                exeption_type = exeption_dict.get("exception")
+            self.__ngw_error_process(exception, level)
 
-                name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
-
-                if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
-
-                    self.iface.messageBar().pushMessage(
-                        self.tr('NextGIS Connect Error'),
-                        "WebGIS access denied",
-                        level=QgsMessageBar.CRITICAL
-                    )
-
-                    conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
-                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
-                    dlg.setWindowTitle(
-                        self.tr("Access denied. Enter your login.")
-                    )
-                    res = dlg.exec_()
-                    if res:
-                        conn_sett = dlg.ngw_connection_settings
-                        NgwPluginSettings.save_ngw_connection(conn_sett)
-                        self.reinit_tree()
-                    del dlg
-                elif exeption_type == "ConnectionError":
-                    self.iface.messageBar().pushMessage(
-                        self.tr('NextGIS Connect Error'),
-                        "Webgis connection failed. See logs for detail.",
-                        level=QgsMessageBar.CRITICAL
-                    )
-                    qgisLog(
-                        "Webgis connection failed: %s" % exeption_dict.get("message", ""),
-                        level=QgsMessageLog.CRITICAL
-                    )
-                else:
-                    self.iface.messageBar().pushMessage(
-                        self.tr('NextGIS Connect Error'),
-                        exeption_dict.get("message", ""),
-                        level=QgsMessageBar.CRITICAL
-                    )
-
-            except Exception as e:
-                qgisLog(
-                    "Error when proccess NGW Error: %s" % (e),
-                    level=QgsMessageLog.CRITICAL
-                )
         elif isinstance(exception, QNGWResourcesModelExeption):
-            self.iface.messageBar().pushMessage(
-                self.tr('NextGIS Connect  Error'),
-                "Plugin error: %s" % exception,
-                level=QgsMessageBar.CRITICAL
-            )
+            if exception.ngw_error is None:
+                self.__msg_in_qgis_mes_bar(
+                    "%s" % exception,
+                    level=level
+                )
+            else:
+                self.__ngw_error_process(
+                    exception.ngw_error,
+                    level,
+                    "[%s] " % str(exception)
+                )
         else:
-            self.iface.messageBar().pushMessage(
-                self.tr('NextGIS Connect Error'),
+            self.__msg_in_qgis_mes_bar(
                 "%s: %s" % (type(exception), exception),
-                level=QgsMessageBar.CRITICAL
+                level=level
+            )
+
+    def __ngw_error_process(self, exception, level, prefix=""):
+        try:
+            exeption_dict = json.loads(exception.message)
+            exeption_type = exeption_dict.get("exception")
+
+            name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+
+            if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
+
+                self.__msg_in_qgis_mes_bar(
+                    "WebGIS access denied",
+                    level=level
+                )
+
+                conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+                dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
+                dlg.setWindowTitle(
+                    self.tr("Access denied. Enter your login.")
+                )
+                res = dlg.exec_()
+                if res:
+                    conn_sett = dlg.ngw_connection_settings
+                    NgwPluginSettings.save_ngw_connection(conn_sett)
+                    self.reinit_tree()
+                del dlg
+
+            elif exeption_type == "ConnectionError":
+                self.__msg_in_qgis_mes_bar(
+                    prefix + "Webgis connection failed. See logs for detail.",
+                    level=level
+                )
+                qgisLog(
+                    prefix + "Webgis connection failed: %s" % exeption_dict.get("message", ""),
+                )
+
+            else:
+                self.__msg_in_qgis_mes_bar(
+                    prefix + exeption_dict.get("message", ""),
+                    level=level
+                )
+
+        except Exception as e:
+            qgisLog(
+                prefix + "Error when proccess NGW Error: %s" % (e),
             )
 
     def __modelJobStarted(self, job_id):
@@ -587,7 +593,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 sel_index,
                 self.iface
             )
-            self.create_map_response.done.connect(
+            self.qgis_proj_import_response.done.connect(
                 self.trvResources.setCurrentIndex
             )
             self.qgis_proj_import_response.done.connect(
