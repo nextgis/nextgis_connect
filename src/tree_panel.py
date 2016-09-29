@@ -25,14 +25,13 @@
 import os
 import json
 import functools
-import traceback
 
 from PyQt4 import uic
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from PyQt4.QtNetwork import *
 
-from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer
+from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsNetworkAccessManager
 from qgis.gui import QgsMessageBar
 
 from ngw_api.core.ngw_error import NGWError
@@ -280,8 +279,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
+        self.iface.initializationCompleted.connect(self.reinit_tree)
         # update state
-        self.reinit_tree()
+        if QSettings().value("proxy/proxyEnabled", None) is not None:
+            self.reinit_tree()
 
         # Help message label
         url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
@@ -410,9 +411,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     level=level
                 )
 
-        except Exception as e:
+        except Exception:
+            self.__msg_in_qgis_mes_bar(
+                prefix + "Received unknown error. See logs.",
+                level=level
+            )
             qgisLog(
-                prefix + "Error when proccess NGW Error: %s" % (e),
+                prefix + "Received unknown error. See logs.",
+            )
+            qgisLog(
+                exception.message,
             )
 
     def __modelJobStarted(self, job_id):
@@ -456,6 +464,37 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if not conn_sett:
             return
+
+        s = QSettings()
+        proxyEnabled = s.value("proxy/proxyEnabled", "")
+        proxy_type = s.value("proxy/proxyType", "")
+        proxy_host = s.value("proxy/proxyHost", "")
+        proxy_port = s.value("proxy/proxyPort", "")
+        proxy_user = s.value("proxy/proxyUser", "")
+        proxy_password = s.value("proxy/proxyPassword", "")
+
+        if proxyEnabled == "true":
+            if proxy_type == "DefaultProxy":
+                qgsNetMan = QgsNetworkAccessManager.instance()
+                proxy = qgsNetMan.proxy().applicationProxy()
+                proxy_host = proxy.hostName()
+                proxy_port = str(proxy.port())
+                proxy_user = proxy.user()
+                proxy_password = proxy.password()
+
+            if proxy_type in ["DefaultProxy", "Socks5Proxy", "HttpProxy", "HttpCachingProxy"]:
+                QgsMessageLog.logMessage("%s  %s  %s  %s" % (
+                    proxy_host,
+                    proxy_port,
+                    proxy_user,
+                    proxy_password,
+                ))
+                conn_sett.set_proxy(
+                    proxy_host,
+                    proxy_port,
+                    proxy_user,
+                    proxy_password
+                )
 
         if not self._resource_model.isCurrentConnectionSame(conn_sett) or force:
             self._resource_model.resetModel(conn_sett)
