@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.0" language="ru_RU">
 <context>
+    <name>CurrentQGISProjectImporter</name>
+    <message>
+        <location filename="ngw_resource_model_4qgis.py" line="499"/>
+        <source>Import &apos;%s&apos;</source>
+        <translation>Импорт &apos;%s&apos;</translation>
+    </message>
+</context>
+<context>
     <name>Dialog</name>
     <message>
         <location filename="settings_dialog_base.ui" line="32"/>
@@ -113,21 +121,75 @@
         <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.com/docs_ngcom/source/data_upload.html#vector-data&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;See documentation &lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;a href=&quot;http://docs.nextgis.ru/docs_ngcom/source/data_upload.html#ngcom-vector-layer&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;См. документацию&lt;/span&gt;&lt;/a&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
     </message>
+    <message>
+        <location filename="settings_dialog_base.ui" line="122"/>
+        <source>Stop import qgis project when first layer import fail</source>
+        <translation>Прервать импорт проекта если импорт слоя провалился</translation>
+    </message>
+</context>
+<context>
+    <name>DialogChooseQGISLayer</name>
+    <message>
+        <location filename="dialog_choose_qgis_layer.py" line="13"/>
+        <source>Select layer:</source>
+        <translation>Выбирите слой:</translation>
+    </message>
+</context>
+<context>
+    <name>DialogImportQGISProj</name>
+    <message>
+        <location filename="dialog_qgis_proj_import.py" line="12"/>
+        <source>Import parameters</source>
+        <translation>Параметры импорта</translation>
+    </message>
+    <message>
+        <location filename="dialog_qgis_proj_import.py" line="15"/>
+        <source>Project name:</source>
+        <translation>Имя проекта:</translation>
+    </message>
+    <message>
+        <location filename="dialog_qgis_proj_import.py" line="23"/>
+        <source>Open map after creation</source>
+        <translation>Открыть карту после создания</translation>
+    </message>
+</context>
+<context>
+    <name>DialogWebMapCreation</name>
+    <message>
+        <location filename="dialog_choose_style.py" line="29"/>
+        <source>Create Web Map for layer</source>
+        <translation>Создание Веб Карты для слоя</translation>
+    </message>
+    <message>
+        <location filename="dialog_choose_style.py" line="35"/>
+        <source>Create new style</source>
+        <translation>Создать новый стиль</translation>
+    </message>
+    <message>
+        <location filename="dialog_choose_style.py" line="42"/>
+        <source>Or select layer style:</source>
+        <translation>или выбирите стиль:</translation>
+    </message>
+    <message>
+        <location filename="dialog_choose_style.py" line="58"/>
+        <source>Open map after creation</source>
+        <translation>Открыть карту после создания</translation>
+    </message>
 </context>
 <context>
     <name>NGConnectPlugin</name>
     <message>
-        <location filename="ng_connect.py" line="262"/>
+        <location filename="ng_connect.py" line="258"/>
         <source>&amp;NextGIS Connect</source>
         <translation>&amp;NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="ng_connect.py" line="233"/>
+        <location filename="ng_connect.py" line="229"/>
         <source>NextGIS Connect</source>
         <translation>NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="ng_connect.py" line="203"/>
+        <location filename="ng_connect.py" line="199"/>
         <source>Show/Hide NextGIS Connect panel</source>
         <translation>Показать/Скрыть панель NextGIS Connect</translation>
     </message>
@@ -168,7 +230,7 @@
 <context>
     <name>NGWResourcesTreeView</name>
     <message>
-        <location filename="tree_panel.py" line="693"/>
+        <location filename="tree_panel.py" line="914"/>
         <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет настроенных подключений к NextGIS.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
@@ -176,7 +238,7 @@
 <context>
     <name>QGISResourceJob</name>
     <message>
-        <location filename="ngw_resource_model_4qgis.py" line="330"/>
+        <location filename="ngw_resource_model_4qgis.py" line="274"/>
         <source>We&apos;ve renamed fields {0} for layer &apos;{1}&apos;. Style for this layer may become invalid.</source>
         <translation>Мы переименовали поля {0} для слоя &apos;{1}&apos;. Стили этого слоя могут оказаться некорректными.</translation>
     </message>
@@ -267,7 +329,7 @@
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="settings_dialog.py" line="84"/>
+        <location filename="settings_dialog.py" line="89"/>
         <source>Edit connection</source>
         <translation>Редактирование подключения</translation>
     </message>
@@ -275,32 +337,32 @@
 <context>
     <name>TreeControl</name>
     <message>
-        <location filename="tree_panel.py" line="96"/>
+        <location filename="tree_panel.py" line="120"/>
         <source>Import selected layer</source>
         <translation>Импортировать выбранный слой</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="199"/>
+        <location filename="tree_panel.py" line="264"/>
         <source>Resource is being created</source>
         <translation>Ресурс создается</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="200"/>
+        <location filename="tree_panel.py" line="265"/>
         <source>Resource is being deleted</source>
         <translation>Ресурс удаляется</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="201"/>
+        <location filename="tree_panel.py" line="266"/>
         <source>Layer is being imported</source>
         <translation>Слой импортируется</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="202"/>
+        <location filename="tree_panel.py" line="267"/>
         <source>Project is being imported</source>
         <translation>Проект импортируется</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="203"/>
+        <location filename="tree_panel.py" line="268"/>
         <source>WFS service is being created</source>
         <translation>WFS сервис создается</translation>
     </message>
@@ -325,72 +387,72 @@
         <translation type="obsolete">Ошибка создания сервиса WFS. Подробности в логе.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="500"/>
+        <location filename="tree_panel.py" line="635"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="293"/>
+        <location filename="tree_panel.py" line="389"/>
         <source>Access denied. Enter your login.</source>
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="508"/>
+        <location filename="tree_panel.py" line="643"/>
         <source>Set new group name</source>
         <translation>Задайте имя группы</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="508"/>
+        <location filename="tree_panel.py" line="643"/>
         <source>New group name:</source>
         <translation>Имя новой группы:</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="508"/>
+        <location filename="tree_panel.py" line="643"/>
         <source>New group</source>
         <translation>Новая группа</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="532"/>
         <source>Set import project name</source>
-        <translation>Задайте имя для импортируемого проекта</translation>
+        <translation type="obsolete">Задайте имя для импортируемого проекта</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="532"/>
         <source>Import project name:</source>
-        <translation>Имя импортируемого проекта:</translation>
+        <translation type="obsolete">Имя импортируемого проекта:</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="542"/>
         <source>Project import error</source>
-        <translation>Ошибка импорта проекта</translation>
+        <translation type="obsolete">Ошибка импорта проекта</translation>
     </message>
     <message>
         <location filename="tree_panel.py" line="542"/>
         <source>Empty project name</source>
-        <translation>Пустое имя проекта</translation>
+        <translation type="obsolete">Пустое имя проекта</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="570"/>
+        <location filename="tree_panel.py" line="711"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="136"/>
+        <location filename="tree_panel.py" line="198"/>
         <source>Delete</source>
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="557"/>
+        <location filename="tree_panel.py" line="695"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="557"/>
+        <location filename="tree_panel.py" line="695"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="570"/>
+        <location filename="tree_panel.py" line="711"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
@@ -410,52 +472,52 @@
         <translation type="obsolete">Ошибка загрузки ресурса. Проверьте настройки подключения. Подробности в логах.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="218"/>
+        <location filename="tree_panel.py" line="288"/>
         <source>docs.nextgis.com</source>
         <translation>docs.nextgis.ru</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="219"/>
+        <location filename="tree_panel.py" line="289"/>
         <source>Help</source>
         <translation>Помощь</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="89"/>
+        <location filename="tree_panel.py" line="112"/>
         <source>Add to QGIS</source>
         <translation>Добавить в QGIS</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="103"/>
+        <location filename="tree_panel.py" line="127"/>
         <source>Import current project</source>
         <translation>Импортировать текущий проект</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="120"/>
+        <location filename="tree_panel.py" line="145"/>
         <source>Create new group</source>
         <translation>Создать новую группу</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="125"/>
+        <location filename="tree_panel.py" line="150"/>
         <source>Create new resource group</source>
         <translation>Создать новую группу ресурсов</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="149"/>
+        <location filename="tree_panel.py" line="212"/>
         <source>Open map in browser</source>
         <translation>Открыть карту в браузере</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="157"/>
+        <location filename="tree_panel.py" line="220"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="165"/>
+        <location filename="tree_panel.py" line="228"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="109"/>
+        <location filename="tree_panel.py" line="133"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>
     </message>
@@ -472,13 +534,83 @@
     <message>
         <location filename="tree_panel.py" line="248"/>
         <source>Warning</source>
-        <translation>Предупреждение</translation>
+        <translation type="obsolete">Предупреждение</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="96"/>
+        <source>Open in WebGIS</source>
+        <translation>Открыть в ВебГИС</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="104"/>
+        <source>Rename</source>
+        <translation>Переименовать</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="176"/>
+        <source>Create Web Map</source>
+        <translation>Создать Веб Карту</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="180"/>
+        <source>Download as QML</source>
+        <translation>Загрузить как QML</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="185"/>
+        <source>Download style as QML file</source>
+        <translation>Загрузить стиль как QML файл</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="269"/>
+        <source>Web map is being created</source>
+        <translation>Веб Карта создается</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="270"/>
+        <source>Style for layer is being created</source>
+        <translation>Создается стиль для слоя</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="271"/>
+        <source>Resource is being renamed</source>
+        <translation>Идет переименование ресурса</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="338"/>
+        <source>NextGIS Connect</source>
+        <translation>NextGIS Connect</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="763"/>
+        <source>Save QML</source>
+        <translation>Сохранить QML</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="763"/>
+        <source>QGIS Layer style file (*.qml)</source>
+        <translation>Файл стиля слоя QGIS (*.qml)</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="784"/>
+        <source>QML file downloaded</source>
+        <translation>Файл QML загружен</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="786"/>
+        <source>QML file could not be downloaded</source>
+        <translation>Файл QML не может быть загружен</translation>
+    </message>
+    <message>
+        <location filename="tree_panel.py" line="596"/>
+        <source>Change resource name</source>
+        <translation>Изменение имени ресурса</translation>
     </message>
 </context>
 <context>
     <name>TreePanel</name>
     <message>
-        <location filename="tree_panel.py" line="68"/>
+        <location filename="tree_panel.py" line="75"/>
         <source>NextGIS Resources</source>
         <translation>Ресурсы NextGIS</translation>
     </message>

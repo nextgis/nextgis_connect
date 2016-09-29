@@ -595,7 +595,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if sel_index.isValid():
             new_name, res = QInputDialog.getText(
                 self,
-                self.tr("Cahnge resource name"),
+                self.tr("Change resource name"),
                 "",
                 text=sel_index.data(Qt.DisplayRole)
             )
