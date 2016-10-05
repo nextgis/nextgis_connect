@@ -119,7 +119,7 @@
    <item>
     <widget class="QCheckBox" name="cbForceImport">
      <property name="text">
-      <string>Stop import qgis project when first layer import fail</string>
+      <string>Abort project import after first layer import failure</string>
      </property>
      <property name="checked">
       <bool>true</bool>
