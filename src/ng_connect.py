@@ -31,6 +31,8 @@ from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 from tree_panel import TreePanel
 
+from ngw_api import qgis
+
 
 class NGConnectPlugin:
     """QGIS Plugin Implementation."""
@@ -55,11 +57,21 @@ class NGConnectPlugin:
             'nextgis_connect_{}.qm'.format(locale))
 
         if path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
+            self.plugin_translator = QTranslator()
+            self.plugin_translator.load(locale_path)
+
+            self.ngw_translator = QTranslator()
+            self.ngw_translator.load(
+                path.join(
+                    path.dirname(qgis.__file__),
+                    "i18n",
+                    "qgis_ngw_api_{}.qm".format(locale)
+                )
+            )
 
             if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.translator)
+                QCoreApplication.installTranslator(self.plugin_translator)
+                QCoreApplication.installTranslator(self.ngw_translator)
 
         # Declare instance attributes
         self.actions = []

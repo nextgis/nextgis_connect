@@ -37,10 +37,12 @@ from qgis.gui import QgsMessageBar
 from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from ngw_api.core.ngw_raster_layer import NGWRasterLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
 from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
 from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
+from ngw_api.core.ngw_raster_style import NGWRasterStyle
 
 from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
 
@@ -466,12 +468,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         s = QSettings()
-        proxyEnabled = s.value("proxy/proxyEnabled", "")
-        proxy_type = s.value("proxy/proxyType", "")
-        proxy_host = s.value("proxy/proxyHost", "")
-        proxy_port = s.value("proxy/proxyPort", "")
-        proxy_user = s.value("proxy/proxyUser", "")
-        proxy_password = s.value("proxy/proxyPassword", "")
+        proxyEnabled = s.value("proxy/proxyEnabled", u"", type=unicode)
+        proxy_type = s.value("proxy/proxyType", u"", type=unicode)
+        proxy_host = s.value("proxy/proxyHost", u"", type=unicode)
+        proxy_port = s.value("proxy/proxyPort", u"", type=unicode)
+        proxy_user = s.value("proxy/proxyUser", u"", type=unicode)
+        proxy_password = s.value("proxy/proxyPassword", u"", type=unicode)
 
         if proxyEnabled == "true":
             if proxy_type == "DefaultProxy":
@@ -483,12 +485,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 proxy_password = proxy.password()
 
             if proxy_type in ["DefaultProxy", "Socks5Proxy", "HttpProxy", "HttpCachingProxy"]:
-                QgsMessageLog.logMessage("%s  %s  %s  %s" % (
-                    proxy_host,
-                    proxy_port,
-                    proxy_user,
-                    proxy_password,
-                ))
+                # QgsMessageLog.logMessage("%s  %s  %s  %s" % (
+                #     proxy_host,
+                #     proxy_port,
+                #     proxy_user,
+                #     proxy_password,
+                # ))
                 conn_sett.set_proxy(
                     proxy_host,
                     proxy_port,
@@ -560,6 +562,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             menu.addAction(self.actionExport)
             menu.addAction(self.actionCreateWFSService)
             menu.addAction(self.actionCreateWebMap4Layer)
+        elif isinstance(ngw_resource, NGWRasterLayer):
+            menu.addAction(self.actionCreateWebMap4Layer)
         elif isinstance(ngw_resource, NGWWfsService):
             menu.addAction(self.actionExport)
         elif isinstance(ngw_resource, NGWWebMap):
@@ -568,6 +572,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             menu.addAction(self.actionExport)
             menu.addAction(self.actionCreateWebMap4Style)
             menu.addAction(self.actionDownload)
+        elif isinstance(ngw_resource, NGWRasterStyle):
+            menu.addAction(self.actionCreateWebMap4Style)
         elif isinstance(ngw_resource, NGWMapServerStyle):
             menu.addAction(self.actionCreateWebMap4Style)
 
@@ -679,7 +685,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.trvResources.setCurrentIndex
             )
             self.qgis_proj_import_response.done.connect(
-                functools.partial(self.open_create_web_map, dlg.needOpenMap())
+                self.open_create_web_map
             )
 
     def import_layer(self):
@@ -723,7 +729,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def create_web_map_for_style(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
-        self._resource_model.createMapForStyle(selected_index)
+        self.create_map_response = self._resource_model.createMapForStyle(selected_index)
+
+        self.create_map_response.done.connect(
+            self.open_create_web_map
+        )
 
     def create_web_map_for_layer(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
@@ -745,14 +755,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.trvResources.setCurrentIndex
             )
             self.create_map_response.done.connect(
-                functools.partial(self.open_create_web_map, dlg.needOpenMap())
+                self.open_create_web_map
             )
 
-    def open_create_web_map(self, need_open_map, index):
-        if need_open_map:
-            ngw_resource = index.data(Qt.UserRole)
-            url = ngw_resource.get_display_url()
-            QDesktopServices.openUrl(QUrl(url))
+    def open_create_web_map(self, index):
+        if PluginSettings.auto_open_web_map_option() is False:
+            return
+
+        ngw_resource = index.data(Qt.UserRole)
+        url = ngw_resource.get_display_url()
+        QDesktopServices.openUrl(QUrl(url))
 
     def downloadQML(self):
         selected_index = self.trvResources.selectionModel().currentIndex()

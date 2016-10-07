@@ -89,3 +89,13 @@ class PluginSettings(CommonPluginSettings):
     def set_webgis_creation_message_closed_by_user(cls, val):
         settings = cls.get_settings()
         settings.setValue('/ui/webGisCreationMessageClosedByUser', val)
+
+    @classmethod
+    def set_auto_open_web_map_option(cls, val):
+        settings = cls.get_settings()
+        settings.setValue('/ui/autoOpenWebMapByDefault', val)
+
+    @classmethod
+    def auto_open_web_map_option(cls):
+        settings = cls.get_settings()
+        return settings.value('/ui/autoOpenWebMapByDefault', False, type=bool)

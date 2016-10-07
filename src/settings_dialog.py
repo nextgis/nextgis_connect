@@ -35,8 +35,9 @@ from PyQt4 import QtCore
 from PyQt4 import QtGui
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
-from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as PluginSettings  # !!! Shared connection settings !!!
+from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as NgwApiSettings  # !!! Shared connection settings !!!
 
+from plugin_settings import PluginSettings
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings_dialog_base.ui'))
@@ -55,26 +56,31 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         self.populate_connection_list()
 
         self.chSanitizeRenameFields.setCheckState(
-            QtCore.Qt.Checked if PluginSettings.get_sanitize_rename_fields() else QtCore.Qt.Unchecked
+            QtCore.Qt.Checked if NgwApiSettings.get_sanitize_rename_fields() else QtCore.Qt.Unchecked
         )
         self.chSanitizeRenameFields.stateChanged.connect(self.sanitizeOptionsChanged)
 
         self.chSanitizeFixGeometry.setCheckState(
-            QtCore.Qt.Checked if PluginSettings.get_sanitize_fix_geometry() else QtCore.Qt.Unchecked
+            QtCore.Qt.Checked if NgwApiSettings.get_sanitize_fix_geometry() else QtCore.Qt.Unchecked
         )
         self.chSanitizeFixGeometry.stateChanged.connect(self.sanitizeOptionsChanged)
 
         self.cbForceImport.setCheckState(
-            QtCore.Qt.Unchecked if PluginSettings.get_force_qgis_project_import() else QtCore.Qt.Checked
+            QtCore.Qt.Unchecked if NgwApiSettings.get_force_qgis_project_import() else QtCore.Qt.Checked
         )
         self.cbForceImport.stateChanged.connect(self.forceImportChanged)
+
+        self.cbAutoOpenWebMap.setCheckState(
+            QtCore.Qt.Checked if PluginSettings.auto_open_web_map_option() else QtCore.Qt.Unchecked
+        )
+        self.cbAutoOpenWebMap.stateChanged.connect(self.autoOpenWebMapChanged)
 
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
         if dlg.exec_():
             conn_sett = dlg.ngw_connection_settings
-            PluginSettings.save_ngw_connection(conn_sett)
-            PluginSettings.set_selected_ngw_connection_name(conn_sett.connection_name)
+            NgwApiSettings.save_ngw_connection(conn_sett)
+            NgwApiSettings.set_selected_ngw_connection_name(conn_sett.connection_name)
             self.populate_connection_list()
         del dlg
 
@@ -83,7 +89,7 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         conn_sett = None
 
         if conn_name is not None:
-            conn_sett = PluginSettings.get_ngw_connection(conn_name)
+            conn_sett = NgwApiSettings.get_ngw_connection(conn_name)
 
         dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett)
         dlg.setWindowTitle(self.tr("Edit connection"))
@@ -91,23 +97,24 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
             new_conn_sett = dlg.ngw_connection_settings
             # if conn was renamed - remove old
             if conn_name is not None and conn_name != new_conn_sett.connection_name:
-                PluginSettings.remove_ngw_connection(conn_name)
+                NgwApiSettings.remove_ngw_connection(conn_name)
             # save new
-            PluginSettings.save_ngw_connection(new_conn_sett)
-            PluginSettings.set_selected_ngw_connection_name(new_conn_sett.connection_name)
+            NgwApiSettings.save_ngw_connection(new_conn_sett)
+            NgwApiSettings.set_selected_ngw_connection_name(new_conn_sett.connection_name)
 
             self.populate_connection_list()
         del dlg
 
     def delete_connection(self):
-        PluginSettings.remove_ngw_connection(self.cmbConnections.currentText())
+        NgwApiSettings.remove_ngw_connection(self.cmbConnections.currentText())
         self.populate_connection_list()
 
     def populate_connection_list(self):
         self.cmbConnections.clear()
-        self.cmbConnections.addItems(PluginSettings.get_ngw_connection_names())
+        self.cmbConnections.addItems(NgwApiSettings.get_ngw_connection_names())
 
-        last_connection = PluginSettings.get_selected_ngw_connection_name()
+        last_connection = NgwApiSettings.get_selected_ngw_connection_name()
+
         idx = self.cmbConnections.findText(last_connection)
         if idx == -1 and self.cmbConnections.count() > 0:
             self.cmbConnections.setCurrentIndex(0)
@@ -122,7 +129,7 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
             self.btnDelete.setEnabled(True)
 
     def reject(self):
-        PluginSettings.set_selected_ngw_connection_name(self.cmbConnections.currentText())
+        NgwApiSettings.set_selected_ngw_connection_name(self.cmbConnections.currentText())
         QtGui.QDialog.reject(self)
 
     def sanitizeOptionsChanged(self, state):
@@ -131,11 +138,15 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         option = (state == QtCore.Qt.Checked)
 
         if optionWidget is self.chSanitizeRenameFields:
-            PluginSettings.set_sanitize_rename_fields(option)
+            NgwApiSettings.set_sanitize_rename_fields(option)
 
         if optionWidget is self.chSanitizeFixGeometry:
-            PluginSettings.set_sanitize_fix_geometry(option)
+            NgwApiSettings.set_sanitize_fix_geometry(option)
 
     def forceImportChanged(self, state):
         option = (state != QtCore.Qt.Checked)
-        PluginSettings.set_force_qgis_project_import(option)
+        NgwApiSettings.set_force_qgis_project_import(option)
+
+    def autoOpenWebMapChanged(self, state):
+        option = (state == QtCore.Qt.Checked)
+        PluginSettings.set_auto_open_web_map_option(option)
