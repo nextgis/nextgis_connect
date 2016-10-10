@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE TS><TS version="2.0" language="ru_RU" sourcelanguage="">
+<!DOCTYPE TS>
+<TS version="2.0" language="ru_RU">
 <context>
     <name>Dialog</name>
     <message>
@@ -54,8 +55,8 @@
     </message>
     <message>
         <location filename="settings_dialog_base.ui" line="145"/>
-        <source>Open web map after creating</source>
-        <translation>Открывать веб карту автоматически посде создания</translation>
+        <source>Open web map automatically on creation</source>
+        <translation>Открывать веб карту автоматически после создания</translation>
     </message>
 </context>
 <context>

@@ -142,7 +142,7 @@
    <item>
     <widget class="QCheckBox" name="cbAutoOpenWebMap">
      <property name="text">
-      <string>Open web map after creating</string>
+      <string>Open web map automatically on creation</string>
      </property>
     </widget>
    </item>

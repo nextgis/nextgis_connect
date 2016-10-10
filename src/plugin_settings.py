@@ -98,4 +98,4 @@ class PluginSettings(CommonPluginSettings):
     @classmethod
     def auto_open_web_map_option(cls):
         settings = cls.get_settings()
-        return settings.value('/ui/autoOpenWebMapByDefault', False, type=bool)
+        return settings.value('/ui/autoOpenWebMapByDefault', True, type=bool)
