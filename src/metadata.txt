@@ -23,20 +23,18 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.8.16
-        * Fix bugs
         * Work behind proxy
         * Add resource renaming
-        * Add command in context menu for open WebGIS resource web page
-        * Add settings for continue import qgis project when layer import fail
-        * Fix availability 'Add to WebGIS' button
-        * Can add vector layer with style in QGIS
-        * Can download qgis style as QML file
+        * Add command in context menu to open resource's web page
+        * Add setting to continue qgis project import after layer import failure
+        * Adding vector layer with style in QGIS
+        * Downloading style as QML file
         * Add identification vector layer style type: prefix 'qgis' and 'ms'
         * Add auto-open map in browser option, if specified in import qgis project or create webmap forms
-        * Changed resources order - groups first
+        * Changed resources sorting order - groups first
         * Create webmap from layer
         * Create webmap from style
-        * Append and delete resources item instead of reload one item children
+        * Append and delete resources item instead of reloading one item children
     0.8
         * Unfold group after layer import
         * Sanitize importing vector layers
