@@ -216,20 +216,20 @@ class NGConnectPlugin:
             callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
 
-        self.iface.legendInterface().addLegendLayerAction(
-            self.dockWidget.inner_control.actionImportQGISProject,
-            self.tr(u"NextGIS Connect"),
-            u"",
-            QgsMapLayer.RasterLayer,
-            True
-        )
-        self.iface.legendInterface().addLegendLayerAction(
-            self.dockWidget.inner_control.actionImportQGISProject,
-            self.tr(u"NextGIS Connect"),
-            u"",
-            QgsMapLayer.VectorLayer,
-            True
-        )
+        # self.iface.legendInterface().addLegendLayerAction(
+        #     self.dockWidget.inner_control.actionImportQGISProject,
+        #     self.tr(u"NextGIS Connect"),
+        #     u"",
+        #     QgsMapLayer.RasterLayer,
+        #     True
+        # )
+        # self.iface.legendInterface().addLegendLayerAction(
+        #     self.dockWidget.inner_control.actionImportQGISProject,
+        #     self.tr(u"NextGIS Connect"),
+        #     u"",
+        #     QgsMapLayer.VectorLayer,
+        #     True
+        # )
 
         self.iface.legendInterface().addLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource,
@@ -251,13 +251,13 @@ class NGConnectPlugin:
             self.dockWidget.inner_control.checkImportActionsAvailability
         )
 
-        """Removes the plugin menu item and icon from QGIS GUI."""
-        self.iface.legendInterface().removeLegendLayerAction(
-            self.dockWidget.inner_control.actionImportQGISProject
-        )
-        self.iface.legendInterface().removeLegendLayerAction(
-            self.dockWidget.inner_control.actionImportQGISResource
-        )
+        # """Removes the plugin menu item and icon from QGIS GUI."""
+        # self.iface.legendInterface().removeLegendLayerAction(
+        #     self.dockWidget.inner_control.actionImportQGISProject
+        # )
+        # self.iface.legendInterface().removeLegendLayerAction(
+        #     self.dockWidget.inner_control.actionImportQGISResource
+        # )
         # Hack - qgis delete only one action, we have two same actions
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISProject
