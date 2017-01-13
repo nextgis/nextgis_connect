@@ -23,6 +23,7 @@
  ***************************************************************************/
 """
 import os
+import sys
 import json
 import functools
 
@@ -59,10 +60,12 @@ from plugin_settings import PluginSettings
 from dialog_choose_style import DialogWebMapCreation
 from dialog_qgis_proj_import import DialogImportQGISProj
 
-FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    os.path.dirname(__file__), 'tree_panel_base.ui'))
+this_dir = os.path.dirname(__file__).decode(sys.getfilesystemencoding())
 
-ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
+FORM_CLASS, _ = uic.loadUiType(os.path.join(
+    this_dir, 'tree_panel_base.ui'))
+
+ICONS_PATH = os.path.join(this_dir, 'icons/')
 
 
 def qgisLog(msg, level=QgsMessageLog.INFO):

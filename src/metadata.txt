@@ -23,6 +23,7 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.9.3
+        * Fix icons display bag (windows 8, 10 cyrillic user names) 
         * Remove import project from layer's submenu
     0.9
         * Work behind proxy

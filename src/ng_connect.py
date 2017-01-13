@@ -20,6 +20,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+import sys
 from os import path
 
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
@@ -48,7 +49,8 @@ class NGConnectPlugin:
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = path.dirname(__file__)
+        self.plugin_dir = path.dirname(__file__).decode(sys.getfilesystemencoding())
+
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
         locale_path = path.join(
