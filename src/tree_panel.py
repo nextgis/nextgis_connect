@@ -54,6 +54,8 @@ from ngw_api.qgis.resource_to_map import *
 from ngw_api.qt.qt_ngw_resource_base_model import QNGWResourcesModelExeption
 from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
+from ngw_api.utils import setLogger
+
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 
@@ -71,6 +73,10 @@ ICONS_PATH = os.path.join(this_dir, 'icons/')
 def qgisLog(msg, level=QgsMessageLog.INFO):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
+def ngwApiLog(msg, level=QgsMessageLog.INFO):
+    QgsMessageLog.logMessage(msg, "NGW API", level)
+
+setLogger(ngwApiLog)
 
 class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
@@ -728,7 +734,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         selected_index = self.trvResources.selectionModel().currentIndex()
-        self._resource_model.createWFSForVector(selected_index, ret_obj_num)
+        responce = self._resource_model.createWFSForVector(selected_index, ret_obj_num)
+        responce.done.connect(
+            self.trvResources.setCurrentIndex
+        )
+        responce.done.connect(
+            self.add_created_wfs_service
+        )
+
+    def add_created_wfs_service(self, index):
+        if PluginSettings.auto_add_wfs_option() is False:
+            return
+
+        ngw_resource = index.data(Qt.UserRole)
+        add_resource_as_wfs_layers(ngw_resource)
 
     def create_web_map_for_style(self):
         selected_index = self.trvResources.selectionModel().currentIndex()

@@ -99,3 +99,13 @@ class PluginSettings(CommonPluginSettings):
     def auto_open_web_map_option(cls):
         settings = cls.get_settings()
         return settings.value('/ui/autoOpenWebMapByDefault', True, type=bool)
+
+    @classmethod
+    def set_auto_add_wfs_option(cls, val):
+        settings = cls.get_settings()
+        settings.setValue('/ui/autoAddWFSByDefault', val)
+
+    @classmethod
+    def auto_add_wfs_option(cls):
+        settings = cls.get_settings()
+        return settings.value('/ui/autoAddWFSByDefault', True, type=bool)

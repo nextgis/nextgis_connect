@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>375</width>
-    <height>260</height>
+    <height>283</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -127,6 +127,20 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="cbAutoOpenWebMap">
+     <property name="text">
+      <string>Open web map automatically on creation</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cbAutoAddWFS">
+     <property name="text">
+      <string>Add WFS layer to QGIS automatically on creation WFS service</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -138,13 +152,6 @@
       </size>
      </property>
     </spacer>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="cbAutoOpenWebMap">
-     <property name="text">
-      <string>Open web map automatically on creation</string>
-     </property>
-    </widget>
    </item>
    <item>
     <widget class="QDialogButtonBox" name="buttonBox">

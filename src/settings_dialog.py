@@ -75,6 +75,11 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
         )
         self.cbAutoOpenWebMap.stateChanged.connect(self.autoOpenWebMapChanged)
 
+        self.cbAutoAddWFS.setCheckState(
+            QtCore.Qt.Checked if PluginSettings.auto_add_wfs_option() else QtCore.Qt.Unchecked
+        )
+        self.cbAutoAddWFS.stateChanged.connect(self.autoAddWFSChanged)
+
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
         if dlg.exec_():
@@ -150,3 +155,7 @@ class SettingsDialog(QtGui.QDialog, FORM_CLASS):
     def autoOpenWebMapChanged(self, state):
         option = (state == QtCore.Qt.Checked)
         PluginSettings.set_auto_open_web_map_option(option)
+
+    def autoAddWFSChanged(self, state):
+        option = (state == QtCore.Qt.Checked)
+        PluginSettings.set_auto_add_wfs_option(option)
