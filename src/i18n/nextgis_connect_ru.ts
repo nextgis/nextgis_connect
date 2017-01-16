@@ -61,7 +61,12 @@
     <message>
         <location filename="settings_dialog_base.ui" line="139"/>
         <source>Add WFS layer to QGIS automatically on creation WFS service</source>
-        <translation>Добавить WFS слой в QGIS автоматически после создания WFS сервиса</translation>
+        <translation type="obsolete">Добавить WFS слой в QGIS автоматически после создания WFS сервиса</translation>
+    </message>
+    <message>
+        <location filename="settings_dialog_base.ui" line="139"/>
+        <source>Add WFS layer to QGIS on WFS service creation</source>
+        <translation>Добавлять WFS слой в QGIS после создания WFS сервиса</translation>
     </message>
 </context>
 <context>
@@ -116,7 +121,7 @@
 <context>
     <name>NGWResourcesTreeView</name>
     <message>
-        <location filename="tree_panel.py" line="949"/>
+        <location filename="tree_panel.py" line="948"/>
         <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет настроенных подключений к NextGIS.com Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&apos;http://my.nextgis.com/&apos;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
@@ -240,7 +245,7 @@
         <translation>WFS сервис создается</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="651"/>
+        <location filename="tree_panel.py" line="650"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -250,22 +255,22 @@
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="659"/>
+        <location filename="tree_panel.py" line="658"/>
         <source>Set new group name</source>
         <translation>Задайте имя группы</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="659"/>
+        <location filename="tree_panel.py" line="658"/>
         <source>New group name:</source>
         <translation>Имя новой группы:</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="659"/>
+        <location filename="tree_panel.py" line="658"/>
         <source>New group</source>
         <translation>Новая группа</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="727"/>
+        <location filename="tree_panel.py" line="726"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>
     </message>
@@ -275,17 +280,17 @@
         <translation>Удалить</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="711"/>
+        <location filename="tree_panel.py" line="710"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="711"/>
+        <location filename="tree_panel.py" line="710"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="727"/>
+        <location filename="tree_panel.py" line="726"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
@@ -385,27 +390,27 @@
         <translation>NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="798"/>
+        <location filename="tree_panel.py" line="797"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="798"/>
+        <location filename="tree_panel.py" line="797"/>
         <source>QGIS Layer style file (*.qml)</source>
         <translation>Файл стиля слоя QGIS (*.qml)</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="819"/>
+        <location filename="tree_panel.py" line="818"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="821"/>
+        <location filename="tree_panel.py" line="820"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="tree_panel.py" line="612"/>
+        <location filename="tree_panel.py" line="611"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
     </message>

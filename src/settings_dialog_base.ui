@@ -136,7 +136,7 @@
    <item>
     <widget class="QCheckBox" name="cbAutoAddWFS">
      <property name="text">
-      <string>Add WFS layer to QGIS automatically on creation WFS service</string>
+      <string>Add WFS layer to QGIS on WFS service creation</string>
      </property>
     </widget>
    </item>
