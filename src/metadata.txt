@@ -24,8 +24,9 @@ email=info@nextgis.com
 changelog=
     0.9.3
         * Auto add WFS layer to QGIS after WFS resource creation
-        * Import field aliases with import vector layer
-        * Fix icons display bag (windows 8, 10 cyrillic user names) 
+        * Help link explaining where to get username/password
+        * Import field aliases with vector layer import
+        * Fix icons display bug (windows 8, 10 cyrillic user names)
         * Remove import project from layer's submenu
     0.9
         * Work behind proxy
