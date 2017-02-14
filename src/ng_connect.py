@@ -249,10 +249,6 @@ class NGConnectPlugin:
         )
 
     def unload(self):
-        self.iface.currentLayerChanged.disconnect(
-            self.dockWidget.inner_control.checkImportActionsAvailability
-        )
-
         # """Removes the plugin menu item and icon from QGIS GUI."""
         # self.iface.legendInterface().removeLegendLayerAction(
         #     self.dockWidget.inner_control.actionImportQGISProject

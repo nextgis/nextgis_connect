@@ -135,6 +135,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.triggered.connect(self.import_layer)
         self.actionImportQGISResource.setEnabled(False)
 
+        self.actionImportUpdateStyle = QAction(
+            self.tr("Import/Update style"),
+            self.iface.legendInterface()
+        )
+        self.actionImportUpdateStyle.triggered.connect(self.import_update_style)
+        self.actionImportUpdateStyle.setEnabled(False)
+
         self.actionImportQGISProject = QAction(
             self.tr("Import current project"),
             self.iface.legendInterface()
@@ -150,6 +157,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
+        self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
 
         # Create new group ----------------------------------------------------
@@ -239,7 +247,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionSettings.setToolTip(self.tr("Settings"))
         self.actionSettings.triggered.connect(self.action_settings)
 
-        # Add new toolbar
+        # Add toolbar
         self.main_tool_bar = NGWPanelToolBar()
         self.addToolBar(self.main_tool_bar)
 
@@ -287,6 +295,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources.setModel(self._resource_model)
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
         self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
+        self.trvResources.selectionModel().currentChanged.connect(self.ngwResourcesSelectionChanged)
 
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
@@ -315,15 +324,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
-        self.checkImportActionsAvailability()
+        self.qgisResourcesSelectionChanged()
         self.iface.currentLayerChanged.connect(
-            self.checkImportActionsAvailability
+            self.qgisResourcesSelectionChanged
         )
         QgsMapLayerRegistry.instance().layersAdded.connect(
-            self.checkImportActionsAvailability
+            self.qgisResourcesSelectionChanged
         )
         QgsMapLayerRegistry.instance().layersRemoved.connect(
-            self.checkImportActionsAvailability
+            self.qgisResourcesSelectionChanged
         )
 
     # def __closeNewWebGISInfoWidget(self, link):
@@ -332,19 +341,44 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
+        ngw_resource = self.trvResources.selectionModel().currentIndex().data(Qt.UserRole)
+
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
         elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
             self.actionImportQGISResource.setEnabled(True)
+
+        if isinstance(current_qgis_layer, QgsVectorLayer) and isinstance(ngw_resource, (NGWVectorLayer, NGWQGISVectorStyle)):
+            self.actionImportUpdateStyle.setEnabled(True)
 
         self.actionImportQGISProject.setEnabled(
             QgsMapLayerRegistry.instance().count() != 0
         )
 
         self.toolbuttonImport.setEnabled(
-            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled()
+            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or self.actionImportUpdateStyle.isEnabled()
         )
 
+        # TODO: NEED REFACTORING! Make isCompatible methods!
+        self.actionExport.setEnabled(
+            isinstance(
+                ngw_resource,
+                (
+                    NGWWfsService,
+                    NGWVectorLayer,
+                    NGWQGISVectorStyle
+                )
+            )
+        )
+        # enable/dis webmap
+        self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
+
+    def qgisResourcesSelectionChanged(self):
+        self.checkImportActionsAvailability()
+
+    def ngwResourcesSelectionChanged(self, selected, deselected):
+        self.checkImportActionsAvailability()
+    
     def __msg_in_qgis_mes_bar(self, message, level=QgsMessageBar.INFO, duration=0):
         self.iface.messageBar().pushMessage(
             self.tr('NextGIS Connect'),
@@ -513,30 +547,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # expand root item
         # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
 
-        # reconnect signals
-        self.trvResources.selectionModel().currentChanged.connect(self.active_item_chg)
-
         # save last selected connection
         # NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
 
     def __action_refresh_tree(self):
         self.reinit_tree(True)
-
-    def active_item_chg(self, selected, deselected):
-        ngw_resource = selected.data(Qt.UserRole)
-        # TODO: NEED REFACTORING! Make isCompatible methods!
-        self.actionExport.setEnabled(
-            isinstance(
-                ngw_resource,
-                (
-                    NGWWfsService,
-                    NGWVectorLayer,
-                    NGWQGISVectorStyle
-                )
-            )
-        )
-        # enable/dis webmap
-        self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
 
     def disable_tools(self):
         self.actionExport.setEnabled(False)
@@ -704,6 +719,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )
+
+    def import_update_style(self):
+        qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        response = self._resource_model.createOrUpdateQGISStyle(qgs_map_layer, sel_index)
+        response.done.connect(
+            self.trvResources.setCurrentIndex
+        )        
 
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
