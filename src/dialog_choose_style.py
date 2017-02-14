@@ -2,11 +2,6 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 
-class Filter(QSortFilterProxyModel):
-    def __init__(self, parent):
-        QSortFilterProxyModel.__init__(self, parent)
-
-
 class NGWResourcesTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
 
@@ -20,14 +15,14 @@ class NGWResourcesTreeView(QTreeView):
         self.header().setResizeMode(QHeaderView.ResizeToContents)
 
 
-class DialogWebMapCreation(QDialog):
-    def __init__(self, ngw_resources_model_index, model, parent=None):
+class NGWLayerStyleChooserDialog(QDialog):
+    def __init__(self, title, ngw_resources_model_index, model, parent=None):
         """
         """
         super(QDialog, self).__init__(parent)
 
         self.setWindowTitle(
-            self.tr("Create Web Map for layer")
+            title
         )
 
         self.layout = QVBoxLayout(self)
@@ -44,9 +39,6 @@ class DialogWebMapCreation(QDialog):
         )
 
         self.tree = NGWResourcesTreeView(self)
-
-        fmodel = Filter(self)
-        fmodel.setSourceModel(model)
 
         self.tree.setModel(model)
         self.tree.setRootIndex(ngw_resources_model_index)

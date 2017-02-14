@@ -24,6 +24,7 @@ email=info@nextgis.com
 changelog=
     0.9.4
         * Add updating QGIS vector style
+        * Add WMS creation from ngw vector layer
     0.9.3
         * Auto add WFS layer to QGIS after WFS resource creation
         * Help link explaining where to get username/password

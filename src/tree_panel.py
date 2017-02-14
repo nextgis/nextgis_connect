@@ -59,7 +59,7 @@ from ngw_api.utils import setLogger
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
 
-from dialog_choose_style import DialogWebMapCreation
+from dialog_choose_style import NGWLayerStyleChooserDialog
 from dialog_qgis_proj_import import DialogImportQGISProj
 
 this_dir = os.path.dirname(__file__).decode(sys.getfilesystemencoding())
@@ -213,6 +213,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWFSService.setToolTip(self.tr("Create WFS service"))
         self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
 
+        # Create WMS service --------------------------------------------------
+        self.actionCreateWMSService = QAction(
+            QIcon(),
+            self.tr("Create WMS service"),
+            self
+        )
+        self.actionCreateWMSService.setToolTip(self.tr("Create WMS service"))
+        self.actionCreateWMSService.triggered.connect(self.create_wms_service)
+
+
         # Delete resource -----------------------------------------------------
         self.actionDeleteResource = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')),
@@ -285,6 +295,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
             self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
             self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
+            self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS service is being created"),
             self._resource_model.JOB_CREATE_NGW_WEB_MAP: self.tr("Web map is being created"),
             self._resource_model.JOB_CREATE_NGW_STYLE: self.tr("Style for layer is being created"),
             self._resource_model.JOB_RENAME_RESOURCE: self.tr("Resource is being renamed"),
@@ -341,7 +352,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
-        ngw_resource = self.trvResources.selectionModel().currentIndex().data(Qt.UserRole)
+        index = self.trvResources.selectionModel().currentIndex()
+        ngw_resource = None
+        if index is not None:
+            ngw_resource = index.data(Qt.UserRole)
+        
 
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
@@ -585,6 +600,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWVectorLayer):
             menu.addAction(self.actionExport)
             menu.addAction(self.actionCreateWFSService)
+            menu.addAction(self.actionCreateWMSService)
             menu.addAction(self.actionCreateWebMap4Layer)
         elif isinstance(ngw_resource, NGWRasterLayer):
             menu.addAction(self.actionCreateWebMap4Layer)
@@ -772,6 +788,24 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_resource = index.data(Qt.UserRole)
         add_resource_as_wfs_layers(ngw_resource)
 
+    def create_wms_service(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        
+        dlg = NGWLayerStyleChooserDialog(self.tr("Create WMS for layer"), selected_index, self._resource_model, self)
+        result = dlg.exec_()
+        if result:
+            ngw_resource_style_id = None
+            if not dlg.needCreateNewStyle() and dlg.selectedStyle():
+                ngw_resource_style_id = dlg.selectedStyle()
+
+            responce = self._resource_model.createWMSForVector(selected_index, ngw_resource_style_id)
+            responce.done.connect(
+                self.trvResources.setCurrentIndex
+            )
+            # responce.done.connect(
+            #     self.add_created_wms_service
+            # )
+
     def create_web_map_for_style(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
         self.create_map_response = self._resource_model.createMapForStyle(selected_index)
@@ -784,7 +818,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         selected_index = self.trvResources.selectionModel().currentIndex()
         self._resource_model.updateResourceWithLoadChildren(selected_index)
 
-        dlg = DialogWebMapCreation(selected_index, self._resource_model, self)
+        dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
