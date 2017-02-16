@@ -247,6 +247,13 @@ class NGConnectPlugin:
             QgsMapLayer.VectorLayer,
             True
         )
+        self.iface.legendInterface().addLegendLayerAction(
+            self.dockWidget.inner_control.actionImportUpdateStyle,
+            self.tr(u"NextGIS Connect"),
+            u"",
+            QgsMapLayer.VectorLayer,
+            True
+        )
 
     def unload(self):
         # """Removes the plugin menu item and icon from QGIS GUI."""
@@ -262,6 +269,9 @@ class NGConnectPlugin:
         )
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource
+        )
+        self.iface.legendInterface().removeLegendLayerAction(
+            self.dockWidget.inner_control.actionImportUpdateStyle
         )
 
         for action in self.actions:
