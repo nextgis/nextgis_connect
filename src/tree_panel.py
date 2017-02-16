@@ -62,6 +62,8 @@ from plugin_settings import PluginSettings
 from dialog_choose_style import NGWLayerStyleChooserDialog
 from dialog_qgis_proj_import import DialogImportQGISProj
 
+from action_style_import_or_update import ActionStyleImportUpdate
+
 this_dir = os.path.dirname(__file__).decode(sys.getfilesystemencoding())
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -129,18 +131,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # Import to NGW -------------------------------------------------------
         self.actionImportQGISResource = QAction(
-            self.tr("Import selected layer"),
+            self.tr("Import selected layer(s)"),
             self.iface.legendInterface()
         )
-        self.actionImportQGISResource.triggered.connect(self.import_layer)
+        self.actionImportQGISResource.triggered.connect(self.import_layers)
         self.actionImportQGISResource.setEnabled(False)
 
-        self.actionImportUpdateStyle = QAction(
-            self.tr("Import/Update style"),
-            self.iface.legendInterface()
-        )
+        self.actionImportUpdateStyle = ActionStyleImportUpdate()
         self.actionImportUpdateStyle.triggered.connect(self.import_update_style)
-        self.actionImportUpdateStyle.setEnabled(False)
 
         self.actionImportQGISProject = QAction(
             self.tr("Import current project"),
@@ -355,16 +353,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
         index = self.trvResources.selectionModel().currentIndex()
         ngw_resource = None
         if index is not None:
-            ngw_resource = index.data(Qt.UserRole)
-        
+            ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
 
         if current_qgis_layer is None:
             self.actionImportQGISResource.setEnabled(False)
         elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
             self.actionImportQGISResource.setEnabled(True)
 
-        if isinstance(current_qgis_layer, QgsVectorLayer) and isinstance(ngw_resource, (NGWVectorLayer, NGWQGISVectorStyle)):
-            self.actionImportUpdateStyle.setEnabled(True)
+        if isinstance(ngw_resource, NGWQGISVectorStyle):
+            ngw_vector_layer = index.parent().data(QNGWResourceItemExt.NGWResourceRole)
+            self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_vector_layer)
+        else:
+            self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_resource)
 
         self.actionImportQGISProject.setEnabled(
             QgsMapLayerRegistry.instance().count() != 0
@@ -728,10 +728,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.open_create_web_map
             )
 
-    def import_layer(self):
-        qgs_map_layer = self.iface.mapCanvas().currentLayer()
+    def import_layers(self):
+        # qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        qgs_map_layers = self.iface.legendInterface().selectedLayers()
+        
         sel_index = self.trvResources.selectionModel().currentIndex()
-        self.import_layer_response = self._resource_model.createNGWLayer(qgs_map_layer, sel_index)
+        self.import_layer_response = self._resource_model.createNGWLayer(qgs_map_layers, sel_index)
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )
