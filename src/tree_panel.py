@@ -220,7 +220,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWMSService.setToolTip(self.tr("Create WMS service"))
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
 
-
         # Delete resource -----------------------------------------------------
         self.actionDeleteResource = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')),
@@ -294,6 +293,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
             self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
             self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS service is being created"),
+            self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS connection is being created"),
             self._resource_model.JOB_CREATE_NGW_WEB_MAP: self.tr("Web map is being created"),
             self._resource_model.JOB_CREATE_NGW_STYLE: self.tr("Style for layer is being created"),
             self._resource_model.JOB_RENAME_RESOURCE: self.tr("Resource is being renamed"),
@@ -355,10 +355,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if index is not None:
             ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
 
-        if current_qgis_layer is None:
-            self.actionImportQGISResource.setEnabled(False)
-        elif isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer)):
-            self.actionImportQGISResource.setEnabled(True)
+        self.actionImportQGISResource.setEnabled(
+            isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer))
+        )
 
         if isinstance(ngw_resource, NGWQGISVectorStyle):
             ngw_vector_layer = index.parent().data(QNGWResourceItemExt.NGWResourceRole)
@@ -729,11 +728,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
 
     def import_layers(self):
-        # qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        index = self.trvResources.selectionModel().currentIndex()
         qgs_map_layers = self.iface.legendInterface().selectedLayers()
         
-        sel_index = self.trvResources.selectionModel().currentIndex()
-        self.import_layer_response = self._resource_model.createNGWLayer(qgs_map_layers, sel_index)
+        self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )

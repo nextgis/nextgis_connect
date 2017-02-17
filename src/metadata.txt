@@ -23,9 +23,10 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.9.4
-        * Can import several vector layers
-        * Add updating QGIS vector style
         * Add WMS creation from ngw vector layer
+        * Add importing qgis wms layer to Web GIS as aouple of wms connection and wms layer
+        * Can import several layers by import to Web GIS
+        * Add updating QGIS vector style
     0.9.3
         * Auto add WFS layer to QGIS after WFS resource creation
         * Help link explaining where to get username/password
