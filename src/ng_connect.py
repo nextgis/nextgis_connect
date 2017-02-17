@@ -265,7 +265,7 @@ class NGConnectPlugin:
         # )
         # Hack - qgis delete only one action, we have two same actions
         self.iface.legendInterface().removeLegendLayerAction(
-            self.dockWidget.inner_control.actionImportQGISProject
+            self.dockWidget.inner_control.actionImportQGISResource
         )
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource
