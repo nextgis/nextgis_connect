@@ -12,7 +12,7 @@ name=NextGIS Connect
 qgisMinimumVersion=2.14
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.10
+version=0.10.1
 author=NextGIS
 email=info@nextgis.com
 
@@ -22,6 +22,8 @@ email=info@nextgis.com
 
 # Uncomment the following line and add your changelog:
 changelog=
+    0.10.1
+        * Fix import vector layer with empty features (no geometry)
     0.10
         * Add WMS creation from a vector layer resource
         * Add WMS layer import to Web GIS
