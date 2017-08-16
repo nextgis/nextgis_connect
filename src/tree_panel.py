@@ -45,14 +45,13 @@ from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
 from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
 from ngw_api.core.ngw_raster_style import NGWRasterStyle
 
-from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItemExt
+from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from ngw_api.qgis.resource_to_map import *
 
-from ngw_api.qt.qt_ngw_resource_base_model import QNGWResourcesModelExeption
-from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
+from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QNGWResourcesModelExeption
 
 from ngw_api.utils import setLogger
 
@@ -80,6 +79,7 @@ def ngwApiLog(msg, level=QgsMessageLog.INFO):
 
 setLogger(ngwApiLog)
 
+
 class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
         # init dock
@@ -91,6 +91,10 @@ class TreePanel(QDockWidget):
         self.inner_control = TreeControl(iface, self)
         self.inner_control.setWindowFlags(Qt.Widget)
         self.setWidget(self.inner_control)
+
+    def close(self):
+        self.inner_control.close()
+        super(TreePanel, self).close()
 
 
 class TreeControl(QMainWindow, FORM_CLASS):
@@ -137,6 +141,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.triggered.connect(self.import_layers)
         self.actionImportQGISResource.setEnabled(False)
 
+        self.actionUpdateNGWVectorLayer = QAction(
+            self.tr("Overwrite selected layer"),
+            self.iface.legendInterface()
+        )
+        self.actionUpdateNGWVectorLayer.triggered.connect(self.overwrite_ngw_layer)
+        self.actionUpdateNGWVectorLayer.setEnabled(False)
+
         self.actionImportUpdateStyle = ActionStyleImportUpdate()
         self.actionImportUpdateStyle.triggered.connect(self.import_update_style)
 
@@ -155,6 +166,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
+        self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
         self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
 
@@ -286,17 +298,21 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
+        
         self.blocked_jobs = {
-            self._resource_model.JOB_CREATE_NGW_GROUP_RESOURCE: self.tr("Resource is being created"),
-            self._resource_model.JOB_DELETE_NGW_RESOURCE: self.tr("Resource is being deleted"),
-            self._resource_model.JOB_IMPORT_QGIS_RESOURCE: self.tr("Layer is being imported"),
-            self._resource_model.JOB_IMPORT_QGIS_PROJECT: self.tr("Project is being imported"),
-            self._resource_model.JOB_CREATE_NGW_WFS_SERVICE: self.tr("WFS service is being created"),
-            self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS service is being created"),
-            self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS connection is being created"),
-            self._resource_model.JOB_CREATE_NGW_WEB_MAP: self.tr("Web map is being created"),
-            self._resource_model.JOB_CREATE_NGW_STYLE: self.tr("Style for layer is being created"),
-            self._resource_model.JOB_RENAME_RESOURCE: self.tr("Resource is being renamed"),
+            # "NGWResourceUpdater": self.tr("Resource is being updated"),
+            "NGWGroupCreater": self.tr("Resource is being created"),
+            "NGWResourceDelete": self.tr("Resource is being deleted"),
+            "QGISResourcesImporter": self.tr("Layer is being imported"),
+            "CurrentQGISProjectImporter": self.tr("Project is being imported"),
+            "NGWCreateWFSForVector": self.tr("WFS service is being created"),
+            "NGWCreateWMSForVector": self.tr("WMS service is being created"),
+            # self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS connection is being created"),
+            "NGWCreateMapForStyle": self.tr("Web map is being created"),
+            "MapForLayerCreater": self.tr("Web map is being created"),
+            "QGISStyleImporter": self.tr("Style for layer is being created"),
+            "NGWRenameResource": self.tr("Resource is being renamed"),
+            "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
         }
 
         # ngw resources view
@@ -348,19 +364,45 @@ class TreeControl(QMainWindow, FORM_CLASS):
     #     self.webGISCreationMessageWidget.setVisible(False)
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
 
+    def close(self):
+        self.iface.currentLayerChanged.disconnect(
+            self.qgisResourcesSelectionChanged
+        )
+        QgsMapLayerRegistry.instance().layersAdded.disconnect(
+            self.qgisResourcesSelectionChanged
+        )
+        QgsMapLayerRegistry.instance().layersRemoved.disconnect(
+            self.qgisResourcesSelectionChanged
+        )
+
+        self._resource_model.errorOccurred.disconnect(self.__model_error_process)
+        self._resource_model.warningOccurred.disconnect(self.__model_warning_process)
+        self._resource_model.jobStarted.disconnect(self.__modelJobStarted)
+        self._resource_model.jobStatusChanged.disconnect(self.__modelJobStatusChanged)
+        self._resource_model.jobFinished.disconnect(self.__modelJobFinished)
+
+        self._resource_model.setParent(None)
+        self._resource_model.deleteLater()
+
+        super(TreeControl, self).close()
+
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
         index = self.trvResources.selectionModel().currentIndex()
         ngw_resource = None
         if index is not None:
-            ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
 
         self.actionImportQGISResource.setEnabled(
             isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer))
         )
 
+        self.actionUpdateNGWVectorLayer.setEnabled(
+            isinstance(current_qgis_layer, QgsVectorLayer)
+        )
+
         if isinstance(ngw_resource, NGWQGISVectorStyle):
-            ngw_vector_layer = index.parent().data(QNGWResourceItemExt.NGWResourceRole)
+            ngw_vector_layer = index.parent().data(QNGWResourceItem.NGWResourceRole)
             self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_vector_layer)
         else:
             self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_resource)
@@ -370,7 +412,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
         self.toolbuttonImport.setEnabled(
-            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or self.actionImportUpdateStyle.isEnabled()
+            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or self.actionImportUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled()
         )
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
@@ -404,10 +446,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __model_warning_process(self, job, exception):
         self.__model_exception_process(job, exception, QgsMessageBar.WARNING)
 
-    def __model_error_process(self, job, exception):
-        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL)
+    def __model_error_process(self, job, exception, trace):
+        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL, trace)
 
-    def __model_exception_process(self, job, exception, level):
+    def __model_exception_process(self, job, exception, level, trace=None):
+        qgisLog("XXX __model_exception_process job: " + job + " exception: " + str(type(exception)))
         if isinstance(exception, NGWError):
             self.__ngw_error_process(exception, level)
 
@@ -421,13 +464,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.__ngw_error_process(
                     exception.ngw_error,
                     level,
-                    "[%s] " % str(exception)
+                    "[%s] " % unicode(exception)
                 )
         else:
+            qgisLog("XXX Unknown error")
             self.__msg_in_qgis_mes_bar(
-                "%s: %s" % (type(exception), exception),
+                "%s: %s" % (str(type(exception)), exception),
                 level=level
             )
+            if trace is not None:
+                qgisLog(str(trace))
 
     def __ngw_error_process(self, exception, level, prefix=""):
         try:
@@ -462,6 +508,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
                 qgisLog(
                     prefix + "Webgis connection failed: %s" % exeption_dict.get("message", ""),
+                )
+
+            elif exeption_type == "ResponceError":
+                self.__msg_in_qgis_mes_bar(
+                    prefix + exeption_dict.get("message", ""),
+                    level=level
+                )
+                qgisLog(
+                    prefix + exeption_dict.get("message", ""),
                 )
 
             else:
@@ -588,41 +643,49 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 QModelIndex()
             )
 
-        ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
+        if index.internalPointer().is_locked():
+            return
+
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+
+        getting_actions = []
+        setting_actions = []
+        creating_actions = []
+        services_actions = []
+
+        services_actions.extend([self.actionOpenInNGW, self.actionRename, self.actionDeleteResource])
+        
+        if isinstance(ngw_resource, NGWGroupResource):
+            creating_actions.append(self.actionCreateNewGroup)
+        elif isinstance(ngw_resource, NGWVectorLayer):
+            getting_actions.extend([self.actionExport])
+            setting_actions.extend([self.actionUpdateNGWVectorLayer])
+            creating_actions.extend([self.actionCreateWFSService, self.actionCreateWMSService, self.actionCreateWebMap4Layer])
+        elif isinstance(ngw_resource, NGWRasterLayer):
+            creating_actions.extend([self.actionCreateWebMap4Layer])
+        elif isinstance(ngw_resource, NGWWfsService):
+            getting_actions.extend([self.actionExport])
+        elif isinstance(ngw_resource, NGWWebMap):
+            services_actions.extend([self.actionOpenMapInBrowser])
+        elif isinstance(ngw_resource, NGWQGISVectorStyle):
+            getting_actions.extend([self.actionExport, self.actionDownload])
+            creating_actions.extend([self.actionCreateWebMap4Style])
+        elif isinstance(ngw_resource, NGWRasterStyle):
+            creating_actions.extend([self.actionCreateWebMap4Style])
+        elif isinstance(ngw_resource, NGWMapServerStyle):
+            creating_actions.extend([self.actionCreateWebMap4Style])
 
         menu = QMenu()
-        menu.addAction(self.actionOpenInNGW)
-        menu.addAction(self.actionRename)
-
-        if isinstance(ngw_resource, NGWGroupResource):
-            menu.addAction(self.actionCreateNewGroup)
-        elif isinstance(ngw_resource, NGWVectorLayer):
-            menu.addAction(self.actionExport)
-            menu.addAction(self.actionCreateWFSService)
-            menu.addAction(self.actionCreateWMSService)
-            menu.addAction(self.actionCreateWebMap4Layer)
-        elif isinstance(ngw_resource, NGWRasterLayer):
-            menu.addAction(self.actionCreateWebMap4Layer)
-        elif isinstance(ngw_resource, NGWWfsService):
-            menu.addAction(self.actionExport)
-        elif isinstance(ngw_resource, NGWWebMap):
-            menu.addAction(self.actionOpenMapInBrowser)
-        elif isinstance(ngw_resource, NGWQGISVectorStyle):
-            menu.addAction(self.actionExport)
-            menu.addAction(self.actionCreateWebMap4Style)
-            menu.addAction(self.actionDownload)
-        elif isinstance(ngw_resource, NGWRasterStyle):
-            menu.addAction(self.actionCreateWebMap4Style)
-        elif isinstance(ngw_resource, NGWMapServerStyle):
-            menu.addAction(self.actionCreateWebMap4Style)
-
-        menu.addSeparator()
-        menu.addAction(self.actionDeleteResource)
+        for actions in [getting_actions, setting_actions, creating_actions, services_actions]:
+            if len(actions) > 0:
+                for action in actions:
+                    menu.addAction(action)
+                menu.addSeparator()
 
         menu.exec_(self.trvResources.viewport().mapToGlobal(qpoint))
 
     def trvDoubleClickProcess(self, index):
-        ngw_resource = index.data(QNGWResourceItemExt.NGWResourceRole)
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         if isinstance(ngw_resource, NGWWebMap):
             self.__action_open_map()
 
@@ -664,12 +727,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
         if sel_index.isValid():
-            ngw_resource = sel_index.data(QNGWResourceItemExt.NGWResourceRole)
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             try:
                 if isinstance(ngw_resource, NGWVectorLayer):
                     add_resource_as_geojson(ngw_resource)
                 if isinstance(ngw_resource, NGWQGISVectorStyle):
-                    ngw_layer = sel_index.parent().data(QNGWResourceItemExt.NGWResourceRole)
+                    ngw_layer = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
                     add_resource_as_geojson_with_style(ngw_layer, ngw_resource)
                 elif isinstance(ngw_resource, NGWWfsService):
                     add_resource_as_wfs_layers(ngw_resource)
@@ -735,6 +798,27 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )
+
+    def overwrite_ngw_layer(self):
+        index = self.trvResources.selectionModel().currentIndex()
+        qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        
+        result = QMessageBox.question(
+            self,
+            self.tr("Overwrite NextGIS resource"),
+            self.tr("NextGIS resource '<b>%s</b>' will be <b>overwrite</b> with qgis layer '<b>%s</b>'! <br/> You can lose data of this NextGIS resource! <br/><br/> Are you sure you want to overwrite it? ") % (
+                index.data(Qt.DisplayRole),
+                qgs_map_layer.name()        
+            ),
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if result != QMessageBox.Yes:
+            return
+
+        if isinstance(qgs_map_layer, QgsVectorLayer):
+            self._resource_model.updateNGWLayer(index, qgs_map_layer)        
+        else:
+            pass
 
     def import_update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
@@ -816,7 +900,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def create_web_map_for_layer(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
-        self._resource_model.updateResourceWithLoadChildren(selected_index)
+        # self._resource_model.updateResourceWithLoadChildren(selected_index)
 
         dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
         result = dlg.exec_()
@@ -847,7 +931,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def downloadQML(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
-        ngw_qgis_style = selected_index.data(QNGWResourceItemExt.NGWResourceRole)
+        ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
         url = ngw_qgis_style.download_qml_url()
 
         filepath = QFileDialog.getSaveFileName(

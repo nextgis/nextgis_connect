@@ -287,4 +287,6 @@ class NGConnectPlugin:
         PluginSettings.set_dock_size(self.dockWidget.size())
         PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
 
+        self.dockWidget.close()
+
         self.iface.removeDockWidget(self.dockWidget)
