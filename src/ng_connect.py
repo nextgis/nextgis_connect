@@ -26,7 +26,7 @@ from os import path
 from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from PyQt4.QtGui import QAction, QIcon
 
-from qgis.core import QgsMapLayer
+from qgis.core import QgsMapLayer, QgsMessageLog
 
 from settings_dialog import SettingsDialog
 from plugin_settings import PluginSettings
@@ -264,6 +264,7 @@ class NGConnectPlugin:
         #     self.dockWidget.inner_control.actionImportQGISResource
         # )
         # Hack - qgis delete only one action, we have two same actions
+
         self.iface.legendInterface().removeLegendLayerAction(
             self.dockWidget.inner_control.actionImportQGISResource
         )
@@ -287,6 +288,6 @@ class NGConnectPlugin:
         PluginSettings.set_dock_size(self.dockWidget.size())
         PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
 
-        self.dockWidget.close()
-
         self.iface.removeDockWidget(self.dockWidget)
+
+        self.dockWidget.close()

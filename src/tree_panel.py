@@ -166,7 +166,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
-        self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
+        # self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
         self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
 
@@ -365,6 +365,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
     #     PluginSettings.set_webgis_creation_message_closed_by_user(True)
 
     def close(self):
+        self.trvResources.customContextMenuRequested.disconnect(self.slotCustomContextMenu)
+        self.trvResources.itemDoubleClicked.disconnect(self.trvDoubleClickProcess)
+        self.trvResources.selectionModel().currentChanged.disconnect(self.ngwResourcesSelectionChanged)
+        
+        self.trvResources.setParent(None)
+        self.trvResources.deleteLater()
+        del self.trvResources
+
         self.iface.currentLayerChanged.disconnect(
             self.qgisResourcesSelectionChanged
         )
@@ -383,6 +391,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self._resource_model.setParent(None)
         self._resource_model.deleteLater()
+        del self._resource_model
 
         super(TreeControl, self).close()
 
@@ -659,7 +668,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             creating_actions.append(self.actionCreateNewGroup)
         elif isinstance(ngw_resource, NGWVectorLayer):
             getting_actions.extend([self.actionExport])
-            setting_actions.extend([self.actionUpdateNGWVectorLayer])
+            # setting_actions.extend([self.actionUpdateNGWVectorLayer])
             creating_actions.extend([self.actionCreateWFSService, self.actionCreateWMSService, self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWRasterLayer):
             creating_actions.extend([self.actionCreateWebMap4Layer])
@@ -775,20 +784,37 @@ class TreeControl(QMainWindow, FORM_CLASS):
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
-        dlg = DialogImportQGISProj(current_project_title, self)
-        result = dlg.exec_()
-        if result:
-            self.qgis_proj_import_response = self._resource_model.tryImportCurentQGISProject(
-                dlg.getProjName(),
-                sel_index,
-                self.iface
-            )
-            self.qgis_proj_import_response.done.connect(
-                self.trvResources.setCurrentIndex
-            )
-            self.qgis_proj_import_response.done.connect(
-                self.open_create_web_map
-            )
+        this_proj_imported_early_in_this_item = False
+        # imported_to_group_id, this_proj_imported_early = current_project.readNumEntry("NGW", "project_group_id")
+        # if this_proj_imported_early:
+        #     if imported_to_group_id == sel_index.internalPointer().ngw_resource_id():
+        #         this_proj_imported_early_in_this_item = True
+        #         res = QMessageBox.question(self, "Update project", "This project will be updated in WebGIS.")
+        #         if res != QMessageBox.Ok:
+        #             return
+            
+
+        if this_proj_imported_early_in_this_item:
+            project_name = None
+        else:
+            dlg = DialogImportQGISProj(current_project_title, self)
+            result = dlg.exec_()
+            if result:
+                project_name = dlg.getProjName()
+            else:
+                return
+
+        self.qgis_proj_import_response = self._resource_model.tryImportCurentQGISProject(
+            project_name,
+            sel_index,
+            self.iface,
+        )
+        self.qgis_proj_import_response.done.connect(
+            self.trvResources.setCurrentIndex
+        )
+        self.qgis_proj_import_response.done.connect(
+            self.open_create_web_map
+        )
 
     def import_layers(self):
         index = self.trvResources.selectionModel().currentIndex()
