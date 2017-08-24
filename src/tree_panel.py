@@ -46,12 +46,13 @@ from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
 from ngw_api.core.ngw_raster_style import NGWRasterStyle
 
 from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
+from ngw_api.qt.qt_ngw_resource_model_job_error import *
 
 from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from ngw_api.qgis.resource_to_map import *
 
-from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QNGWResourcesModelExeption
+from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
 from ngw_api.utils import setLogger
 
@@ -443,108 +444,76 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def ngwResourcesSelectionChanged(self, selected, deselected):
         self.checkImportActionsAvailability()
-    
-    def __msg_in_qgis_mes_bar(self, message, level=QgsMessageBar.INFO, duration=0):
-        self.iface.messageBar().pushMessage(
-            self.tr('NextGIS Connect'),
-            message,
-            level,
-            duration,
-        )
 
     def __model_warning_process(self, job, exception):
         self.__model_exception_process(job, exception, QgsMessageBar.WARNING)
 
-    def __model_error_process(self, job, exception, trace):
-        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL, trace)
+    def __model_error_process(self, job, exception):
+        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL)
 
     def __model_exception_process(self, job, exception, level, trace=None):
-        qgisLog("XXX __model_exception_process job: " + job + " exception: " + str(type(exception)))
-        if isinstance(exception, NGWError):
-            self.__ngw_error_process(exception, level)
-
-        elif isinstance(exception, QNGWResourcesModelExeption):
-            if exception.ngw_error is None:
-                self.__msg_in_qgis_mes_bar(
-                    "%s" % exception,
-                    level=level
-                )
-            else:
-                self.__ngw_error_process(
-                    exception.ngw_error,
-                    level,
-                    "[%s] " % unicode(exception)
-                )
-        else:
-            qgisLog("XXX Unknown error")
-            self.__msg_in_qgis_mes_bar(
-                "%s: %s" % (str(type(exception)), exception),
-                level=level
-            )
-            if trace is not None:
-                qgisLog(str(trace))
-
-    def __ngw_error_process(self, exception, level, prefix=""):
-        try:
-            exeption_dict = json.loads(exception.message)
-            exeption_type = exeption_dict.get("exception")
-
+        msg = None
+        msg_full = None
+        need_see_logs = False
+        if exception.__class__ == JobServerRequestError:
+            msg = self.tr("Error occurred while communicating with Web GIS.")
+            need_see_logs = True
+            msg_full = exception.msg + "\n" + "URL: " + exception.url
+        
+        elif exception.__class__ == JobNGWError:
+            msg = " %s." % exception.msg
+            need_see_logs = True
+            msg_full = self.tr("Web GIS return error:") + "\n" + exception.msg + "\n" + "URL: " + exception.url
+        
+        elif exception.__class__ == JobAuthorizationError:
             name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+            conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+            dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
+            dlg.setWindowTitle(
+                self.tr("Access denied. Enter your login.")
+            )
+            res = dlg.exec_()
+            if res:
+                conn_sett = dlg.ngw_connection_settings
+                NgwPluginSettings.save_ngw_connection(conn_sett)
+                self.reinit_tree()
+            del dlg
 
-            if exeption_type in ["HTTPForbidden", "ForbiddenError"]:
+        elif exception.__class__ == JobError:
+            msg = "%s" % exception.msg
 
-                self.__msg_in_qgis_mes_bar(
-                    "WebGIS access denied",
-                    level=level
-                )
+        elif exception.__class__ == JobInternalError:
+            msg = self.tr("Intrenal plugin error occurred!")
+            need_see_logs = True
+            msg_full = exception.msg + "\n" + "".join(exception.trace)
 
-                conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
-                dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
-                dlg.setWindowTitle(
-                    self.tr("Access denied. Enter your login.")
-                )
-                res = dlg.exec_()
-                if res:
-                    conn_sett = dlg.ngw_connection_settings
-                    NgwPluginSettings.save_ngw_connection(conn_sett)
-                    self.reinit_tree()
-                del dlg
-
-            elif exeption_type == "ConnectionError":
-                self.__msg_in_qgis_mes_bar(
-                    prefix + "Webgis connection failed. See logs for detail.",
-                    level=level
-                )
-                qgisLog(
-                    prefix + "Webgis connection failed: %s" % exeption_dict.get("message", ""),
-                )
-
-            elif exeption_type == "ResponceError":
-                self.__msg_in_qgis_mes_bar(
-                    prefix + exeption_dict.get("message", ""),
-                    level=level
-                )
-                qgisLog(
-                    prefix + exeption_dict.get("message", ""),
-                )
-
-            else:
-                self.__msg_in_qgis_mes_bar(
-                    prefix + "WebGIS answered - " + exeption_dict.get("message", ""),
-                    level=level
-                )
-
-        except Exception:
+        if msg is not None:
             self.__msg_in_qgis_mes_bar(
-                prefix + "Received unknown error. See logs.",
+                msg,
+                need_see_logs,
                 level=level
             )
-            qgisLog(
-                prefix + "Received unknown error. See logs.",
-            )
-            qgisLog(
-                exception.message,
-            )
+
+        if msg_full is not None:
+            qgisLog(msg_full)
+    
+    def __msg_in_qgis_mes_bar(self, message, need_show_log, level=QgsMessageBar.INFO, duration=0):
+        if need_show_log:
+            message += " " + self.tr("See logs for details.") 
+        widget = self.iface.messageBar().createMessage(
+            self.tr('NextGIS Connect'),
+            message
+        )
+        # widget.setProperty("Error", message)
+        if need_show_log:
+            button = QPushButton(self.tr("Open logs."), pressed=self.__show_message_log)
+            widget.layout().addWidget(button)
+        
+        self.iface.messageBar().pushWidget(widget, level, duration)
+
+    def __show_message_log(self):
+        self.iface.messageBar().popWidget()
+        self.iface.openMessageLog()
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
@@ -746,7 +715,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 elif isinstance(ngw_resource, NGWWfsService):
                     add_resource_as_wfs_layers(ngw_resource)
 
-            except NGWError as ex:
+            except Exception as ex:
                 error_mes = ex.message or ''
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
