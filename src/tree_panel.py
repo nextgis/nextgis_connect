@@ -486,7 +486,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 msg_full = msg + "\n%s" % exception.wrapped_exception
 
         elif exception.__class__ == JobInternalError:
-            msg = self.tr("Intrenal plugin error occurred!")
+            msg = self.tr("Internal plugin error occurred!")
             need_see_logs = True
             msg_full = exception.msg + "\n" + "".join(exception.trace)
 
