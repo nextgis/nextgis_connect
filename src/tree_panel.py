@@ -39,6 +39,7 @@ from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_raster_layer import NGWRasterLayer
+from ngw_api.core.ngw_wms_layer import NGWWmsLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
 from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
@@ -61,6 +62,7 @@ from plugin_settings import PluginSettings
 
 from dialog_choose_style import NGWLayerStyleChooserDialog
 from dialog_qgis_proj_import import DialogImportQGISProj
+from exceptions_list_dialog import ExceptionsListDialog
 
 from action_style_import_or_update import ActionStyleImportUpdate
 
@@ -167,7 +169,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
-        # self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
+        self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
         self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
 
@@ -452,20 +454,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL)
 
     def __model_exception_process(self, job, exception, level, trace=None):
-        msg = None
-        msg_full = None
-        need_see_logs = False
-        if exception.__class__ == JobServerRequestError:
-            msg = self.tr("Error occurred while communicating with Web GIS.")
-            need_see_logs = True
-            msg_full = exception.msg + "\n" + "URL: " + exception.url
-        
-        elif exception.__class__ == JobNGWError:
-            msg = " %s." % exception.msg
-            need_see_logs = True
-            msg_full = self.tr("Web GIS return error:") + "\n" + exception.msg + "\n" + "URL: " + exception.url
-        
-        elif exception.__class__ == JobAuthorizationError:
+        msg, msg_ext, icon = self.__get_model_exception_description(job, exception)
+
+        if exception.__class__ == JobAuthorizationError:
             name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
             conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
             dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
@@ -479,26 +470,46 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.reinit_tree()
             del dlg
 
-        elif exception.__class__ == JobError:
-            msg = "%s" % exception.msg
-            if exception.wrapped_exception is not None:
-                need_see_logs = True
-                msg_full = msg + "\n%s" % exception.wrapped_exception
-
-        elif exception.__class__ == JobInternalError:
-            msg = self.tr("Intrenal plugin error occurred!")
-            need_see_logs = True
-            msg_full = exception.msg + "\n" + "".join(exception.trace)
-
         if msg is not None:
             self.__msg_in_qgis_mes_bar(
                 msg,
-                need_see_logs,
+                msg_ext is not None,
                 level=level
             )
 
-        if msg_full is not None:
-            qgisLog(msg_full)
+        if msg_ext is not None:
+            qgisLog(msg + "\n" + msg_ext)
+
+    def __get_model_exception_description(self, job, exception):
+        msg = None
+        msg_ext = None
+        icon = os.path.join(ICONS_PATH, 'Error.svg')
+
+        if exception.__class__ == JobServerRequestError:
+            msg = self.tr("Error occurred while communicating with Web GIS.")
+            msg_ext = "URL: " + exception.url
+        
+        elif exception.__class__ == JobNGWError:
+            msg = " %s." % exception.msg
+            msg_ext = "URL: " + exception.url
+        
+        elif exception.__class__ == JobAuthorizationError:
+            msg = " %s." % self.tr("Access denied. Enter your login.")
+
+        elif exception.__class__ == JobError:
+            msg = "%s" % exception.msg
+            if exception.wrapped_exception is not None:
+                msg_ext = "%s" % exception.wrapped_exception
+
+        elif exception.__class__ == JobWarning:
+            msg = "%s" % exception.msg
+            icon = os.path.join(ICONS_PATH, 'Warning.svg')
+
+        elif exception.__class__ == JobInternalError:
+            msg = self.tr("Internal plugin error occurred!")
+            msg_ext = "".join(exception.trace)
+
+        return msg, msg_ext, icon
     
     def __msg_in_qgis_mes_bar(self, message, need_show_log, level=QgsMessageBar.INFO, duration=0):
         if need_show_log:
@@ -640,9 +651,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
             creating_actions.append(self.actionCreateNewGroup)
         elif isinstance(ngw_resource, NGWVectorLayer):
             getting_actions.extend([self.actionExport])
-            # setting_actions.extend([self.actionUpdateNGWVectorLayer])
+            setting_actions.extend([self.actionUpdateNGWVectorLayer])
             creating_actions.extend([self.actionCreateWFSService, self.actionCreateWMSService, self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWRasterLayer):
+            creating_actions.extend([self.actionCreateWebMap4Layer])
+        elif isinstance(ngw_resource, NGWWmsLayer):
             creating_actions.extend([self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWWfsService):
             getting_actions.extend([self.actionExport])
@@ -787,6 +800,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.qgis_proj_import_response.done.connect(
             self.open_create_web_map
         )
+        self.qgis_proj_import_response.done.connect(
+            self.processWarnings
+        )
 
     def import_layers(self):
         index = self.trvResources.selectionModel().currentIndex()
@@ -795,6 +811,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
+        )
+
+        self.import_layer_response.done.connect(
+            self.processWarnings
         )
 
     def overwrite_ngw_layer(self):
@@ -898,26 +918,32 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def create_web_map_for_layer(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
-        # self._resource_model.updateResourceWithLoadChildren(selected_index)
 
-        dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
-        result = dlg.exec_()
-        if result:
-            ngw_resource_style_id = None
-            if not dlg.needCreateNewStyle() and dlg.selectedStyle():
-                ngw_resource_style_id = dlg.selectedStyle()
+        ngw_resource = selected_index.data(Qt.UserRole)
+        if ngw_resource.type_id == NGWVectorLayer.type_id:
+            dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
+            result = dlg.exec_()
+            if result:
+                ngw_resource_style_id = None
+                if not dlg.needCreateNewStyle() and dlg.selectedStyle():
+                    ngw_resource_style_id = dlg.selectedStyle()
 
+                self.create_map_response = self._resource_model.createMapForLayer(
+                    selected_index,
+                    ngw_resource_style_id
+                )
+        elif ngw_resource.type_id == NGWWmsLayer.type_id:
             self.create_map_response = self._resource_model.createMapForLayer(
-                selected_index,
-                ngw_resource_style_id
-            )
+                    selected_index,
+                    None
+                )
 
-            self.create_map_response.done.connect(
-                self.trvResources.setCurrentIndex
-            )
-            self.create_map_response.done.connect(
-                self.open_create_web_map
-            )
+        self.create_map_response.done.connect(
+            self.trvResources.setCurrentIndex
+        )
+        self.create_map_response.done.connect(
+            self.open_create_web_map
+        )
 
     def open_create_web_map(self, index):
         if PluginSettings.auto_open_web_map_option() is False:
@@ -926,6 +952,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_resource = index.data(Qt.UserRole)
         url = ngw_resource.get_display_url()
         QDesktopServices.openUrl(QUrl(url))
+
+    def processWarnings(self, index):
+        ngw_model_job_resp = self.sender()
+        job_id = ngw_model_job_resp.job_id
+        if len(ngw_model_job_resp.warnings()) > 0:
+            dlg = ExceptionsListDialog(self.tr("NextGIS Connect operation exceptions"), self)
+            for w in ngw_model_job_resp.warnings():
+                w_msg, w_msg_ext, icon = self.__get_model_exception_description(job_id, w)
+                dlg.addException(w_msg, w_msg_ext, icon) 
+                dlg.show()
 
     def downloadQML(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
@@ -953,9 +989,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if file.open(QIODevice.WriteOnly):
             file.write(reply.readAll())
             file.close()
-            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), duration=2)
+            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
         else:
-            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), QgsMessageBar.CRITICAL)
+            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), True, QgsMessageBar.CRITICAL)
 
         reply.deleteLater()
 

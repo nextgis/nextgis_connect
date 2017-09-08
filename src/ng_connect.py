@@ -36,7 +36,15 @@ from ngw_api import qgis
 
 
 class NGConnectPlugin:
-    """QGIS Plugin Implementation."""
+    """QGIS Plugin Implementation.
+        
+        Utils:
+
+from qgis.utils import plugins
+plugins['nextgis_connect'].info()
+plugins['nextgis_connect'].enableDebug(True)
+plugins['nextgis_connect'].enableDebug(False)
+    """
 
     def __init__(self, iface):
         """Constructor.
@@ -291,3 +299,20 @@ class NGConnectPlugin:
         self.iface.removeDockWidget(self.dockWidget)
 
         self.dockWidget.close()
+
+    @staticmethod
+    def info():
+        print("Plugin NextGIS Connect.")
+
+        import ngw_api
+        print("NGW API v. %s" % (ngw_api.__version__) )
+
+        print("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") )
+
+    @staticmethod
+    def enableDebug(flag):
+        import ngw_api
+        ngw_api.utils.debug = flag
+
+        print("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") )
+
