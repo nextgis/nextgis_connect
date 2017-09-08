@@ -469,16 +469,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 NgwPluginSettings.save_ngw_connection(conn_sett)
                 self.reinit_tree()
             del dlg
+        else:
+            if msg is not None:
+                self.__msg_in_qgis_mes_bar(
+                    msg,
+                    msg_ext is not None,
+                    level=level
+                )
 
-        if msg is not None:
-            self.__msg_in_qgis_mes_bar(
-                msg,
-                msg_ext is not None,
-                level=level
-            )
-
-        if msg_ext is not None:
-            qgisLog(msg + "\n" + msg_ext)
+            if msg_ext is not None:
+                qgisLog(msg + "\n" + msg_ext)
 
     def __get_model_exception_description(self, job, exception):
         msg = None
