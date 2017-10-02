@@ -12,7 +12,7 @@ name=NextGIS Connect
 qgisMinimumVersion=2.14
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.11.0-rc1
+version=0.11.0-rc2
 author=NextGIS
 email=info@nextgis.com
 
@@ -23,16 +23,16 @@ email=info@nextgis.com
 # Uncomment the following line and add your changelog:
 changelog=
     0.11.0
-        * Add import WMS QGIS layer
-        * Add import QMS Plugin layer
-        * Add export WMS service
-        * Add export WMS connection
-        * Add export WMS layer
-        * Success connect to Web GIS over https.
-        * [Import qgis wms layer] Take into account username, password, format, layers
-        * [Import project] Add wms layer to web map with transparency
-        * [Import project] Add qms plugin tms layer to web map as basemap
-        * Create map from wms layer resource
+        * Add WMS QGIS layer import
+        * Add QMS Plugin layer import
+        * Add WMS service export
+        * Add WMS connection export
+        * Add WMS layer export
+        * HTTPS support
+        * [Import qgis WMS layer] Take into account username, password, format, layers
+        * [Import project] Add WMS layer to web map with transparency
+        * [Import project] Add QMS plugin TMS layer to Web map as basemap
+        * Create Web map from WMS layer resource
         * Overwrite vector layer
         * Fix bags
     0.10.7
