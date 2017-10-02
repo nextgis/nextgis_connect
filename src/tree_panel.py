@@ -32,19 +32,22 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from PyQt4.QtNetwork import *
 
-from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsNetworkAccessManager
+from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsNetworkAccessManager
 from qgis.gui import QgsMessageBar
 
 from ngw_api.core.ngw_error import NGWError
 from ngw_api.core.ngw_group_resource import NGWGroupResource
 from ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from ngw_api.core.ngw_raster_layer import NGWRasterLayer
+from ngw_api.core.ngw_wms_connection import NGWWmsConnection
 from ngw_api.core.ngw_wms_layer import NGWWmsLayer
 from ngw_api.core.ngw_webmap import NGWWebMap
 from ngw_api.core.ngw_wfs_service import NGWWfsService
+from ngw_api.core.ngw_wms_service import NGWWmsService
 from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
 from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
 from ngw_api.core.ngw_raster_style import NGWRasterStyle
+from ngw_api.core.ngw_base_map import NGWBaseMap
 
 from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
 from ngw_api.qt.qt_ngw_resource_model_job_error import *
@@ -65,6 +68,8 @@ from dialog_qgis_proj_import import DialogImportQGISProj
 from exceptions_list_dialog import ExceptionsListDialog
 
 from action_style_import_or_update import ActionStyleImportUpdate
+
+import utils
 
 this_dir = os.path.dirname(__file__).decode(sys.getfilesystemencoding())
 
@@ -169,7 +174,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
-        self.menuImport.addAction(self.actionUpdateNGWVectorLayer)
         self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
 
@@ -406,7 +410,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
 
         self.actionImportQGISResource.setEnabled(
-            isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer))
+            isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
         )
 
         self.actionUpdateNGWVectorLayer.setEnabled(
@@ -433,6 +437,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 ngw_resource,
                 (
                     NGWWfsService,
+                    NGWWmsService,
+                    NGWWmsConnection,
+                    NGWWmsLayer,
                     NGWVectorLayer,
                     NGWQGISVectorStyle
                 )
@@ -656,8 +663,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWRasterLayer):
             creating_actions.extend([self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWWmsLayer):
+            getting_actions.extend([self.actionExport])
             creating_actions.extend([self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWWfsService):
+            getting_actions.extend([self.actionExport])
+        elif isinstance(ngw_resource, NGWWmsService):
+            getting_actions.extend([self.actionExport])
+        elif isinstance(ngw_resource, NGWWmsConnection):
             getting_actions.extend([self.actionExport])
         elif isinstance(ngw_resource, NGWWebMap):
             services_actions.extend([self.actionOpenMapInBrowser])
@@ -730,6 +742,26 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     add_resource_as_geojson_with_style(ngw_layer, ngw_resource)
                 elif isinstance(ngw_resource, NGWWfsService):
                     add_resource_as_wfs_layers(ngw_resource)
+                elif isinstance(ngw_resource, NGWWmsService):
+                    utils.add_wms_layer(
+                        ngw_resource.common.display_name,
+                        ngw_resource.get_url(),
+                        ngw_resource.get_layer_keys(),
+                        len(ngw_resource.get_layer_keys()) > 1
+                    )
+                elif isinstance(ngw_resource, NGWWmsConnection):
+                    utils.add_wms_layer(
+                        ngw_resource.common.display_name,
+                        ngw_resource.get_connection_url(),
+                        ngw_resource.layers(),
+                        len(ngw_resource.layers()) > 1
+                    )
+                elif isinstance(ngw_resource, NGWWmsLayer):
+                    utils.add_wms_layer(
+                        ngw_resource.common.display_name,
+                        ngw_resource.ngw_wms_connection_url,
+                        ngw_resource.ngw_wms_layers,
+                    )
 
             except Exception as ex:
                 error_mes = ex.message or ''
@@ -920,7 +952,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         selected_index = self.trvResources.selectionModel().currentIndex()
 
         ngw_resource = selected_index.data(Qt.UserRole)
-        if ngw_resource.type_id == NGWVectorLayer.type_id:
+        if ngw_resource.type_id in [NGWVectorLayer.type_id, NGWRasterLayer.type_id]:
             dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
             result = dlg.exec_()
             if result:
