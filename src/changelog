@@ -1,0 +1,125 @@
+unreleased
+    * Fix requests dependency
+0.11.0
+    * Add WMS QGIS layer import
+    * Add QMS Plugin layer import
+    * Add WMS service export
+    * Add WMS connection export
+    * Add WMS layer export
+    * HTTPS support
+    * [Import qgis WMS layer] Take into account username, password, format, layers
+    * [Import project] Add WMS layer to web map with transparency
+    * [Import project] Add QMS plugin TMS layer to Web map as basemap
+    * Create Web map from WMS layer resource
+    * Overwrite vector layer
+    * Fix bags
+0.10.7
+    * Fix bugs
+0.10.6
+    * TYPE and SOURCE field are no longer renamed on upload
+    * Change context menu structure
+0.10.5
+    * Fix layer uploading
+0.10.4
+    * Fix reprojected layer import
+    * Better extent calculation for new Web maps
+0.10.3
+    * Fix bugs in geometry validation process
+0.10.2
+    * Improve vector layer import: skip invalid geometries
+0.10.1
+    * Fix import vector layer with empty features (no geometry)
+0.10
+    * Add WMS creation from a vector layer resource
+    * Add WMS layer import to Web GIS
+    * Ability to import several layers at once
+    * Updating QGIS vector style of a remote resource without file manipulations
+0.9.3
+    * Auto add WFS layer to QGIS after WFS resource creation
+    * Help link explaining where to get username/password
+    * Import field aliases with vector layer import
+    * Fix icons display bug (windows 8, 10 cyrillic user names)
+    * Remove import project from layer's submenu
+0.9
+    * Work behind proxy
+    * Add resource renaming
+    * Add command in context menu to open resource's web page
+    * Add setting to continue qgis project import after layer import failure
+    * Adding vector layer with style in QGIS
+    * Downloading style as QML file
+    * Add identification vector layer style type: prefix 'qgis' and 'ms'
+    * Add auto-open map in browser option, if specified in import qgis project or create webmap forms
+    * Changed resources sorting order - groups first
+    * Create webmap from layer
+    * Create webmap from style
+    * Append and delete resources item instead of reloading one item children
+0.8
+    * Unfold group after layer import
+    * Sanitize importing vector layers
+    * Display progress of layers and project import
+    * Transfer delimited text layers to nextgis.com
+    * Different icons for different types of vector layers
+    * Improve connection settings dialog
+    * Ignore layers without geometries (for example data tables)
+    * Fix import layers with the same names when importing a project
+0.7.0
+    * Transfer memory vector layers to nextgis.com
+    * Inherit groups expansion status (expanded, collapsed) by webmap on project import
+0.6.0
+    * Release
+0.5.11
+    * Fix opening webmap in linux
+    * Add scrollbar to panel
+0.5.7
+    * Can use cyrillic symbols in auth data
+    * Disable service items (like loading...) in resources tree
+    * Create group in the nearest parent group of selected resource
+0.5.6
+    * Check URL when add new connesction or edit one
+    * Return to one mode connection settings dialog
+0.5.5
+    * Unfold the folded group, when added new resource 
+    * Switched to a new version ngw_external_api_python
+0.5.4
+    * Double click on webmap open the map in browser
+0.5.3
+    * Update toolbar
+0.5.2
+    * Add simple and advanced modes for New/Edit connection settings dialog 
+    * Add help link
+    * Remove connections listbox from working panel
+    * Change icon
+0.5.1
+    * Added Russian translation
+0.5.0
+    * Release experimental
+0.4.20
+    * Take into account layer visibility during project import
+0.4.19
+    * Push vector to Web GIS in EPSG: 4326
+0.4.16
+    * Add dialog to set the number of objects returned by default for WFS service
+0.4.15
+    * Add progress bar
+0.4.14
+    * Add WFS creation from ngw vector layer
+    * Improve resources context menu
+0.4.13
+    * Handle authorization error (HTTPForbidden) error 
+0.4.12
+    * Rename plugin
+0.4.11
+    * Change visualization of operating process
+    * Add message inviting you to register on my.nextgis.com if there are no connections.
+0.4:
+    * Fix resmeta error
+    * Fix WFS
+    * Fix WMS icon
+0.3:
+    * Fix errors
+    * Add encoding for geosjon layers
+0.2:
+    * Russian translation added
+    * New tool for open web map
+    * New tool for refresh resource tree
+    * Some bug fixing
