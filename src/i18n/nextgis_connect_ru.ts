@@ -473,7 +473,7 @@
     <message>
         <location filename="../tree_panel.py" line="523"/>
         <source>Open logs.</source>
-        <translation>Открать сообщения.</translation>
+        <translation>Открыть сообщения.</translation>
     </message>
     <message>
         <location filename="../tree_panel.py" line="833"/>

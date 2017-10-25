@@ -1,6 +1,7 @@
 unreleased
     * Fix bugs in upload file process
     * Fix requests dependency
+    * Fix typos
 0.11.0
     * Add WMS QGIS layer import
     * Add QMS Plugin layer import
