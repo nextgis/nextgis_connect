@@ -27,12 +27,12 @@ class NGWLayerStyleChooserDialog(QDialog):
 
         self.layout = QVBoxLayout(self)
 
-        self.chbCreateNewStyle = QCheckBox(self.tr("Create new style"), self)
-        self.chbCreateNewStyle.stateChanged.connect(self.setCreatingNewStyle)
-        self.chbCreateNewStyle.clicked.connect(self.validate)
-        self.layout.addWidget(
-            self.chbCreateNewStyle
-        )
+        # self.chbCreateNewStyle = QCheckBox(self.tr("Create new style"), self)
+        # self.chbCreateNewStyle.stateChanged.connect(self.setCreatingNewStyle)
+        # self.chbCreateNewStyle.clicked.connect(self.validate)
+        # self.layout.addWidget(
+        #     self.chbCreateNewStyle
+        # )
 
         self.layout.addWidget(
             QLabel(self.tr("Or select layer style:"))
@@ -58,8 +58,8 @@ class NGWLayerStyleChooserDialog(QDialog):
     def setCreatingNewStyle(self, state):
         self.tree.setDisabled(state == Qt.Checked)
 
-    def needCreateNewStyle(self):
-        return self.chbCreateNewStyle.checkState() == Qt.Checked
+    # def needCreateNewStyle(self):
+    #     return self.chbCreateNewStyle.checkState() == Qt.Checked
 
     def selectedStyle(self):
         selected_index = self.tree.selectionModel().currentIndex()
@@ -72,9 +72,9 @@ class NGWLayerStyleChooserDialog(QDialog):
         return item.ngw_resource_id()
 
     def validate(self):
-        if self.chbCreateNewStyle.checkState() == Qt.Checked:
-            self.btn_box.button(QDialogButtonBox.Ok).setEnabled(True)
-            return
+        # if self.chbCreateNewStyle.checkState() == Qt.Checked:
+        #     self.btn_box.button(QDialogButtonBox.Ok).setEnabled(True)
+        #     return
 
         if self.tree.selectionModel().currentIndex().isValid():
             self.btn_box.button(QDialogButtonBox.Ok).setEnabled(True)
