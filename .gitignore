@@ -60,3 +60,6 @@ target/
 # IDE
 .pydevproject
 .idea
+
+# 
+qpf.py
