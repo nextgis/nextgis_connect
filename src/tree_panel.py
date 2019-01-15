@@ -495,6 +495,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if exception.__class__ == JobServerRequestError:
             msg = self.tr("Error occurred while communicating with Web GIS.")
             msg_ext = "URL: " + exception.url
+            msg_ext += "\nMSG: %s" % exception
         
         elif exception.__class__ == JobNGWError:
             msg = " %s." % exception.msg
