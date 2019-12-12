@@ -3,11 +3,18 @@ name=NextGIS Connect
 qgisMinimumVersion=2.14
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
-version=0.11.4
+version=0.11.6
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.11.6
+		* Fix forbidden responce from server side
+		* Remove '-stile' suffix for ngw layer styles
+		* Fix crashes on 301 from server side
+	0.11.5
+		* Fix import of multipart geometries
+		* Fix preprocessing of Z-coordinate geometries
 	0.11.4
 		* Fix crashes on 403 on server side
 	0.11.3
