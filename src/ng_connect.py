@@ -23,16 +23,17 @@
 import sys
 from os import path
 
-from PyQt4.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
-from PyQt4.QtGui import QAction, QIcon
+from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
 
 from qgis.core import QgsMapLayer, QgsMessageLog
 
-from settings_dialog import SettingsDialog
-from plugin_settings import PluginSettings
-from tree_panel import TreePanel
+from .settings_dialog import SettingsDialog
+from .plugin_settings import PluginSettings
+from .tree_panel import TreePanel
 
-from ngw_api import qgis
+from .ngw_api import qgis
 
 
 class NGConnectPlugin:
@@ -57,7 +58,7 @@ plugins['nextgis_connect'].enableDebug(False)
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = path.dirname(__file__).decode(sys.getfilesystemencoding())
+        self.plugin_dir = path.dirname(__file__)
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
@@ -85,9 +86,9 @@ plugins['nextgis_connect'].enableDebug(False)
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr(u'&NextGIS Connect')
-        self.toolbar = self.iface.addToolBar(self.tr(u'NextGIS Connect'))
-        self.toolbar.setObjectName(u'NextGISConnectPluginToolbar')
+        self.menu = self.tr('&NextGIS Connect')
+        self.toolbar = self.iface.addToolBar(self.tr('NextGIS Connect'))
+        self.toolbar.setObjectName('NextGISConnectPluginToolbar')
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -220,7 +221,7 @@ plugins['nextgis_connect'].enableDebug(False)
         icon_path = self.plugin_dir + '/icon.png'
         self.add_action(
             icon_path,
-            text=self.tr(u'Show/Hide NextGIS Connect panel'),
+            text=self.tr('Show/Hide NextGIS Connect panel'),
             checkable=True,
             is_checked=PluginSettings.dock_visibility(),
             callback=self.dockWidget.setVisible,
@@ -241,24 +242,21 @@ plugins['nextgis_connect'].enableDebug(False)
         #     True
         # )
 
-        self.iface.legendInterface().addLegendLayerAction(
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource,
-            self.tr(u"NextGIS Connect"),
-            u"",
+            self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
             True
         )
-        self.iface.legendInterface().addLegendLayerAction(
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource,
-            self.tr(u"NextGIS Connect"),
-            u"",
+            self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
-        self.iface.legendInterface().addLegendLayerAction(
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportUpdateStyle,
-            self.tr(u"NextGIS Connect"),
-            u"",
+            self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
@@ -273,19 +271,19 @@ plugins['nextgis_connect'].enableDebug(False)
         # )
         # Hack - qgis delete only one action, we have two same actions
 
-        self.iface.legendInterface().removeLegendLayerAction(
+        self.iface.removeCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        self.iface.legendInterface().removeLegendLayerAction(
+        self.iface.removeCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        self.iface.legendInterface().removeLegendLayerAction(
+        self.iface.removeCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportUpdateStyle
         )
 
         for action in self.actions:
             self.iface.removePluginMenu(
-                self.tr(u'&NextGIS Connect'),
+                self.tr('&NextGIS Connect'),
                 action)
             self.iface.removeToolBarIcon(action)
 
@@ -304,15 +302,15 @@ plugins['nextgis_connect'].enableDebug(False)
     def info():
         print("Plugin NextGIS Connect.")
 
-        import ngw_api
-        print("NGW API v. %s" % (ngw_api.__version__) )
+        from . import ngw_api
+        print(("NGW API v. %s" % (ngw_api.__version__) ))
 
-        print("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") )
+        print(("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") ))
 
     @staticmethod
     def enableDebug(flag):
-        import ngw_api
+        from . import ngw_api
         ngw_api.utils.debug = flag
 
-        print("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") )
+        print(("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") ))
 

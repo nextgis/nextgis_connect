@@ -27,51 +27,51 @@ import sys
 import json
 import functools
 
-from PyQt4 import uic
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
-from PyQt4.QtNetwork import *
+from qgis.PyQt import uic
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtNetwork import *
 
-from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsNetworkAccessManager
-from qgis.gui import QgsMessageBar
+from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsNetworkAccessManager, Qgis
 
-from ngw_api.core.ngw_error import NGWError
-from ngw_api.core.ngw_group_resource import NGWGroupResource
-from ngw_api.core.ngw_vector_layer import NGWVectorLayer
-from ngw_api.core.ngw_raster_layer import NGWRasterLayer
-from ngw_api.core.ngw_wms_connection import NGWWmsConnection
-from ngw_api.core.ngw_wms_layer import NGWWmsLayer
-from ngw_api.core.ngw_webmap import NGWWebMap
-from ngw_api.core.ngw_wfs_service import NGWWfsService
-from ngw_api.core.ngw_wms_service import NGWWmsService
-from ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
-from ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
-from ngw_api.core.ngw_raster_style import NGWRasterStyle
-from ngw_api.core.ngw_base_map import NGWBaseMap
+from .ngw_api.core.ngw_error import NGWError
+from .ngw_api.core.ngw_group_resource import NGWGroupResource
+from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
+from .ngw_api.core.ngw_wms_connection import NGWWmsConnection
+from .ngw_api.core.ngw_wms_layer import NGWWmsLayer
+from .ngw_api.core.ngw_webmap import NGWWebMap
+from .ngw_api.core.ngw_wfs_service import NGWWfsService
+from .ngw_api.core.ngw_wms_service import NGWWmsService
+from .ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
+from .ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
+from .ngw_api.core.ngw_raster_style import NGWRasterStyle
+from .ngw_api.core.ngw_base_map import NGWBaseMap
 
-from ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
-from ngw_api.qt.qt_ngw_resource_model_job_error import *
+from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
+from .ngw_api.qt.qt_ngw_resource_model_job_error import *
 
-from ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
-from ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from ngw_api.qgis.resource_to_map import *
+from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
+from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
+from .ngw_api.qgis.resource_to_map import *
 
-from ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
+from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
 
-from ngw_api.utils import setLogger
+from .ngw_api.utils import setLogger
 
-from settings_dialog import SettingsDialog
-from plugin_settings import PluginSettings
+from .settings_dialog import SettingsDialog
+from .plugin_settings import PluginSettings
 
-from dialog_choose_style import NGWLayerStyleChooserDialog
-from dialog_qgis_proj_import import DialogImportQGISProj
-from exceptions_list_dialog import ExceptionsListDialog
+from .dialog_choose_style import NGWLayerStyleChooserDialog
+from .dialog_qgis_proj_import import DialogImportQGISProj
+from .exceptions_list_dialog import ExceptionsListDialog
 
-from action_style_import_or_update import ActionStyleImportUpdate
+from .action_style_import_or_update import ActionStyleImportUpdate
 
-import utils
+from . import utils
 
-this_dir = os.path.dirname(__file__).decode(sys.getfilesystemencoding())
+this_dir = os.path.dirname(__file__)
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     this_dir, 'tree_panel_base.ui'))
@@ -79,10 +79,10 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 ICONS_PATH = os.path.join(this_dir, 'icons/')
 
 
-def qgisLog(msg, level=QgsMessageLog.INFO):
+def qgisLog(msg, level=Qgis.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
-def ngwApiLog(msg, level=QgsMessageLog.INFO):
+def ngwApiLog(msg, level=Qgis.Info):
     QgsMessageLog.logMessage(msg, "NGW API", level)
 
 setLogger(ngwApiLog)
@@ -141,17 +141,22 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
+        self.menuImport = QMenu(
+            self.tr("Add to Web GIS"),
+            self
+        )
+
         # Import to NGW -------------------------------------------------------
         self.actionImportQGISResource = QAction(
             self.tr("Import selected layer(s)"),
-            self.iface.legendInterface()
+            self.menuImport
         )
         self.actionImportQGISResource.triggered.connect(self.import_layers)
         self.actionImportQGISResource.setEnabled(False)
 
         self.actionUpdateNGWVectorLayer = QAction(
             self.tr("Overwrite selected layer"),
-            self.iface.legendInterface()
+            self.menuImport
         )
         self.actionUpdateNGWVectorLayer.triggered.connect(self.overwrite_ngw_layer)
         self.actionUpdateNGWVectorLayer.setEnabled(False)
@@ -161,14 +166,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionImportQGISProject = QAction(
             self.tr("Import current project"),
-            self.iface.legendInterface()
+            self.menuImport
         )
         self.actionImportQGISProject.triggered.connect(self.import_qgis_project)
 
-        self.menuImport = QMenu(
-            self.tr("Add to Web GIS"),
-            self
-        )
         self.menuImport.setIcon(
             QIcon(os.path.join(ICONS_PATH, 'mActionImport.svg'))
         )
@@ -360,10 +361,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.iface.currentLayerChanged.connect(
             self.qgisResourcesSelectionChanged
         )
-        QgsMapLayerRegistry.instance().layersAdded.connect(
+        QgsProject.instance().layersAdded.connect(
             self.qgisResourcesSelectionChanged
         )
-        QgsMapLayerRegistry.instance().layersRemoved.connect(
+        QgsProject.instance().layersRemoved.connect(
             self.qgisResourcesSelectionChanged
         )
 
@@ -383,10 +384,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.iface.currentLayerChanged.disconnect(
             self.qgisResourcesSelectionChanged
         )
-        QgsMapLayerRegistry.instance().layersAdded.disconnect(
+        QgsProject.instance().layersAdded.disconnect(
             self.qgisResourcesSelectionChanged
         )
-        QgsMapLayerRegistry.instance().layersRemoved.disconnect(
+        QgsProject.instance().layersRemoved.disconnect(
             self.qgisResourcesSelectionChanged
         )
 
@@ -424,7 +425,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_resource)
 
         self.actionImportQGISProject.setEnabled(
-            QgsMapLayerRegistry.instance().count() != 0
+            QgsProject.instance().count() != 0
         )
 
         self.toolbuttonImport.setEnabled(
@@ -455,10 +456,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.checkImportActionsAvailability()
 
     def __model_warning_process(self, job, exception):
-        self.__model_exception_process(job, exception, QgsMessageBar.WARNING)
+        self.__model_exception_process(job, exception, Qgis.Warning)
 
     def __model_error_process(self, job, exception):
-        self.__model_exception_process(job, exception, QgsMessageBar.CRITICAL)
+        self.__model_exception_process(job, exception, Qgis.Critical)
 
     def __model_exception_process(self, job, exception, level, trace=None):
         msg, msg_ext, icon = self.__get_model_exception_description(job, exception)
@@ -519,7 +520,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         return msg, msg_ext, icon
     
-    def __msg_in_qgis_mes_bar(self, message, need_show_log, level=QgsMessageBar.INFO, duration=0):
+    def __msg_in_qgis_mes_bar(self, message, need_show_log, level=Qgis.Info, duration=0):
         if need_show_log:
             message += " " + self.tr("See logs for details.") 
         widget = self.iface.messageBar().createMessage(
@@ -580,12 +581,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         s = QSettings()
-        proxyEnabled = s.value("proxy/proxyEnabled", u"", type=unicode)
-        proxy_type = s.value("proxy/proxyType", u"", type=unicode)
-        proxy_host = s.value("proxy/proxyHost", u"", type=unicode)
-        proxy_port = s.value("proxy/proxyPort", u"", type=unicode)
-        proxy_user = s.value("proxy/proxyUser", u"", type=unicode)
-        proxy_password = s.value("proxy/proxyPassword", u"", type=unicode)
+        proxyEnabled = s.value("proxy/proxyEnabled", "", type=str)
+        proxy_type = s.value("proxy/proxyType", "", type=str)
+        proxy_host = s.value("proxy/proxyHost", "", type=str)
+        proxy_port = s.value("proxy/proxyPort", "", type=str)
+        proxy_user = s.value("proxy/proxyUser", "", type=str)
+        proxy_password = s.value("proxy/proxyPassword", "", type=str)
 
         if proxyEnabled == "true":
             if proxy_type == "DefaultProxy":
@@ -769,9 +770,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     error_mes,
-                    level=QgsMessageBar.CRITICAL
+                    level=Qgis.Critical
                 )
-                qgisLog(error_mes, level=QgsMessageLog.CRITICAL)
+                qgisLog(error_mes, level=Qgis.Critical)
 
     def create_group(self):
         new_group_name, res = QInputDialog.getText(
@@ -839,7 +840,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def import_layers(self):
         index = self.trvResources.selectionModel().currentIndex()
-        qgs_map_layers = self.iface.legendInterface().selectedLayers()
+        qgs_map_layers = self.iface.layerTreeView().selectedLayers()
         
         self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
         self.import_layer_response.done.connect(
@@ -1029,7 +1030,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             file.close()
             self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
         else:
-            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), True, QgsMessageBar.CRITICAL)
+            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), True, Qgis.Critical)
 
         reply.deleteLater()
 
@@ -1134,7 +1135,7 @@ class ProcessOverlay(Overlay):
 
     def write(self, jobs):
         text = ""
-        for job_name, job_status in jobs.items():
+        for job_name, job_status in list(jobs.items()):
             text += "<strong>%s</strong><br/>" % job_name
             if job_status != "":
                 text += "%s<br/>" % job_status
@@ -1153,7 +1154,7 @@ class NGWResourcesTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.header().setStretchLastSection(False)
-        self.header().setResizeMode(QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
         # no ngw connectiond message
         self.no_ngw_connections_overlay = MessageOverlay(

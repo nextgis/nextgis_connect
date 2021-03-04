@@ -20,9 +20,9 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.Qt import Qt
-from PyQt4.QtCore import QSize, QPoint
-from ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSettings
+from qgis.PyQt.Qt import Qt
+from qgis.PyQt.QtCore import QSize, QPoint
+from .ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSettings
 
 
 class PluginSettings(CommonPluginSettings):
