@@ -61,6 +61,8 @@ target/
 .pydevproject
 .idea
 
-# 
+#
 qpf.py
 QGisPluginBase.py
+
+.vscode
