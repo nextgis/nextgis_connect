@@ -1,9 +1,9 @@
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
 
-from qgis.core import QgsMessageLog
-from plugin_settings import PluginSettings
-def qgisLog(msg, level=QgsMessageLog.INFO):
+from qgis.core import QgsMessageLog, Qgis
+from .plugin_settings import PluginSettings
+def qgisLog(msg, level=Qgis.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
 

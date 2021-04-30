@@ -1,5 +1,5 @@
-from PyQt4.QtGui import *
-from PyQt4.QtCore import *
+from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import *
 
 
 class NGWResourcesTreeView(QTreeView):
