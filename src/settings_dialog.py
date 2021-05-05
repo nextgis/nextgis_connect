@@ -32,7 +32,9 @@ __revision__ = '$Format:%H$'
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtCore
-from qgis.PyQt import QtWidgets
+#from qgis.PyQt import QtWidgets
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as NgwApiSettings  # !!! Shared connection settings !!!
@@ -43,7 +45,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'settings_dialog_base.ui'))
 
 
-class SettingsDialog(QtWidgets.QDialog, FORM_CLASS):
+class SettingsDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         super(SettingsDialog, self).__init__(parent)
         self.setupUi(self)
@@ -135,7 +137,7 @@ class SettingsDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def reject(self):
         NgwApiSettings.set_selected_ngw_connection_name(self.cmbConnections.currentText())
-        QtWidgets.QDialog.reject(self)
+        QDialog.reject(self)
 
     def sanitizeOptionsChanged(self, state):
         optionWidget = self.sender()

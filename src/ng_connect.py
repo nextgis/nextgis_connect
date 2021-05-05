@@ -21,6 +21,7 @@
  ***************************************************************************/
 """
 import sys
+import os
 from os import path
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
@@ -35,10 +36,13 @@ from .tree_panel import TreePanel
 
 from .ngw_api import qgis
 
+from .ngw_api.compat_py import CompatPy
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+
 
 class NGConnectPlugin:
     """QGIS Plugin Implementation.
-        
+
         Utils:
 
 from qgis.utils import plugins
@@ -58,7 +62,7 @@ plugins['nextgis_connect'].enableDebug(False)
         # Save reference to the QGIS interface
         self.iface = iface
         # initialize plugin directory
-        self.plugin_dir = path.dirname(__file__)
+        self.plugin_dir = CompatPy.get_dirname(__file__)
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
@@ -242,19 +246,22 @@ plugins['nextgis_connect'].enableDebug(False)
         #     True
         # )
 
-        self.iface.addCustomActionForLayerType(
+        CompatQgis.add_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
             True
         )
-        self.iface.addCustomActionForLayerType(
+        CompatQgis.add_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
-        self.iface.addCustomActionForLayerType(
+        CompatQgis.add_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportUpdateStyle,
             self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
@@ -271,13 +278,16 @@ plugins['nextgis_connect'].enableDebug(False)
         # )
         # Hack - qgis delete only one action, we have two same actions
 
-        self.iface.removeCustomActionForLayerType(
+        CompatQgis.remove_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        self.iface.removeCustomActionForLayerType(
+        CompatQgis.remove_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        self.iface.removeCustomActionForLayerType(
+        CompatQgis.remove_legend_action(
+            self.iface,
             self.dockWidget.inner_control.actionImportUpdateStyle
         )
 

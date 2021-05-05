@@ -5,11 +5,13 @@ from qgis.core import *
 from qgis.gui import *
 from qgis.utils import iface
 
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+
 def show_error_message(msg):
     iface.messageBar().pushMessage(
         'NextGIS Connect',
         msg,
-        level=Qgis.Critical
+        level=CompatQgisMsgBarLevel.Critical
     )
 
 # def add_wfs_layer(wfs_url, layer_keys, ask_choose_layers=False):
@@ -39,7 +41,7 @@ def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
         show_error_message("Invalid wms url \"%s\"" % url)
         return
 
-    QgsProject.instance().addMapLayer(rlayer)
+    CompatQgis.layers_registry().addMapLayer(rlayer)
 
 
 class ChooserDialog(QDialog):

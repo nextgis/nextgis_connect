@@ -1,6 +1,7 @@
 [general]
 name=NextGIS Connect
-qgisMinimumVersion=3.0
+qgisMinimumVersion=2.18
+qgisMaximumVersion=3.18
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
 version=0.11.10
@@ -11,7 +12,7 @@ changelog=
 	0.11.10
 		* Fix Web GIS access as guest
 	0.11.9
-		* Add aliases when adding vector layer or WFS from Web GIS to QGIS 
+		* Add aliases when adding vector layer or WFS from Web GIS to QGIS
 	0.11.8
 		* Fix overwriting ngw vector layer with Z
 		* Fix icons for ngw vector layers with Z
@@ -114,14 +115,14 @@ changelog=
 	    * Check URL when add new connesction or edit one
 	    * Return to one mode connection settings dialog
 	0.5.5
-	    * Unfold the folded group, when added new resource 
+	    * Unfold the folded group, when added new resource
 	    * Switched to a new version ngw_external_api_python
 	0.5.4
 	    * Double click on webmap open the map in browser
 	0.5.3
 	    * Update toolbar
 	0.5.2
-	    * Add simple and advanced modes for New/Edit connection settings dialog 
+	    * Add simple and advanced modes for New/Edit connection settings dialog
 	    * Add help link
 	    * Remove connections listbox from working panel
 	    * Change icon
@@ -141,7 +142,7 @@ changelog=
 	    * Add WFS creation from ngw vector layer
 	    * Improve resources context menu
 	0.4.13
-	    * Handle authorization error (HTTPForbidden) error 
+	    * Handle authorization error (HTTPForbidden) error
 	0.4.12
 	    * Rename plugin
 	0.4.11

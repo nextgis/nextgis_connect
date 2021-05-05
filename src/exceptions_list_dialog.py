@@ -1,9 +1,13 @@
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 
-from qgis.core import QgsMessageLog, Qgis
+from qgis.core import QgsMessageLog
 from .plugin_settings import PluginSettings
-def qgisLog(msg, level=Qgis.Info):
+
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+
+
+def qgisLog(msg, level=CompatQgisMsgLogLevel.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
 
@@ -11,7 +15,7 @@ class ExceptionsListDialog(QDialog):
     """docstring for ExceptionsListDialog"""
     def __init__(self, title, parent):
         super(ExceptionsListDialog, self).__init__(parent)
-        
+
         self.setWindowTitle(title)
         self.resize(400, 200)
         self.setLayout(QVBoxLayout())
@@ -114,6 +118,6 @@ class ExceptionWidget(QFrame):
             self.fullMsgLabel.setWordWrap(True)
             self.fullMsgLabel.setStyleSheet("font-size: %dpt" % (self.msgLabel.font().pointSize() - 1))
             self.infoWidget.layout().addWidget(self.fullMsgLabel)
-        
+
         self.layout().addWidget(self.iconWidget)
         self.layout().addWidget(self.infoWidget)
