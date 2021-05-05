@@ -109,3 +109,16 @@ class PluginSettings(CommonPluginSettings):
     def auto_add_wfs_option(cls):
         settings = cls.get_settings()
         return settings.value('/ui/autoAddWFSByDefault', True, type=bool)
+
+
+    @classmethod
+    def debug_mode(cls):
+        settings = cls.get_settings()
+        return settings.value('/debugMode', False, type=bool)
+
+    @classmethod
+    def set_debug_mode(cls, val):
+        settings = cls.get_settings()
+        settings.setValue('/debugMode', val)
+
+

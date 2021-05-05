@@ -35,6 +35,7 @@ from .plugin_settings import PluginSettings
 from .tree_panel import TreePanel
 
 from .ngw_api import qgis
+from .ngw_api.utils import setDebugEnabled
 
 from .ngw_api.compat_py import CompatPy
 from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
@@ -93,6 +94,13 @@ plugins['nextgis_connect'].enableDebug(False)
         self.menu = self.tr('&NextGIS Connect')
         self.toolbar = self.iface.addToolBar(self.tr('NextGIS Connect'))
         self.toolbar.setObjectName('NextGISConnectPluginToolbar')
+
+        # Enable debug mode.
+        debug_mode = PluginSettings.debug_mode()
+        PluginSettings.set_debug_mode(debug_mode) # create at first time
+        if debug_mode:
+            setDebugEnabled(True)
+            QgsMessageLog.logMessage('Debug mode enabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
