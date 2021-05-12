@@ -72,7 +72,7 @@ from .action_style_import_or_update import ActionStyleImportUpdate
 from . import utils
 
 from .ngw_api.compat_py import CompatPy
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQt, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
 
 
 this_dir = CompatPy.get_dirname(__file__)
@@ -977,9 +977,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
         elif ngw_resource.type_id == NGWWmsLayer.type_id:
             self.create_map_response = self._resource_model.createMapForLayer(
-                    selected_index,
-                    None
-                )
+                selected_index,
+                None
+            )
 
         self.create_map_response.done.connect(
             self.trvResources.setCurrentIndex
@@ -1019,6 +1019,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         # QDesktopServices.openUrl(QUrl(url))
 
+        filepath = CompatQt.get_dialog_result_path(filepath)
         if filepath == "":
             return
 
@@ -1158,7 +1159,7 @@ class NGWResourcesTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.header().setStretchLastSection(False)
-        CompatQgis.set_section_resize_mod(self.header(), QHeaderView.ResizeToContents)
+        CompatQt.set_section_resize_mod(self.header(), QHeaderView.ResizeToContents)
 
         # no ngw connectiond message
         self.no_ngw_connections_overlay = MessageOverlay(
