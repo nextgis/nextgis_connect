@@ -1,5 +1,8 @@
-from qgis.PyQt.QtWidgets import *
+# -*- coding: utf-8 -*-
+
 from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtGui import *
+from qgis.PyQt.QtWidgets import *
 
 from qgis.core import QgsMessageLog
 from .plugin_settings import PluginSettings

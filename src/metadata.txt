@@ -12,6 +12,7 @@ changelog=
 	0.12.1
 		* Fix authentication as guest
 		* Fix http/https mutual redirect for QGIS 3
+		* Add validation of geometries during layer import to the Web GIS
 	0.12.0
 		* Support for QGIS 3
 	0.11.10
