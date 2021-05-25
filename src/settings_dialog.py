@@ -51,6 +51,8 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.setupUi(self)
         # self.setFixedSize(self.size())
 
+        self.setModal(True)
+
         self.btnNew.clicked.connect(self.new_connection)
         self.btnEdit.clicked.connect(self.edit_connection)
         self.btnDelete.clicked.connect(self.delete_connection)
