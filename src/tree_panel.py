@@ -336,6 +336,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
+        self.connection_errors = 0
+        self.try_check_https = False
+
         self.iface.initializationCompleted.connect(self.reinit_tree)
         # update state
         if QSettings().value("proxy/proxyEnabled", None) is not None:
@@ -463,14 +466,17 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.__model_exception_process(job, exception, CompatQgisMsgBarLevel.Warning)
 
     def __model_error_process(self, job, exception):
+        self.connection_errors += 1
         self.__model_exception_process(job, exception, CompatQgisMsgBarLevel.Critical)
 
     def __model_exception_process(self, job, exception, level, trace=None):
         msg, msg_ext, icon = self.__get_model_exception_description(job, exception)
 
+        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+        conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+
         if exception.__class__ == JobAuthorizationError:
-            name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
-            conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+            self.try_check_https = False
             dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
             dlg.setWindowTitle(
                 self.tr("Access denied. Enter your login.")
@@ -481,16 +487,37 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 NgwPluginSettings.save_ngw_connection(conn_sett)
                 self.reinit_tree()
             del dlg
-        else:
-            if msg is not None:
-                self.__msg_in_qgis_mes_bar(
-                    msg,
-                    msg_ext is not None,
-                    level=level
-                )
+            return
 
-            if msg_ext is not None:
-                qgisLog(msg + "\n" + msg_ext)
+        # Try to fix http -> https for old (saved) connections when they used to
+        # acquire a web gis tree at very first time.
+        if exception.__class__ == JobServerRequestError and self.connection_errors == 1 and conn_sett.server_url.startswith('http://'):
+            self.try_check_https = True
+            conn_sett.server_url = conn_sett.server_url.replace('http://', 'https://')
+            NgwPluginSettings.save_ngw_connection(conn_sett)
+            ngwApiLog('Meet "http://" connection error at very first time using this web gis connection. Trying to reconnect with "https://"')
+            self.reinit_tree()
+            return
+        # The second time return back http if there was an error: this might be some
+        # other error, not related to http/https.
+        if self.try_check_https:
+            self.try_check_https = False
+            conn_sett.server_url = conn_sett.server_url.replace('https://', 'http://')
+            NgwPluginSettings.save_ngw_connection(conn_sett)
+            ngwApiLog('Failed to reconnect with "https://". Return "http://" back')
+            self.reinit_tree()
+            return
+
+        if msg is not None:
+            self.__msg_in_qgis_mes_bar(
+                msg,
+                msg_ext is not None,
+                level=level
+            )
+
+        if msg_ext is not None:
+            qgisLog(msg + "\n" + msg_ext)
+
 
     def __get_model_exception_description(self, job, exception):
         msg = None
@@ -616,6 +643,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
 
         if not self._resource_model.isCurrentConnectionSame(conn_sett) or force:
+            if not self._resource_model.isCurruntConnectionSameWoProtocol(conn_sett):
+                self.connection_errors = 0 # start working with connection at very first time
+
             self._resource_model.resetModel(conn_sett)
 
         # expand root item
