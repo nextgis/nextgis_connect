@@ -1,6 +1,8 @@
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 
+from .ngw_api.qgis.compat_qgis import CompatQt
+
 
 class NGWResourcesTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
@@ -12,7 +14,7 @@ class NGWResourcesTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.header().setStretchLastSection(False)
-        self.header().setResizeMode(QHeaderView.ResizeToContents)
+        CompatQt.set_section_resize_mod(self.header(), QHeaderView.ResizeToContents)
 
 
 class NGWLayerStyleChooserDialog(QDialog):

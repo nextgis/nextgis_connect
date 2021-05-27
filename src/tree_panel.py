@@ -965,7 +965,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
-            if not dlg.needCreateNewStyle() and dlg.selectedStyle():
+            #if not dlg.needCreateNewStyle() and dlg.selectedStyle():
+            if dlg.selectedStyle():
                 ngw_resource_style_id = dlg.selectedStyle()
 
             responce = self._resource_model.createWMSForVector(selected_index, ngw_resource_style_id)
