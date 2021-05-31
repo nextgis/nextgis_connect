@@ -800,7 +800,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     )
 
             except Exception as ex:
-                error_mes = ex.message or ''
+                error_mes = CompatPy.exception_msg(ex)
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     error_mes,
