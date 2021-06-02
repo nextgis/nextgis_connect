@@ -45,7 +45,7 @@ from .ngw_api.core.ngw_webmap import NGWWebMap
 from .ngw_api.core.ngw_wfs_service import NGWWfsService
 from .ngw_api.core.ngw_wms_service import NGWWmsService
 from .ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
-from .ngw_api.core.ngw_qgis_vector_style import NGWQGISVectorStyle
+from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_api.core.ngw_raster_style import NGWRasterStyle
 from .ngw_api.core.ngw_base_map import NGWBaseMap
 
