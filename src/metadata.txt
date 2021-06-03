@@ -4,11 +4,13 @@ qgisMinimumVersion=2.18
 qgisMaximumVersion=3.99
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact. Note that QGIS 3 support is beta.
-version=0.12.5
+version=0.12.6
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.12.6
+		* Fix web map creating from vector style
 	0.12.5
 		* Add ability to upload rasters with different parameters
 	0.12.4
