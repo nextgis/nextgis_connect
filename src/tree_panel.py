@@ -508,7 +508,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.reinit_tree()
             return
 
-        if msg is not None:
+        if issubclass(exception.__class__, JobServerRequestError) and not exception.user_msg is None:
+            self.show_error(exception.user_msg)
+
+        elif msg is not None:
             self.__msg_in_qgis_mes_bar(
                 msg,
                 msg_ext is not None,
@@ -1084,6 +1087,34 @@ class TreeControl(QMainWindow, FORM_CLASS):
     #             selected_index,
     #             selected_layer
     #         )
+
+    def show_msg_box(self, text, title, icon, buttons):
+        box = QMessageBox()
+        box.setText(text)
+        box.setWindowTitle(title)
+        box.setIcon(icon)
+        box.setStandardButtons(buttons)
+        return box.exec_()
+
+    def show_info(self, text, title=None):
+        if title is None:
+            title = self.tr('Information')
+        self.show_msg_box(text, title, QMessageBox.Information, QMessageBox.Ok)
+
+    def show_warning(self, text, title=None):
+        if title is None:
+            title = self.tr('Warning')
+        self.show_msg_box(text, title, QMessageBox.Warning, QMessageBox.Ok)
+
+    def show_error(self, text, title=None):
+        if title is None:
+            title = self.tr('Error')
+        self.show_msg_box(text, title, QMessageBox.Critical, QMessageBox.Ok)
+
+    def show_question(self, text, title=None):
+        if title is None:
+            title = self.tr('Question')
+        return self.show_msg_box(text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
 
 
 class NGWPanelToolBar(QToolBar):
