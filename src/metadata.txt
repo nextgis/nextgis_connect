@@ -11,6 +11,7 @@ email=info@nextgis.com
 changelog=
 	0.12.6
 		* Fix web map creating from vector style
+		* Add user's messagebox with suggestion for timeout errors
 	0.12.5
 		* Add ability to upload rasters with different parameters
 	0.12.4
