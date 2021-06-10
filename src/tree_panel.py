@@ -544,6 +544,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             if exception.wrapped_exception is not None:
                 msg_ext = "%s" % exception.wrapped_exception
 
+                # If we have message for user - add it instead of system message.
+                # TODO: put it somewhere globally.
+                user_msg = getattr(exception.wrapped_exception, "user_msg", None)
+                if not user_msg is None:
+                    msg_ext = user_msg
+
         elif exception.__class__ == JobWarning:
             msg = "%s" % exception.msg
             icon = os.path.join(ICONS_PATH, 'Warning.svg')
