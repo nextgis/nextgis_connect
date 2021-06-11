@@ -883,7 +883,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def import_layers(self):
         index = self.trvResources.selectionModel().currentIndex()
+
         qgs_map_layers = CompatQgis.layers_tree(self.iface).selectedLayers()
+        if len(qgs_map_layers) == 0: # could be if user had deleted layer but have not selected one after that
+            qgs_map_layers = [self.iface.mapCanvas().currentLayer()]
+            if len(qgs_map_layers) == 0: # just in case if checkImportActionsAvailability() works incorrectly
+                return
 
         self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
         self.import_layer_response.done.connect(
