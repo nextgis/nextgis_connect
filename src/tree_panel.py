@@ -851,7 +851,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # if sel_index is None:
         #     sel_index = self._resource_model.index(0, 0, QModelIndex())
         if sel_index is None or not sel_index.isValid():
-            self.show_info(self.tr('Please select parent resource group for new group'))
+            self.show_info(self.tr('Please select parent resource group for a new group'))
             return
 
         new_group_name, res = QInputDialog.getText(

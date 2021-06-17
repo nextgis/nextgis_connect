@@ -281,6 +281,16 @@
         <translation>Задайте имя группы</translation>
     </message>
     <message>
+        <location filename="../tree_panel.py" line=""/>
+        <source>Please select parent resource group for a new group</source>
+        <translation>Пожалуйста, выберите группу ресурсов для новой группы</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py" line=""/>
+        <source>Information</source>
+        <translation>Информация</translation>
+    </message>
+    <message>
         <location filename="../tree_panel.py" line="745"/>
         <source>New group name:</source>
         <translation>Имя новой группы:</translation>
