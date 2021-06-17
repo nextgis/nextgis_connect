@@ -477,6 +477,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.__model_exception_process(job, exception, CompatQgisMsgBarLevel.Critical)
 
     def __model_exception_process(self, job, exception, level, trace=None):
+        self.unblock_gui() # always unblock in case of any error so to allow to fix it
+
         msg, msg_ext, icon = self.__get_model_exception_description(job, exception)
 
         name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
