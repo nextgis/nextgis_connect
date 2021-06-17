@@ -608,11 +608,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             self.unblock_gui()
 
+
     def block_gui(self):
         self.main_tool_bar.setEnabled(False)
 
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
+
 
     def reinit_tree(self, force=False):
         # clear tree and states
@@ -843,6 +845,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 qgisLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
 
     def create_group(self):
+        sel_index = self.trvResources.selectedIndex()
+        if sel_index is None:
+            sel_index = self._resource_model.index(0, 0, QModelIndex())
+            if sel_index is None or not sel_index.isValid():
+                self.show_info(self.tr('Please select parent resource group for new group'))
+                return
+
         new_group_name, res = QInputDialog.getText(
             self,
             self.tr("Set new group name"),
@@ -851,14 +860,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("New group"),
             Qt.Dialog
         )
-
         if (res is False or new_group_name == ""):
             return
-
-        sel_index = self.trvResources.selectedIndex()
-
-        if sel_index is None:
-            sel_index = self._resource_model.index(0, 0, QModelIndex())
 
         self.create_group_resp = self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
         self.create_group_resp.done.connect(
