@@ -846,11 +846,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def create_group(self):
         sel_index = self.trvResources.selectedIndex()
-        if sel_index is None:
-            sel_index = self._resource_model.index(0, 0, QModelIndex())
-            if sel_index is None or not sel_index.isValid():
-                self.show_info(self.tr('Please select parent resource group for new group'))
-                return
+        # if sel_index is None:
+        #     sel_index = self._resource_model.index(0, 0, QModelIndex())
+        if sel_index is None or not sel_index.isValid():
+            self.show_info(self.tr('Please select parent resource group for new group'))
+            return
 
         new_group_name, res = QInputDialog.getText(
             self,
