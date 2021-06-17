@@ -589,6 +589,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
+            self.block_gui()
             self.trvResources.addBlockedJob(self.blocked_jobs[job_id])
 
     def __modelJobStatusChanged(self, job_id, status):
@@ -597,6 +598,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def __modelJobFinished(self, job_id):
         if job_id in self.blocked_jobs:
+            self.unblock_gui()
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
 
     def __onModelBlockIndexes(self):
