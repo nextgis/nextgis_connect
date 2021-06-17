@@ -118,6 +118,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.setupUi(self)
         self.iface = iface
 
+        self._first_gui_block_on_refresh = False
+
         # Do not use ui toolbar
         # self.removeToolBar(self.mainToolBar)
 
@@ -310,6 +312,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
+        self._resource_model.indexesBlocked.connect(self.__onModelBlockIndexes)
+        self._resource_model.indexesReleased.connect(self.__onModelReleaseIndexes)
 
         self.blocked_jobs = {
             # "NGWResourceUpdater": self.tr("Resource is being updated"),
@@ -330,6 +334,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # ngw resources view
         self.trvResources = NGWResourcesTreeView(self)
         self.trvResources.setModel(self._resource_model)
+
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
         self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
         self.trvResources.selectionModel().currentChanged.connect(self.ngwResourcesSelectionChanged)
@@ -403,6 +408,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.jobStarted.disconnect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.disconnect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.disconnect(self.__modelJobFinished)
+        self._resource_model.indexesBlocked.disconnect(self.__onModelBlockIndexes)
+        self._resource_model.indexesReleased.disconnect(self.__onModelReleaseIndexes)
 
         self._resource_model.setParent(None)
         self._resource_model.deleteLater()
@@ -590,6 +597,21 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
 
+    def __onModelBlockIndexes(self):
+        self.block_gui()
+
+    def __onModelReleaseIndexes(self):
+        if self._first_gui_block_on_refresh:
+            self._first_gui_block_on_refresh = False
+        else:
+            self.unblock_gui()
+
+    def block_gui(self):
+        self.main_tool_bar.setEnabled(False)
+
+    def unblock_gui(self):
+        self.main_tool_bar.setEnabled(True)
+
     def reinit_tree(self, force=False):
         # clear tree and states
         self.disable_tools()
@@ -616,7 +638,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources.hideWelcomeMessage()
 
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
-
         if not conn_sett:
             return
 
@@ -655,6 +676,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             if not self._resource_model.isCurruntConnectionSameWoProtocol(conn_sett):
                 self.connection_errors = 0 # start working with connection at very first time
 
+            self._first_gui_block_on_refresh = True
+            self.block_gui() # block GUI to prevent extra clicks on toolbuttons
             self._resource_model.resetModel(conn_sett)
 
         # expand root item
