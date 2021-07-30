@@ -1086,6 +1086,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
         url = ngw_qgis_style.download_qml_url()
 
+        url = url.replace('https://', 'http://')
+
         filepath = QFileDialog.getSaveFileName(
             self,
             self.tr("Save QML"),
@@ -1098,12 +1100,24 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if filepath == "":
             return
 
+        req = QNetworkRequest(QUrl(url))
+        creds = ngw_qgis_style.get_creds()
+        if creds is not None:
+            creds_str = creds[0] + ':' + creds[1]
+            authstr = creds_str.encode('utf-8')
+            authstr = QByteArray(authstr).toBase64()
+            authstr = QByteArray(('Basic ').encode('utf-8')).append(authstr)
+            req.setRawHeader(("Authorization").encode('utf-8'), authstr)
+
         self.dwn_qml_filepath = filepath
         self.dwn_qml_manager = QNetworkAccessManager(self)
         self.dwn_qml_manager.finished.connect(self.saveQML)
-        self.dwn_qml_manager.get(QNetworkRequest(QUrl(url)))
+        self.dwn_qml_manager.get(req)
 
     def saveQML(self, reply):
+        if reply.error():
+            ngwApiLog('Failed to download QML: {}'.format(reply.errorString()))
+
         file = QFile(self.dwn_qml_filepath)
         if file.open(QIODevice.WriteOnly):
             file.write(reply.readAll())
