@@ -1086,8 +1086,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
         url = ngw_qgis_style.download_qml_url()
 
-        url = url.replace('https://', 'http://')
-
         filepath = QFileDialog.getSaveFileName(
             self,
             self.tr("Save QML"),
