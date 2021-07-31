@@ -371,6 +371,16 @@
         <translation>Настройки</translation>
     </message>
     <message>
+        <location filename="../tree_panel.py"/>
+        <source>Help</source>
+        <translation>Помощь</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>https://docs.nextgis.com/docs_ngconnect/source/toc.html</source>
+        <translation>https://docs.nextgis.ru/docs_ngconnect/source/toc.html</translation>
+    </message>
+    <message>
         <location filename="../tree_panel.py" line="163"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>

@@ -280,6 +280,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionSettings.setToolTip(self.tr("Settings"))
         self.actionSettings.triggered.connect(self.action_settings)
 
+        self.actionHelp = QAction(
+            QIcon(os.path.join(ICONS_PATH, 'mActionHelp.svg')),
+            self.tr("Help"),
+            self
+        )
+        self.actionHelp.setToolTip(self.tr("Help"))
+        self.actionHelp.triggered.connect(self.action_help)
+
         # Add toolbar
         self.main_tool_bar = NGWPanelToolBar()
         self.addToolBar(self.main_tool_bar)
@@ -303,6 +311,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.main_tool_bar.addSeparator()
 
         self.main_tool_bar.addAction(self.actionSettings)
+
+        self.main_tool_bar.addAction(self.actionHelp)
 
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS(self)
@@ -350,12 +360,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.reinit_tree()
 
         # Help message label
-        url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
+        # url = "http://%s/docs_ngcom/source/ngqgis_connect.html" % self.tr("docs.nextgis.com")
         self.helpMessageLabel.setText(
-            ' <span style="font-weight:bold;font-size:12px;color:blue;">?    </span><a href="%s">%s</a>' % (
-                url,
-                self.tr("Help")
-            )
+            # ' <span style="font-weight:bold;font-size:12px;color:blue;">?    </span><a href="%s">%s</a>' % (
+            #     url,
+            #     self.tr("Help")
+            # )
+            ''
         )
 
         # ----------------------------------------------
@@ -705,6 +716,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         sett_dialog.exec_()
 
         self.reinit_tree()
+
+    def action_help(self):
+        QDesktopServices.openUrl(QUrl(self.tr('https://docs.nextgis.com/docs_ngconnect/source/toc.html')))
+
 
     def slotCustomContextMenu(self, qpoint):
         index = self.trvResources.indexAt(qpoint)
