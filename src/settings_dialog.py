@@ -67,6 +67,8 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.chSanitizeFixGeometry.setCheckState(
             QtCore.Qt.Checked if NgwApiSettings.get_sanitize_fix_geometry() else QtCore.Qt.Unchecked
         )
+        # Hide this button (no geometry checks, rely on NGW):
+        self.chSanitizeFixGeometry.hide()
         self.chSanitizeFixGeometry.stateChanged.connect(self.sanitizeOptionsChanged)
 
         self.cbForceImport.setCheckState(
