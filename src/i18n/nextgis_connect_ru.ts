@@ -276,6 +276,11 @@
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
+        <location filename="../tree_panel.py" line="497"/>
+        <source>Failed to connect. Please re-enter Web GIS connection settings</source>
+        <translation>Ошибка соединения. Пожалуйста, введите другие данные подключения</translation>
+    </message>
+    <message>
         <location filename="../tree_panel.py" line="745"/>
         <source>Set new group name</source>
         <translation>Задайте имя группы</translation>

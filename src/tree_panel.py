@@ -498,9 +498,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if exception.__class__ == JobAuthorizationError:
             self.try_check_https = False
             dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
-            dlg.setWindowTitle(
-                self.tr("Access denied. Enter your login.")
-            )
+            dlg.setWindowTitle(self.tr("Access denied. Enter your login."))
             res = dlg.exec_()
             if res:
                 conn_sett = dlg.ngw_connection_settings
@@ -509,18 +507,36 @@ class TreeControl(QMainWindow, FORM_CLASS):
             del dlg
             return
 
-        # Try to fix http -> https for old (saved) connections when they used to
-        # acquire a web gis tree at very first time.
-        if exception.__class__ == JobServerRequestError and self.connection_errors == 1 and conn_sett.server_url.startswith('http://'):
-            self.try_check_https = True
-            conn_sett.server_url = conn_sett.server_url.replace('http://', 'https://')
-            NgwPluginSettings.save_ngw_connection(conn_sett)
-            ngwApiLog('Meet "http://" connection error at very first time using this web gis connection. Trying to reconnect with "https://"')
-            self.reinit_tree()
-            return
+        # Detect very first connection error.
+        if self.connection_errors == 1:
+
+            # Try to fix http -> https for old (saved) cloud connections.
+            if exception.__class__ == JobServerRequestError and conn_sett.server_url.startswith('http://') and conn_sett.server_url.endswith('.nextgis.com'):
+                self.try_check_https = True
+                conn_sett.server_url = conn_sett.server_url.replace('http://', 'https://')
+                NgwPluginSettings.save_ngw_connection(conn_sett)
+                ngwApiLog('Meet "http://" connection error at very first time using this web gis connection. Trying to reconnect with "https://"')
+                self.reinit_tree()
+                return
+
+            # Show connect dialog again. Mark that the next connection will also be the first one.
+            else:
+                self.connection_errors = 0
+                NgwPluginSettings.remove_ngw_connection(conn_sett.connection_name) # bad connection has been saved, so delete it
+                dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=False)
+                dlg.setWindowTitle(self.tr('Failed to connect. Please re-enter Web GIS connection settings'))
+                res = dlg.exec_()
+                if res:
+                    conn_sett = dlg.ngw_connection_settings
+                    NgwPluginSettings.save_ngw_connection(conn_sett)
+                    NgwPluginSettings.set_selected_ngw_connection_name(conn_sett.connection_name)
+                    self.reinit_tree()
+                del dlg
+                return
+
         # The second time return back http if there was an error: this might be some
         # other error, not related to http/https.
-        if self.try_check_https:
+        if self.try_check_https: # this can be only when there are more than 1 connection errors
             self.try_check_https = False
             conn_sett.server_url = conn_sett.server_url.replace('https://', 'http://')
             NgwPluginSettings.save_ngw_connection(conn_sett)

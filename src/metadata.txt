@@ -11,6 +11,10 @@ email=info@nextgis.com
 changelog=
 	0.12.11
 		* New "Help" button
+		* Remove "Fix incorrect geometries" checkbox (more correct geometries will be uploaded anyway)
+		* Fix layers uploading to NGW: add more liberal options
+		* Remove on-the-fly URL checking in Settings dialog
+		* Allow explicit http connections
 	0.12.10
 		* Add authenticated requests for vector layer styles
 	0.12.9
