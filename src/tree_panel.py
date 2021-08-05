@@ -495,6 +495,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
 
+        #ngwApiLog('Exception name: ' + exception.__class__.__name__)
+
         if exception.__class__ == JobAuthorizationError:
             self.try_check_https = False
             dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
@@ -522,15 +524,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
             # Show connect dialog again. Mark that the next connection will also be the first one.
             else:
                 self.connection_errors = 0
-                NgwPluginSettings.remove_ngw_connection(conn_sett.connection_name) # bad connection has been saved, so delete it
+                old_con_name = conn_sett.connection_name
                 dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=False)
-                dlg.setWindowTitle(self.tr('Failed to connect. Please re-enter Web GIS connection settings'))
+                dlg.set_alert_msg(self.tr('Failed to connect. Please re-enter Web GIS connection settings'))
                 res = dlg.exec_()
                 if res:
                     conn_sett = dlg.ngw_connection_settings
+                    new_con_name = conn_sett.connection_name
                     NgwPluginSettings.save_ngw_connection(conn_sett)
-                    NgwPluginSettings.set_selected_ngw_connection_name(conn_sett.connection_name)
-                    self.reinit_tree()
+                    NgwPluginSettings.set_selected_ngw_connection_name(new_con_name)
+                    if new_con_name != old_con_name:
+                        NgwPluginSettings.remove_ngw_connection(old_con_name) # delete unused old bad connection
+                    self.reinit_tree(force=True)
                 del dlg
                 return
 
