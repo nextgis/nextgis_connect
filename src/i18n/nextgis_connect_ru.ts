@@ -105,7 +105,7 @@
     <message>
         <location filename="dialog_choose_style.py" line="42"/>
         <source>Or select layer style:</source>
-        <translation type="obsolete">или выбирите стиль:</translation>
+        <translation type="obsolete">или выберите стиль:</translation>
     </message>
 </context>
 <context>
@@ -136,7 +136,7 @@
     <message>
         <location filename="../dialog_choose_style.py" line="37"/>
         <source>Or select layer style:</source>
-        <translation>или выбирите стиль:</translation>
+        <translation>или выберите стиль:</translation>
     </message>
 </context>
 <context>
