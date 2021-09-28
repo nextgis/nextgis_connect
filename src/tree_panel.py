@@ -505,7 +505,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             if res:
                 conn_sett = dlg.ngw_connection_settings
                 NgwPluginSettings.save_ngw_connection(conn_sett)
-                self.reinit_tree()
+                self.reinit_tree(force=True) # force reconnect in order to correctly show connection dialog each time
+            else:
+                self.block_tools()
             del dlg
             return
 
@@ -650,6 +652,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
+
+    def block_tools(self):
+        self.toolbuttonImport.setEnabled(False)
 
 
     def reinit_tree(self, force=False):
