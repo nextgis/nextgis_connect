@@ -495,7 +495,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
 
-        #ngwApiLog('Exception name: ' + exception.__class__.__name__)
+        ngwApiLog('Exception name: ' + exception.__class__.__name__)
 
         if exception.__class__ == JobAuthorizationError:
             self.try_check_https = False
@@ -512,7 +512,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # Detect very first connection error.
         if self.connection_errors == 1:
 
-            if exception.__class__ == JobServerRequestError:
+            if exception.__class__ == JobServerRequestError and exception.need_reconnect:
 
                 # Try to fix http -> https for old (saved) cloud connections.
                 if conn_sett.server_url.startswith('http://') and conn_sett.server_url.endswith('.nextgis.com'):
