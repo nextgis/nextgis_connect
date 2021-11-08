@@ -351,7 +351,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.nrw_reorces_tree_container.addWidget(self.trvResources)
 
-        self.connection_errors = 0
+        self.jobs_count = 0
         self.try_check_https = False
 
         self.iface.initializationCompleted.connect(self.reinit_tree)
@@ -484,7 +484,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.__model_exception_process(job, exception, CompatQgisMsgBarLevel.Warning)
 
     def __model_error_process(self, job, exception):
-        self.connection_errors += 1
         self.__model_exception_process(job, exception, CompatQgisMsgBarLevel.Critical)
 
     def __model_exception_process(self, job, exception, level, trace=None):
@@ -511,23 +510,23 @@ class TreeControl(QMainWindow, FORM_CLASS):
             del dlg
             return
 
-        # Detect very first connection error.
-        if self.connection_errors == 1:
+        # Detect very first connection.
+        if self.jobs_count == 1:
 
             if exception.__class__ == JobServerRequestError and exception.need_reconnect:
 
-                # Try to fix http -> https for old (saved) cloud connections.
+                # Try to fix http -> https. Useful for fixing old (saved) cloud connections.
                 if conn_sett.server_url.startswith('http://') and conn_sett.server_url.endswith('.nextgis.com'):
                     self.try_check_https = True
                     conn_sett.server_url = conn_sett.server_url.replace('http://', 'https://')
                     NgwPluginSettings.save_ngw_connection(conn_sett)
-                    ngwApiLog('Meet "http://" connection error at very first time using this web gis connection. Trying to reconnect with "https://"')
+                    ngwApiLog('Meet "http://" ".nextgis.com" connection error at very first time using this web gis connection. Trying to reconnect with "https://"')
                     self.reinit_tree()
                     return
 
-                # Show connect dialog again. Mark that the next connection will also be the first one.
+                # Show connect dialog again.
                 else:
-                    self.connection_errors = 0
+                    self.jobs_count = 0 # mark that the next connection will also be the first one
                     old_con_name = conn_sett.connection_name
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=False)
                     dlg.set_alert_msg(self.tr('Failed to connect. Please re-enter Web GIS connection settings'))
@@ -544,7 +543,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     return
 
         # The second time return back http if there was an error: this might be some
-        # other error, not related to http/https.
+        # other error, not related to http/https changing.
         if self.try_check_https: # this can be only when there are more than 1 connection errors
             self.try_check_https = False
             conn_sett.server_url = conn_sett.server_url.replace('https://', 'http://')
@@ -633,6 +632,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.trvResources.addJobStatus(self.blocked_jobs[job_id], status)
 
     def __modelJobFinished(self, job_id):
+        self.jobs_count += 1 # note: __modelJobFinished will be triggered even if error/warning occured during job execution
+        ngwApiLog('Jobs finished for current connection: {}'.format(self.jobs_count))
+
         if job_id in self.blocked_jobs:
             self.unblock_gui()
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
@@ -719,7 +721,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if not self._resource_model.isCurrentConnectionSame(conn_sett) or force:
             if not self._resource_model.isCurruntConnectionSameWoProtocol(conn_sett):
-                self.connection_errors = 0 # start working with connection at very first time
+                self.jobs_count = 0 # start working with connection at very first time
 
             self._first_gui_block_on_refresh = True
             self.block_gui() # block GUI to prevent extra clicks on toolbuttons
