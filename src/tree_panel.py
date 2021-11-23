@@ -47,6 +47,7 @@ from .ngw_api.core.ngw_wms_service import NGWWmsService
 from .ngw_api.core.ngw_mapserver_style import NGWMapServerStyle
 from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_api.core.ngw_raster_style import NGWRasterStyle
+from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
 from .ngw_api.core.ngw_base_map import NGWBaseMap
 
 from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
@@ -467,7 +468,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     NGWWmsConnection,
                     NGWWmsLayer,
                     NGWVectorLayer,
-                    NGWQGISVectorStyle
+                    NGWQGISVectorStyle,
+                    NGWRasterLayer,
+                    NGWQGISRasterStyle
                 )
             )
         )
@@ -750,6 +753,17 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def action_help(self):
         QDesktopServices.openUrl(QUrl(self.tr('https://docs.nextgis.com/docs_ngconnect/source/toc.html')))
 
+    def str_to_link(self, text, url):
+        return u'<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)
+
+    def _show_unsupported_raster_err(self):
+        msg = u'{}. {}'.format(
+            self.tr(u'This type of raster is not supported yet'),
+                self.str_to_link(self.tr(u'Please add COG support'), self.tr(u'https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer')
+            )
+        )
+        self.show_error(msg)
+
 
     def slotCustomContextMenu(self, qpoint):
         index = self.trvResources.indexAt(qpoint)
@@ -780,6 +794,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             setting_actions.extend([self.actionUpdateNGWVectorLayer])
             creating_actions.extend([self.actionCreateWFSService, self.actionCreateWMSService, self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWRasterLayer):
+            getting_actions.extend([self.actionExport])
             creating_actions.extend([self.actionCreateWebMap4Layer])
         elif isinstance(ngw_resource, NGWWmsLayer):
             getting_actions.extend([self.actionExport])
@@ -793,6 +808,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWWebMap):
             services_actions.extend([self.actionOpenMapInBrowser])
         elif isinstance(ngw_resource, NGWQGISVectorStyle):
+            getting_actions.extend([self.actionExport, self.actionDownload])
+            creating_actions.extend([self.actionCreateWebMap4Style])
+        elif isinstance(ngw_resource, NGWQGISRasterStyle):
             getting_actions.extend([self.actionExport, self.actionDownload])
             creating_actions.extend([self.actionCreateWebMap4Style])
         elif isinstance(ngw_resource, NGWRasterStyle):
@@ -856,9 +874,24 @@ class TreeControl(QMainWindow, FORM_CLASS):
             try:
                 if isinstance(ngw_resource, NGWVectorLayer):
                     add_resource_as_geojson(ngw_resource)
-                if isinstance(ngw_resource, NGWQGISVectorStyle):
-                    ngw_layer = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
-                    add_resource_as_geojson_with_style(ngw_layer, ngw_resource)
+                elif isinstance(ngw_resource, NGWQGISVectorStyle):
+                    parent_resource = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
+                    add_resource_as_geojson_with_style(parent_resource, ngw_resource)
+                elif isinstance(ngw_resource, NGWRasterLayer):
+                    try:
+                        add_resource_as_cog_raster(ngw_resource)
+                    except UnsupportedRasterTypeException:
+                        self._show_unsupported_raster_err()
+                    except Exception as e:
+                        raise Exception(CompatPy.exception_msg(e))
+                elif isinstance(ngw_resource, NGWQGISRasterStyle):
+                    try:
+                        parent_resource = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
+                        add_resource_as_cog_raster_with_style(parent_resource, ngw_resource)
+                    except UnsupportedRasterTypeException:
+                        self._show_unsupported_raster_err()
+                    except:
+                        raise Exception(CompatPy.exception_msg(e))
                 elif isinstance(ngw_resource, NGWWfsService):
                     add_resource_as_wfs_layers(ngw_resource)
                 elif isinstance(ngw_resource, NGWWmsService):

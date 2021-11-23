@@ -386,6 +386,21 @@
         <translation>https://docs.nextgis.ru/docs_ngconnect/source/toc.html</translation>
     </message>
     <message>
+        <location filename="../tree_panel.py"/>
+        <source>This type of raster is not supported yet</source>
+        <translation>Данный тип растра пока не поддерживается</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>Please add COG support</source>
+        <translation>Добавьте поддержку COG</translation>
+    </message>     
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer</source>
+        <translation>https://docs.nextgis.ru/docs_ngcom/source/data_upload.html#ngcom-raster-layer</translation>
+    </message>    
+    <message>
         <location filename="../tree_panel.py" line="163"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>
