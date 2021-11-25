@@ -9,6 +9,8 @@ author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.12.16
+		* Fix incorrect attribute type when uploading CSV layers
 	0.12.15
 		* Add ability to download COG rasters to QGIS
 	0.12.14
