@@ -76,6 +76,11 @@
         <source>Add WFS layer to QGIS on WFS service creation</source>
         <translation>Добавлять WFS слой в QGIS после создания WFS сервиса</translation>
     </message>
+    <message>
+        <location filename="../settings_dialog_base.ui"/>
+        <source>Upload rasters as Cloud Optimized GeoTIFF (COG)</source>
+        <translation>Загружать растры как Cloud Optimized GeoTIFF (COG)</translation>
+    </message>
 </context>
 <context>
     <name>DialogImportQGISProj</name>
@@ -394,12 +399,12 @@
         <location filename="../tree_panel.py"/>
         <source>Please add COG support</source>
         <translation>Добавьте поддержку COG</translation>
-    </message>     
+    </message>
     <message>
         <location filename="../tree_panel.py"/>
         <source>https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer</source>
         <translation>https://docs.nextgis.ru/docs_ngcom/source/data_upload.html#ngcom-raster-layer</translation>
-    </message>    
+    </message>
     <message>
         <location filename="../tree_panel.py" line="163"/>
         <source>Add to Web GIS</source>

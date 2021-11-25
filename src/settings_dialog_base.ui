@@ -125,6 +125,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="cbCog">
+     <property name="text">
+      <string>Upload rasters as Cloud Optimized GeoTIFF (COG)</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

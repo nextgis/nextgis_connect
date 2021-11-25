@@ -86,6 +86,11 @@ class SettingsDialog(QDialog, FORM_CLASS):
         )
         self.cbAutoAddWFS.stateChanged.connect(self.autoAddWFSChanged)
 
+        self.cbCog.setCheckState(
+            QtCore.Qt.Checked if NgwApiSettings.get_upload_cog_rasters() else QtCore.Qt.Unchecked
+        )
+        self.cbCog.stateChanged.connect(self.cogChanged)
+
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
         if dlg.exec_():
@@ -165,3 +170,7 @@ class SettingsDialog(QDialog, FORM_CLASS):
     def autoAddWFSChanged(self, state):
         option = (state == QtCore.Qt.Checked)
         PluginSettings.set_auto_add_wfs_option(option)
+
+    def cogChanged(self, state):
+        option = (state == QtCore.Qt.Checked)
+        NgwApiSettings.set_upload_cog_rasters(option)

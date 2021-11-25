@@ -762,7 +762,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.str_to_link(self.tr(u'Please add COG support'), self.tr(u'https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer')
             )
         )
-        self.show_error(msg)
+        self.show_info(msg)
 
 
     def slotCustomContextMenu(self, qpoint):
