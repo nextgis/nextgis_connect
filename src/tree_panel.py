@@ -764,7 +764,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.show_info(msg)
 
-
     def slotCustomContextMenu(self, qpoint):
         index = self.trvResources.indexAt(qpoint)
 
@@ -867,19 +866,53 @@ class TreeControl(QMainWindow, FORM_CLASS):
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
 
+
+    def _add_with_style(self, resource):
+        style_resource = None
+
+        child_resources = resource.get_children()
+        style_resources = []
+        for child_resource in child_resources: # assume that there can be only a style of appropriate for the layer type
+            if child_resource.type_id == NGWQGISVectorStyle.type_id or child_resource.type_id == NGWQGISRasterStyle.type_id:
+                style_resources.append(child_resource)
+
+        if len(style_resources) == 1:
+            style_resource = style_resources[0]
+        elif len(style_resources) > 1:
+            dlg = NGWLayerStyleChooserDialog(self.tr("Select style"), self.trvResources.selectionModel().currentIndex(), self._resource_model, self)
+            result = dlg.exec_()
+            if result:
+                sel_index = dlg.selectedStyleIndex()
+                if sel_index.isValid():
+                    style_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+            else:
+                return # just do nothing after closing the dialog
+
+        if resource.type_id == NGWVectorLayer.type_id:
+            if style_resource is None:
+                add_resource_as_geojson(resource)
+            else:
+                add_resource_as_geojson_with_style(resource, style_resource)
+        elif resource.type_id == NGWRasterLayer.type_id:
+            if style_resource is None:
+                add_resource_as_cog_raster(resource)
+            else:
+                add_resource_as_cog_raster_with_style(resource, style_resource)
+
+
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             try:
                 if isinstance(ngw_resource, NGWVectorLayer):
-                    add_resource_as_geojson(ngw_resource)
+                    self._add_with_style(ngw_resource)
                 elif isinstance(ngw_resource, NGWQGISVectorStyle):
                     parent_resource = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
                     add_resource_as_geojson_with_style(parent_resource, ngw_resource)
                 elif isinstance(ngw_resource, NGWRasterLayer):
                     try:
-                        add_resource_as_cog_raster(ngw_resource)
+                        self._add_with_style(ngw_resource)
                     except UnsupportedRasterTypeException:
                         self._show_unsupported_raster_err()
                     except Exception as e:
@@ -1087,9 +1120,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
-            #if not dlg.needCreateNewStyle() and dlg.selectedStyle():
-            if dlg.selectedStyle():
-                ngw_resource_style_id = dlg.selectedStyle()
+            #if not dlg.needCreateNewStyle() and dlg.selectedStyleId():
+            if dlg.selectedStyleId():
+                ngw_resource_style_id = dlg.selectedStyleId()
 
             responce = self._resource_model.createWMSForVector(selected_index, ngw_resource_style_id)
             responce.done.connect(
@@ -1121,8 +1154,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
                 result = dlg.exec_()
                 if result:
-                    if dlg.selectedStyle():
-                        ngw_resource_style_id = dlg.selectedStyle()
+                    if dlg.selectedStyleId():
+                        ngw_resource_style_id = dlg.selectedStyleId()
                 else:
                     return # do nothing after closing the dialog
 
