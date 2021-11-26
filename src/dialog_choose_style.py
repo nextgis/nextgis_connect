@@ -61,9 +61,9 @@ class NGWLayerStyleChooserDialog(QDialog):
         #     self.chbCreateNewStyle
         # )
 
-        self.layout.addWidget(
-            QLabel(self.tr("Select layer style:"))
-        )
+        # self.layout.addWidget(
+        #     QLabel(self.tr("Select layer style:"))
+        # )
 
         self.tree = NGWResourcesTreeView(self)
         sort_model = StyleFilterProxyModel() # TODO: understand is it ok to leave this proxy model without parent? When it will be deleted?

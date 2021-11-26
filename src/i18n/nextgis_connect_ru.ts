@@ -301,6 +301,11 @@
         <translation>Информация</translation>
     </message>
     <message>
+        <location filename="../tree_panel.py"/>
+        <source>Select style</source>
+        <translation>Выберите стиль</translation>
+    </message>
+    <message>
         <location filename="../tree_panel.py" line="745"/>
         <source>New group name:</source>
         <translation>Имя новой группы:</translation>
