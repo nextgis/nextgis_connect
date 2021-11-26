@@ -1113,21 +1113,24 @@ class TreeControl(QMainWindow, FORM_CLASS):
         ngw_resource = selected_index.data(Qt.UserRole)
         if ngw_resource.type_id in [NGWVectorLayer.type_id, NGWRasterLayer.type_id]:
             ngw_styles = ngw_resource.get_children()
-            if len(ngw_styles) == 0:
-                ngw_resource_style_id = None
-            elif len(ngw_styles) == 1:
+            ngw_resource_style_id = None
+
+            if len(ngw_styles) == 1:
                 ngw_resource_style_id = ngw_styles[0].common.id
-            else:
+            elif len(ngw_styles) > 1:
                 dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
                 result = dlg.exec_()
                 if result:
                     if dlg.selectedStyle():
                         ngw_resource_style_id = dlg.selectedStyle()
+                else:
+                    return # do nothing after closing the dialog
 
             self.create_map_response = self._resource_model.createMapForLayer(
                 selected_index,
                 ngw_resource_style_id
             )
+
         elif ngw_resource.type_id == NGWWmsLayer.type_id:
             self.create_map_response = self._resource_model.createMapForLayer(
                 selected_index,

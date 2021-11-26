@@ -140,8 +140,8 @@
     </message>
     <message>
         <location filename="../dialog_choose_style.py" line="37"/>
-        <source>Or select layer style:</source>
-        <translation>или выберите стиль:</translation>
+        <source>Select layer style:</source>
+        <translation>Выберите стиль:</translation>
     </message>
 </context>
 <context>

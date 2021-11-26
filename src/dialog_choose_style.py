@@ -37,7 +37,7 @@ class NGWLayerStyleChooserDialog(QDialog):
         # )
 
         self.layout.addWidget(
-            QLabel(self.tr("Or select layer style:"))
+            QLabel(self.tr("Select layer style:"))
         )
 
         self.tree = NGWResourcesTreeView(self)
