@@ -1,4 +1,3 @@
-from src.ngw_api.utils import log
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtCore import *
 
