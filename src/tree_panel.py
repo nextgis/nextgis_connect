@@ -841,22 +841,28 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def rename_ngw_resource(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
+        if not sel_index.isValid():
+            return
 
-        if sel_index.isValid():
-            new_name, res = QInputDialog.getText(
-                self,
-                self.tr("Change resource name"),
-                "",
-                text=sel_index.data(Qt.DisplayRole)
-            )
+        # Get current resource name. This name can differ from display text of tree item (see style resources).
+        item = sel_index.internalPointer()
+        ngw_resource = item.data(0, item.NGWResourceRole)
+        cur_name = ngw_resource.common.display_name
 
-            if res is False or new_name == "":
-                return
+        new_name, res = QInputDialog.getText(
+            self,
+            self.tr("Change resource name"),
+            "",
+            text=cur_name
+        )
 
-            self.rename_resource_resp = self._resource_model.renameResource(sel_index, new_name)
-            self.rename_resource_resp.done.connect(
-                self.trvResources.setCurrentIndex
-            )
+        if res is False or new_name == "":
+            return
+
+        self.rename_resource_resp = self._resource_model.renameResource(sel_index, new_name)
+        self.rename_resource_resp.done.connect(
+            self.trvResources.setCurrentIndex
+        )
 
     def __action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
