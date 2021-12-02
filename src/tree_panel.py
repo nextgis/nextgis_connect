@@ -168,8 +168,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionUpdateNGWVectorLayer.triggered.connect(self.overwrite_ngw_layer)
         self.actionUpdateNGWVectorLayer.setEnabled(False)
 
-        self.actionImportUpdateStyle = ActionStyleImportUpdate()
-        self.actionImportUpdateStyle.triggered.connect(self.import_update_style)
+        self.actionUpdateStyle = ActionStyleImportUpdate(self.tr('Update layer style'))
+        self.actionUpdateStyle.triggered.connect(self.update_style)
+        self.actionAddStyle = ActionStyleImportUpdate(self.tr('Add new style to layer'))
+        self.actionAddStyle.triggered.connect(self.add_style)
 
         self.actionImportQGISProject = QAction(
             self.tr("Import current project"),
@@ -182,8 +184,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.menuImport.menuAction().setIconVisibleInMenu(False)
         self.menuImport.addAction(self.actionImportQGISResource)
-        self.menuImport.addAction(self.actionImportUpdateStyle)
         self.menuImport.addAction(self.actionImportQGISProject)
+        self.menuImport.addAction(self.actionUpdateStyle)
+        self.menuImport.addAction(self.actionAddStyle)
 
         # Create new group ----------------------------------------------------
         self.actionCreateNewGroup = QAction(
@@ -337,7 +340,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             # self._resource_model.JOB_CREATE_NGW_WMS_SERVICE: self.tr("WMS connection is being created"),
             "NGWCreateMapForStyle": self.tr("Web map is being created"),
             "MapForLayerCreater": self.tr("Web map is being created"),
-            "QGISStyleImporter": self.tr("Style for layer is being created"),
+            #"QGISStyleImporter": self.tr("Style for layer is being created"),
+            "QGISStyleUpdater": self.tr("Style for layer is being updated"),
+            "QGISStyleAdder": self.tr("Style for layer is being created"),
             "NGWRenameResource": self.tr("Resource is being renamed"),
             "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
         }
@@ -444,18 +449,21 @@ class TreeControl(QMainWindow, FORM_CLASS):
             isinstance(current_qgis_layer, QgsVectorLayer)
         )
 
-        if isinstance(ngw_resource, NGWQGISVectorStyle):
-            ngw_vector_layer = index.parent().data(QNGWResourceItem.NGWResourceRole)
-            self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_vector_layer)
+        if isinstance(ngw_resource, NGWQGISVectorStyle) or isinstance(ngw_resource, NGWQGISRasterStyle):
+            ngw_layer = index.parent().data(QNGWResourceItem.NGWResourceRole)
+            self.actionUpdateStyle.setEnabledByType(current_qgis_layer, ngw_layer)
+            self.actionAddStyle.setEnabled(False)
         else:
-            self.actionImportUpdateStyle.setEnabled(current_qgis_layer, ngw_resource)
+            self.actionUpdateStyle.setEnabled(False)
+            self.actionAddStyle.setEnabledByType(current_qgis_layer, ngw_resource)
 
         self.actionImportQGISProject.setEnabled(
             CompatQgis.layers_registry().count() != 0
         )
 
         self.toolbuttonImport.setEnabled(
-            self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or self.actionImportUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled()
+            (self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or
+                self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled())
         )
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
@@ -1067,13 +1075,31 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             pass
 
-    def import_update_style(self):
+
+    # def import_update_style(self):
+    #     qgs_map_layer = self.iface.mapCanvas().currentLayer()
+    #     sel_index = self.trvResources.selectionModel().currentIndex()
+    #     response = self._resource_model.createOrUpdateQGISStyle(qgs_map_layer, sel_index)
+    #     response.done.connect(
+    #         self.trvResources.setCurrentIndex
+    #     )
+
+    def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
         sel_index = self.trvResources.selectionModel().currentIndex()
-        response = self._resource_model.createOrUpdateQGISStyle(qgs_map_layer, sel_index)
+        response = self._resource_model.updateQGISStyle(qgs_map_layer, sel_index)
         response.done.connect(
             self.trvResources.setCurrentIndex
         )
+
+    def add_style(self):
+        qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        response = self._resource_model.addQGISStyle(qgs_map_layer, sel_index)
+        response.done.connect(
+            self.trvResources.setCurrentIndex
+        )
+
 
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(

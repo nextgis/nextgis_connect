@@ -370,6 +370,18 @@
         <source>Create new resource group</source>
         <translation>Создать новую группу ресурсов</translation>
     </message>
+
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>Update layer style</source>
+        <translation>Обновить стиль слоя</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>Add new style to layer</source>
+        <translation>Добавить новый стиль к слою</translation>
+    </message>
+
     <message>
         <location filename="../tree_panel.py" line="253"/>
         <source>Open map in browser</source>
@@ -449,6 +461,11 @@
         <location filename="../tree_panel.py" line="316"/>
         <source>Style for layer is being created</source>
         <translation>Создается стиль для слоя</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>Style for layer is being updated</source>
+        <translation>Обновляется стиль слоя</translation>
     </message>
     <message>
         <location filename="../tree_panel.py" line="317"/>

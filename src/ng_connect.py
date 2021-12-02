@@ -258,21 +258,43 @@ plugins['nextgis_connect'].enableDebug(False)
             self.iface,
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr("NextGIS Connect"),
+            QgsMapLayer.VectorLayer,
+            True
+        )
+        CompatQgis.add_legend_action(
+            self.iface,
+            self.dockWidget.inner_control.actionUpdateStyle,
+            self.tr("NextGIS Connect"),
+            QgsMapLayer.VectorLayer,
+            True
+        )
+        CompatQgis.add_legend_action(
+            self.iface,
+            self.dockWidget.inner_control.actionAddStyle,
+            self.tr("NextGIS Connect"),
+            QgsMapLayer.VectorLayer,
+            True
+        )
+
+        CompatQgis.add_legend_action(
+            self.iface,
+            self.dockWidget.inner_control.actionImportQGISResource,
+            self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
             True
         )
         CompatQgis.add_legend_action(
             self.iface,
-            self.dockWidget.inner_control.actionImportQGISResource,
+            self.dockWidget.inner_control.actionUpdateStyle,
             self.tr("NextGIS Connect"),
-            QgsMapLayer.VectorLayer,
+            QgsMapLayer.RasterLayer,
             True
         )
         CompatQgis.add_legend_action(
             self.iface,
-            self.dockWidget.inner_control.actionImportUpdateStyle,
+            self.dockWidget.inner_control.actionAddStyle,
             self.tr("NextGIS Connect"),
-            QgsMapLayer.VectorLayer,
+            QgsMapLayer.RasterLayer,
             True
         )
 
@@ -290,13 +312,17 @@ plugins['nextgis_connect'].enableDebug(False)
             self.iface,
             self.dockWidget.inner_control.actionImportQGISResource
         )
+        # CompatQgis.remove_legend_action(
+        #     self.iface,
+        #     self.dockWidget.inner_control.actionImportQGISResource
+        # )
         CompatQgis.remove_legend_action(
             self.iface,
-            self.dockWidget.inner_control.actionImportQGISResource
+            self.dockWidget.inner_control.actionUpdateStyle
         )
         CompatQgis.remove_legend_action(
             self.iface,
-            self.dockWidget.inner_control.actionImportUpdateStyle
+            self.dockWidget.inner_control.actionAddStyle
         )
 
         for action in self.actions:
