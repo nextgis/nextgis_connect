@@ -4,11 +4,17 @@ qgisMinimumVersion=2.18
 qgisMaximumVersion=3.99
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact. Note that QGIS 3 support is beta.
-version=0.12.17
+version=0.12.18
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.12.18
+		* Add ability to update existing or add another style to raster layer
+		* Fix showing renaming operation result in a tree
+		* Fix non-expandable groups after importing project
+		* Fix editing name of root resource group
+		* Fix using wrong default name when renaming style
 	0.12.17
 		* Fix plugin loading
 	0.12.16
