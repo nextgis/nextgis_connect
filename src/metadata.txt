@@ -3,12 +3,14 @@ name=NextGIS Connect
 qgisMinimumVersion=2.18
 qgisMaximumVersion=3.99
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
-about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact. Note that QGIS 3 support is beta.
-version=0.12.18
+about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact.
+version=0.12.19
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.12.19
+		* Avoid Qt threading errors when making NGW requests
 	0.12.18
 		* Add ability to update existing or add another style to raster layer
 		* Fix showing renaming operation result in a tree
