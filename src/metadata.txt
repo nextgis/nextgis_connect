@@ -4,11 +4,13 @@ qgisMinimumVersion=2.18
 qgisMaximumVersion=3.99
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact.
-version=0.13.0
+version=0.13.1
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.13.1
+		* Fix: do not auto-select GeoJSON format in some cases when uploading projects
 	0.13.0
 		* Add support for uploading large raster layers to the Web GIS
 	0.12.21
