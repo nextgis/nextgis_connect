@@ -646,6 +646,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.jobs_count += 1 # note: __modelJobFinished will be triggered even if error/warning occured during job execution
         ngwApiLog('Jobs finished for current connection: {}'.format(self.jobs_count))
 
+        if job_id == 'NGWRootResourcesLoader':
+            self.unblock_gui()
+
         if job_id in self.blocked_jobs:
             self.unblock_gui()
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
