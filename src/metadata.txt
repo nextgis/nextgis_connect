@@ -4,11 +4,17 @@ qgisMinimumVersion=2.18
 qgisMaximumVersion=3.99
 description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
 about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact.
-version=0.13.8
+version=0.13.9
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	0.13.9
+		* Fix uploading of xyz WMS layers as basemaps
+		* Fix downloading layers when login has special symbols (like '@')
+		* Fix adding WFS service to QGIS as guest
+		* Fix some crashes on startup
+		* Improve URL sanitizing in connection edit dialog
 	0.13.8
 		* Fix wrong NGW error replies decoding in QGIS 3
 		* Fix uploading vector layers with M geometries in QGIS 3
