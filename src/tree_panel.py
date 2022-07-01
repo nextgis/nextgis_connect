@@ -1248,7 +1248,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         req = QNetworkRequest(QUrl(url))
-        creds = ngw_qgis_style.get_creds()
+        creds = ngw_qgis_style.get_creds_for_qml()
         if creds is not None:
             creds_str = creds[0] + ':' + creds[1]
             authstr = creds_str.encode('utf-8')
