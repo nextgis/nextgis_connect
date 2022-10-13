@@ -57,7 +57,7 @@ from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from .ngw_api.qgis.resource_to_map import *
 
-from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS
+from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QGISResourceJob
 
 from .ngw_api.utils import setLogger
 
@@ -249,6 +249,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionCreateWMSService.setToolTip(self.tr("Create WMS service"))
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
+
+        # Copy resource -----------------------------------------------------
+        self.actionCopyResource = QAction(
+            QIcon(),
+            self.tr("Copy"),
+            self
+        )
+        self.actionCopyResource.setToolTip(self.tr("Copy resource"))
+        self.actionCopyResource.triggered.connect(self.copy_curent_ngw_resource)
 
         # Delete resource -----------------------------------------------------
         self.actionDeleteResource = QAction(
@@ -802,10 +811,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWVectorLayer):
             getting_actions.extend([self.actionExport])
             setting_actions.extend([self.actionUpdateNGWVectorLayer])
-            creating_actions.extend([self.actionCreateWFSService, self.actionCreateWMSService, self.actionCreateWebMap4Layer])
+            creating_actions.extend([
+                self.actionCreateWFSService,
+                self.actionCreateWMSService,
+                self.actionCreateWebMap4Layer,
+                self.actionCopyResource
+            ])
         elif isinstance(ngw_resource, NGWRasterLayer):
             getting_actions.extend([self.actionExport])
-            creating_actions.extend([self.actionCreateWebMap4Layer])
+            creating_actions.extend([self.actionCreateWebMap4Layer, self.actionCopyResource])
         elif isinstance(ngw_resource, NGWWmsLayer):
             getting_actions.extend([self.actionExport])
             creating_actions.extend([self.actionCreateWebMap4Layer])
@@ -1103,7 +1117,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.trvResources.setCurrentIndex
         )
 
-
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
             self,
@@ -1120,6 +1133,173 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.trvResources.setCurrentIndex
             )
 
+    def _downloadRasterSource(self, ngw_lyr, raster_file=None):
+        ''' Download raster layer source file
+            using QNetworkAccessManager.
+            Download and write file by chunks
+            using readyRead signal
+            
+            return QFile object
+        '''
+        if not raster_file:
+            raster_file = QTemporaryFile()
+        else:
+            raster_file = QFile(raster_file)
+
+        url = '{}/download'.format(ngw_lyr.get_absolute_api_url())
+        def write_chuck():
+            if reply.error():
+                raise Exception('Failed to download raster source: {}'.format(reply.errorString()))
+            data = reply.readAll()
+            log('Write chunk! Size: {}'.format(data.size()))
+            raster_file.write(data)
+
+        req = QNetworkRequest(QUrl(url))
+        creds = ngw_lyr.get_creds()
+        if creds is not None:
+            creds_str = creds[0] + ':' + creds[1]
+            authstr = creds_str.encode('utf-8')
+            authstr = QByteArray(authstr).toBase64()
+            authstr = QByteArray(('Basic ').encode('utf-8')).append(authstr)
+            req.setRawHeader(("Authorization").encode('utf-8'), authstr)
+
+        if raster_file.open(QIODevice.WriteOnly):
+
+            ev_loop = QEventLoop()
+            dwn_qml_manager = QNetworkAccessManager()
+            
+            # dwn_qml_manager.finished.connect(ev_loop.quit)
+            reply = dwn_qml_manager.get(req)
+
+            reply.readyRead.connect(write_chuck)
+            reply.finished.connect(ev_loop.quit)
+
+            ev_loop.exec_()
+
+            write_chuck()
+            raster_file.close()
+            reply.deleteLater()
+
+            return raster_file
+        else:
+            raise Exception("Can't open file to write raster!")
+
+
+    def _copy_resource(self, ngw_src):
+        ''' Create a copy of a ngw raster or vector layer
+            1) Download ngw layer sources
+            2) Create QGIS hidden layer
+            3) Export layer to ngw
+            4) Add styles to new ngw layer
+        '''
+        def qml_callback(total_size, readed_size):
+            ngwApiLog(
+                'Style for "%s" - Upload (%d%%)' % (
+                    ngw_src.common.display_name,
+                    readed_size * 100 / total_size
+                )
+            )
+
+        style_resource = None
+
+        ngw_group = ngw_src.get_parent()
+        child_resources = ngw_src.get_children()
+        style_resources = []
+        # assume that there can be only a style of appropriate for the layer type
+        for child_resource in child_resources:
+            if (child_resource.type_id == NGWQGISVectorStyle.type_id or 
+                child_resource.type_id == NGWQGISRasterStyle.type_id):
+                style_resources.append(child_resource)
+
+        # Download sources and create a QGIS layer
+        if ngw_src.type_id == NGWVectorLayer.type_id:
+            qgs_layer = QgsVectorLayer(
+                ngw_src.get_absolute_geojson_url(),
+                ngw_src.common.display_name,
+                'ogr'
+            )
+            if not qgs_layer.isValid():
+                raise Exception('Layer "%s" can\'t be added to the map!' % ngw_src.common.display_name)
+            qgs_layer.dataProvider().setEncoding('UTF-8')
+
+        elif ngw_src.type_id == NGWRasterLayer.type_id:
+            raster_file = self._downloadRasterSource(ngw_src)
+            qgs_layer = QgsRasterLayer(raster_file.fileName(), ngw_src.common.display_name, 'gdal')
+            if not qgs_layer.isValid():
+                log('Failed to add raster layer to QGIS')
+                raise Exception('Layer "%s" can\'t be added to the map!' % ngw_src.common.display_name)
+        else:
+            raise Exception('Wrong layer type! Type id: {}' % ngw_src.type_id)
+
+        # Export QGIS layer to NGW
+        resJob = QGISResourceJob()
+        ngw_res = resJob.importQGISMapLayer(qgs_layer, ngw_group)[0]
+        
+        # Remove temp layer and sources
+        del qgs_layer
+        if ngw_src.type_id == NGWRasterLayer.type_id:
+            raster_file.remove()
+
+        # Export styles to new NGW layer
+        for style_resource in style_resources:
+            self._downloadStyleAsQML(style_resource, mes_bar=False)
+
+            ngw_style = ngw_res.create_qml_style(
+                self.dwn_qml_file.fileName(),
+                qml_callback,
+                style_name=style_resource.common.display_name
+            )
+            self.dwn_qml_file.remove()
+            ngw_res.update()
+
+    def copy_curent_ngw_resource(self):
+        ''' Copying the selected ngw resource.
+            Only GUI stuff here, main part
+            in _copy_resource function
+        '''
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        if sel_index.isValid():
+            # ckeckbox
+            res = QMessageBox.question(
+                self,
+                self.tr("Copy resource"),
+                self.tr("Are you sure you want to copy this resource?"),
+                QMessageBox.Yes and QMessageBox.No,
+                QMessageBox.Yes
+            )
+            if res == QMessageBox.No:
+                return
+            
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+            if not ngw_resource:
+                raise Exception('ngw resource not found!')
+            
+            # block gui
+            self.trvResources.ngw_job_block_overlay.show()
+            self.block_gui()
+            text = "<strong>Copying %s</strong><br/>" % ngw_resource.common.display_name
+            self.trvResources.ngw_job_block_overlay.text.setText(text)
+
+            # main part
+            try:
+                self._copy_resource(ngw_resource)
+            except UnsupportedRasterTypeException:
+                self._show_unsupported_raster_err()
+            except Exception as ex:
+                error_mes = CompatPy.exception_msg(ex)
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    error_mes,
+                    level=CompatQgisMsgBarLevel.Critical
+                )
+                qgisLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
+
+            # update Connect gui tree
+            self.reinit_tree(True)
+            # unblock gui
+            self.trvResources.ngw_job_block_overlay.hide()
+            self.unblock_gui()
+            
     def create_wfs_service(self):
         ret_obj_num, res = QInputDialog.getInt(
             self,
@@ -1230,25 +1410,17 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 dlg.addException(w_msg, w_msg_ext, icon)
                 dlg.show()
 
-    def downloadQML(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
-        ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
-        url = ngw_qgis_style.download_qml_url()
 
-        filepath = QFileDialog.getSaveFileName(
-            self,
-            self.tr("Save QML"),
-            "%s.qml" % ngw_qgis_style.common.display_name,
-            filter=self.tr("QGIS Layer style file (*.qml)")
-        )
-        # QDesktopServices.openUrl(QUrl(url))
+    def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
+        if not qml_file:
+            self.dwn_qml_file = QTemporaryFile()
+        else:
+            self.dwn_qml_file = QFile(qml_file)
 
-        filepath = CompatQt.get_dialog_result_path(filepath)
-        if filepath == "":
-            return
+        url = ngw_style.download_qml_url()
 
         req = QNetworkRequest(QUrl(url))
-        creds = ngw_qgis_style.get_creds_for_qml()
+        creds = ngw_style.get_creds_for_qml()
         if creds is not None:
             creds_str = creds[0] + ':' + creds[1]
             authstr = creds_str.encode('utf-8')
@@ -1256,39 +1428,48 @@ class TreeControl(QMainWindow, FORM_CLASS):
             authstr = QByteArray(('Basic ').encode('utf-8')).append(authstr)
             req.setRawHeader(("Authorization").encode('utf-8'), authstr)
 
-        self.dwn_qml_filepath = filepath
-        self.dwn_qml_manager = QNetworkAccessManager(self)
-        self.dwn_qml_manager.finished.connect(self.saveQML)
-        self.dwn_qml_manager.get(req)
+        ev_loop = QEventLoop()
+        dwn_qml_manager = QNetworkAccessManager()
+        dwn_qml_manager.finished.connect(ev_loop.quit)
+        reply = dwn_qml_manager.get(req)
+        ev_loop.exec_()
 
-    def saveQML(self, reply):
         if reply.error():
             ngwApiLog('Failed to download QML: {}'.format(reply.errorString()))
 
-        file = QFile(self.dwn_qml_filepath)
-        if file.open(QIODevice.WriteOnly):
-            file.write(reply.readAll())
-            file.close()
-            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
+        if self.dwn_qml_file.open(QIODevice.WriteOnly):
+            ngwApiLog('dwn_qml_file: {}'.format(self.dwn_qml_file.fileName()))
+            self.dwn_qml_file.write(reply.readAll())
+            self.dwn_qml_file.close()
+            if mes_bar:
+                self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
         else:
-            self.__msg_in_qgis_mes_bar(self.tr("QML file could not be downloaded"), True, CompatQgisMsgBarLevel.Critical)
+            if mes_bar:
+                self.__msg_in_qgis_mes_bar(
+                    self.tr("QML file could not be downloaded"),
+                    True,
+                    CompatQgisMsgBarLevel.Critical
+                )
 
         reply.deleteLater()
 
-    # def create_style(self):
-    #     dlg = DialogChooseQGISLayer(self.tr("Get style from layer"), self.iface, self)
-    #     result = dlg.exec_()
-    #     if result:
-    #         selected_index = self.trvResources.selectionModel().currentIndex()
-    #         selected_layer = dlg.layers.currentLayer()
 
-    #         if selected_layer is None:
-    #             return
+    def downloadQML(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
 
-    #         self._resource_model.createStyleForLayer(
-    #             selected_index,
-    #             selected_layer
-    #         )
+        filepath = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save QML"),
+            "%s.qml" % ngw_qgis_style.common.display_name,
+            filter=self.tr("QGIS Layer style file (*.qml)")
+        )
+
+        filepath = CompatQt.get_dialog_result_path(filepath)
+        if filepath == "":
+            return
+
+        self._downloadStyleAsQML(ngw_qgis_style, qml_file=filepath)
 
     def show_msg_box(self, text, title, icon, buttons):
         box = QMessageBox()
