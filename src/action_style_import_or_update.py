@@ -30,13 +30,22 @@ class ActionStyleImportUpdate(QAction):
         qgis_vector_layer_geom = qgis_layer.geometryType()
         ngw_vector_layer_geom = ngw_vector_layer.geom_type()
 
-        if qgis_vector_layer_geom in [CompatQgisGeometryType.Point ] and ngw_vector_layer_geom in [NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT, ]:
+        if qgis_vector_layer_geom in [CompatQgisGeometryType.Point ] and ngw_vector_layer_geom in [
+                                                                            NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
+                                                                            NGWVectorLayer.POINTZ, NGWVectorLayer.MULTIPOINTZ,
+                                                                        ]:
             super(ActionStyleImportUpdate, self).setEnabled(True)
             return
-        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Line, ] and ngw_vector_layer_geom in [NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING, ]:
+        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Line, ] and ngw_vector_layer_geom in [
+                                                                            NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING,
+                                                                            NGWVectorLayer.LINESTRINGZ, NGWVectorLayer.MULTILINESTRINGZ,
+                                                                        ]:
             super(ActionStyleImportUpdate, self).setEnabled(True)
             return
-        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Polygon, ] and ngw_vector_layer_geom in [NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON, ]:
+        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Polygon, ] and ngw_vector_layer_geom in [
+                                                                            NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
+                                                                            NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
+                                                                        ]:
             super(ActionStyleImportUpdate, self).setEnabled(True)
             return
 
