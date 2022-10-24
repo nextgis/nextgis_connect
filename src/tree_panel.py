@@ -66,6 +66,7 @@ from .plugin_settings import PluginSettings
 
 from .dialog_choose_style import NGWLayerStyleChooserDialog
 from .dialog_qgis_proj_import import DialogImportQGISProj
+from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
 
 from .action_style_import_or_update import ActionStyleImportUpdate
@@ -250,7 +251,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWMSService.setToolTip(self.tr("Create WMS service"))
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
 
-        # Copy resource -----------------------------------------------------
+        # Copy resource -------------------------------------------------------
         self.actionCopyResource = QAction(
             QIcon(),
             self.tr("Copy"),
@@ -258,6 +259,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionCopyResource.setToolTip(self.tr("Copy resource"))
         self.actionCopyResource.triggered.connect(self.copy_curent_ngw_resource)
+
+        # Edit resource metadata ----------------------------------------------
+        self.actionEditMetadata = QAction(
+            QIcon(),
+            self.tr("Edit metadata"),
+            self
+        )
+        self.actionEditMetadata.setToolTip(self.tr("Edit metadata"))
+        self.actionEditMetadata.triggered.connect(self.edit_metadata)
 
         # Delete resource -----------------------------------------------------
         self.actionDeleteResource = QAction(
@@ -815,11 +825,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.actionCreateWFSService,
                 self.actionCreateWMSService,
                 self.actionCreateWebMap4Layer,
-                self.actionCopyResource
+                self.actionCopyResource,
+                self.actionEditMetadata
             ])
         elif isinstance(ngw_resource, NGWRasterLayer):
             getting_actions.extend([self.actionExport])
-            creating_actions.extend([self.actionCreateWebMap4Layer, self.actionCopyResource])
+            creating_actions.extend([
+                self.actionCreateWebMap4Layer,
+                self.actionCopyResource,
+                self.actionEditMetadata
+            ])
         elif isinstance(ngw_resource, NGWWmsLayer):
             getting_actions.extend([self.actionExport])
             creating_actions.extend([self.actionCreateWebMap4Layer])
@@ -1092,6 +1107,22 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             pass
 
+
+    def edit_metadata(self):
+        ''' Edit metadata table
+        '''
+        sel_index = self.trvResources.selectionModel().currentIndex()
+        if sel_index.isValid():
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+            ngw_resource.update()
+            
+            md_dict = ngw_resource.metadata.__dict__['items']
+            dlg = MetadataDialog(md_dict, self)
+            result = dlg.exec_()
+            if result:
+                new_md = dlg.getData()
+                ngw_resource.update_metadata(new_md)
+                ngw_resource.update()
 
     # def import_update_style(self):
     #     qgs_map_layer = self.iface.mapCanvas().currentLayer()
