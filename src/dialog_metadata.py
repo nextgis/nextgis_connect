@@ -1,13 +1,16 @@
-# This Python file uses the following encoding: utf-8
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog, QMenu, QTableWidgetItem
+from qgis.PyQt.QtWidgets import (
+    QDialog, QMenu, QTableWidgetItem,
+    QMessageBox, QProgressDialog, QApplication
+)
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QBrush, QColor
 
-from qgis.core import Qgis
-from qgis.utils import iface
+from qgis.core import QgsMessageLog
+
+from .ngw_api.qgis.compat_qgis import CompatQgisMsgLogLevel
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -16,7 +19,7 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 
 class MetadataDialog(QDialog, FORM_CLASS):
   
-    def __init__(self, md_dict, parent=None):
+    def __init__(self, ngw_res, parent=None):
         """
         :param metadata
         """
@@ -30,6 +33,9 @@ class MetadataDialog(QDialog, FORM_CLASS):
             'str': self.tr('String')
         }
 
+        self.ngw_res = ngw_res
+
+        md_dict = self.ngw_res.metadata.__dict__['items']
         self.md = [
             [key, self.itemTypes[type(val).__name__], val]
             for key, val in md_dict.items()
@@ -44,9 +50,9 @@ class MetadataDialog(QDialog, FORM_CLASS):
 
         self.addButton.setMenu(self.menu)
         self.removeButton.clicked.connect(self.deleteRow)
-        self.buttonBox.accepted.connect(self.acceptCheck)
+        self.buttonBox.accepted.connect(self.checkSendAndAccept)
         self.buttonBox.rejected.connect(self.reject)
-        
+
         self.tableWidget.itemChanged.connect(self.checkItem) 
 
     def createTable(self):
@@ -81,9 +87,10 @@ class MetadataDialog(QDialog, FORM_CLASS):
         if not self.tableWidget.rowCount():
             return
         row = self.tableWidget.currentRow()
-        if not row:
-            self.tableWidget.removeRow(self.tableWidget.rowCount())
+        if row is None or row < 0:
+            return
         self.tableWidget.removeRow(row)
+        self.tableWidget.setCurrentCell(-1, -1)
 
     def addRow(self):
         row = self.tableWidget.currentRow()
@@ -115,20 +122,65 @@ class MetadataDialog(QDialog, FORM_CLASS):
         item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
         self.tableWidget.setItem(row, 1, item)
 
-    def acceptCheck(self):
-        keys = []
-        for i in range(self.tableWidget.rowCount()):
-            keys.append(self.tableWidget.item(i, 0).text())
-            item = self.tableWidget.item(i, 2)
-            if item and item.background().color() == QColor(255, 120, 100):
-                iface.messageBar().pushMessage("Error", "Wrong data types", level=Qgis.Critical)
+    def checkSendAndAccept(self):
+        self.setWindowModality(Qt.WindowModal)
+        if not self.checkTable():
+            return
+        md = self.getData()
+
+        progress = QProgressDialog(self.tr("Sending metadata..."), None, 0, 0, self)
+        progress.setWindowModality(Qt.WindowModal)
+        progress.show()
+        progress.setValue(0)
+        QApplication.processEvents()
+        try:
+            self.ngw_res.update_metadata(md)
+            self.ngw_res.metadata.__dict__['items'] = md
+            progress.cancel()
+        except Exception as ex:
+            progress.cancel()
+            err_txt = '{} {}'.format(self.tr('Error sending metadata update:'), ex)
+
+            QMessageBox.about(self, self.tr("Error"), err_txt)
+            QgsMessageLog.logMessage(err_txt, "NGW API", CompatQgisMsgLogLevel.Critical)
+
+            qm = QMessageBox()
+            qm.setIcon(QMessageBox.Question)
+            qm.setText(self.tr("Error sending metadata update. Continue editing or exit?"))
+            qm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            buttonY = qm.button(QMessageBox.Yes)
+            buttonY.setText(self.tr('Continue'))
+            qm.exec_()
+
+            if qm.clickedButton() == buttonY:
+                return
+            else:
+                self.reject()
                 return
 
-        if len(set(keys)) < len(keys):
-            iface.messageBar().pushMessage("Error", "Keys duplication", level=Qgis.Critical)
-            return
-        print(self.getData())
         self.accept()
+
+    def checkTable(self):
+        keys = []
+        for i in range(self.tableWidget.rowCount()):
+            key = self.tableWidget.item(i, 0)
+            if not key:
+                QMessageBox.about(self, self.tr("Error"), self.tr("Empty key field"))
+                return False
+            keys.append(self.tableWidget.item(i, 0).text())
+            item = self.tableWidget.item(i, 2)
+            if not item:
+                QMessageBox.about(self, self.tr("Error"), self.tr("Empty value field"))
+                return False
+            if item.background().color() == QColor(255, 120, 100):
+                QMessageBox.about(self, self.tr("Error"), self.tr("Wrong data types"))
+                return False
+
+        if len(set(keys)) < len(keys):
+            QMessageBox.about(self, self.tr("Error"), self.tr("Keys duplication"))
+            return False
+
+        return True
 
     def getData(self):
         res = {}
@@ -138,5 +190,4 @@ class MetadataDialog(QDialog, FORM_CLASS):
             itemType = self.tableWidget.item(i, 1).text()
             itemType = list(self.itemTypes.keys())[list(self.itemTypes.values()).index(itemType)]
             res[key.text()] = __builtins__[itemType](val.text())
-        print(res)
         return res

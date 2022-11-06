@@ -27,6 +27,8 @@ import sys
 import json
 import functools
 
+import traceback
+
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import *
 from qgis.PyQt.QtGui import *
@@ -769,6 +771,23 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def __action_refresh_tree(self):
         self.reinit_tree(True)
 
+    def __add_resource_to_tree(self, ngw_resource):
+        if ngw_resource.common.parent is None:
+            index = QModelIndex()
+            new_index = self._resource_model.addNGWResourceToTree(index, ngw_resource)
+        else:
+            index = self._resource_model.getIndexByNGWResourceId(
+                ngw_resource.common.parent.id,
+                self._resource_model.index(0, 0, QModelIndex())
+            )
+
+            item = index.internalPointer()
+            current_ids = [item.child(i).ngw_resource_id() for i in range(0, item.childCount()) if isinstance(item.child(i), QNGWResourceItem)]
+            if ngw_resource.common.id not in current_ids:
+                new_index = self._resource_model.addNGWResourceToTree(index, ngw_resource)
+
+                return new_index
+        
     def disable_tools(self):
         self.actionExport.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
@@ -815,6 +834,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         services_actions = []
 
         services_actions.extend([self.actionOpenInNGW, self.actionRename, self.actionDeleteResource])
+        creating_actions.extend([self.actionEditMetadata])
 
         if isinstance(ngw_resource, NGWGroupResource):
             creating_actions.append(self.actionCreateNewGroup)
@@ -825,16 +845,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.actionCreateWFSService,
                 self.actionCreateWMSService,
                 self.actionCreateWebMap4Layer,
-                self.actionCopyResource,
-                self.actionEditMetadata
+                self.actionCopyResource
             ])
         elif isinstance(ngw_resource, NGWRasterLayer):
             getting_actions.extend([self.actionExport])
-            creating_actions.extend([
-                self.actionCreateWebMap4Layer,
-                self.actionCopyResource,
-                self.actionEditMetadata
-            ])
+            creating_actions.extend([self.actionCreateWebMap4Layer, self.actionCopyResource])
         elif isinstance(ngw_resource, NGWWmsLayer):
             getting_actions.extend([self.actionExport])
             creating_actions.extend([self.actionCreateWebMap4Layer])
@@ -1107,22 +1122,47 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             pass
 
-
     def edit_metadata(self):
         ''' Edit metadata table
         '''
         sel_index = self.trvResources.selectionModel().currentIndex()
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
-            ngw_resource.update()
-            
-            md_dict = ngw_resource.metadata.__dict__['items']
-            dlg = MetadataDialog(md_dict, self)
-            result = dlg.exec_()
-            if result:
-                new_md = dlg.getData()
-                ngw_resource.update_metadata(new_md)
+
+            self.block_gui()
+
+            try:
+                self.trvResources.ngw_job_block_overlay.show()
+                self.trvResources.ngw_job_block_overlay.text.setText(
+                    "<strong>{} {}</strong><br/>".format(self.tr('Get resource metadata'), ngw_resource.common.display_name)
+                )
                 ngw_resource.update()
+                self.trvResources.ngw_job_block_overlay.hide()
+
+                dlg = MetadataDialog(ngw_resource, self)
+                _ = dlg.exec_()
+                    
+            except NGWError:
+                error_mes = CompatPy.exception_msg(traceback.format_exc())
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    self.tr("Error occurred while communicating with Web GIS."),
+                    level=CompatQgisMsgBarLevel.Critical
+                )
+                self.trvResources.ngw_job_block_overlay.hide()
+                ngwApiLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
+
+            except Exception as ex:
+                error_mes = CompatPy.exception_msg(traceback.format_exc())
+                self.iface.messageBar().pushMessage(
+                    self.tr('Error'),
+                    ex,
+                    level=CompatQgisMsgBarLevel.Critical
+                )
+                self.trvResources.ngw_job_block_overlay.hide()
+                ngwApiLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
+
+            self.unblock_gui()
 
     # def import_update_style(self):
     #     qgs_map_layer = self.iface.mapCanvas().currentLayer()
@@ -1180,7 +1220,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         url = '{}/download'.format(ngw_lyr.get_absolute_api_url())
         def write_chuck():
             if reply.error():
-                raise Exception('Failed to download raster source: {}'.format(reply.errorString()))
+                raise Exception('{} {}'.format(self.tr('Failed to download raster source:'), reply.errorString()))
             data = reply.readAll()
             log('Write chunk! Size: {}'.format(data.size()))
             raster_file.write(data)
@@ -1213,7 +1253,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             return raster_file
         else:
-            raise Exception("Can't open file to write raster!")
+            raise Exception(self.tr("Can't open file to write raster!"))
 
 
     def _copy_resource(self, ngw_src):
@@ -1283,6 +1323,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.dwn_qml_file.remove()
             ngw_res.update()
 
+        return ngw_res
+
     def copy_curent_ngw_resource(self):
         ''' Copying the selected ngw resource.
             Only GUI stuff here, main part
@@ -1303,17 +1345,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
             
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             if not ngw_resource:
-                raise Exception('ngw resource not found!')
-            
+                raise Exception(self.tr('NGW resource not found!'))
+
             # block gui
             self.trvResources.ngw_job_block_overlay.show()
             self.block_gui()
-            text = "<strong>Copying %s</strong><br/>" % ngw_resource.common.display_name
-            self.trvResources.ngw_job_block_overlay.text.setText(text)
-
+            self.trvResources.ngw_job_block_overlay.text.setText(
+                "<strong>{} {}</strong><br/>".format(self.tr('Copying'), ngw_resource.common.display_name)
+            )
             # main part
             try:
-                self._copy_resource(ngw_resource)
+                ngw_result = self._copy_resource(ngw_resource)
+                self.__add_resource_to_tree(ngw_result)
             except UnsupportedRasterTypeException:
                 self._show_unsupported_raster_err()
             except Exception as ex:
@@ -1325,8 +1368,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 )
                 qgisLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
 
-            # update Connect gui tree
-            self.reinit_tree(True)
             # unblock gui
             self.trvResources.ngw_job_block_overlay.hide()
             self.unblock_gui()
