@@ -841,8 +841,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWVectorLayer):
             getting_actions.extend([self.actionExport])
             setting_actions.extend([self.actionUpdateNGWVectorLayer])
+
+            if not ngw_resource.is_geom_with_z():
+                creating_actions.extend([
+                    self.actionCreateWFSService
+                ])
+
             creating_actions.extend([
-                self.actionCreateWFSService,
                 self.actionCreateWMSService,
                 self.actionCreateWebMap4Layer,
                 self.actionCopyResource
@@ -987,7 +992,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     except:
                         raise Exception(CompatPy.exception_msg(e))
                 elif isinstance(ngw_resource, NGWWfsService):
-                    add_resource_as_wfs_layers(ngw_resource)
+                    add_resource_as_wfs_layers(self, ngw_resource)
                 elif isinstance(ngw_resource, NGWWmsService):
                     utils.add_wms_layer(
                         ngw_resource.common.display_name,
@@ -1398,7 +1403,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         ngw_resource = index.data(Qt.UserRole)
-        add_resource_as_wfs_layers(ngw_resource)
+        add_resource_as_wfs_layers(self, ngw_resource)
 
     def create_wms_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
