@@ -841,7 +841,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWVectorLayer):
             getting_actions.extend([self.actionExport])
             setting_actions.extend([self.actionUpdateNGWVectorLayer])
-
             creating_actions.extend([
                 self.actionCreateWFSService,
                 self.actionCreateWMSService,
