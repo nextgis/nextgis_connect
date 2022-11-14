@@ -995,7 +995,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                         if isinstance(source_layer, NGWVectorLayer):
                             if source_layer.is_geom_with_z():
                                 res = self.show_msg_box(
-                                    self.tr('You\'re trying to add a WFS service containing a layer with Z dimension.\n'
+                                    self.tr('You are trying to add a WFS service containing a layer with Z dimension.\n'
                                             'WFS in QGIS doesn\'t fully support editing such geometries.\n'
                                             'You won\'t be able to edit and create new features.\n'
                                             'You will only be able to delete features.\n'
@@ -1405,9 +1405,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if isinstance(ngw_resource, NGWVectorLayer) and ngw_resource.is_geom_with_z():
             self.show_error(self.tr(
-                'You\'re trying to create a WFS service '
-                'for a layer that contains Z geometries. \n'
-                'WFS in QGIS doesn\'t fully support editing such geometries. \n'
+                'You are trying to create a WFS service '
+                'for a layer that contains Z geometries.\n'
+                'WFS in QGIS doesn\'t fully support editing such geometries.\n'
                 'To fix this, change geometry type of your layer to non-Z '
                 'and create a WFS service again.'))
             return
