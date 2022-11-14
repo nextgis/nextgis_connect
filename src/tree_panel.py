@@ -1436,7 +1436,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
 
         ngw_resource = index.data(Qt.UserRole)
-        add_resource_as_wfs_layers(self, ngw_resource)
+        add_resource_as_wfs_layers(ngw_resource)
 
     def create_wms_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
