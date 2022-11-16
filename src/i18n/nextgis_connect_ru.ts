@@ -150,6 +150,16 @@
     <name>MetadataDialog</name>
     <message>
         <location filename="../dialog_metadata.py"/>
+        <source>Empty</source>
+        <translation>Пусто</translation>
+    </message>
+    <message>
+        <location filename="../dialog_metadata.py"/>
+        <source>Boolean</source>
+        <translation>Логический</translation>
+    </message>
+    <message>
+        <location filename="../dialog_metadata.py"/>
         <source>Integer</source>
         <translation>Целое</translation>
     </message>
@@ -162,6 +172,21 @@
         <location filename="../dialog_metadata.py"/>
         <source>String</source>
         <translation>Строка</translation>
+    </message>
+    <message>
+        <location filename="../dialog_metadata.py"/>
+        <source>False</source>
+        <translation>Ложь</translation>
+    </message>
+    <message>
+        <location filename="../dialog_metadata.py"/>
+        <source>True</source>
+        <translation>Истина</translation>
+    </message>
+    <message>
+        <location filename="../dialog_metadata.py"/>
+        <source>Unexpected metadata type found</source>
+        <translation>Метаданные содержрат данные неподдерживаемого типа</translation>
     </message>
     <message>
         <location filename="../dialog_metadata.py"/>
