@@ -787,7 +787,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 new_index = self._resource_model.addNGWResourceToTree(index, ngw_resource)
 
                 return new_index
-        
+
     def disable_tools(self):
         self.actionExport.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
@@ -995,10 +995,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
                         if isinstance(source_layer, NGWVectorLayer):
                             if source_layer.is_geom_with_z():
                                 res = self.show_msg_box(
-                                    self.tr('You are trying to add a WFS service containing a layer with Z dimension.\n'
-                                            'WFS in QGIS doesn\'t fully support editing such geometries.\n'
-                                            'You won\'t be able to edit and create new features.\n'
-                                            'You will only be able to delete features.\n'
+                                    self.tr('You are trying to add a WFS service containing a layer with Z dimension. '
+                                            'WFS in QGIS doesn\'t fully support editing such geometries. '
+                                            'You won\'t be able to edit and create new features. '
+                                            'You will only be able to delete features. '
                                             'To fix this, change geometry type of your layer(s) '
                                             'and recreate WFS service.'),
                                     self.tr('Warning'),
@@ -1163,7 +1163,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
                 dlg = MetadataDialog(ngw_resource, self)
                 _ = dlg.exec_()
-                    
+
             except NGWError:
                 error_mes = CompatPy.exception_msg(traceback.format_exc())
                 self.iface.messageBar().pushMessage(
@@ -1231,7 +1231,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             using QNetworkAccessManager.
             Download and write file by chunks
             using readyRead signal
-            
+
             return QFile object
         '''
         if not raster_file:
@@ -1260,7 +1260,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             ev_loop = QEventLoop()
             dwn_qml_manager = QNetworkAccessManager()
-            
+
             # dwn_qml_manager.finished.connect(ev_loop.quit)
             reply = dwn_qml_manager.get(req)
 
@@ -1300,7 +1300,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         style_resources = []
         # assume that there can be only a style of appropriate for the layer type
         for child_resource in child_resources:
-            if (child_resource.type_id == NGWQGISVectorStyle.type_id or 
+            if (child_resource.type_id == NGWQGISVectorStyle.type_id or
                 child_resource.type_id == NGWQGISRasterStyle.type_id):
                 style_resources.append(child_resource)
 
@@ -1327,7 +1327,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # Export QGIS layer to NGW
         resJob = QGISResourceJob()
         ngw_res = resJob.importQGISMapLayer(qgs_layer, ngw_group)[0]
-        
+
         # Remove temp layer and sources
         del qgs_layer
         if ngw_src.type_id == NGWRasterLayer.type_id:
@@ -1364,7 +1364,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
             if res == QMessageBox.No:
                 return
-            
+
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             if not ngw_resource:
                 raise Exception(self.tr('NGW resource not found!'))
@@ -1393,7 +1393,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             # unblock gui
             self.trvResources.ngw_job_block_overlay.hide()
             self.unblock_gui()
-            
+
     def create_wfs_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
 
@@ -1406,8 +1406,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if isinstance(ngw_resource, NGWVectorLayer) and ngw_resource.is_geom_with_z():
             self.show_error(self.tr(
                 'You are trying to create a WFS service '
-                'for a layer that contains Z geometries.\n'
-                'WFS in QGIS doesn\'t fully support editing such geometries.\n'
+                'for a layer that contains Z geometries. '
+                'WFS in QGIS doesn\'t fully support editing such geometries. '
                 'To fix this, change geometry type of your layer to non-Z '
                 'and create a WFS service again.'))
             return
