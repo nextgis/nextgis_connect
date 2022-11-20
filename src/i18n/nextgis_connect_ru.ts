@@ -733,6 +733,16 @@
         <source>Internal plugin error occurred!</source>
         <translation>Внутренняя ошибка плагина!</translation>
     </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>You are trying to add a WFS service containing a layer with Z dimension.\nWFS in QGIS doesn't fully support editing such geometries.\nYou won\'t be able to edit and create new features.\nYou will only be able to delete features.\nTo fix this, change geometry type of your layer(s) and recreate WFS service.</source>
+        <translation>Вы собираетесь добавить сервис WFS один из слоёв которого имеет измерение Z.\nРедактирование таких геометрий по WFS в QGIS не поддерживается. \nВы не сможете редактировать и создавать новые объекты.\nВы сможете только удалять объекты целиком.\nЧтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>You are trying to create a WFS service for a layer that contains Z geometries.\nWFS in QGIS doesn't fully support editing such geometries.\nTo fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
+        <translation>Вы собираетесь создать сервис WFS для слоя который имеет измерение Z.\nРедактирование таких геометрий по WFS в QGIS не поддерживается.\nЧтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
+    </message>
 </context>
 <context>
     <name>TreePanel</name>

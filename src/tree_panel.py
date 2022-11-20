@@ -987,6 +987,28 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     except:
                         raise Exception(CompatPy.exception_msg(e))
                 elif isinstance(ngw_resource, NGWWfsService):
+                    ignore_z_in_wfs = False
+                    for layer in ngw_resource.get_layers():
+                        if ignore_z_in_wfs:
+                            break
+                        source_layer = ngw_resource.get_source_layer(layer['resource_id'])
+                        if isinstance(source_layer, NGWVectorLayer):
+                            if source_layer.is_geom_with_z():
+                                res = self.show_msg_box(
+                                    self.tr('You are trying to add a WFS service containing a layer with Z dimension.\n'
+                                            'WFS in QGIS doesn\'t fully support editing such geometries.\n'
+                                            'You won\'t be able to edit and create new features.\n'
+                                            'You will only be able to delete features.\n'
+                                            'To fix this, change geometry type of your layer(s) '
+                                            'and recreate WFS service.'),
+                                    self.tr('Warning'),
+                                    QMessageBox.Warning,
+                                    QMessageBox.Ignore | QMessageBox.Cancel
+                                )
+                                if res == QMessageBox.Ignore:
+                                    ignore_z_in_wfs = True
+                                else:
+                                    return
                     add_resource_as_wfs_layers(ngw_resource)
                 elif isinstance(ngw_resource, NGWWmsService):
                     utils.add_wms_layer(
@@ -1373,6 +1395,23 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.unblock_gui()
             
     def create_wfs_service(self):
+        selected_index = self.trvResources.selectionModel().currentIndex()
+
+        if not selected_index.isValid():
+            selected_index = self.index(0, 0, selected_index)
+
+        item = selected_index.internalPointer()
+        ngw_resource = item.data(0, Qt.UserRole)
+
+        if isinstance(ngw_resource, NGWVectorLayer) and ngw_resource.is_geom_with_z():
+            self.show_error(self.tr(
+                'You are trying to create a WFS service '
+                'for a layer that contains Z geometries.\n'
+                'WFS in QGIS doesn\'t fully support editing such geometries.\n'
+                'To fix this, change geometry type of your layer to non-Z '
+                'and create a WFS service again.'))
+            return
+
         ret_obj_num, res = QInputDialog.getInt(
             self,
             self.tr("Create WFS service"),
@@ -1384,12 +1423,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if res is False:
             return
 
-        selected_index = self.trvResources.selectionModel().currentIndex()
-        responce = self._resource_model.createWFSForVector(selected_index, ret_obj_num)
-        responce.done.connect(
+        response = self._resource_model.createWFSForVector(selected_index, ret_obj_num)
+        response.done.connect(
             self.trvResources.setCurrentIndex
         )
-        responce.done.connect(
+        response.done.connect(
             self.add_created_wfs_service
         )
 
