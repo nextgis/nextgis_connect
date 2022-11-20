@@ -11,6 +11,7 @@ email=info@nextgis.com
 changelog=
 	0.14.2
 		* Add support of new types of metadata
+		* Add warning messages on adding WFS services with Z-coord layers into QGIS
 	0.14.1
 		* Add copying resources in a tree
 		* Add working with metadata of resources
