@@ -197,6 +197,11 @@
         <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
+    <message>
+        <location filename="../tree_widget/view.py" line="111"/>
+        <source>Please authorize via NextGIS Account Toolbar</source>
+        <translation>Пожалуйста, пройдите авторизацию через панель инструментов NextGIS</translation>
+    </message>
 </context>
 <context>
     <name>SettingsDialog</name>

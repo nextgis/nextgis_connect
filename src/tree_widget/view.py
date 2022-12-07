@@ -108,6 +108,12 @@ class QNGWResourceTreeView(QTreeView):
             ))
         self.no_ngw_connections_overlay.hide()
 
+        self.no_oauth_auth_overlay = QMessageOverlay(
+            self, self.tr(
+                "Please authorize via NextGIS Account Toolbar"
+            ))
+        self.no_oauth_auth_overlay.hide()
+
         self.ngw_job_block_overlay = QProcessOverlay(self)
         self.ngw_job_block_overlay.hide()
 
@@ -132,6 +138,7 @@ class QNGWResourceTreeView(QTreeView):
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())
+        self.no_oauth_auth_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
 
         QTreeView.resizeEvent(self, event)
@@ -148,6 +155,12 @@ class QNGWResourceTreeView(QTreeView):
 
     def hideWelcomeMessage(self):
         self.no_ngw_connections_overlay.hide()
+
+    def showNoOauthAuthMessage(self):
+        self.no_oauth_auth_overlay.show()
+
+    def hideNoOauthAuthMessage(self):
+        self.no_oauth_auth_overlay.hide()
 
     def addBlockedJob(self, job_name):
         self.jobs.update(

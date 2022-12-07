@@ -63,8 +63,8 @@ from .ngw_api.core import (
 )
 
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
-    JobAuthorizationError, JobError, JobInternalError, JobNGWError, JobServerRequestError,
-    JobWarning,
+    JobAuthorizationError, JobError, JobInternalError, JobNGWError, JobNoOAuthAuthError,
+    JobServerRequestError, JobWarning,
 )
 
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
@@ -88,6 +88,8 @@ from .exceptions_list_dialog import ExceptionsListDialog
 from .plugin_settings import PluginSettings
 from .settings_dialog import SettingsDialog
 from .tree_widget import QNGWResourceTreeView, QNGWResourceItem, QNGWResourceTreeModel
+
+from .ngw_api.qgis.ngstd_auth import NgStd
 
 
 this_dir = os.path.dirname(__file__)
@@ -133,6 +135,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
+
+        self.no_oauth_auth = True
 
         self.actionOpenInNGW = QAction(self.tr("Open in Web GIS"), self)
         self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
@@ -288,7 +292,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # update state
         if QSettings().value("proxy/proxyEnabled", None) is not None:
-            self.reinit_tree()
+            self.onInitializationCompleted()
+
+        # Connect to NgStd signal in order to catch user login-logout events.
+        try:
+            NgStd.instance().userInfoUpdated.connect(self.onNgStdUserInfoUpdated)
+        except:
+            pass
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
@@ -492,6 +502,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif exception.__class__ == JobAuthorizationError:
             msg = " %s." % self.tr("Access denied. Enter your login.")
 
+        elif exception.__class__ == JobNoOAuthAuthError:
+            pass # we will not show any error message in this case. The resource tree will have some message instead
+
         elif exception.__class__ == JobError:
             msg = str(exception)
             if exception.wrapped_exception is not None:
@@ -577,19 +590,31 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
 
     def reinit_tree(self, force=False):
+        log('Try to reinit tree')
+
         # clear tree and states
         self.disable_tools()
 
         name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+        need_oauth = NgwPluginSettings.get_ngw_connection(name_of_conn).oauth
+
         if not name_of_conn:
             self.trvResources.showWelcomeMessage()
             self._resource_model.cleanModel()
+            log('No connections. Clean tree')
             return
-
         self.trvResources.hideWelcomeMessage()
+
+        if need_oauth and self.no_oauth_auth:
+            self.trvResources.showNoOauthAuthMessage()
+            self._resource_model.cleanModel()
+            log('No OAuth auth. Clean tree')
+            return
+        self.trvResources.hideNoOauthAuthMessage()
 
         conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
         if not conn_sett:
+            log('Unable to get connection')
             return
 
         s = QSettings()
@@ -626,7 +651,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if force or not self._resource_model.isCurrentConnectionSame(conn_sett):
             if not self._resource_model.isCurruntConnectionSameWoProtocol(conn_sett):
                 self.jobs_count = 0 # start working with connection at very first time
-
             self._first_gui_block_on_refresh = True
             self.block_gui() # block GUI to prevent extra clicks on toolbuttons
             ngw_connection = QgsNgwConnection(conn_sett)
@@ -691,6 +715,31 @@ class TreeControl(QMainWindow, FORM_CLASS):
             )
         )
         self.show_info(msg)
+
+    def onInitializationCompleted(self):
+        sel_con_name = NgwPluginSettings.get_selected_ngw_connection_name()
+        need_oauth = NgwPluginSettings.get_ngw_connection(sel_con_name).oauth
+        if not need_oauth: # otherwise wait for NgStd signal which signilize that authentication has been done
+            log('Reinit tree with BASIC auth')
+            self.reinit_tree()
+        else:
+            log('Wait for reiniting tree with OAUTH auth')
+            self.no_oauth_auth = True
+            self.reinit_tree()
+
+    def onNgStdUserInfoUpdated(self):
+        sel_con_name = NgwPluginSettings.get_selected_ngw_connection_name()
+        need_oauth = NgwPluginSettings.get_ngw_connection(sel_con_name).oauth
+        if not need_oauth:
+            return # skip this event at all
+        log('NgStd user info updated')
+        if NgStd.has_auth():
+            self.no_oauth_auth = False
+            log('Has oauth auth')
+        else:
+            self.no_oauth_auth = True
+            log('No oauth auth')
+        self.reinit_tree(force=True) # anyway reinit tree
 
     def slotCustomContextMenu(self, qpoint):
         index = self.trvResources.indexAt(qpoint)
