@@ -597,6 +597,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
         need_oauth = NgwPluginSettings.get_ngw_connection(name_of_conn).oauth
+        con_url = NgwPluginSettings.get_ngw_connection(name_of_conn).server_url
 
         if not name_of_conn:
             self.trvResources.showWelcomeMessage()
@@ -653,8 +654,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.jobs_count = 0 # start working with connection at very first time
             self._first_gui_block_on_refresh = True
             self.block_gui() # block GUI to prevent extra clicks on toolbuttons
+
+            NgStd.add_auth_url(con_url) # required in case of OAuth via NgStd
             ngw_connection = QgsNgwConnection(conn_sett)
             self._resource_model.resetModel(ngw_connection)
+        log('Connection is the same. Skip reiniting tree')
 
         # expand root item
         # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
@@ -883,9 +887,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if resource.type_id == NGWVectorLayer.type_id:
             if style_resource is None:
-                add_resource_as_geojson(resource)
+                add_resource_as_geojson(resource, oauth=NgwPluginSettings.get_need_oauth())
             else:
-                add_resource_as_geojson_with_style(resource, style_resource)
+                add_resource_as_geojson_with_style(resource, style_resource, oauth=NgwPluginSettings.get_need_oauth())
         elif resource.type_id == NGWRasterLayer.type_id:
             if style_resource is None:
                 add_resource_as_cog_raster(resource)
@@ -902,7 +906,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     self._add_with_style(ngw_resource)
                 elif isinstance(ngw_resource, NGWQGISVectorStyle):
                     parent_resource = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
-                    add_resource_as_geojson_with_style(parent_resource, ngw_resource)
+                    add_resource_as_geojson_with_style(parent_resource, ngw_resource, oauth=NgwPluginSettings.get_need_oauth())
                 elif isinstance(ngw_resource, NGWRasterLayer):
                     try:
                         self._add_with_style(ngw_resource)
@@ -1221,11 +1225,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # Download sources and create a QGIS layer
         if ngw_src.type_id == NGWVectorLayer.type_id:
-            qgs_layer = QgsVectorLayer(
-                ngw_src.get_absolute_geojson_url(),
-                ngw_src.common.display_name,
-                'ogr'
-            )
+            if NgwPluginSettings.get_need_oauth():
+                url = ngw_src.get_absolute_geojson_url_oauth_ngstd()
+            else:
+                url = ngw_src.get_absolute_geojson_url()
+            qgs_layer = QgsVectorLayer(url, ngw_src.common.display_name, 'ogr')
             if not qgs_layer.isValid():
                 raise Exception('Layer "{}" can\'t be added to the map!'.format(ngw_src.common.display_name))
             qgs_layer.dataProvider().setEncoding('UTF-8')
