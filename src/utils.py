@@ -7,6 +7,9 @@ from qgis.core import Qgis, QgsProject, QgsRasterLayer
 from qgis.utils import iface
 
 
+from .ngw_api.utils import log
+
+
 def show_error_message(msg):
     iface.messageBar().pushMessage(
         'NextGIS Connect',
@@ -15,7 +18,7 @@ def show_error_message(msg):
     )
 
 
-def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
+def add_wms_layer(name, url, layer_keys, ask_choose_layers=False, oauth=False):
     url = "url=%s" % url
 
     if ask_choose_layers:
@@ -30,7 +33,10 @@ def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
         url += "&layers=%s&styles=" % layer_key
 
     url += "&format=image/png&crs=EPSG:3857"
+    if oauth:
+        url += '&authcfg=NextGIS'
 
+    log('>>> Creating WMS raster layer')# with URL "{}"'.format(url))
     rlayer = QgsRasterLayer(url, name, 'wms')
 
     if not rlayer.isValid():
