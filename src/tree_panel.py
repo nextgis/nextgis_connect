@@ -885,11 +885,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             else:
                 return # just do nothing after closing the dialog
 
+        oauth = NgwPluginSettings.get_need_oauth()
         if resource.type_id == NGWVectorLayer.type_id:
             if style_resource is None:
-                add_resource_as_geojson(resource, oauth=NgwPluginSettings.get_need_oauth())
+                add_resource_as_geojson(resource, oauth=oauth)
             else:
-                add_resource_as_geojson_with_style(resource, style_resource, oauth=NgwPluginSettings.get_need_oauth())
+                add_resource_as_geojson_with_style(resource, style_resource, oauth=oauth)
         elif resource.type_id == NGWRasterLayer.type_id:
             if style_resource is None:
                 add_resource_as_cog_raster(resource)
@@ -899,6 +900,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def __export_to_qgis(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
+        oauth = NgwPluginSettings.get_need_oauth()
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             try:
@@ -906,7 +908,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     self._add_with_style(ngw_resource)
                 elif isinstance(ngw_resource, NGWQGISVectorStyle):
                     parent_resource = sel_index.parent().data(QNGWResourceItem.NGWResourceRole)
-                    add_resource_as_geojson_with_style(parent_resource, ngw_resource, oauth=NgwPluginSettings.get_need_oauth())
+                    add_resource_as_geojson_with_style(parent_resource, ngw_resource, oauth=oauth)
                 elif isinstance(ngw_resource, NGWRasterLayer):
                     try:
                         self._add_with_style(ngw_resource)
@@ -941,26 +943,29 @@ class TreeControl(QMainWindow, FORM_CLASS):
                                     ignore_z_in_wfs = True
                                 else:
                                     return
-                    add_resource_as_wfs_layers(ngw_resource)
+                    add_resource_as_wfs_layers(ngw_resource, oauth=oauth)
                 elif isinstance(ngw_resource, NGWWmsService):
                     utils.add_wms_layer(
                         ngw_resource.common.display_name,
                         ngw_resource.get_url(),
                         ngw_resource.get_layer_keys(),
-                        len(ngw_resource.get_layer_keys()) > 1
+                        len(ngw_resource.get_layer_keys()) > 1,
+                        oauth=oauth
                     )
                 elif isinstance(ngw_resource, NGWWmsConnection):
                     utils.add_wms_layer(
                         ngw_resource.common.display_name,
                         ngw_resource.get_connection_url(),
                         ngw_resource.layers(),
-                        len(ngw_resource.layers()) > 1
+                        len(ngw_resource.layers()) > 1,
+                        oauth=oauth
                     )
                 elif isinstance(ngw_resource, NGWWmsLayer):
                     utils.add_wms_layer(
                         ngw_resource.common.display_name,
                         ngw_resource.ngw_wms_connection_url,
                         ngw_resource.ngw_wms_layers,
+                        oauth=oauth
                     )
 
             except Exception as ex:
@@ -1224,6 +1229,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 style_resources.append(child_resource)
 
         # Download sources and create a QGIS layer
+        log('>>> Copying selected layer')
         if ngw_src.type_id == NGWVectorLayer.type_id:
             if NgwPluginSettings.get_need_oauth():
                 url = ngw_src.get_absolute_geojson_url_oauth_ngstd()
@@ -1351,9 +1357,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def add_created_wfs_service(self, index):
         if not PluginSettings.auto_add_wfs_option():
             return
-
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        add_resource_as_wfs_layers(ngw_resource)
+        add_resource_as_wfs_layers(ngw_resource, oauth=NgwPluginSettings.get_need_oauth())
 
     def create_wms_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
