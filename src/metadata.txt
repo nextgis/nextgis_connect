@@ -2,8 +2,8 @@
 name=NextGIS Connect
 qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
-description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
-about=Manage geodata in your Web GIS, create layers, maps, services. Any feedback is welcome at https://nextgis.com/contact.
+description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
+about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
 version=0.14.2
 author=NextGIS
 email=info@nextgis.com
