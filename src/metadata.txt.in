@@ -2,8 +2,8 @@
 name=NextGIS Connect
 qgisMinimumVersion=2.18
 qgisMaximumVersion=3.18
-description=Create, connect and use your own fully-functional Web GIS at nextgis.com.
-about=Welcome to brand new cloud Web GIS from NextGIS! With this plugin you can upload/download geodata to and from your Web GIS, manage layers and much more. We'd love to hear feedback about your experience at http://nextgis.com/contact.
+description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
+about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
 version={VERSION}
 author=NextGIS
 email=info@nextgis.com
