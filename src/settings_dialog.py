@@ -91,6 +91,11 @@ class SettingsDialog(QDialog, FORM_CLASS):
         )
         self.cbCog.stateChanged.connect(self.cogChanged)
 
+        self.cbLog.setCheckState(
+            QtCore.Qt.Checked if PluginSettings.debug_mode() else QtCore.Qt.Unchecked
+        )
+        self.cbLog.stateChanged.connect(self.logChanged)
+
     def new_connection(self):
         dlg = NGWConnectionEditDialog()
         if dlg.exec_():
@@ -174,3 +179,10 @@ class SettingsDialog(QDialog, FORM_CLASS):
     def cogChanged(self, state):
         option = (state == QtCore.Qt.Checked)
         NgwApiSettings.set_upload_cog_rasters(option)
+
+    def logChanged(self, state):
+        option = (state == QtCore.Qt.Checked)
+        PluginSettings.set_debug_mode(option)
+
+
+

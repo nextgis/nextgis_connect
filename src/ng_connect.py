@@ -100,7 +100,10 @@ plugins['nextgis_connect'].enableDebug(False)
         PluginSettings.set_debug_mode(debug_mode) # create at first time
         if debug_mode:
             setDebugEnabled(True)
-            QgsMessageLog.logMessage('Debug mode enabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
+            QgsMessageLog.logMessage('Debug messages are enabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
+        else:
+            setDebugEnabled(False)
+            QgsMessageLog.logMessage('Debug messages are disabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):

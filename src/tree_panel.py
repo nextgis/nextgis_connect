@@ -62,6 +62,7 @@ from .ngw_api.qgis.resource_to_map import *
 from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QGISResourceJob
 
 from .ngw_api.utils import setLogger
+from .ngw_api.utils import setDebugEnabled
 
 from .settings_dialog import SettingsDialog
 from .plugin_settings import PluginSettings
@@ -793,9 +794,19 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
+        old_debug_mode = PluginSettings.debug_mode()
+
         sett_dialog = SettingsDialog()
         sett_dialog.show()
         sett_dialog.exec_()
+
+        if PluginSettings.debug_mode() != old_debug_mode:
+            if PluginSettings.debug_mode():
+                setDebugEnabled(True)
+                QgsMessageLog.logMessage('Debug messages are now enabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
+            else:
+                setDebugEnabled(False)
+                QgsMessageLog.logMessage('Debug messages are now disabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
 
         self.reinit_tree()
 

@@ -81,6 +81,11 @@
         <source>Upload rasters as Cloud Optimized GeoTIFF (COG)</source>
         <translation>Загружать растры как Cloud Optimized GeoTIFF (COG)</translation>
     </message>
+    <message>
+        <location filename="../settings_dialog_base.ui"/>
+        <source>Enable log messages</source>
+        <translation>Выводить отладочные сообщения</translation>
+    </message>
 </context>
 <context>
     <name>Dialog</name>
@@ -742,7 +747,7 @@
         <location filename="../tree_panel.py"/>
         <source>You are trying to create a WFS service for a layer that contains Z geometries. WFS in QGIS doesn't fully support editing such geometries. To fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя который имеет измерение Z. Редактирование таких геометрий по WFS в QGIS не поддерживается. Чтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
-    </message>     
+    </message>
 </context>
 <context>
     <name>TreePanel</name>
@@ -750,7 +755,7 @@
         <location filename="../tree_panel.py"/>
         <source>NextGIS Resources</source>
         <translation>Ресурсы NextGIS</translation>
-    </message>   
+    </message>
 </context>
 </TS>
 
