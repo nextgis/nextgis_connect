@@ -11,6 +11,7 @@ email=info@nextgis.com
 changelog=
 	0.14.3
 		* Fix reprojecting layers on upload
+		* Add option to enable log (debug) messages to plugin's options dialog
 	0.14.2
 		* Add support of new types of metadata
 		* Add warning messages on adding WFS services with Z-coord layers into QGIS
