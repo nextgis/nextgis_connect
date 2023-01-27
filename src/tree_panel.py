@@ -471,10 +471,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
             isinstance(current_qgis_layer, QgsVectorLayer)
         )
 
+        if ngw_resource:
+            ngw_resource.update()
         if isinstance(ngw_resource, NGWQGISVectorStyle) or isinstance(ngw_resource, NGWQGISRasterStyle):
             ngw_layer = index.parent().data(QNGWResourceItem.NGWResourceRole)
             self.actionUpdateStyle.setEnabledByType(current_qgis_layer, ngw_layer)
             self.actionAddStyle.setEnabled(False)
+        elif isinstance(ngw_resource, NGWVectorLayer) or isinstance(ngw_resource, NGWRasterLayer):
+            self.actionUpdateStyle.setEnabledByType(current_qgis_layer, ngw_resource)
+            self.actionAddStyle.setEnabledByType(current_qgis_layer, ngw_resource)
         else:
             self.actionUpdateStyle.setEnabled(False)
             self.actionAddStyle.setEnabledByType(current_qgis_layer, ngw_resource)
@@ -1208,6 +1213,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
         sel_index = self.trvResources.selectionModel().currentIndex()
+
+        ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+        if isinstance(ngw_resource, NGWVectorLayer) or isinstance(ngw_resource, NGWRasterLayer):
+            ngw_children = ngw_resource.get_children()
+            if len(ngw_children) == 0:
+                return
+            elif len(ngw_children) > 1:
+                dlg = NGWLayerStyleChooserDialog(self.tr("Select style"), sel_index, self._resource_model, self)
+                result = dlg.exec_()
+                if result:
+                    sel_index = dlg.selectedStyleIndex()
+                else:
+                    return
+            
         response = self._resource_model.updateQGISStyle(qgs_map_layer, sel_index)
         response.done.connect(
             self.trvResources.setCurrentIndex
@@ -1563,7 +1582,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.dwn_qml_file.write(reply.readAll())
             self.dwn_qml_file.close()
             if mes_bar:
-                self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
+            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
         else:
             if mes_bar:
                 self.__msg_in_qgis_mes_bar(
