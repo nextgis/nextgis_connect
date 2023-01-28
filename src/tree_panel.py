@@ -26,8 +26,10 @@ import os
 import sys
 import json
 import functools
+import requests
 
 import traceback
+import webbrowser
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import *
@@ -1064,11 +1066,103 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.trvResources.setCurrentIndex
         )
 
+    def get_proxy_settings(self):
+        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+        conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+        proxies = None
+        auth = None
+        if conn_sett.proxy_enable:
+            proxies = {
+                'https': f'{conn_sett.proxy_host}:{conn_sett.proxy_port}',
+            }
+            auth = (f'{conn_sett.proxy_user}', f'{conn_sett.proxy_password}')
+        return {
+            'proxies': proxies,
+            'auth': auth
+        }
+
+    def get_connection_settings(self):
+        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
+        return NgwPluginSettings.get_ngw_connection(name_of_conn)
+
+    def need_to_check_service_plan_limits(self):
+        conn_set = self.get_connection_settings()
+        proxy_settings = self.get_proxy_settings()
+        PLAN_HANDLE = '/api/component/nimbo/configuration'
+        plan_url = f'{conn_set.server_url}{PLAN_HANDLE}'
+
+        SERVICE_PLAN_KEY = 'service_plan'
+        FREE_SERVICE_PLAN = 'lemon'
+        plan_response = requests.get(url=plan_url, proxies=proxy_settings['proxies'], auth=proxy_settings['auth'])
+
+        if plan_response.status_code != 200:
+            qgisLog('Unable to get current plan.', level=CompatQgisMsgLogLevel.Critical)
+            return True
+        if SERVICE_PLAN_KEY not in plan_response.json():
+            qgisLog('Unable to parse plan response.', level=CompatQgisMsgLogLevel.Critical)
+            return True
+
+        service_plan = plan_response.json()[SERVICE_PLAN_KEY]
+        if service_plan == FREE_SERVICE_PLAN:
+            return True
+        return False
+    def check_resources_limits(self, items_to_upload):
+        if self.need_to_check_service_plan_limits():
+            conn_set = self.get_connection_settings()
+            proxy_settings = self.get_proxy_settings()
+            QUOTA_HANDLE = '/api/component/resource/check_quota'
+            check_quota_url = f'{conn_set.server_url}{QUOTA_HANDLE}'
+            quota_response = requests.post(url=check_quota_url, json=items_to_upload,
+                                           proxies=proxy_settings['proxies'],
+                                           auth=proxy_settings['auth'])
+            if quota_response.status_code != 200:
+                qgisLog('Unable to check quota.', level=CompatQgisMsgLogLevel.Critical)
+                return False
+            SUCCESS_KEY = 'success'
+            MESSAGE_KEY = 'message'
+            if not SUCCESS_KEY in quota_response.json():
+                qgisLog('Unable to parse quota response.', level=CompatQgisMsgLogLevel.Info)
+                return False
+            qgisLog(quota_response.json()[MESSAGE_KEY],
+                    level=CompatQgisMsgLogLevel.Info if quota_response.json()[SUCCESS_KEY] else CompatQgisMsgLogLevel.Critical)
+            return quota_response.json()[SUCCESS_KEY]
+        return True
+
+    def get_items_to_upload_count(self, layers, is_project=False):
+        items_count = {
+            'raster_layer': 0,
+            'vector_layer': 0,
+            'webmap': 0
+        }
+        for layer in layers:
+            if isinstance(layer, QgsRasterLayer):
+                items_count['raster_layer'] += 1
+            elif isinstance(layer, QgsVectorLayer):
+                items_count['vector_layer'] += 1
+        if is_project:
+            items_count['webmap'] = 1
+        return items_count
+
+    def display_update_subscription_window(self):
+        url = self.tr('https://nextgis.ru/pricing-base/?source=qgis&amp;utm_source=qgis_plugin&amp;utm_medium=referal&amp;utm_campaign=connect&amp;utm_content=ru')
+        result = QMessageBox.warning(
+            self,
+            self.tr("You have reached resource limit for your free plan."),
+            self.tr(f"<p>You have reached resource limit for your free plan.</p><a href='{url}'>Upgrade your plan to mini or premium.</a>"),
+            QMessageBox.Cancel
+        )
+        if result == QMessageBox.Yes:
+            webbrowser.open('https://my.nextgis.com/subscription/update')
     def import_qgis_project(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
-        current_project = QgsProject.instance()
+        current_project = CompatQgis.layers_registry()
         current_project_title = current_project.title()
+        layers_to_check = [layer for layer in current_project.mapLayers().values()]
+        items_to_upload_count = self.get_items_to_upload_count(layers_to_check, True)
+        if not self.check_resources_limits(items_to_upload_count):
+            self.display_update_subscription_window()
+            return
 
         this_proj_imported_early_in_this_item = False
         # imported_to_group_id, this_proj_imported_early = current_project.readNumEntry("NGW", "project_group_id")
@@ -1113,6 +1207,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
             qgs_map_layers = [self.iface.mapCanvas().currentLayer()]
             if len(qgs_map_layers) == 0: # just in case if checkImportActionsAvailability() works incorrectly
                 return
+
+        items_to_upload_count = self.get_items_to_upload_count(qgs_map_layers, False)
+        if not self.check_resources_limits(items_to_upload_count):
+            self.display_update_subscription_window()
+            return
 
         self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
         self.import_layer_response.done.connect(

@@ -718,6 +718,21 @@
         <source>You are trying to create a WFS service for a layer that contains Z geometries.\nWFS in QGIS doesn't fully support editing such geometries.\nTo fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя который имеет измерение Z.\nРедактирование таких геометрий по WFS в QGIS не поддерживается.\nЧтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
     </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>You have reached resource limit for your free plan.</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source>https://nextgis.com/pricing-base/?source=qgis&amp;utm_source=qgis_plugin&amp;utm_medium=referal&amp;utm_campaign=connect&amp;utm_content=en</source>
+        <translation>https://nextgis.ru/pricing-base/?source=qgis&amp;utm_source=qgis_plugin&amp;utm_medium=referal&amp;utm_campaign=connect&amp;utm_content=ru</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py"/>
+        <source><p>You have reached resource limit for your free plan.</p><a href='{url}'>Upgrade your plan to mini or premium.</a></source>
+        <translation><p>Вы достигли максимального количества ресурсов для вашего бесплатного тарифного плана.</p><a href='{url}'>Перейдите на тарифный план mini или premium.</a></translation>
+    </message>
 </context>
 <context>
     <name>TreePanel</name>
