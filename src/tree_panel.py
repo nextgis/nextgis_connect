@@ -1218,6 +1218,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if isinstance(ngw_resource, NGWVectorLayer) or isinstance(ngw_resource, NGWRasterLayer):
             ngw_children = ngw_resource.get_children()
             if len(ngw_children) == 0:
+                self.add_style()
                 return
             elif len(ngw_children) > 1:
                 dlg = NGWLayerStyleChooserDialog(self.tr("Select style"), sel_index, self._resource_model, self)
@@ -1582,7 +1583,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.dwn_qml_file.write(reply.readAll())
             self.dwn_qml_file.close()
             if mes_bar:
-            self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
+                self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
         else:
             if mes_bar:
                 self.__msg_in_qgis_mes_bar(
