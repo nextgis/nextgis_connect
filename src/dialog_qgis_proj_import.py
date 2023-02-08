@@ -1,5 +1,5 @@
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QVBoxLayout
+from qgis.PyQt.QtCore import Qt
 
 
 class DialogImportQGISProj(QDialog):

@@ -1,11 +1,13 @@
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
+    QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout,
+)
 
-from qgis.core import *
-from qgis.gui import *
+from qgis.core import QgsRasterLayer
 from qgis.utils import iface
 
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgBarLevel
+
 
 def show_error_message(msg):
     iface.messageBar().pushMessage(
@@ -13,10 +15,6 @@ def show_error_message(msg):
         msg,
         level=CompatQgisMsgBarLevel.Critical
     )
-
-# def add_wfs_layer(wfs_url, layer_keys, ask_choose_layers=False):
-    # toc_root = QgsProject.instance().layerTreeRoot()
- #    layers_group = toc_root.insertGroup(0, )
 
 
 def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):

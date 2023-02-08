@@ -1,4 +1,3 @@
-    # -*- coding: utf-8 -*-
 """
 /***************************************************************************
  NGConnectPlugin
@@ -20,8 +19,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-import sys
-import os
 from os import path
 
 from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
@@ -30,7 +27,6 @@ from qgis.PyQt.QtWidgets import QAction
 
 from qgis.core import QgsMapLayer, QgsMessageLog
 
-from .settings_dialog import SettingsDialog
 from .plugin_settings import PluginSettings
 from .tree_panel import TreePanel
 
@@ -38,7 +34,7 @@ from .ngw_api import qgis
 from .ngw_api.utils import setDebugEnabled
 
 from .ngw_api.compat_py import CompatPy
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel
 
 
 class NGConnectPlugin:
@@ -53,16 +49,7 @@ plugins['nextgis_connect'].enableDebug(False)
     """
 
     def __init__(self, iface):
-        """Constructor.
-
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
-        # Save reference to the QGIS interface
         self.iface = iface
-        # initialize plugin directory
         self.plugin_dir = CompatPy.get_dirname(__file__)
 
         # initialize locale
@@ -105,19 +92,7 @@ plugins['nextgis_connect'].enableDebug(False)
             setDebugEnabled(False)
             QgsMessageLog.logMessage('Debug messages are disabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
 
-    # noinspection PyMethodMayBeStatic
     def tr(self, message):
-        """Get the translation for a string using Qt translation API.
-
-        We implement this ourselves since we do not inherit QObject.
-
-        :param message: String for translation.
-        :type message: str, QString
-
-        :returns: Translated version of message.
-        :rtype: QString
-        """
-        # noinspection PyTypeChecker,PyArgumentList,PyCallByClass
         return QCoreApplication.translate('NGConnectPlugin', message)
 
     def add_action(
@@ -203,11 +178,7 @@ plugins['nextgis_connect'].enableDebug(False)
 
         return action
 
-    def add_group_separator(self,
-                            add_to_menu=True,
-                            add_to_toolbar=True,
-                            parent=None):
-
+    def add_group_separator(self, add_to_menu=True, add_to_toolbar=True, parent=None):
         sep_action = QAction(parent)
         sep_action.setSeparator(True)
 
@@ -220,9 +191,6 @@ plugins['nextgis_connect'].enableDebug(False)
         self.actions.append(sep_action)
 
     def initGui(self):
-        # import pydevd
-        # pydevd.settrace('localhost', port=5566, stdoutToServer=True, stderrToServer=True, suspend=False)
-
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         # Dock tree panel
         self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
@@ -241,21 +209,6 @@ plugins['nextgis_connect'].enableDebug(False)
             is_checked=PluginSettings.dock_visibility(),
             callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
-
-        # self.iface.legendInterface().addLegendLayerAction(
-        #     self.dockWidget.inner_control.actionImportQGISProject,
-        #     self.tr(u"NextGIS Connect"),
-        #     u"",
-        #     QgsMapLayer.RasterLayer,
-        #     True
-        # )
-        # self.iface.legendInterface().addLegendLayerAction(
-        #     self.dockWidget.inner_control.actionImportQGISProject,
-        #     self.tr(u"NextGIS Connect"),
-        #     u"",
-        #     QgsMapLayer.VectorLayer,
-        #     True
-        # )
 
         CompatQgis.add_legend_action(
             self.iface,
@@ -302,23 +255,10 @@ plugins['nextgis_connect'].enableDebug(False)
         )
 
     def unload(self):
-        # """Removes the plugin menu item and icon from QGIS GUI."""
-        # self.iface.legendInterface().removeLegendLayerAction(
-        #     self.dockWidget.inner_control.actionImportQGISProject
-        # )
-        # self.iface.legendInterface().removeLegendLayerAction(
-        #     self.dockWidget.inner_control.actionImportQGISResource
-        # )
-        # Hack - qgis delete only one action, we have two same actions
-
         CompatQgis.remove_legend_action(
             self.iface,
             self.dockWidget.inner_control.actionImportQGISResource
         )
-        # CompatQgis.remove_legend_action(
-        #     self.iface,
-        #     self.dockWidget.inner_control.actionImportQGISResource
-        # )
         CompatQgis.remove_legend_action(
             self.iface,
             self.dockWidget.inner_control.actionUpdateStyle
@@ -360,4 +300,3 @@ plugins['nextgis_connect'].enableDebug(False)
         ngw_api.utils.debug = flag
 
         print(("NGW API log %s" % ("ON" if ngw_api.utils.debug else "OFF") ))
-

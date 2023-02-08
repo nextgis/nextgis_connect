@@ -1,5 +1,7 @@
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
+from qgis.PyQt.QtWidgets import (
+    QDialog, QDialogButtonBox, QHeaderView, QSizePolicy, QTreeView, QVBoxLayout,
+)
+from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
 from .ngw_api.qgis.compat_qgis import CompatQt
 from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
@@ -42,9 +44,7 @@ class StyleFilterProxyModel(QSortFilterProxyModel):
 
 class NGWLayerStyleChooserDialog(QDialog):
 
-    def __init__(self, title, ngw_resources_model_index, model, filter_styles, parent=None):
-        """
-        """
+    def __init__(self, title, ngw_resources_model_index, model, filter_styles, parent=None):  # TODO: 4th param - parent?
         super(NGWLayerStyleChooserDialog, self).__init__(parent)
 
         self.setWindowTitle(
@@ -52,17 +52,6 @@ class NGWLayerStyleChooserDialog(QDialog):
         )
 
         self.layout = QVBoxLayout(self)
-
-        # self.chbCreateNewStyle = QCheckBox(self.tr("Create new style"), self)
-        # self.chbCreateNewStyle.stateChanged.connect(self.setCreatingNewStyle)
-        # self.chbCreateNewStyle.clicked.connect(self.validate)
-        # self.layout.addWidget(
-        #     self.chbCreateNewStyle
-        # )
-
-        # self.layout.addWidget(
-        #     QLabel(self.tr("Select layer style:"))
-        # )
 
         self.tree = NGWResourcesTreeView(self)
         sort_model = StyleFilterProxyModel() # TODO: understand is it ok to leave this proxy model without parent? When it will be deleted?
@@ -81,12 +70,6 @@ class NGWLayerStyleChooserDialog(QDialog):
         )
 
         self.validate()
-
-    # def setCreatingNewStyle(self, state):
-    #     self.tree.setDisabled(state == Qt.Checked)
-
-    # def needCreateNewStyle(self):
-    #     return self.chbCreateNewStyle.checkState() == Qt.Checked
 
     def selectedStyleIndex(self):
         proxy_index = self.tree.selectionModel().currentIndex()
@@ -108,15 +91,8 @@ class NGWLayerStyleChooserDialog(QDialog):
         return item.ngw_resource_id()
 
     def validate(self):
-        # if self.chbCreateNewStyle.checkState() == Qt.Checked:
-        #     self.btn_box.button(QDialogButtonBox.Ok).setEnabled(True)
-        #     return
-
         index = self.selectedStyleIndex()
         if index is None or not index.isValid():
             self.btn_box.button(QDialogButtonBox.Ok).setEnabled(False)
             return
         self.btn_box.button(QDialogButtonBox.Ok).setEnabled(True)
-
-
-

@@ -1,13 +1,13 @@
-# -*- coding: utf-8 -*-
-
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtGui import QPixmap
+from qgis.PyQt.QtWidgets import (
+    QDialog, QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
+)
 
 from qgis.core import QgsMessageLog
 from .plugin_settings import PluginSettings
 
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+from .ngw_api.qgis.compat_qgis import CompatQgisMsgLogLevel
 
 
 def qgisLog(msg, level=CompatQgisMsgLogLevel.Info):
@@ -15,25 +15,13 @@ def qgisLog(msg, level=CompatQgisMsgLogLevel.Info):
 
 
 class ExceptionsListDialog(QDialog):
-    """docstring for ExceptionsListDialog"""
+
     def __init__(self, title, parent):
         super(ExceptionsListDialog, self).__init__(parent)
 
         self.setWindowTitle(title)
         self.resize(400, 200)
         self.setLayout(QVBoxLayout())
-
-        # self.exceptionsList = QTreeWidget(self)
-        # self.exceptionsList.setColumnCount(1)
-        # self.exceptionsList.setRootIsDecorated(False)
-        # self.exceptionsList.setHeaderHidden(True)
-        # self.exceptionsList.setSelectionMode(QTreeWidget.NoSelection)
-        # self.exceptionsList.setFocusPolicy(Qt.NoFocus)
-        # self.exceptionsList.setFrameShape(QFrame.NoFrame)
-        # self.exceptionsList.header().setStretchLastSection(False)
-
-        # header = self.exceptionsList.header()
-        # header.setResizeMode(QHeaderView.ResizeToContents)
 
         self.exceptionsList = QWidget()
         self.exceptionsContainer = QVBoxLayout(self.exceptionsList)
@@ -49,26 +37,13 @@ class ExceptionsListDialog(QDialog):
         self.buffer = QLabel()
         self.buffer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.exceptionsContainer.insertWidget(0, self.buffer)
-        # self.setStyleSheet(
-        #     """
-        #         QTreeWidget{
-        #             border: 1px solid #d9d9d9;
-        #             border-top-color: transparent;
-        #             border-left-color: transparent;
-        #             border-right-color: transparent;
-        #         }
-        #     """
-        # )
 
     def addException(self, msg, w_msg_deteils, icon):
-        # item = QTreeWidgetItem()
-        # self.exceptionsList.addTopLevelItem(item)
-        # self.exceptionsList.setItemWidget(item, 0, ExceptionWidget(msg, icon, self))
         self.exceptionsContainer.insertWidget(0, ExceptionWidget(msg, w_msg_deteils, icon, self))
 
 
 class ExceptionWidget(QFrame):
-    """docstring for ExceptionWidget"""
+
     def __init__(self, msg, w_msg_deteils, icon, parent):
         super(ExceptionWidget, self).__init__(parent)
 
@@ -104,7 +79,6 @@ class ExceptionWidget(QFrame):
         self.iconWidget.layout().addWidget(self.iconLabel, 0, Qt.AlignHCenter | Qt.AlignTop)
         self.iconWidget.layout().setContentsMargins(0,3,3,0)
         self.iconWidget.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred)
-        # self.iconLabel.setScaledContents(True)
 
         self.infoWidget = QWidget()
         self.infoWidget.setLayout(QVBoxLayout())

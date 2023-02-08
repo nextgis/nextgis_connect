@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  Plugins settings
@@ -21,7 +20,8 @@
  ***************************************************************************/
 """
 from qgis.PyQt.Qt import Qt
-from qgis.PyQt.QtCore import QSize, QPoint, QVariant
+from qgis.PyQt.QtCore import QSize, QPoint
+
 from .ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSettings
 
 
@@ -129,5 +129,3 @@ class PluginSettings(CommonPluginSettings):
     def set_debug_mode(cls, val):
         settings = cls.get_settings()
         settings.setValue('/debugMode', val)
-
-

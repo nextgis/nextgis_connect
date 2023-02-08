@@ -20,10 +20,6 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 class MetadataDialog(QDialog, FORM_CLASS):
   
     def __init__(self, ngw_res, parent=None):
-        """
-        :param metadata
-        """
-
         super(MetadataDialog, self).__init__(parent)
         self.setupUi(self)
 

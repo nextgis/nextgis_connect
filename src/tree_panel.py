@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  TreePanel
@@ -23,19 +20,24 @@
  ***************************************************************************/
 """
 import os
-import sys
-import json
-import functools
-
 import traceback
 
+from qgis.core import (
+    QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer,
+    QgsNetworkAccessManager,
+)
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtCore import *
-from qgis.PyQt.QtNetwork import *
-
-from qgis.core import QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsNetworkAccessManager
+from qgis.PyQt.QtCore import (
+    pyqtSignal, QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
+    QTemporaryFile, QUrl,
+)
+from qgis.PyQt.QtGui import QBrush, QColor, QDesktopServices, QIcon, QPalette, QPainter, QPen
+from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from qgis.PyQt.QtWidgets import (
+    QAction, QDockWidget, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit,
+    QMainWindow, QMenu, QMessageBox, QProgressBar, QPushButton, QSizePolicy, QSpacerItem, QToolBar,
+    QToolButton, QTreeView, QVBoxLayout, QWidget,
+)
 
 from .ngw_api.core.ngw_error import NGWError
 from .ngw_api.core.ngw_group_resource import NGWGroupResource
@@ -53,31 +55,32 @@ from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
 from .ngw_api.core.ngw_base_map import NGWBaseMap
 
 from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
-from .ngw_api.qt.qt_ngw_resource_model_job_error import *
+from .ngw_api.qt.qt_ngw_resource_model_job_error import (
+    JobAuthorizationError, JobError, JobInternalError, JobNGWError, JobServerRequestError,
+    JobWarning,
+)
 
+from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQt, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from .ngw_api.qgis.resource_to_map import *
-
+from .ngw_api.qgis.resource_to_map import (
+    add_resource_as_cog_raster, add_resource_as_cog_raster_with_style,
+    add_resource_as_geojson, add_resource_as_geojson_with_style,
+    add_resource_as_wfs_layers, UnsupportedRasterTypeException,
+)
 from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QGISResourceJob
 
-from .ngw_api.utils import setLogger
-from .ngw_api.utils import setDebugEnabled
+from .ngw_api.compat_py import CompatPy
+from .ngw_api.utils import log, setDebugEnabled, setLogger
 
-from .settings_dialog import SettingsDialog
-from .plugin_settings import PluginSettings
-
+from . import utils
+from .action_style_import_or_update import ActionStyleImportUpdate
 from .dialog_choose_style import NGWLayerStyleChooserDialog
 from .dialog_qgis_proj_import import DialogImportQGISProj
 from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
-
-from .action_style_import_or_update import ActionStyleImportUpdate
-
-from . import utils
-
-from .ngw_api.compat_py import CompatPy
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQt, CompatQgisMsgLogLevel, CompatQgisMsgBarLevel, CompatQgisGeometryType
+from .plugin_settings import PluginSettings
+from .settings_dialog import SettingsDialog
 
 
 this_dir = CompatPy.get_dirname(__file__)
@@ -99,7 +102,6 @@ setLogger(ngwApiLog)
 
 class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
-        # init dock
         super(TreePanel, self).__init__(parent)
 
         self.setWindowTitle(self.tr('NextGIS Connect'))
@@ -124,9 +126,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
-
-        # Do not use ui toolbar
-        # self.removeToolBar(self.mainToolBar)
 
         # Open ngw resource in browser ----------------------------------------
         self.actionOpenInNGW = QAction(
@@ -200,15 +199,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         self.actionCreateNewGroup.setToolTip(self.tr("Create new resource group"))
         self.actionCreateNewGroup.triggered.connect(self.create_group)
-
-        # Create style --------------------------------------------------------
-        # self.actionCreateStyle = QAction(
-        #     QIcon(),
-        #     self.tr("Create style"),
-        #     self
-        # )
-        # self.actionCreateStyle.setToolTip(self.tr("Create style"))
-        # self.actionCreateStyle.triggered.connect(self.create_style)
 
         # Create web map ------------------------------------------------------
         self.actionCreateWebMap4Layer = QAction(
@@ -328,21 +318,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.main_tool_bar.addWidget(self.toolbuttonImport)
         self.main_tool_bar.addSeparator()
-
         self.main_tool_bar.addAction(self.actionCreateNewGroup)
         self.main_tool_bar.addAction(self.actionRefresh)
         self.main_tool_bar.addSeparator()
-
         self.main_tool_bar.addAction(self.actionOpenMapInBrowser)
         self.main_tool_bar.addSeparator()
-
         self.main_tool_bar.addAction(self.actionSettings)
-
         self.main_tool_bar.addAction(self.actionHelp)
 
         # ngw resources model
         self._resource_model = QNGWResourcesModel4QGIS(self)
-
         self._resource_model.errorOccurred.connect(self.__model_error_process)
         self._resource_model.warningOccurred.connect(self.__model_warning_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
@@ -1081,25 +1066,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
-        this_proj_imported_early_in_this_item = False
-        # imported_to_group_id, this_proj_imported_early = current_project.readNumEntry("NGW", "project_group_id")
-        # if this_proj_imported_early:
-        #     if imported_to_group_id == sel_index.internalPointer().ngw_resource_id():
-        #         this_proj_imported_early_in_this_item = True
-        #         res = QMessageBox.question(self, "Update project", "This project will be updated in WebGIS.")
-        #         if res != QMessageBox.Ok:
-        #             return
-
-
-        if this_proj_imported_early_in_this_item:
-            project_name = None
+        dlg = DialogImportQGISProj(current_project_title, self)
+        result = dlg.exec_()
+        if result:
+            project_name = dlg.getProjName()
         else:
-            dlg = DialogImportQGISProj(current_project_title, self)
-            result = dlg.exec_()
-            if result:
-                project_name = dlg.getProjName()
-            else:
-                return
+            return
 
         self.qgis_proj_import_response = self._resource_model.tryImportCurentQGISProject(
             project_name,
@@ -1196,14 +1168,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 ngwApiLog(error_mes, level=CompatQgisMsgLogLevel.Critical)
 
             self.unblock_gui()
-
-    # def import_update_style(self):
-    #     qgs_map_layer = self.iface.mapCanvas().currentLayer()
-    #     sel_index = self.trvResources.selectionModel().currentIndex()
-    #     response = self._resource_model.createOrUpdateQGISStyle(qgs_map_layer, sel_index)
-    #     response.done.connect(
-    #         self.trvResources.setCurrentIndex
-    #     )
 
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
@@ -1456,7 +1420,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
-            #if not dlg.needCreateNewStyle() and dlg.selectedStyleId():
             if dlg.selectedStyleId():
                 ngw_resource_style_id = dlg.selectedStyleId()
 
@@ -1464,9 +1427,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             responce.done.connect(
                 self.trvResources.setCurrentIndex
             )
-            # responce.done.connect(
-            #     self.add_created_wms_service
-            # )
 
     def create_web_map_for_style(self):
         selected_index = self.trvResources.selectionModel().currentIndex()

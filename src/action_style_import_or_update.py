@@ -1,7 +1,5 @@
-from qgis.PyQt.QtWidgets import *
-from qgis.PyQt.QtCore import *
-
 from qgis.core import QgsVectorLayer, QgsRasterLayer
+from qgis.PyQt.QtWidgets import QAction
 
 from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
@@ -16,37 +14,30 @@ class ActionStyleImportUpdate(QAction):
         super(ActionStyleImportUpdate, self).setEnabled(False)
 
     def setEnabledByType(self, qgis_layer, ngw_vector_layer):
+        enabled = False
+
         if isinstance(qgis_layer, QgsRasterLayer) and isinstance(ngw_vector_layer, NGWRasterLayer):
-            super(ActionStyleImportUpdate, self).setEnabled(True)
-            return
+            enabled = True
+        elif isinstance(qgis_layer, QgsVectorLayer) and isinstance(ngw_vector_layer, NGWVectorLayer):
+            qgis_vector_layer_geom = qgis_layer.geometryType()
+            ngw_vector_layer_geom = ngw_vector_layer.geom_type()
 
-        if not isinstance(qgis_layer, QgsVectorLayer):
-            super(ActionStyleImportUpdate, self).setEnabled(False)
-            return
-        if not isinstance(ngw_vector_layer, NGWVectorLayer):
-            super(ActionStyleImportUpdate, self).setEnabled(False)
-            return
+            if (
+                qgis_vector_layer_geom == CompatQgisGeometryType.Point
+                and ngw_vector_layer_geom in (
+                    NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
+                    NGWVectorLayer.POINTZ, NGWVectorLayer.MULTIPOINTZ
+            )) or (
+                qgis_vector_layer_geom == CompatQgisGeometryType.Line
+                and ngw_vector_layer_geom in (
+                    NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING,
+                    NGWVectorLayer.LINESTRINGZ, NGWVectorLayer.MULTILINESTRINGZ,
+            )) or (
+                qgis_vector_layer_geom == CompatQgisGeometryType.Polygon
+                and ngw_vector_layer_geom in (
+                    NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
+                    NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
+            )):
+                enabled = True
 
-        qgis_vector_layer_geom = qgis_layer.geometryType()
-        ngw_vector_layer_geom = ngw_vector_layer.geom_type()
-
-        if qgis_vector_layer_geom in [CompatQgisGeometryType.Point ] and ngw_vector_layer_geom in [
-                                                                            NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
-                                                                            NGWVectorLayer.POINTZ, NGWVectorLayer.MULTIPOINTZ,
-                                                                        ]:
-            super(ActionStyleImportUpdate, self).setEnabled(True)
-            return
-        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Line, ] and ngw_vector_layer_geom in [
-                                                                            NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING,
-                                                                            NGWVectorLayer.LINESTRINGZ, NGWVectorLayer.MULTILINESTRINGZ,
-                                                                        ]:
-            super(ActionStyleImportUpdate, self).setEnabled(True)
-            return
-        elif qgis_vector_layer_geom in [CompatQgisGeometryType.Polygon, ] and ngw_vector_layer_geom in [
-                                                                            NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
-                                                                            NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
-                                                                        ]:
-            super(ActionStyleImportUpdate, self).setEnabled(True)
-            return
-
-        super(ActionStyleImportUpdate, self).setEnabled(False)
+        super(ActionStyleImportUpdate, self).setEnabled(enabled)

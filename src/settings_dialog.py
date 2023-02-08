@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  SettingsDialog
@@ -32,9 +29,7 @@ __revision__ = '$Format:%H$'
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtCore
-#from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtGui import *
-from qgis.PyQt.QtWidgets import *
+from qgis.PyQt.QtWidgets import QDialog
 
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings as NgwApiSettings  # !!! Shared connection settings !!!
@@ -183,6 +178,3 @@ class SettingsDialog(QDialog, FORM_CLASS):
     def logChanged(self, state):
         option = (state == QtCore.Qt.Checked)
         PluginSettings.set_debug_mode(option)
-
-
-
