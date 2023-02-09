@@ -3,7 +3,6 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
-from .ngw_api.qgis.compat_qgis import CompatQt
 from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
 from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
@@ -20,8 +19,9 @@ class NGWResourcesTreeView(QTreeView):
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.header().setStretchLastSection(False)
-        CompatQt.set_section_resize_mod(self.header(), QHeaderView.ResizeToContents)
+        header = self.header()
+        header.setStretchLastSection(False)
+        header.setSectionResizeMode(QHeaderView.ResizeToContents)
 
 
 class StyleFilterProxyModel(QSortFilterProxyModel):

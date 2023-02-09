@@ -4,13 +4,11 @@ from qgis.PyQt.QtWidgets import (
     QDialog, QFrame, QHBoxLayout, QLabel, QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
 
-from qgis.core import QgsMessageLog
+from qgis.core import Qgis, QgsMessageLog
 from .plugin_settings import PluginSettings
 
-from .ngw_api.qgis.compat_qgis import CompatQgisMsgLogLevel
 
-
-def qgisLog(msg, level=CompatQgisMsgLogLevel.Info):
+def qgisLog(msg, level=Qgis.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
 

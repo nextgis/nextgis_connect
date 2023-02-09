@@ -8,9 +8,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QBrush, QColor
 
-from qgis.core import QgsMessageLog
-
-from .ngw_api.qgis.compat_qgis import CompatQgisMsgLogLevel
+from qgis.core import Qgis, QgsMessageLog
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -184,7 +182,7 @@ class MetadataDialog(QDialog, FORM_CLASS):
             err_txt = '{} {}'.format(self.tr('Error sending metadata update:'), ex)
 
             QMessageBox.about(self, self.tr("Error"), err_txt)
-            QgsMessageLog.logMessage(err_txt, "NGW API", CompatQgisMsgLogLevel.Critical)
+            QgsMessageLog.logMessage(err_txt, "NGW API", Qgis.Critical)
 
             qm = QMessageBox()
             qm.setIcon(QMessageBox.Question)

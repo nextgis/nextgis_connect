@@ -3,17 +3,15 @@ from qgis.PyQt.QtWidgets import (
     QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout,
 )
 
-from qgis.core import QgsRasterLayer
+from qgis.core import Qgis, QgsProject, QgsRasterLayer
 from qgis.utils import iface
-
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgBarLevel
 
 
 def show_error_message(msg):
     iface.messageBar().pushMessage(
         'NextGIS Connect',
         msg,
-        level=CompatQgisMsgBarLevel.Critical
+        level=Qgis.Critical
     )
 
 
@@ -39,7 +37,7 @@ def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
         show_error_message("Invalid wms url \"%s\"" % url)
         return
 
-    CompatQgis.layers_registry().addMapLayer(rlayer)
+    QgsProject.instance().addMapLayer(rlayer)
 
 
 class ChooserDialog(QDialog):

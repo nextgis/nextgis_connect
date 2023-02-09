@@ -25,16 +25,13 @@ from qgis.PyQt.QtCore import QSettings, QTranslator, qVersion, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from qgis.core import QgsMapLayer, QgsMessageLog
+from qgis.core import Qgis, QgsMapLayer, QgsMessageLog
 
 from .plugin_settings import PluginSettings
 from .tree_panel import TreePanel
 
 from .ngw_api import qgis
 from .ngw_api.utils import setDebugEnabled
-
-from .ngw_api.compat_py import CompatPy
-from .ngw_api.qgis.compat_qgis import CompatQgis, CompatQgisMsgLogLevel
 
 
 class NGConnectPlugin:
@@ -50,7 +47,7 @@ plugins['nextgis_connect'].enableDebug(False)
 
     def __init__(self, iface):
         self.iface = iface
-        self.plugin_dir = CompatPy.get_dirname(__file__)
+        self.plugin_dir = path.dirname(__file__)
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
@@ -85,12 +82,10 @@ plugins['nextgis_connect'].enableDebug(False)
         # Enable debug mode.
         debug_mode = PluginSettings.debug_mode()
         PluginSettings.set_debug_mode(debug_mode) # create at first time
-        if debug_mode:
-            setDebugEnabled(True)
-            QgsMessageLog.logMessage('Debug messages are enabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
-        else:
-            setDebugEnabled(False)
-            QgsMessageLog.logMessage('Debug messages are disabled', PluginSettings._product, level=CompatQgisMsgLogLevel.Info)
+        setDebugEnabled(debug_mode)
+        QgsMessageLog.logMessage(
+            'Debug messages are %s' % ('enabled' if debug_mode else 'disabled'),
+            PluginSettings._product, level=Qgis.Info)
 
     def tr(self, message):
         return QCoreApplication.translate('NGConnectPlugin', message)
@@ -210,44 +205,38 @@ plugins['nextgis_connect'].enableDebug(False)
             callback=self.dockWidget.setVisible,
             parent=self.iface.mainWindow())
 
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionUpdateStyle,
             self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionAddStyle,
             self.tr("NextGIS Connect"),
             QgsMapLayer.VectorLayer,
             True
         )
 
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionImportQGISResource,
             self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
             True
         )
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionUpdateStyle,
             self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
             True
         )
-        CompatQgis.add_legend_action(
-            self.iface,
+        self.iface.addCustomActionForLayerType(
             self.dockWidget.inner_control.actionAddStyle,
             self.tr("NextGIS Connect"),
             QgsMapLayer.RasterLayer,
@@ -255,18 +244,10 @@ plugins['nextgis_connect'].enableDebug(False)
         )
 
     def unload(self):
-        CompatQgis.remove_legend_action(
-            self.iface,
-            self.dockWidget.inner_control.actionImportQGISResource
-        )
-        CompatQgis.remove_legend_action(
-            self.iface,
-            self.dockWidget.inner_control.actionUpdateStyle
-        )
-        CompatQgis.remove_legend_action(
-            self.iface,
-            self.dockWidget.inner_control.actionAddStyle
-        )
+        inner_control = self.dockWidget.inner_control
+        self.iface.removeCustomActionForLayerType(inner_control.actionImportQGISResource)
+        self.iface.removeCustomActionForLayerType(inner_control.actionUpdateStyle)
+        self.iface.removeCustomActionForLayerType(inner_control.actionAddStyle)
 
         for action in self.actions:
             self.iface.removePluginMenu(

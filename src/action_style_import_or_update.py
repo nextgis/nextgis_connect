@@ -1,10 +1,8 @@
-from qgis.core import QgsVectorLayer, QgsRasterLayer
+from qgis.core import QgsVectorLayer, QgsRasterLayer, QgsWkbTypes
 from qgis.PyQt.QtWidgets import QAction
 
 from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
-
-from .ngw_api.qgis.compat_qgis import CompatQgisGeometryType
 
 
 class ActionStyleImportUpdate(QAction):
@@ -23,17 +21,17 @@ class ActionStyleImportUpdate(QAction):
             ngw_vector_layer_geom = ngw_vector_layer.geom_type()
 
             if (
-                qgis_vector_layer_geom == CompatQgisGeometryType.Point
+                qgis_vector_layer_geom == QgsWkbTypes.PointGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
                     NGWVectorLayer.POINTZ, NGWVectorLayer.MULTIPOINTZ
             )) or (
-                qgis_vector_layer_geom == CompatQgisGeometryType.Line
+                qgis_vector_layer_geom == QgsWkbTypes.LineGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING,
                     NGWVectorLayer.LINESTRINGZ, NGWVectorLayer.MULTILINESTRINGZ,
             )) or (
-                qgis_vector_layer_geom == CompatQgisGeometryType.Polygon
+                qgis_vector_layer_geom == QgsWkbTypes.PolygonGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
                     NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
