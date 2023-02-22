@@ -7,20 +7,18 @@ from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
 
 class ActionStyleImportUpdate(QAction):
     def __init__(self, text, parent=None):
-        super(ActionStyleImportUpdate, self).__init__(parent)
-        super(ActionStyleImportUpdate, self).setText(text)
-        super(ActionStyleImportUpdate, self).setEnabled(False)
+        super().__init__(parent)
+        super().setText(text)
+        super().setEnabled(False)
 
     def setEnabledByType(self, qgis_layer, ngw_vector_layer):
-        enabled = False
-
         if isinstance(qgis_layer, QgsRasterLayer) and isinstance(ngw_vector_layer, NGWRasterLayer):
             enabled = True
         elif isinstance(qgis_layer, QgsVectorLayer) and isinstance(ngw_vector_layer, NGWVectorLayer):
             qgis_vector_layer_geom = qgis_layer.geometryType()
             ngw_vector_layer_geom = ngw_vector_layer.geom_type()
 
-            if (
+            enabled = (
                 qgis_vector_layer_geom == QgsWkbTypes.PointGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
@@ -35,7 +33,8 @@ class ActionStyleImportUpdate(QAction):
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
                     NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
-            )):
-                enabled = True
+            ))
+        else:
+            enabled = False
 
-        super(ActionStyleImportUpdate, self).setEnabled(enabled)
+        super().setEnabled(enabled)

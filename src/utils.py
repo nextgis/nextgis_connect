@@ -41,9 +41,8 @@ def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
 
 
 class ChooserDialog(QDialog):
-    """docstring for ChooserDialog"""
     def __init__(self, options):
-        super(ChooserDialog, self).__init__()
+        super().__init__()
         self.options = options
 
         self.setLayout(QVBoxLayout())
@@ -69,4 +68,4 @@ class ChooserDialog(QDialog):
 
     def accept(self):
         self.seleced_options = [item.text() for item in self.list.selectedItems()]
-        super(ChooserDialog, self).accept()
+        super().accept()

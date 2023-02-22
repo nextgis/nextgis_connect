@@ -51,37 +51,27 @@ plugins['nextgis_connect'].enableDebug(False)
 
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
-        locale_path = path.join(
-            self.plugin_dir,
-            'i18n',
-            'nextgis_connect_{}.qm'.format(locale))
 
-        if path.exists(locale_path):
-            self.plugin_translator = QTranslator()
-            self.plugin_translator.load(locale_path)
-
-            self.ngw_translator = QTranslator()
-            self.ngw_translator.load(
-                path.join(
-                    path.dirname(qgis.__file__),
-                    "i18n",
-                    "qgis_ngw_api_{}.qm".format(locale)
-                )
-            )
-
+        def add_translator(locale_path):
+            if not path.exists(locale_path):
+                return
+            translator = QTranslator()
+            translator.load(locale_path)
             if qVersion() > '4.3.3':
-                QCoreApplication.installTranslator(self.plugin_translator)
-                QCoreApplication.installTranslator(self.ngw_translator)
+                QCoreApplication.installTranslator(translator)
 
-        # Declare instance attributes
-        self.actions = []
-        self.menu = self.tr('&NextGIS Connect')
-        self.toolbar = self.iface.addToolBar(self.tr('NextGIS Connect'))
-        self.toolbar.setObjectName('NextGISConnectPluginToolbar')
+        add_translator(path.join(
+            self.plugin_dir, 'i18n',
+            'nextgis_connect_{}.qm'.format(locale)))
+        add_translator(path.join(
+            path.dirname(qgis.__file__), "i18n",
+            "qgis_ngw_api_{}.qm".format(locale)
+        ))
+
+        self.title = self.tr('NextGIS Connect')
 
         # Enable debug mode.
         debug_mode = PluginSettings.debug_mode()
-        PluginSettings.set_debug_mode(debug_mode) # create at first time
         setDebugEnabled(debug_mode)
         QgsMessageLog.logMessage(
             'Debug messages are %s' % ('enabled' if debug_mode else 'disabled'),
@@ -90,180 +80,53 @@ plugins['nextgis_connect'].enableDebug(False)
     def tr(self, message):
         return QCoreApplication.translate('NGConnectPlugin', message)
 
-    def add_action(
-        self,
-        icon_path,
-        text,
-        callback,
-        enabled_flag=True,
-        add_to_menu=True,
-        add_to_toolbar=True,
-        checkable=False,
-        is_checked=False,
-        status_tip=None,
-        whats_this=None,
-        parent=None
-    ):
-        """Add a toolbar icon to the toolbar.
-
-        :param icon_path: Path to the icon for this action. Can be a resource
-            path (e.g. ':/plugins/foo/bar.png') or a normal file system path.
-        :type icon_path: str
-
-        :param text: Text that should be shown in menu items for this action.
-        :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
-
-        :param add_to_menu: Flag indicating whether the action should also
-            be added to the menu. Defaults to True.
-        :type add_to_menu: bool
-
-        :param add_to_toolbar: Flag indicating whether the action should also
-            be added to the toolbar. Defaults to True.
-        :type add_to_toolbar: bool
-
-        :param status_tip: Optional text to show in a popup when mouse pointer
-            hovers over the action.
-        :type status_tip: str
-
-        :param parent: Parent widget for the new action. Defaults None.
-        :type parent: QWidget
-
-        :param whats_this: Optional text to show in the status bar when the
-            mouse pointer hovers over the action.
-
-        :returns: The action that was created. Note that the action is also
-            added to self.actions list.
-        :rtype: QAction
-        """
-
-        icon = QIcon(icon_path)
-        action = QAction(icon, text, parent)
-        action.setEnabled(enabled_flag)
-        action.setCheckable(checkable)
-        if checkable:
-            action.setChecked(is_checked)
-
-        if not checkable:
-            action.triggered.connect(callback)
-        else:
-            action.toggled.connect(callback)
-
-        if status_tip is not None:
-            action.setStatusTip(status_tip)
-
-        if whats_this is not None:
-            action.setWhatsThis(whats_this)
-
-        if add_to_toolbar:
-            self.toolbar.addAction(action)
-
-        if add_to_menu:
-            self.iface.addPluginToMenu(
-                self.menu,
-                action)
-
-        self.actions.append(action)
-
-        return action
-
-    def add_group_separator(self, add_to_menu=True, add_to_toolbar=True, parent=None):
-        sep_action = QAction(parent)
-        sep_action.setSeparator(True)
-
-        if add_to_menu:
-            self.iface.addPluginToMenu(self.menu, sep_action)
-
-        if add_to_toolbar:
-            self.toolbar.addAction(sep_action)
-
-        self.actions.append(sep_action)
-
     def initGui(self):
-        """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        main_window = self.iface.mainWindow()
+        dock_visibility = PluginSettings.dock_visibility()
+
         # Dock tree panel
-        self.dockWidget = TreePanel(self.iface, self.iface.mainWindow())
-        self.iface.addDockWidget(PluginSettings.dock_area(), self.dockWidget)
+        self.dockWidget = TreePanel(self.iface, main_window)
         self.dockWidget.setFloating(PluginSettings.dock_floating())
         self.dockWidget.resize(PluginSettings.dock_size())
         self.dockWidget.move(PluginSettings.dock_pos())
-        self.dockWidget.setVisible(PluginSettings.dock_visibility())
+        self.dockWidget.setVisible(dock_visibility)
+        self.iface.addDockWidget(PluginSettings.dock_area(), self.dockWidget)
+
+        # Show panel action
+        self.toolbar = self.iface.addToolBar(self.title)
+        self.action_show = QAction(
+            QIcon(self.plugin_dir + '/icon.png'),
+            self.tr('Show/Hide NextGIS Connect panel'),
+            main_window)
+        self.action_show.setEnabled(True)
+        self.action_show.setCheckable(True)
+        self.action_show.setChecked(dock_visibility)
+        self.action_show.toggled.connect(self.dockWidget.setVisible)
+        self.toolbar.addAction(self.action_show)
+        self.iface.addPluginToMenu(self.title, self.action_show)
 
         # Tools for NGW communicate
-        icon_path = self.plugin_dir + '/icon.png'
-        self.add_action(
-            icon_path,
-            text=self.tr('Show/Hide NextGIS Connect panel'),
-            checkable=True,
-            is_checked=PluginSettings.dock_visibility(),
-            callback=self.dockWidget.setVisible,
-            parent=self.iface.mainWindow())
-
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionImportQGISResource,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.VectorLayer,
-            True
-        )
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionUpdateStyle,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.VectorLayer,
-            True
-        )
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionAddStyle,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.VectorLayer,
-            True
-        )
-
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionImportQGISResource,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.RasterLayer,
-            True
-        )
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionUpdateStyle,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.RasterLayer,
-            True
-        )
-        self.iface.addCustomActionForLayerType(
-            self.dockWidget.inner_control.actionAddStyle,
-            self.tr("NextGIS Connect"),
-            QgsMapLayer.RasterLayer,
-            True
-        )
+        ic = self.dockWidget.inner_control
+        for action in (ic.actionImportQGISResource, ic.actionUpdateStyle, ic.actionAddStyle):
+            for layer_type in (QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer):
+                self.iface.addCustomActionForLayerType(action, self.title, layer_type, True)
 
     def unload(self):
-        inner_control = self.dockWidget.inner_control
-        self.iface.removeCustomActionForLayerType(inner_control.actionImportQGISResource)
-        self.iface.removeCustomActionForLayerType(inner_control.actionUpdateStyle)
-        self.iface.removeCustomActionForLayerType(inner_control.actionAddStyle)
+        ic = self.dockWidget.inner_control
+        for action in (ic.actionImportQGISResource, ic.actionUpdateStyle, ic.actionAddStyle):
+            self.iface.removeCustomActionForLayerType(action)
 
-        for action in self.actions:
-            self.iface.removePluginMenu(
-                self.tr('&NextGIS Connect'),
-                action)
-            self.iface.removeToolBarIcon(action)
+        self.toolbar.deleteLater()
+        self.iface.removePluginMenu(self.title, self.action_show)
 
-        mw = self.iface.mainWindow()
-        PluginSettings.set_dock_area(mw.dockWidgetArea(self.dockWidget))
+        main_window = self.iface.mainWindow()
         PluginSettings.set_dock_floating(self.dockWidget.isFloating())
-        PluginSettings.set_dock_pos(self.dockWidget.pos())
         PluginSettings.set_dock_size(self.dockWidget.size())
+        PluginSettings.set_dock_pos(self.dockWidget.pos())
         PluginSettings.set_dock_visibility(self.dockWidget.isVisible())
+        PluginSettings.set_dock_area(main_window.dockWidgetArea(self.dockWidget))
 
         self.iface.removeDockWidget(self.dockWidget)
-
         self.dockWidget.close()
 
     @staticmethod

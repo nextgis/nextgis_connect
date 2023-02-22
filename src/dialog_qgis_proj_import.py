@@ -4,10 +4,7 @@ from qgis.PyQt.QtCore import Qt
 
 class DialogImportQGISProj(QDialog):
     def __init__(self, default_project_name, parent=None):
-        """
-        :param default_project_name
-        """
-        super(QDialog, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle(self.tr("Import parameters"))
 

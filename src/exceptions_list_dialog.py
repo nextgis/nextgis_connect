@@ -15,7 +15,7 @@ def qgisLog(msg, level=Qgis.Info):
 class ExceptionsListDialog(QDialog):
 
     def __init__(self, title, parent):
-        super(ExceptionsListDialog, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle(title)
         self.resize(400, 200)
@@ -43,7 +43,7 @@ class ExceptionsListDialog(QDialog):
 class ExceptionWidget(QFrame):
 
     def __init__(self, msg, w_msg_deteils, icon, parent):
-        super(ExceptionWidget, self).__init__(parent)
+        super().__init__(parent)
 
         w_msg_deteils = w_msg_deteils.decode('unicode_escape')
 

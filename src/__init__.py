@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  NG Connect
@@ -23,21 +22,6 @@
 """
 
 
-# noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name
-    """Load CompulinkToolsPlugin class from file CompulinkToolsPlugin.
-
-    :param iface: A QGIS interface instance.
-    :type iface: QgsInterface
-    """
-    # check
-    # import ngw_api
-    # try:
-    #     ngw_api.check_env()
-    # except EnvironmentError, ex:
-    #     from qgis.gui import QgsMessageBar
-    #     iface.messageBar().pushMessage("NGWConnext Error", ex.message, level=QgsMessageBar.CRITICAL)
-    #     raise
-
+def classFactory(iface):
     from .ng_connect import NGConnectPlugin
     return NGConnectPlugin(iface)

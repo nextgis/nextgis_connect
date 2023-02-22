@@ -90,14 +90,9 @@ class PluginSettings(CommonPluginSettings):
         settings.setValue('/ui/dockWidgetIsVisible', val)
 
     @classmethod
-    def webgis_creation_message_closed_by_user(cls):
+    def auto_open_web_map_option(cls):
         settings = cls.get_settings()
-        return settings.value('/ui/webGisCreationMessageClosedByUser', False, type=bool)
-
-    @classmethod
-    def set_webgis_creation_message_closed_by_user(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/webGisCreationMessageClosedByUser', val)
+        return settings.value('/ui/autoOpenWebMapByDefault', True, type=bool)
 
     @classmethod
     def set_auto_open_web_map_option(cls, val):
@@ -105,20 +100,14 @@ class PluginSettings(CommonPluginSettings):
         settings.setValue('/ui/autoOpenWebMapByDefault', val)
 
     @classmethod
-    def auto_open_web_map_option(cls):
+    def auto_add_wfs_option(cls):
         settings = cls.get_settings()
-        return settings.value('/ui/autoOpenWebMapByDefault', True, type=bool)
+        return settings.value('/ui/autoAddWFSByDefault', True, type=bool)
 
     @classmethod
     def set_auto_add_wfs_option(cls, val):
         settings = cls.get_settings()
         settings.setValue('/ui/autoAddWFSByDefault', val)
-
-    @classmethod
-    def auto_add_wfs_option(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/autoAddWFSByDefault', True, type=bool)
-
 
     @classmethod
     def debug_mode(cls):
