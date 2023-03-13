@@ -28,15 +28,14 @@ from qgis.core import (
 )
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
-    pyqtSignal, QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
+    QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
     QTemporaryFile, QUrl,
 )
-from qgis.PyQt.QtGui import QBrush, QColor, QDesktopServices, QIcon, QPalette, QPainter, QPen
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
-    QAction, QDockWidget, QFileDialog, QHBoxLayout, QHeaderView, QInputDialog, QLabel, QLineEdit,
-    QMainWindow, QMenu, QMessageBox, QProgressBar, QPushButton, QSizePolicy, QSpacerItem, QToolBar,
-    QToolButton, QTreeView, QVBoxLayout, QWidget,
+    QAction, QDockWidget, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu, QMessageBox,
+    QPushButton, QSizePolicy, QToolBar, QToolButton,
 )
 
 from .ngw_api.core import (
@@ -55,7 +54,6 @@ from .ngw_api.core import (
     NGWWmsService,
 )
 
-from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobAuthorizationError, JobError, JobInternalError, JobNGWError, JobServerRequestError,
     JobWarning,
@@ -68,7 +66,8 @@ from .ngw_api.qgis.resource_to_map import (
     add_resource_as_geojson, add_resource_as_geojson_with_style,
     add_resource_as_wfs_layers, UnsupportedRasterTypeException,
 )
-from .ngw_api.qgis.ngw_resource_model_4qgis import QNGWResourcesModel4QGIS, QGISResourceJob
+from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
+from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 
 from .ngw_api.utils import log, setDebugEnabled, setLogger
 
@@ -80,6 +79,7 @@ from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
 from .plugin_settings import PluginSettings
 from .settings_dialog import SettingsDialog
+from .tree_widget import QNGWResourceTreeView, QNGWResourceItem, QNGWResourceTreeModel
 
 
 this_dir = os.path.dirname(__file__)
@@ -248,15 +248,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.main_tool_bar.addAction(self.actionSettings)
         self.main_tool_bar.addAction(self.actionHelp)
 
-        # ngw resources model
-        self._resource_model = QNGWResourcesModel4QGIS(self)
+        self._resource_model = QNGWResourceTreeModel(self)
         self._resource_model.errorOccurred.connect(self.__model_error_process)
         self._resource_model.warningOccurred.connect(self.__model_warning_process)
         self._resource_model.jobStarted.connect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
-        self._resource_model.indexesBlocked.connect(self.__onModelBlockIndexes)
-        self._resource_model.indexesReleased.connect(self.__onModelReleaseIndexes)
+        self._resource_model.indexesLocked.connect(self.__onModelBlockIndexes)
+        self._resource_model.indexesUnlocked.connect(self.__onModelReleaseIndexes)
 
         self.blocked_jobs = {
             "NGWGroupCreater": self.tr("Resource is being created"),
@@ -274,7 +273,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         }
 
         # ngw resources view
-        self.trvResources = NGWResourcesTreeView(self)
+        self.trvResources = QNGWResourceTreeView(self)
         self.trvResources.setModel(self._resource_model)
 
         self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
@@ -318,8 +317,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.jobStarted.disconnect(self.__modelJobStarted)
         self._resource_model.jobStatusChanged.disconnect(self.__modelJobStatusChanged)
         self._resource_model.jobFinished.disconnect(self.__modelJobFinished)
-        self._resource_model.indexesBlocked.disconnect(self.__onModelBlockIndexes)
-        self._resource_model.indexesReleased.disconnect(self.__onModelReleaseIndexes)
+        self._resource_model.indexesLocked.disconnect(self.__onModelBlockIndexes)
+        self._resource_model.indexesUnlocked.disconnect(self.__onModelReleaseIndexes)
 
         self._resource_model.setParent(None)
         self._resource_model.deleteLater()
@@ -470,18 +469,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if exception.__class__ == JobServerRequestError:
             msg = self.tr("Error occurred while communicating with Web GIS.")
-            msg_ext = "URL: " + exception.url
+            msg_ext = "URL: %s" % str(exception)
             msg_ext += "\nMSG: %s" % exception
 
         elif exception.__class__ == JobNGWError:
-            msg = " %s." % exception.msg
+            msg = " %s." % str(exception)
             msg_ext = "URL: " + exception.url
 
         elif exception.__class__ == JobAuthorizationError:
             msg = " %s." % self.tr("Access denied. Enter your login.")
 
         elif exception.__class__ == JobError:
-            msg = "%s" % exception.msg
+            msg = str(exception)
             if exception.wrapped_exception is not None:
                 msg_ext = "%s" % exception.wrapped_exception
 
@@ -492,7 +491,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     msg_ext = user_msg
 
         elif exception.__class__ == JobWarning:
-            msg = "%s" % exception.msg
+            msg = str(exception)
             icon = os.path.join(ICONS_PATH, 'Warning.svg')
 
         elif exception.__class__ == JobInternalError:
@@ -612,7 +611,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
             self._first_gui_block_on_refresh = True
             self.block_gui() # block GUI to prevent extra clicks on toolbuttons
-            self._resource_model.resetModel(conn_sett)
+            ngw_connection = QgsNgwConnection(conn_sett)
+            self._resource_model.resetModel(ngw_connection)
 
         # expand root item
         # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
@@ -631,11 +631,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             index = self._resource_model.getIndexByNGWResourceId(
                 ngw_resource.common.parent.id,
-                self._resource_model.index(0, 0, QModelIndex())
             )
 
             item = index.internalPointer()
-            current_ids = [item.child(i).ngw_resource_id() for i in range(0, item.childCount()) if isinstance(item.child(i), QNGWResourceItem)]
+            current_ids = [
+                item.child(i).data(QNGWResourceItem.NGWResourceRole).common.id
+                for i in range(item.childCount())
+                if isinstance(item.child(i), QNGWResourceItem)]
             if ngw_resource.common.id not in current_ids:
                 self._resource_model.addNGWResourceToTree(index, ngw_resource)
 
@@ -684,7 +686,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 QModelIndex()
             )
 
-        if index.internalPointer().is_locked():
+        if index.internalPointer().locked:
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -751,7 +753,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
         if sel_index.isValid():
-            ngw_resource = sel_index.data(Qt.UserRole)
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             url = ngw_resource.get_absolute_url()
             QDesktopServices.openUrl(QUrl(url))
 
@@ -762,7 +764,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # Get current resource name. This name can differ from display text of tree item (see style resources).
         item = sel_index.internalPointer()
-        ngw_resource = item.data(0, item.NGWResourceRole)
+        ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
         cur_name = ngw_resource.common.display_name
 
         new_name, res = QInputDialog.getText(
@@ -784,7 +786,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         sel_index = self.trvResources.selectionModel().currentIndex()
 
         if sel_index.isValid():
-            ngw_resource = sel_index.data(Qt.UserRole)
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
 
@@ -1237,7 +1239,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             selected_index = self.index(0, 0, selected_index)
 
         item = selected_index.internalPointer()
-        ngw_resource = item.data(0, Qt.UserRole)
+        ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
         if isinstance(ngw_resource, NGWVectorLayer) and ngw_resource.is_geom_with_z():
             self.show_error(self.tr(
@@ -1271,7 +1273,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if not PluginSettings.auto_add_wfs_option():
             return
 
-        ngw_resource = index.data(Qt.UserRole)
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         add_resource_as_wfs_layers(ngw_resource)
 
     def create_wms_service(self):
@@ -1300,7 +1302,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def create_web_map_for_layer(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
 
-        ngw_resource = selected_index.data(Qt.UserRole)
+        ngw_resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
         if ngw_resource.type_id in [NGWVectorLayer.type_id, NGWRasterLayer.type_id]:
             ngw_styles = ngw_resource.get_children()
             ngw_resource_style_id = None
@@ -1338,7 +1340,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if not PluginSettings.auto_open_web_map_option():
             return
 
-        ngw_resource = index.data(Qt.UserRole)
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         url = ngw_resource.get_display_url()
         QDesktopServices.openUrl(QUrl(url))
 
@@ -1454,175 +1456,3 @@ class NGWPanelToolBar(QToolBar):
     def resizeEvent(self, event):
         QToolBar.setIconSize(self, QSize(24, 24))
         event.accept()
-
-
-class Overlay(QWidget):
-    def __init__(self, parent):
-        QWidget.__init__(self, parent)
-        # self.resize(parent.size())
-        palette = QPalette(self.palette())
-        palette.setColor(palette.Background, Qt.transparent)
-        self.setPalette(palette)
-
-    def paintEvent(self, event):
-        painter = QPainter()
-        painter.begin(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QBrush(QColor(255, 255, 255, 200)))
-        painter.setPen(QPen(Qt.NoPen))
-
-
-class MessageOverlay(Overlay):
-    def __init__(self, parent, text):
-        Overlay.__init__(self, parent)
-        self.layout = QHBoxLayout(self)
-        self.setLayout(self.layout)
-
-        self.text = QLabel(text, self)
-        self.text.setAlignment(Qt.AlignCenter)
-        self.text.setOpenExternalLinks(True)
-        self.text.setWordWrap(True)
-        self.layout.addWidget(self.text)
-
-
-class ProcessOverlay(Overlay):
-    def __init__(self, parent):
-        Overlay.__init__(self, parent)
-        self.layout = QVBoxLayout(self)
-        self.setLayout(self.layout)
-
-        spacer_before = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        spacer_after = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-        self.layout.addItem(spacer_before)
-
-        self.central_widget = QWidget(self)
-        # self.central_widget.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.central_widget_layout = QVBoxLayout(self.central_widget)
-        self.central_widget.setLayout(self.central_widget_layout)
-        self.layout.addWidget(self.central_widget)
-
-        self.layout.addItem(spacer_after)
-
-        self.progress = QProgressBar(self)
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(0)
-        self.progress.setValue(0)
-        self.progress.setTextVisible(False)
-        self.central_widget_layout.addWidget(self.progress)
-        self.setStyleSheet(
-            """
-                QProgressBar {
-                    border: 1px solid grey;
-                    border-radius: 5px;
-                }
-            """
-        )
-
-        self.text = QLabel(self)
-        self.text.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.text.setOpenExternalLinks(True)
-        self.text.setWordWrap(True)
-        self.central_widget_layout.addWidget(self.text)
-
-    def write(self, jobs):
-        text = ""
-        for job_name, job_status in list(jobs.items()):
-            text += "<strong>%s</strong><br/>" % job_name
-            if job_status != "":
-                text += "%s<br/>" % job_status
-
-        self.text.setText(text)
-
-
-class NGWResourcesTreeView(QTreeView):
-    itemDoubleClicked = pyqtSignal(object)
-
-    def __init__(self, parent):
-        QTreeView.__init__(self, parent)
-
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
-        self.setHeaderHidden(True)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        header = self.header()
-        header.setStretchLastSection(False)
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
-
-        # no ngw connectiond message
-        self.no_ngw_connections_overlay = MessageOverlay(
-            self,
-            self.tr(
-                "No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at <a href='http://my.nextgis.com/'>nextgis.com</a>!"
-            )
-        )
-        self.no_ngw_connections_overlay.hide()
-
-        self.ngw_job_block_overlay = ProcessOverlay(
-            self,
-        )
-        self.ngw_job_block_overlay.hide()
-
-        self.jobs = {}
-
-    def setModel(self, model):
-        self._source_model = model
-        self._source_model.rowsInserted.connect(self.__insertRowsProcess)
-        # self._source_model.focusedResource.connect(self.__focuseResource)
-
-        super(NGWResourcesTreeView, self).setModel(self._source_model)
-
-    def selectedIndex(self):
-        return self.selectionModel().currentIndex()
-
-    def __insertRowsProcess(self, parent, start, end):
-        if not parent.isValid():
-            self.expandAll()
-        # else:
-        #     self.expand(
-        #         parent
-        #     )
-
-    # def __focuseResource(self, index):
-    #     self.setCurrentIndex(
-    #         index
-    #     )
-
-    def resizeEvent(self, event):
-        self.no_ngw_connections_overlay.resize(event.size())
-        self.ngw_job_block_overlay.resize(event.size())
-
-        QTreeView.resizeEvent(self, event)
-
-    def mouseDoubleClickEvent(self, e):
-        index = self.indexAt(e.pos())
-        if index.isValid():
-            self.itemDoubleClicked.emit(index)
-
-        super(NGWResourcesTreeView, self).mouseDoubleClickEvent(e)
-
-    def showWelcomeMessage(self):
-        self.no_ngw_connections_overlay.show()
-
-    def hideWelcomeMessage(self):
-        self.no_ngw_connections_overlay.hide()
-
-    def addBlockedJob(self, job_name):
-        self.jobs.update(
-            {job_name: ""}
-        )
-        self.ngw_job_block_overlay.write(self.jobs)
-
-        self.ngw_job_block_overlay.show()
-
-    def addJobStatus(self, job_name, status):
-        if job_name in self.jobs:
-            self.jobs[job_name] = status
-            self.ngw_job_block_overlay.write(self.jobs)
-
-    def removeBlockedJob(self, job_name):
-        if job_name in self.jobs:
-            self.jobs.pop(job_name)
-            self.ngw_job_block_overlay.write(self.jobs)
-
-        if len(self.jobs) == 0:
-            self.ngw_job_block_overlay.hide()
