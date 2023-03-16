@@ -49,8 +49,16 @@ plugins['nextgis_connect'].enableDebug(False)
         self.iface = iface
         self.plugin_dir = path.dirname(__file__)
 
+        # Enable debug mode.
+        debug_mode = PluginSettings.debug_mode()
+        setDebugEnabled(debug_mode)
+        QgsMessageLog.logMessage(
+            'Debug messages are %s' % ('enabled' if debug_mode else 'disabled'),
+            PluginSettings._product, level=Qgis.Info)
+
         # initialize locale
         locale = QSettings().value('locale/userLocale')[0:2]
+        self._translators = list()
 
         def add_translator(locale_path):
             if not path.exists(locale_path):
@@ -59,6 +67,7 @@ plugins['nextgis_connect'].enableDebug(False)
             translator.load(locale_path)
             if qVersion() > '4.3.3':
                 QCoreApplication.installTranslator(translator)
+            self._translators.append(translator)  # Should be kept in memory
 
         add_translator(path.join(
             self.plugin_dir, 'i18n',
@@ -69,13 +78,6 @@ plugins['nextgis_connect'].enableDebug(False)
         ))
 
         self.title = self.tr('NextGIS Connect')
-
-        # Enable debug mode.
-        debug_mode = PluginSettings.debug_mode()
-        setDebugEnabled(debug_mode)
-        QgsMessageLog.logMessage(
-            'Debug messages are %s' % ('enabled' if debug_mode else 'disabled'),
-            PluginSettings._product, level=Qgis.Info)
 
     def tr(self, message):
         return QCoreApplication.translate('NGConnectPlugin', message)
