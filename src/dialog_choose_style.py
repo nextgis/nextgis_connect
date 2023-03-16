@@ -3,11 +3,13 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
-from .ngw_api.qt.qt_ngw_resource_item import QNGWResourceItem
 from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
 from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
+
+from .tree_widget import QNGWResourceItem
+
 
 class NGWResourcesTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
