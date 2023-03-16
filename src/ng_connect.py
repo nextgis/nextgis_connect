@@ -77,7 +77,7 @@ plugins['nextgis_connect'].enableDebug(False)
             "qgis_ngw_api_{}.qm".format(locale)
         ))
 
-        self.title = self.tr('NextGIS Connect')
+        self.title = 'NextGIS Connect'
 
     def tr(self, message):
         return QCoreApplication.translate('NGConnectPlugin', message)

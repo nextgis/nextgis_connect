@@ -10,9 +10,6 @@
     <height>349</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>MainWindow</string>
-  </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="leftMargin">
@@ -32,74 +29,6 @@
     </item>
    </layout>
   </widget>
-  <action name="actionAddAsGeoJSON">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Add GeoJSON</string>
-   </property>
-   <property name="toolTip">
-    <string>Add vector layer as GeoJSON</string>
-   </property>
-  </action>
-  <action name="actionAddWFS">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Add WFS</string>
-   </property>
-   <property name="toolTip">
-    <string>Add WFS layers</string>
-   </property>
-  </action>
-  <action name="actionCreateNewGroup">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Create new group</string>
-   </property>
-   <property name="toolTip">
-    <string>Create new resource group</string>
-   </property>
-  </action>
-  <action name="actionImportQGISProject">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Import current project</string>
-   </property>
-   <property name="toolTip">
-    <string>Import layers from current project</string>
-   </property>
-  </action>
-  <action name="actionSettings">
-   <property name="enabled">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Settings</string>
-   </property>
-  </action>
-  <action name="actionRefresh">
-   <property name="text">
-    <string>Refresh</string>
-   </property>
-  </action>
-  <action name="actionOpenMapInBrowser">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Open map in browser</string>
-   </property>
-   <property name="toolTip">
-    <string>Open map in browser</string>
-   </property>
-  </action>
  </widget>
  <resources/>
  <connections/>

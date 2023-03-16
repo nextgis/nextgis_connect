@@ -19,6 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+import html
 import os
 import traceback
 
@@ -103,7 +104,7 @@ class TreePanel(QDockWidget):
     def __init__(self, iface, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle(self.tr('NextGIS Connect'))
+        self.setWindowTitle('NextGIS Connect')
 
         self.inner_control = TreeControl(iface, self)
         self.inner_control.setWindowFlags(Qt.Widget)
@@ -165,65 +166,52 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionCreateNewGroup = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionNewFolder.svg')),
-            self.tr("Create new group"), self)
-        self.actionCreateNewGroup.setToolTip(self.tr("Create new resource group"))
+            self.tr("Create resource group"), self)
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
-        self.actionCreateWebMap4Layer = QAction(self.tr("Create Web Map"), self)
-        self.actionCreateWebMap4Layer.setToolTip(self.tr("Create Web Map"))
+        self.actionCreateWebMap4Layer = QAction(self.tr("Create web Map"), self)
         self.actionCreateWebMap4Layer.triggered.connect(self.create_web_map_for_layer)
 
-        self.actionCreateWebMap4Style = QAction(self.tr("Create Web Map"), self)
-        self.actionCreateWebMap4Style.setToolTip(self.tr("Create Web Map"))
+        self.actionCreateWebMap4Style = QAction(self.tr("Create web Map"), self)
         self.actionCreateWebMap4Style.triggered.connect(self.create_web_map_for_style)
 
         self.actionDownload = QAction(self.tr("Download as QML"), self)
-        self.actionDownload.setToolTip(self.tr("Download style as QML file"))
         self.actionDownload.triggered.connect(self.downloadQML)
 
         self.actionCreateWFSService = QAction(self.tr("Create WFS service"), self)
-        self.actionCreateWFSService.setToolTip(self.tr("Create WFS service"))
         self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
 
         self.actionCreateWMSService = QAction(self.tr("Create WMS service"), self)
-        self.actionCreateWMSService.setToolTip(self.tr("Create WMS service"))
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
 
-        self.actionCopyResource = QAction(self.tr("Copy"), self)
-        self.actionCopyResource.setToolTip(self.tr("Copy resource"))
+        self.actionCopyResource = QAction(self.tr("Copy resource"), self)
         self.actionCopyResource.triggered.connect(self.copy_curent_ngw_resource)
 
         self.actionEditMetadata = QAction(self.tr("Edit metadata"), self)
-        self.actionEditMetadata.setToolTip(self.tr("Edit metadata"))
         self.actionEditMetadata.triggered.connect(self.edit_metadata)
 
         self.actionDeleteResource = QAction(
-            QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')), self.tr("Delete"), self)
-        self.actionDeleteResource.setToolTip(self.tr("Delete resource"))
+            QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')), self.tr("Delete resource"), self)
         self.actionDeleteResource.triggered.connect(self.delete_curent_ngw_resource)
 
         self.actionOpenMapInBrowser = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionOpenMap.svg')),
-            self.tr("Open Web map in browser"), self)
-        self.actionOpenMapInBrowser.setToolTip(self.tr("Open Web map in browser"))
+            self.tr("Open web map in browser"), self)
         self.actionOpenMapInBrowser.triggered.connect(self.__action_open_map)
 
         self.actionRefresh = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionRefresh.svg')),
             self.tr("Refresh"), self)
-        self.actionRefresh.setToolTip(self.tr("Refresh"))
         self.actionRefresh.triggered.connect(self.__action_refresh_tree)
 
         self.actionSettings = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionSettings.svg')),
             self.tr("Settings"), self)
-        self.actionSettings.setToolTip(self.tr("Settings"))
         self.actionSettings.triggered.connect(self.action_settings)
 
         self.actionHelp = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionHelp.svg')),
             self.tr("Help"), self)
-        self.actionHelp.setToolTip(self.tr("Help"))
         self.actionHelp.triggered.connect(self.action_help)
 
         # Add toolbar
@@ -425,7 +413,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                     self.jobs_count = 0 # mark that the next connection will also be the first one
                     old_con_name = conn_sett.connection_name
                     dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=False)
-                    dlg.set_alert_msg(self.tr('Failed to connect. Please re-enter Web GIS connection settings'))
+                    dlg.set_alert_msg(self.tr('Failed to connect. Please re-enter Web GIS connection settings.'))
                     res = dlg.exec_()
                     if res:
                         conn_sett = dlg.ngw_connection_settings
@@ -504,7 +492,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if need_show_log:
             message += " " + self.tr("See logs for details.")
         widget = self.iface.messageBar().createMessage(
-            self.tr('NextGIS Connect'),
+            'NextGIS Connect',
             message
         )
         # widget.setProperty("Error", message)
@@ -663,15 +651,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.reinit_tree()
 
     def action_help(self):
-        QDesktopServices.openUrl(QUrl(self.tr('https://docs.nextgis.com/docs_ngconnect/source/toc.html')))
+        QDesktopServices.openUrl(QUrl('https://docs.nextgis.com/docs_ngconnect/source/toc.html'))
 
     def str_to_link(self, text, url):
-        return u'<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)
+        return '<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)
 
     def _show_unsupported_raster_err(self):
-        msg = u'{}. {}'.format(
-            self.tr(u'This type of raster is not supported yet'),
-                self.str_to_link(self.tr(u'Please add COG support'), self.tr(u'https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer')
+        msg = '{}. {}'.format(
+            self.tr('This type of raster is not supported yet'),
+                self.str_to_link(self.tr('Please add COG support'), self.tr('https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer')
             )
         )
         self.show_info(msg)
@@ -904,18 +892,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
         # if sel_index is None:
         #     sel_index = self._resource_model.index(0, 0, QModelIndex())
         if sel_index is None or not sel_index.isValid():
-            self.show_info(self.tr('Please select parent resource group for a new group'))
+            self.show_info(self.tr('Please select parent resource group for a new resource group'))
             return
 
-        new_group_name, res = QInputDialog.getText(
+        new_group_name, ok = QInputDialog.getText(
             self,
-            self.tr("Set new group name"),
-            self.tr("New group name:"),
+            self.tr("Create resource group"),
+            self.tr("Resource group name:"),
             QLineEdit.Normal,
-            self.tr("New group"),
+            self.tr("New resource group"),
             Qt.Dialog
         )
-        if (res is False or new_group_name == ""):
+        if (not ok or new_group_name == ""):
             return
 
         self.create_group_resp = self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
@@ -975,10 +963,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         result = QMessageBox.question(
             self,
-            self.tr("Overwrite NextGIS resource"),
-            self.tr("NextGIS resource '<b>%s</b>' will be <b>overwrite</b> with qgis layer '<b>%s</b>'! <br/> You can lose data of this NextGIS resource! <br/><br/> Are you sure you want to overwrite it? ") % (
+            self.tr("Overwrite resource"),
+            self.tr("Resource '%s' will be overwritten with QGIS layer '%s'. Current data will be lost.<br/> Are you sure you want to overwrite it?") % (
                 index.data(Qt.DisplayRole),
-                qgs_map_layer.name()
+                html.escape(qgs_map_layer.name())
             ),
             QMessageBox.Yes | QMessageBox.No
         )
@@ -1204,8 +1192,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 return
 
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
-            if not ngw_resource:
-                raise Exception(self.tr('NGW resource not found!'))
 
             # block gui
             self.trvResources.ngw_job_block_overlay.show()
@@ -1279,7 +1265,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def create_wms_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
 
-        dlg = NGWLayerStyleChooserDialog(self.tr("Create WMS for layer"), selected_index, self._resource_model, self)
+        dlg = NGWLayerStyleChooserDialog(self.tr("Create WMS service for layer"), selected_index, self._resource_model, self)
         result = dlg.exec_()
         if result:
             ngw_resource_style_id = None
@@ -1310,7 +1296,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             if len(ngw_styles) == 1:
                 ngw_resource_style_id = ngw_styles[0].common.id
             elif len(ngw_styles) > 1:
-                dlg = NGWLayerStyleChooserDialog(self.tr("Create Web Map for layer"), selected_index, self._resource_model, self)
+                dlg = NGWLayerStyleChooserDialog(self.tr("Create web map for layer"), selected_index, self._resource_model, self)
                 result = dlg.exec_()
                 if result:
                     if dlg.selectedStyleId():
@@ -1406,7 +1392,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self,
             self.tr("Save QML"),
             "%s.qml" % ngw_qgis_style.common.display_name,
-            filter=self.tr("QGIS Layer style file (*.qml)")
+            filter=self.tr("QGIS style (*.qml)")
         )
 
         if filepath == "":
@@ -1427,20 +1413,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             title = self.tr('Information')
         self.show_msg_box(text, title, QMessageBox.Information, QMessageBox.Ok)
 
-    def show_warning(self, text, title=None):
-        if title is None:
-            title = self.tr('Warning')
-        self.show_msg_box(text, title, QMessageBox.Warning, QMessageBox.Ok)
-
     def show_error(self, text, title=None):
         if title is None:
             title = self.tr('Error')
         self.show_msg_box(text, title, QMessageBox.Critical, QMessageBox.Ok)
-
-    def show_question(self, text, title=None):
-        if title is None:
-            title = self.tr('Question')
-        return self.show_msg_box(text, title, QMessageBox.Question, QMessageBox.Yes | QMessageBox.No)
 
 
 class NGWPanelToolBar(QToolBar):
