@@ -4,11 +4,13 @@ qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=0.14.3
+version=1.0.0
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	1.0.0
+		* Drop Python 2 / Qt4 / QGIS 2 support
 	0.14.3
 		* Fix reprojecting layers on upload
 		* Add option to enable log (debug) messages to plugin's options dialog
