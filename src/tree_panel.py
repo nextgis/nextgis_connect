@@ -986,22 +986,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             return
         
         # Get Reciever index
-        sel_index = self.trvResources.selectionModel().currentIndex()
-
-        # current_project = QgsProject.instance()
-        # current_project_title = current_project.title()      
-
+        sel_index = self.trvResources.selectionModel().currentIndex()        
         self.qgis_group_import_response = self._resource_model.tryImportCurentQGISGroup(
-        #    group_name,
             sel_index,
             self.iface,
         )
-        """ self.qgis_group_import_response.done.connect(
-            self.trvResources.setCurrentIndex
-        )
-        self.qgis_group_import_response.done.connect(
-            self.open_create_web_map
-        ) """
+        
         self.qgis_group_import_response.done.connect(
             self.processWarnings
         )

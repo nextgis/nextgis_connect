@@ -603,9 +603,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     @modelRequest()
     # Group import
     # 28/03/2023
-    def tryImportCurentQGISGroup(self,
-                                  #ngw_group_name,
-                                  index, iface):
+    def tryImportCurentQGISGroup(self, index, iface):
         if not index.isValid():
             index = self.index(0, 0, index)
 
@@ -615,8 +613,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(
-            CurrentQGISGroupImporter(#ngw_group_name,
-                                     ngw_resource, iface, self.ngw_version),
+            CurrentQGISGroupImporter(ngw_resource, iface, self.ngw_version),
         )
 
     @modelRequest()
