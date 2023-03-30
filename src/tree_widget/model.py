@@ -1,6 +1,8 @@
+from qgis.core import *
 from qgis.PyQt.QtCore import (
-    QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal, QThread, QVariant,
+    QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal, QThread, QVariant, 
 )
+
 
 from ..ngw_api.core import NGWGroupResource
 from ..ngw_api.qt.qt_ngw_resource_model_job import NGWRootResourcesLoader, NGWResourceUpdater
@@ -302,9 +304,14 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         for index in indexes:
             item = self.item(index)
-
+            
             #self.beginRemoveRows(index, item.childCount(), item.childCount())
-            item.unlock()
+            # bug suppression
+            #30/03/2023
+            try:
+                item.unlock()
+            except AttributeError:
+                continue
             #self.endRemoveRows()
 
             if job.error() is not None:
@@ -358,8 +365,14 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 if parent_id not in indexes:
                     indexes[parent_id] = self.getIndexByNGWResourceId(parent_id)
                 index = indexes[parent_id]
+                
+                # bug suppression
+                #30/03/2023
+                if not index is None:
+                    item = index.internalPointer()
+                else:
+                    continue
 
-                item = index.internalPointer()
                 current_ids = [item.child(i).ngw_resource_id() for i in range(item.childCount()) if isinstance(item.child(i), QNGWResourceItem)]
                 if ngw_resource.common.id not in current_ids:
                     new_index = self.addNGWResourceToTree(index, ngw_resource)
