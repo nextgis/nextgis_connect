@@ -603,7 +603,6 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     @modelRequest()
     # Group import
     # 28/03/2023
-    # by Alex K
     def tryImportCurentQGISGroup(self,
                                   #ngw_group_name,
                                   index, iface):
