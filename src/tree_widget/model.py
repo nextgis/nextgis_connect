@@ -602,7 +602,8 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     
     @modelRequest()
     # Group import
-    # 2023-03-28
+    # 28/03/2023
+    # by Alex K
     def tryImportCurentQGISGroup(self,
                                   #ngw_group_name,
                                   index, iface):

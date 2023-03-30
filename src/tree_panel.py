@@ -145,7 +145,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.setEnabled(False)
 
         # new menu item for import selected group(s)
-        # 2023-03-24
+        # 24/03/2023
         self.actionImportQGISGroup = QAction(
             self.tr("Import selected groups(s)"), self.menuImport)
         self.actionImportQGISGroup.triggered.connect(self.import_groups)
@@ -337,7 +337,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
         )
         # switch group menu item
-        # 2023-03-24
+        # 24/03/2023
         self.actionImportQGISGroup.setEnabled(
             isinstance(view.currentNode(), (QgsLayerTreeGroup))
         )
@@ -357,7 +357,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionImportQGISProject.setEnabled(QgsProject.instance().count() != 0)
 
-        # change 2023-03-29. the selected group causes the inclusion of the  "import project" menu item
+        # change 29/03/2023. the selected group causes the inclusion of the  "import project" menu item
         self.toolbuttonImport.setEnabled(
             (self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or
                 self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled() or self.actionImportQGISGroup.isEnabled())
@@ -977,7 +977,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
     # groups import handler
-    # 2023-03-24
+    # 24/03/2023
     def import_groups(self):
         
         qgs_map_groups = self.iface.layerTreeView().selectedNodes()
