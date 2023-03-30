@@ -981,7 +981,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def import_groups(self):
         
         qgs_map_groups = self.iface.layerTreeView().selectedNodes()
-        print(self.iface.layerTreeView().selectedLayerNodes())
         if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that
             return
         
