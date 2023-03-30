@@ -25,7 +25,7 @@ import traceback
 
 from qgis.core import (
     Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsProject,
-    QgsNetworkAccessManager,
+    QgsNetworkAccessManager,QgsLayerTreeGroup,
 )
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
@@ -144,6 +144,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.triggered.connect(self.import_layers)
         self.actionImportQGISResource.setEnabled(False)
 
+        # new menu item for import selected group(s)
+        # 2023-03-24
+        self.actionImportQGISGroup = QAction(
+            self.tr("Import selected groups(s)"), self.menuImport)
+        self.actionImportQGISGroup.triggered.connect(self.import_groups)
+        self.actionImportQGISGroup.setEnabled(False)
+
         self.actionImportQGISProject = QAction(
             self.tr("Import current project"), self.menuImport)
         self.actionImportQGISProject.triggered.connect(self.import_qgis_project)
@@ -155,6 +162,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddStyle.triggered.connect(self.add_style)
 
         self.menuImport.addAction(self.actionImportQGISResource)
+        # Selection group menu item
+        # 2023-03-24
+        self.menuImport.addAction(self.actionImportQGISGroup)
         self.menuImport.addAction(self.actionImportQGISProject)
         self.menuImport.addAction(self.actionUpdateStyle)
         self.menuImport.addAction(self.actionAddStyle)
@@ -316,6 +326,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
+        view = self.iface.layerTreeView()
         index = self.trvResources.selectionModel().currentIndex()
         if index is not None:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -325,7 +336,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.setEnabled(
             isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
         )
-
+        # switch group menu item
+        # 2023-03-24
+        self.actionImportQGISGroup.setEnabled(
+            isinstance(view.currentNode(), (QgsLayerTreeGroup))
+        )
+        
+        
         self.actionUpdateNGWVectorLayer.setEnabled(
             isinstance(current_qgis_layer, QgsVectorLayer)
         )
@@ -340,9 +357,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionImportQGISProject.setEnabled(QgsProject.instance().count() != 0)
 
+        # change 2023-03-29. the selected group causes the inclusion of the  "import project" menu item
         self.toolbuttonImport.setEnabled(
             (self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or
-                self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled())
+                self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled() or self.actionImportQGISGroup.isEnabled())
         )
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
@@ -939,6 +957,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.processWarnings
         )
 
+    # layer import handler
     def import_layers(self):
         index = self.trvResources.selectionModel().currentIndex()
 
@@ -954,6 +973,36 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
         self.import_layer_response.done.connect(
+            self.processWarnings
+        )
+
+    # groups import handler
+    # 2023-03-24
+    def import_groups(self):
+        
+        qgs_map_groups = self.iface.layerTreeView().selectedNodes()
+        print(self.iface.layerTreeView().selectedLayerNodes())
+        if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that
+            return
+        
+        # Get Reciever index
+        sel_index = self.trvResources.selectionModel().currentIndex()
+
+        # current_project = QgsProject.instance()
+        # current_project_title = current_project.title()      
+
+        self.qgis_group_import_response = self._resource_model.tryImportCurentQGISGroup(
+        #    group_name,
+            sel_index,
+            self.iface,
+        )
+        """ self.qgis_group_import_response.done.connect(
+            self.trvResources.setCurrentIndex
+        )
+        self.qgis_group_import_response.done.connect(
+            self.open_create_web_map
+        ) """
+        self.qgis_group_import_response.done.connect(
             self.processWarnings
         )
 

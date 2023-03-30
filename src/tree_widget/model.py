@@ -432,6 +432,7 @@ from ..ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
     NGWCreateWMSForVector,
     NGWUpdateVectorLayer,
+    CurrentQGISGroupImporter,
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle, NGWCreateWFSForVector, NGWGroupCreater, NGWRenameResource,
@@ -597,6 +598,25 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         return self._startJob(
             CurrentQGISProjectImporter(ngw_group_name, ngw_resource, iface, self.ngw_version),
+        )
+    
+    @modelRequest()
+    # Group import
+    # 2023-03-28
+    def tryImportCurentQGISGroup(self,
+                                  #ngw_group_name,
+                                  index, iface):
+        if not index.isValid():
+            index = self.index(0, 0, index)
+
+        index = self._nearest_ngw_group_resource_parent(index)
+
+        item = index.internalPointer()
+        ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
+
+        return self._startJob(
+            CurrentQGISGroupImporter(#ngw_group_name,
+                                     ngw_resource, iface, self.ngw_version),
         )
 
     @modelRequest()
