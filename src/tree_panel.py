@@ -409,6 +409,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.reinit_tree(force=True) # force reconnect in order to correctly show connection dialog each time
             else:
                 self.block_tools()
+            
             del dlg
             return
 
@@ -441,6 +442,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                         if new_con_name != old_con_name:
                             NgwPluginSettings.remove_ngw_connection(old_con_name) # delete unused old bad connection
                         self.reinit_tree(force=True)
+                    
                     del dlg
                     return
 
@@ -968,6 +970,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 return
 
         self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
+        
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )
@@ -981,7 +984,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def import_groups(self):
         
         qgs_map_groups = self.iface.layerTreeView().selectedNodes()
-        if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that
+        if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that            
             return
         
         # Get Reciever index
@@ -989,6 +992,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.qgis_group_import_response = self._resource_model.tryImportCurentQGISGroup(
             sel_index,
             self.iface,
+        )
+        self.qgis_group_import_response.done.connect(
+            self.trvResources.setCurrentIndex
         )
         
         self.qgis_group_import_response.done.connect(
@@ -1376,7 +1382,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             for w in ngw_model_job_resp.warnings():
                 w_msg, w_msg_ext, icon = self.__get_model_exception_description(job_id, w)
                 dlg.addException(w_msg, w_msg_ext, icon)
-                dlg.show()
+
+            dlg.show() 
+            del(dlg)           
 
 
     def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
