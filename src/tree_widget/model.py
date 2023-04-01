@@ -605,7 +605,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             index = self.index(0, 0, index)
 
         index = self._nearest_ngw_group_resource_parent(index)
-
+        
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
@@ -616,12 +616,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     @modelRequest()
     # Group import
     # 28/03/2023
-    def tryImportCurentQGISGroup(self, index, iface):
+    def tryImportCurentQGISGroup(self, index, iface):        
         if not index.isValid():
             index = self.index(0, 0, index)
 
         index = self._nearest_ngw_group_resource_parent(index)
-
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 

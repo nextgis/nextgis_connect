@@ -19,6 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 import html
 import os
 import traceback
@@ -982,24 +983,24 @@ class TreeControl(QMainWindow, FORM_CLASS):
     # groups import handler
     # 24/03/2023
     def import_groups(self):
-        
         qgs_map_groups = self.iface.layerTreeView().selectedNodes()
         if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that            
             return
         
         # Get Reciever index
-        sel_index = self.trvResources.selectionModel().currentIndex()        
+        sel_index = self.trvResources.selectionModel().currentIndex() 
         self.qgis_group_import_response = self._resource_model.tryImportCurentQGISGroup(
             sel_index,
             self.iface,
         )
+        self.trvResources.selectionModel().currentIndex()
         self.qgis_group_import_response.done.connect(
             self.trvResources.setCurrentIndex
         )
-        
         self.qgis_group_import_response.done.connect(
             self.processWarnings
         )
+        
 
     def overwrite_ngw_layer(self):
         index = self.trvResources.selectionModel().currentIndex()
@@ -1375,17 +1376,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
         QDesktopServices.openUrl(QUrl(url))
 
     def processWarnings(self, index):
+        
         ngw_model_job_resp = self.sender()
         job_id = ngw_model_job_resp.job_id
+         
         if len(ngw_model_job_resp.warnings()) > 0:
             dlg = ExceptionsListDialog(self.tr("NextGIS Connect operation exceptions"), self)
             for w in ngw_model_job_resp.warnings():
                 w_msg, w_msg_ext, icon = self.__get_model_exception_description(job_id, w)
                 dlg.addException(w_msg, w_msg_ext, icon)
-
+                
             dlg.show() 
-            del(dlg)           
-
+            del(dlg)                               
 
     def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
         if not qml_file:
