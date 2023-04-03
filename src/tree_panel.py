@@ -146,7 +146,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionImportQGISResource.setEnabled(False)
 
         # new menu item for import selected group(s)
-        # 24/03/2023
         self.actionImportQGISGroup = QAction(
             self.tr("Import selected groups(s)"), self.menuImport)
         self.actionImportQGISGroup.triggered.connect(self.import_groups)
@@ -164,7 +163,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.menuImport.addAction(self.actionImportQGISResource)
         # Selection group menu item
-        # 2023-03-24
         self.menuImport.addAction(self.actionImportQGISGroup)
         self.menuImport.addAction(self.actionImportQGISProject)
         self.menuImport.addAction(self.actionUpdateStyle)
@@ -338,7 +336,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
             isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
         )
         # switch group menu item
-        # 24/03/2023
         self.actionImportQGISGroup.setEnabled(
             isinstance(view.currentNode(), (QgsLayerTreeGroup))
         )
@@ -358,7 +355,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionImportQGISProject.setEnabled(QgsProject.instance().count() != 0)
 
-        # change 29/03/2023. the selected group causes the inclusion of the  "import project" menu item
+        # the selected group causes the inclusion of the  "import project" menu item
         self.toolbuttonImport.setEnabled(
             (self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or
                 self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled() or self.actionImportQGISGroup.isEnabled())
@@ -981,7 +978,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
     # groups import handler
-    # 24/03/2023
     def import_groups(self):
         qgs_map_groups = self.iface.layerTreeView().selectedNodes()
         if len(qgs_map_groups) == 0: # could be if user had deleted group but have not selected one after that            
@@ -1387,7 +1383,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 dlg.addException(w_msg, w_msg_ext, icon)
                 
             dlg.show() 
-            del(dlg)                               
+            del(dlg)                        
 
     def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
         if not qml_file:

@@ -306,12 +306,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             item = self.item(index)
             
             #self.beginRemoveRows(index, item.childCount(), item.childCount())
-            # bug suppression
-            #30/03/2023
-            try:
-                item.unlock()
-            except AttributeError:
-                continue
+            item.unlock()            
             #self.endRemoveRows()
 
             if job.error() is not None:
@@ -366,12 +361,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                     indexes[parent_id] = self.getIndexByNGWResourceId(parent_id)
                 index = indexes[parent_id]
                 
-                # bug suppression
-                #30/03/2023
-                if not index is None:
-                    item = index.internalPointer()
-                else:
-                    continue
+                item = index.internalPointer()            
 
                 current_ids = [item.child(i).ngw_resource_id() for i in range(item.childCount()) if isinstance(item.child(i), QNGWResourceItem)]
                 if ngw_resource.common.id not in current_ids:
@@ -615,7 +605,6 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     
     @modelRequest()
     # Group import
-    # 28/03/2023
     def tryImportCurentQGISGroup(self, index, iface):        
         if not index.isValid():
             index = self.index(0, 0, index)
