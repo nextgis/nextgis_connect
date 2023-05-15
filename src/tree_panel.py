@@ -915,12 +915,23 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
     def upload_project_resources(self):
+        """
+        Upload whole project to NextGIS Web
+        """
+
+        def get_project_name():
+            current_project_title = ''
+            current_project = QgsProject.instance()
+            if current_project.title() != '':
+                current_project_title = current_project.title()
+            elif current_project.fileName() != '':
+                current_project_title = current_project.baseName()
+
+            return current_project_title
+
         ngw_current_index = self.trvResources.selectionModel().currentIndex()
 
-        current_project = QgsProject.instance()
-        current_project_title = current_project.title()
-
-        dlg = DialogImportQGISProj(current_project_title, self)
+        dlg = DialogImportQGISProj(get_project_name(), self)
         result = dlg.exec_()
         if not result:
             return
