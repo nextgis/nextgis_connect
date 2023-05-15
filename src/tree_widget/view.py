@@ -13,14 +13,16 @@ class QOverlay(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         palette = QPalette(self.palette())
-        palette.setColor(palette.Background, Qt.transparent)
+        self._overlay_color = palette.color(QPalette.ColorRole.Background)
+        self._overlay_color.setAlpha(200)
+        palette.setColor(QPalette.ColorRole.Background, Qt.transparent)
         self.setPalette(palette)
 
     def paintEvent(self, event):
         painter = QPainter()
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QBrush(QColor(255, 255, 255, 200)))
+        painter.fillRect(event.rect(), QBrush(self._overlay_color))
         painter.setPen(QPen(Qt.NoPen))
 
 
