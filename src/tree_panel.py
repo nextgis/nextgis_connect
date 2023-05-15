@@ -24,7 +24,7 @@ import os
 import traceback
 
 from qgis.core import (
-    Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsProject,
+    Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsLayerTreeGroup, QgsProject,
     QgsNetworkAccessManager,
 )
 from qgis.PyQt import uic
@@ -135,18 +135,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("Add to QGIS"), self)
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
-        self.menuImport = QMenu(self.tr("Add to Web GIS"), self)
-        self.menuImport.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionImport.svg')))
-        self.menuImport.menuAction().setIconVisibleInMenu(False)
+        self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
+        self.menuUpload.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionImport.svg')))
+        self.menuUpload.menuAction().setIconVisibleInMenu(False)
 
-        self.actionImportQGISResource = QAction(
-            self.tr("Import selected layer(s)"), self.menuImport)
-        self.actionImportQGISResource.triggered.connect(self.import_layers)
-        self.actionImportQGISResource.setEnabled(False)
+        self.actionUploadSelectedResources = QAction(
+            self.tr("Upload selected"), self.menuUpload)
+        self.actionUploadSelectedResources.triggered.connect(self.upload_selected_resources)
+        self.actionUploadSelectedResources.setEnabled(False)
 
-        self.actionImportQGISProject = QAction(
-            self.tr("Import current project"), self.menuImport)
-        self.actionImportQGISProject.triggered.connect(self.import_qgis_project)
+        self.actionUploadProjectResources = QAction(
+            self.tr("Upload all"), self.menuUpload)
+        self.actionUploadProjectResources.triggered.connect(self.upload_project_resources)
 
         self.actionUpdateStyle = ActionStyleImportUpdate(self.tr('Update layer style'))
         self.actionUpdateStyle.triggered.connect(self.update_style)
@@ -154,13 +154,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionAddStyle = ActionStyleImportUpdate(self.tr('Add new style to layer'))
         self.actionAddStyle.triggered.connect(self.add_style)
 
-        self.menuImport.addAction(self.actionImportQGISResource)
-        self.menuImport.addAction(self.actionImportQGISProject)
-        self.menuImport.addAction(self.actionUpdateStyle)
-        self.menuImport.addAction(self.actionAddStyle)
+        self.menuUpload.addAction(self.actionUploadSelectedResources)
+        self.menuUpload.addAction(self.actionUploadProjectResources)
+        self.menuUpload.addAction(self.actionUpdateStyle)
+        self.menuUpload.addAction(self.actionAddStyle)
 
         self.actionUpdateNGWVectorLayer = QAction(
-            self.tr("Overwrite selected layer"), self.menuImport)
+            self.tr("Overwrite selected layer"), self.menuUpload)
         self.actionUpdateNGWVectorLayer.triggered.connect(self.overwrite_ngw_layer)
         self.actionUpdateNGWVectorLayer.setEnabled(False)
 
@@ -221,10 +221,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.main_tool_bar.addAction(self.actionExport)
         self.toolbuttonImport = QToolButton()
         self.toolbuttonImport.setPopupMode(QToolButton.InstantPopup)
-        self.toolbuttonImport.setMenu(self.menuImport)
-        self.toolbuttonImport.setIcon(self.menuImport.icon())
-        self.toolbuttonImport.setText(self.menuImport.title())
-        self.toolbuttonImport.setToolTip(self.menuImport.title())
+        self.toolbuttonImport.setMenu(self.menuUpload)
+        self.toolbuttonImport.setIcon(self.menuUpload.icon())
+        self.toolbuttonImport.setText(self.menuUpload.title())
+        self.toolbuttonImport.setToolTip(self.menuUpload.title())
 
         self.main_tool_bar.addWidget(self.toolbuttonImport)
         self.main_tool_bar.addSeparator()
@@ -248,8 +248,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.blocked_jobs = {
             "NGWGroupCreater": self.tr("Resource is being created"),
             "NGWResourceDelete": self.tr("Resource is being deleted"),
-            "QGISResourcesImporter": self.tr("Layer is being imported"),
-            "CurrentQGISProjectImporter": self.tr("Project is being imported"),
+            "QGISResourcesUploader": self.tr("Layer is being imported"),
+            "QGISProjectUploader": self.tr("Project is being imported"),
             "NGWCreateWFSForVector": self.tr("WFS service is being created"),
             "NGWCreateWMSForVector": self.tr("WMS service is being created"),
             "NGWCreateMapForStyle": self.tr("Web map is being created"),
@@ -316,14 +316,16 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
+        current_qgis_node = self.iface.layerTreeView().currentNode()
         index = self.trvResources.selectionModel().currentIndex()
         if index is not None:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         else:
             ngw_resource = None
 
-        self.actionImportQGISResource.setEnabled(
+        self.actionUploadSelectedResources.setEnabled(
             isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
+            or isinstance(current_qgis_node, QgsLayerTreeGroup )
         )
 
         self.actionUpdateNGWVectorLayer.setEnabled(
@@ -338,10 +340,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.actionUpdateStyle.setEnabled(False)
             self.actionAddStyle.setEnabledByType(current_qgis_layer, ngw_resource)
 
-        self.actionImportQGISProject.setEnabled(QgsProject.instance().count() != 0)
+        self.actionUploadProjectResources.setEnabled(QgsProject.instance().count() != 0)
 
         self.toolbuttonImport.setEnabled(
-            (self.actionImportQGISResource.isEnabled() or self.actionImportQGISProject.isEnabled() or
+            (self.actionUploadSelectedResources.isEnabled() or self.actionUploadProjectResources.isEnabled() or
                 self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled())
         )
 
@@ -911,22 +913,22 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.trvResources.setCurrentIndex
         )
 
-    def import_qgis_project(self):
-        sel_index = self.trvResources.selectionModel().currentIndex()
+    def upload_project_resources(self):
+        ngw_current_index = self.trvResources.selectionModel().currentIndex()
 
         current_project = QgsProject.instance()
         current_project_title = current_project.title()
 
         dlg = DialogImportQGISProj(current_project_title, self)
         result = dlg.exec_()
-        if result:
-            project_name = dlg.getProjName()
-        else:
+        if not result:
             return
 
-        self.qgis_proj_import_response = self._resource_model.tryImportCurentQGISProject(
+        project_name = dlg.getProjName()
+
+        self.qgis_proj_import_response = self._resource_model.uploadProjectResources(
             project_name,
-            sel_index,
+            ngw_current_index,
             self.iface,
         )
         self.qgis_proj_import_response.done.connect(
@@ -939,20 +941,19 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.processWarnings
         )
 
-    def import_layers(self):
-        index = self.trvResources.selectionModel().currentIndex()
+    def upload_selected_resources(self):
+        ngw_current_index = self.trvResources.selectionModel().currentIndex()
 
-        qgs_map_layers = self.iface.layerTreeView().selectedLayers()
-        if len(qgs_map_layers) == 0: # could be if user had deleted layer but have not selected one after that
-            qgs_map_layers = [self.iface.mapCanvas().currentLayer()]
-            if len(qgs_map_layers) == 0: # just in case if checkImportActionsAvailability() works incorrectly
+        qgs_layer_tree_nodes = self.iface.layerTreeView().selectedNodes(skipInternal=True)
+        if len(qgs_layer_tree_nodes) == 0: # could be if user had deleted layer but have not selected one after that
+            qgs_layer_tree_nodes = [self.iface.layerTreeView().currentNode()]
+            if len(qgs_layer_tree_nodes) == 0: # just in case if checkImportActionsAvailability() works incorrectly
                 return
 
-        self.import_layer_response = self._resource_model.createNGWLayers(qgs_map_layers, index)
+        self.import_layer_response = self._resource_model.uploadResourcesList(qgs_layer_tree_nodes, ngw_current_index, self.iface)
         self.import_layer_response.done.connect(
             self.trvResources.setCurrentIndex
         )
-
         self.import_layer_response.done.connect(
             self.processWarnings
         )

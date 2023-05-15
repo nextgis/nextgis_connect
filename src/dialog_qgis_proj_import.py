@@ -10,7 +10,7 @@ class DialogImportQGISProj(QDialog):
 
         self.layout = QVBoxLayout(self)
         self.layout.addWidget(
-            QLabel(self.tr("Project name:"))
+            QLabel(self.tr("Project name"))
         )
         self.leProjectName = QLineEdit(default_project_name)
         self.layout.addWidget(

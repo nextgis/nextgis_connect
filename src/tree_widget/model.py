@@ -425,10 +425,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
 
 from ..ngw_api.qgis.ngw_resource_model_4qgis import (
-    QGISResourcesImporter,
+    QGISResourcesUploader,
     QGISStyleUpdater,
     QGISStyleAdder,
-    CurrentQGISProjectImporter,
+    QGISProjectUploader,
     MapForLayerCreater,
     NGWCreateWMSForVector,
     NGWUpdateVectorLayer,
@@ -547,16 +547,16 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
 
     @modelRequest()
-    def createNGWLayers(self, qgs_map_layers, parent_index):
-        if not parent_index.isValid():
-            parent_index = self.index(0, 0, parent_index)
+    def uploadResourcesList(self, qgs_layer_tree_nodes, ngw_current_index, iface):
+        if not ngw_current_index.isValid():
+            ngw_current_index = self.index(0, 0, ngw_current_index)
 
-        parent_index = self._nearest_ngw_group_resource_parent(parent_index)
-        parent_item = parent_index.internalPointer()
-        ngw_group = parent_item.data(QNGWResourceItem.NGWResourceRole)
+        ngw_group_index = self._nearest_ngw_group_resource_parent(ngw_current_index)
+        group_item = ngw_group_index.internalPointer()
+        ngw_group = group_item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(
-            QGISResourcesImporter(qgs_map_layers, ngw_group, self.ngw_version),
+            QGISResourcesUploader(qgs_layer_tree_nodes, ngw_group, iface, self.ngw_version),
         )
 
 
@@ -586,17 +586,16 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
 
     @modelRequest()
-    def tryImportCurentQGISProject(self, ngw_group_name, index, iface):
-        if not index.isValid():
-            index = self.index(0, 0, index)
+    def uploadProjectResources(self, ngw_group_name, ngw_current_index, iface):
+        if not ngw_current_index.isValid():
+            ngw_current_index = self.index(0, 0, ngw_current_index)
 
-        index = self._nearest_ngw_group_resource_parent(index)
-
-        item = index.internalPointer()
-        ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
+        ngw_group_index = self._nearest_ngw_group_resource_parent(ngw_current_index)
+        group_item = ngw_group_index.internalPointer()
+        ngw_resource = group_item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(
-            CurrentQGISProjectImporter(ngw_group_name, ngw_resource, iface, self.ngw_version),
+            QGISProjectUploader(ngw_group_name, ngw_resource, iface, self.ngw_version),
         )
 
     @modelRequest()

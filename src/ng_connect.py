@@ -109,13 +109,13 @@ plugins['nextgis_connect'].enableDebug(False)
 
         # Tools for NGW communicate
         ic = self.dockWidget.inner_control
-        for action in (ic.actionImportQGISResource, ic.actionUpdateStyle, ic.actionAddStyle):
+        for action in (ic.actionUploadSelectedResources, ic.actionUpdateStyle, ic.actionAddStyle):
             for layer_type in (QgsMapLayer.VectorLayer, QgsMapLayer.RasterLayer):
                 self.iface.addCustomActionForLayerType(action, self.title, layer_type, True)
 
     def unload(self):
         ic = self.dockWidget.inner_control
-        for action in (ic.actionImportQGISResource, ic.actionUpdateStyle, ic.actionAddStyle):
+        for action in (ic.actionUploadSelectedResources, ic.actionUpdateStyle, ic.actionAddStyle):
             self.iface.removeCustomActionForLayerType(action)
 
         self.toolbar.deleteLater()
