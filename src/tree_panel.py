@@ -105,6 +105,7 @@ class TreePanel(QDockWidget):
         super().__init__(parent)
 
         self.setWindowTitle('NextGIS Connect')
+        self.setObjectName('treePanel')
 
         self.inner_control = TreeControl(iface, self)
         self.inner_control.setWindowFlags(Qt.Widget)
