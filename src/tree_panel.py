@@ -318,9 +318,11 @@ class TreeControl(QMainWindow, FORM_CLASS):
     def checkImportActionsAvailability(self):
         current_qgis_layer = self.iface.mapCanvas().currentLayer()
         current_qgis_node = self.iface.layerTreeView().currentNode()
-        index = self.trvResources.selectionModel().currentIndex()
-        if index is not None:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        ngw_index = self.trvResources.selectionModel().currentIndex()
+        ngw_id = 0
+        if ngw_index is not None:
+            ngw_resource = ngw_index.data(QNGWResourceItem.NGWResourceRole)
+            ngw_id = ngw_index.data(QNGWResourceItem.NGWResourceIdRole)
         else:
             ngw_resource = None
 
@@ -337,7 +339,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
 
         if isinstance(ngw_resource, NGWQGISVectorStyle) or isinstance(ngw_resource, NGWQGISRasterStyle):
-            ngw_layer = index.parent().data(QNGWResourceItem.NGWResourceRole)
+            ngw_layer = ngw_index.parent().data(QNGWResourceItem.NGWResourceRole)
             self.actionUpdateStyle.setEnabledByType(current_qgis_layer, ngw_layer)
             self.actionAddStyle.setEnabled(False)
         else:
@@ -369,6 +371,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         # enable/dis webmap
         self.actionOpenMapInBrowser.setEnabled(isinstance(ngw_resource, NGWWebMap))
+
+        is_ngw_root_selected = ngw_id == 0
+        self.actionDeleteResource.setEnabled(not is_ngw_root_selected)
 
     def __model_warning_process(self, job, exception):
         self.__model_exception_process(job, exception, Qgis.Warning)
