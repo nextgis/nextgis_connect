@@ -324,10 +324,13 @@ class TreeControl(QMainWindow, FORM_CLASS):
         else:
             ngw_resource = None
 
-        self.actionUploadSelectedResources.setEnabled(
-            isinstance(current_qgis_layer, (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer))
-            or isinstance(current_qgis_node, QgsLayerTreeGroup )
-        )
+        layer_types = (QgsVectorLayer, QgsRasterLayer, QgsPluginLayer)
+        is_layer = (current_qgis_layer is not None
+                        and isinstance(current_qgis_layer, layer_types))
+        is_group = (current_qgis_node is not None
+                        and current_qgis_node.parent() is not None
+                        and isinstance(current_qgis_node, QgsLayerTreeGroup))
+        self.actionUploadSelectedResources.setEnabled(is_layer or is_group)
 
         self.actionUpdateNGWVectorLayer.setEnabled(
             isinstance(current_qgis_layer, QgsVectorLayer)
