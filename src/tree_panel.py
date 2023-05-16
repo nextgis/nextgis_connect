@@ -549,9 +549,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def block_gui(self):
         self.main_tool_bar.setEnabled(False)
+        # TODO (ivanbarsukov): Disable parent action
+        for action in (self.actionUploadSelectedResources, self.actionUpdateStyle, self.actionAddStyle):
+            action.setEnabled(False)
 
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
+        # TODO (ivanbarsukov): Disable parent action
+        for action in (self.actionUploadSelectedResources, self.actionUpdateStyle, self.actionAddStyle):
+            action.setEnabled(True)
 
     def block_tools(self):
         self.toolbuttonImport.setEnabled(False)
