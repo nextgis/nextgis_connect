@@ -2,7 +2,7 @@ from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QV
 from qgis.PyQt.QtCore import Qt
 
 
-class DialogImportQGISProj(QDialog):
+class UploadQGISProjectDialog(QDialog):
     def __init__(self, default_project_name, parent=None):
         super().__init__(parent)
 
@@ -12,9 +12,9 @@ class DialogImportQGISProj(QDialog):
         self.layout.addWidget(
             QLabel(self.tr("Project name"))
         )
-        self.leProjectName = QLineEdit(default_project_name)
+        self.projectNameLineEdit = QLineEdit(default_project_name)
         self.layout.addWidget(
-            self.leProjectName
+            self.projectNameLineEdit
         )
 
         btn_box = QDialogButtonBox(QDialogButtonBox.Ok, Qt.Horizontal, self)
@@ -23,5 +23,22 @@ class DialogImportQGISProj(QDialog):
             btn_box
         )
 
-    def getProjName(self):
-        return self.leProjectName.text()
+        self._adjustSizeToContent()
+
+    def projectName(self):
+        """
+        Get new project name
+        """
+
+        return self.projectNameLineEdit.text()
+
+    def _adjustSizeToContent(self):
+        """
+        Adjust dialog size to project name
+        """
+
+        font_metrics = self.projectNameLineEdit.fontMetrics()
+        extra_space = 40
+        needed_width = font_metrics.width(self.projectName()) + extra_space
+        self.projectNameLineEdit.setMinimumWidth(needed_width)
+        self.adjustSize()

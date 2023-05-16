@@ -75,7 +75,7 @@ from .ngw_api.utils import log, setDebugEnabled, setLogger
 from . import utils
 from .action_style_import_or_update import ActionStyleImportUpdate
 from .dialog_choose_style import NGWLayerStyleChooserDialog
-from .dialog_qgis_proj_import import DialogImportQGISProj
+from .dialog_qgis_proj_import import UploadQGISProjectDialog
 from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
 from .plugin_settings import PluginSettings
@@ -931,12 +931,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         ngw_current_index = self.trvResources.selectionModel().currentIndex()
 
-        dlg = DialogImportQGISProj(get_project_name(), self)
+        dlg = UploadQGISProjectDialog(get_project_name(), self)
         result = dlg.exec_()
         if not result:
             return
 
-        project_name = dlg.getProjName()
+        project_name = dlg.projectName()
 
         self.qgis_proj_import_response = self._resource_model.uploadProjectResources(
             project_name,
