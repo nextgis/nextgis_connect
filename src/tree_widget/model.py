@@ -1,9 +1,12 @@
+from typing import AnyStr
+
 from qgis.PyQt.QtCore import (
-    QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal, QThread, QVariant,
+    QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal, QThread, QVariant, Qt
 )
 
 from ..ngw_api.core import NGWGroupResource
-from ..ngw_api.qt.qt_ngw_resource_model_job import NGWRootResourcesLoader, NGWResourceUpdater
+from ..ngw_api.qt.qt_ngw_resource_model_job import NGWResourceModelJob, NGWResourceModelJobResult, NGWRootResourcesLoader, NGWResourceUpdater
+from ..ngw_api.qt.qt_ngw_resource_model_job_error import NGWResourceModelJobError
 from ..ngw_api.utils import log  # TODO REMOVE
 
 from .item import QModelItem, QNGWResourceItem
@@ -19,7 +22,7 @@ class NGWResourcesModelJob(QObject):
     errorOccurred = pyqtSignal(object)
     finished = pyqtSignal()
 
-    def __init__(self, parent, worker):
+    def __init__(self, parent: QObject, worker: NGWResourceModelJob):
         super().__init__(parent)
         self.__result = None
         self.__worker = worker
@@ -38,16 +41,16 @@ class NGWResourcesModelJob(QObject):
         self.model_response = resp
         self.model_response.job_id = self.__job_id
 
-    def __rememberResult(self, result):
+    def __rememberResult(self, result: NGWResourceModelJobResult):
         self.__result = result
 
-    def getJobId(self):
+    def getJobId(self) -> AnyStr:
         return self.__job_id
 
-    def getResult(self):
+    def getResult(self) -> NGWResourceModelJobResult:
         return self.__result
 
-    def error(self):
+    def error(self) -> NGWResourceModelJobError:
         return self.__error
 
     def processJobError(self, job_error):
@@ -212,7 +215,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         parent_item = self.item(parent)
         if isinstance(parent_item, QNGWResourceItem):
             ngw_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
-            return ngw_resource.common.children
+            return ngw_resource.common.children and ngw_resource.children_count != 0
 
         return parent_item.childCount() > 0
 
@@ -341,7 +344,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             if index is not None:
                 return index
 
-    def processJobResult(self, job):
+    def processJobResult(self, job: NGWResourcesModelJob):
         job_result = job.getResult()
 
         if job_result is None:
@@ -369,6 +372,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             if job_result.main_resource_id == ngw_resource.common.id:
                 if job.model_response is not None:
                     job.model_response.done.emit(new_index)
+
+        if len(indexes) == 0 and job.getJobId() == NGWResourceUpdater.__name__:
+            ngw_index = self.getIndexByNGWResourceId(job_result.main_resource_id)
+            self.data(ngw_index, QNGWResourceItem.NGWResourceRole).set_children_count(0)
+            # Qt API has no signal like 'hasChildrenChanged'. This is a workaround
+            self.beginInsertRows(ngw_index, 0, 0)
+            self.endInsertRows()
 
         for ngw_resource in job_result.edited_resources:
             if ngw_resource.common.parent is None:
