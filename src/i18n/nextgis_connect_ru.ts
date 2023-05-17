@@ -100,19 +100,6 @@
     </message>
 </context>
 <context>
-    <name>DialogImportQGISProj</name>
-    <message>
-        <location filename="../dialog_qgis_proj_import.py" line="9"/>
-        <source>Import parameters</source>
-        <translation>Параметры импорта</translation>
-    </message>
-    <message>
-        <location filename="../dialog_qgis_proj_import.py" line="12"/>
-        <source>Project name:</source>
-        <translation>Имя проекта:</translation>
-    </message>
-</context>
-<context>
     <name>MetadataDialog</name>
     <message>
         <location filename="../dialog_metadata.py" line="25"/>
@@ -211,7 +198,7 @@
 <context>
     <name>QNGWResourceTreeView</name>
     <message>
-        <location filename="../tree_widget/view.py" line="103"/>
+        <location filename="../tree_widget/view.py" line="105"/>
         <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет активных подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &amp;lt;a href=&amp;quot;https://my.nextgis.com/&amp;quot;&amp;gt;nextgis.com&amp;lt;/a&amp;gt;!</translation>
     </message>
@@ -227,339 +214,352 @@
 <context>
     <name>TreeControl</name>
     <message>
-        <location filename="../tree_panel.py" line="127"/>
+        <location filename="../tree_panel.py" line="128"/>
         <source>Open in WebGIS</source>
         <translation>Открыть в Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="130"/>
+        <location filename="../tree_panel.py" line="131"/>
         <source>Rename</source>
         <translation>Переименовать</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="133"/>
+        <location filename="../tree_panel.py" line="134"/>
         <source>Add to QGIS</source>
         <translation>Добавить в QGIS</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="138"/>
+        <location filename="../tree_panel.py" line="139"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="142"/>
-        <source>Import selected layer(s)</source>
-        <translation>Импортировать выбранные слои</translation>
-    </message>
-    <message>
-        <location filename="../tree_panel.py" line="147"/>
-        <source>Import current project</source>
-        <translation>Импортировать текущий проект</translation>
-    </message>
-    <message>
-        <location filename="../tree_panel.py" line="151"/>
+        <location filename="../tree_panel.py" line="152"/>
         <source>Update layer style</source>
         <translation>Обновить стиль слоя</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="154"/>
+        <location filename="../tree_panel.py" line="155"/>
         <source>Add new style to layer</source>
         <translation>Добавить новый стиль к слою</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="162"/>
+        <location filename="../tree_panel.py" line="163"/>
         <source>Overwrite selected layer</source>
         <translation>Перезаписать выбранный слой</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="178"/>
+        <location filename="../tree_panel.py" line="179"/>
         <source>Download as QML</source>
         <translation>Загрузить как QML</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1239"/>
+        <location filename="../tree_panel.py" line="1266"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="184"/>
+        <location filename="../tree_panel.py" line="185"/>
         <source>Create WMS service</source>
         <translation>Создать сервис WMS</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1184"/>
+        <location filename="../tree_panel.py" line="1211"/>
         <source>Copy resource</source>
         <translation>Копировать ресурс</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="190"/>
+        <location filename="../tree_panel.py" line="191"/>
         <source>Edit metadata</source>
         <translation>Редактировать метаданные</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1040"/>
+        <location filename="../tree_panel.py" line="1067"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="202"/>
+        <location filename="../tree_panel.py" line="203"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="207"/>
+        <location filename="../tree_panel.py" line="208"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="212"/>
+        <location filename="../tree_panel.py" line="213"/>
         <source>Help</source>
         <translation>Справка</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="249"/>
+        <location filename="../tree_panel.py" line="250"/>
         <source>Resource is being created</source>
         <translation>Ресурс создается</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="250"/>
+        <location filename="../tree_panel.py" line="251"/>
         <source>Resource is being deleted</source>
         <translation>Ресурс удаляется</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="251"/>
+        <location filename="../tree_panel.py" line="252"/>
         <source>Layer is being imported</source>
         <translation>Слой импортируется</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="252"/>
+        <location filename="../tree_panel.py" line="253"/>
         <source>Project is being imported</source>
         <translation>Проект импортируется</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="253"/>
+        <location filename="../tree_panel.py" line="254"/>
         <source>WFS service is being created</source>
         <translation>Создается сервис WFS</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="254"/>
+        <location filename="../tree_panel.py" line="255"/>
         <source>WMS service is being created</source>
         <translation>Создается сервис WMS</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="256"/>
+        <location filename="../tree_panel.py" line="257"/>
         <source>Web map is being created</source>
         <translation>Создается веб-карта</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="257"/>
+        <location filename="../tree_panel.py" line="258"/>
         <source>Style for layer is being updated</source>
         <translation>Обновляется стиль слоя</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="258"/>
+        <location filename="../tree_panel.py" line="259"/>
         <source>Style for layer is being created</source>
         <translation>Создается стиль для слоя</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="259"/>
+        <location filename="../tree_panel.py" line="260"/>
         <source>Resource is being renamed</source>
         <translation>Идет переименование ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="260"/>
+        <location filename="../tree_panel.py" line="261"/>
         <source>Resource is being updated</source>
         <translation>Ресурс обновляется</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="468"/>
+        <location filename="../tree_panel.py" line="479"/>
         <source>Access denied. Enter your login.</source>
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1003"/>
+        <location filename="../tree_panel.py" line="1030"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="486"/>
+        <location filename="../tree_panel.py" line="497"/>
         <source>Internal plugin error occurred!</source>
         <translation>Произошла внутренняя ошибка модуля!</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="493"/>
+        <location filename="../tree_panel.py" line="504"/>
         <source>See logs for details.</source>
         <translation>Подробности в отладочных сообщениях.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="500"/>
+        <location filename="../tree_panel.py" line="511"/>
         <source>Open logs.</source>
         <translation>Открыть отладочные сообщения.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="660"/>
+        <location filename="../tree_panel.py" line="677"/>
         <source>This type of raster is not supported yet</source>
         <translation>Данный тип растра пока не поддерживается</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="660"/>
+        <location filename="../tree_panel.py" line="677"/>
         <source>Please add COG support</source>
         <translation>Добавьте поддержку COG</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="660"/>
+        <location filename="../tree_panel.py" line="677"/>
         <source>https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer</source>
         <translation>https://docs.nextgis.ru/docs_ngcom/source/data_upload.html#ngcom-raster-layer</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="758"/>
+        <location filename="../tree_panel.py" line="775"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="794"/>
+        <location filename="../tree_panel.py" line="811"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="844"/>
+        <location filename="../tree_panel.py" line="861"/>
         <source>You are trying to add a WFS service containing a layer with Z dimension. WFS in QGIS doesn&apos;t fully support editing such geometries. You won&apos;t be able to edit and create new features. You will only be able to delete features. To fix this, change geometry type of your layer(s) and recreate WFS service.</source>
         <translation>Вы собираетесь добавить сервис WFS, один из слоёв которого имеет измерение Z. Редактирование таких геометрий по WFS в QGIS не поддерживается. Вы не сможете редактировать и создавать новые объекты. Вы сможете только удалять объекты целиком. Чтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="844"/>
+        <location filename="../tree_panel.py" line="861"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1418"/>
+        <location filename="../tree_panel.py" line="1445"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="992"/>
+        <location filename="../tree_panel.py" line="1019"/>
         <source>Get resource metadata</source>
         <translation>Получение метаданных ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1040"/>
+        <location filename="../tree_panel.py" line="1067"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1071"/>
+        <location filename="../tree_panel.py" line="1098"/>
         <source>Failed to download raster source:</source>
         <translation>Ошибка загрузки растрового файла:</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1104"/>
+        <location filename="../tree_panel.py" line="1131"/>
         <source>Can&apos;t open file to write raster!</source>
         <translation>Ошибка записи растрового файла!</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1184"/>
+        <location filename="../tree_panel.py" line="1211"/>
         <source>Are you sure you want to copy this resource?</source>
         <translation>Вы уверены, что хотите создать копию этого ресурса?</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1199"/>
+        <location filename="../tree_panel.py" line="1226"/>
         <source>Copying</source>
         <translation>Копирование</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1231"/>
+        <location filename="../tree_panel.py" line="1258"/>
         <source>You are trying to create a WFS service for a layer that contains Z geometries. WFS in QGIS doesn&apos;t fully support editing such geometries. To fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается. Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1239"/>
+        <location filename="../tree_panel.py" line="1266"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1337"/>
+        <location filename="../tree_panel.py" line="1364"/>
         <source>NextGIS Connect operation exceptions</source>
         <translation>Предупреждения операции NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1375"/>
+        <location filename="../tree_panel.py" line="1402"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1378"/>
+        <location filename="../tree_panel.py" line="1405"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1391"/>
+        <location filename="../tree_panel.py" line="1418"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1391"/>
+        <location filename="../tree_panel.py" line="1418"/>
         <source>QGIS style (*.qml)</source>
         <translation>Стиль QGIS (*.qml)</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1413"/>
+        <location filename="../tree_panel.py" line="1440"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="898"/>
+        <location filename="../tree_panel.py" line="915"/>
         <source>Create resource group</source>
         <translation>Создать группу ресурсов</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="416"/>
+        <location filename="../tree_panel.py" line="427"/>
         <source>Failed to connect. Please re-enter Web GIS connection settings.</source>
         <translation>Ошибка соединения. Пожалуйста, введите другие данные подключения.</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="175"/>
+        <location filename="../tree_panel.py" line="176"/>
         <source>Create web Map</source>
         <translation>Создать веб-карту</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="197"/>
+        <location filename="../tree_panel.py" line="198"/>
         <source>Open web map in browser</source>
         <translation>Открыть веб-карту в браузере</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="898"/>
+        <location filename="../tree_panel.py" line="915"/>
         <source>Resource group name:</source>
         <translation>Имя новой группы ресурсов:</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="898"/>
+        <location filename="../tree_panel.py" line="915"/>
         <source>New resource group</source>
         <translation>Новая группа ресурсов</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1268"/>
+        <location filename="../tree_panel.py" line="1295"/>
         <source>Create WMS service for layer</source>
         <translation>Создать сервис WMS для слоя</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="1299"/>
+        <location filename="../tree_panel.py" line="1326"/>
         <source>Create web map for layer</source>
         <translation>Создать веб-карту для слоя</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="895"/>
+        <location filename="../tree_panel.py" line="912"/>
         <source>Please select parent resource group for a new resource group</source>
         <translation>Пожалуйста, выберите родительскую группу ресурсов для новой группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="964"/>
+        <location filename="../tree_panel.py" line="991"/>
         <source>Overwrite resource</source>
         <translation>Перезаписать ресурс</translation>
     </message>
     <message>
-        <location filename="../tree_panel.py" line="964"/>
+        <location filename="../tree_panel.py" line="991"/>
         <source>Resource &apos;%s&apos; will be overwritten with QGIS layer &apos;%s&apos;. Current data will be lost.&lt;br/&gt; Are you sure you want to overwrite it?</source>
         <translation>Ресурс &apos;%s&apos; будет перезаписан слоем QGIS &apos;%s&apos;. Текущие данные будут потеряны.&lt;br/&gt; Вы уверены что хотите перезаписать его?</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py" line="143"/>
+        <source>Upload selected</source>
+        <translation>Загрузить выбранное</translation>
+    </message>
+    <message>
+        <location filename="../tree_panel.py" line="148"/>
+        <source>Upload all</source>
+        <translation>Загрузить всё</translation>
+    </message>
+</context>
+<context>
+    <name>UploadQGISProjectDialog</name>
+    <message>
+        <location filename="../dialog_qgis_proj_import.py" line="9"/>
+        <source>Import parameters</source>
+        <translation>Параметры импорта</translation>
+    </message>
+    <message>
+        <location filename="../dialog_qgis_proj_import.py" line="12"/>
+        <source>Project name</source>
+        <translation>Имя проекта</translation>
     </message>
 </context>
 </TS>
