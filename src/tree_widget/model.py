@@ -5,11 +5,25 @@ from qgis.PyQt.QtCore import (
 )
 
 from ..ngw_api.core import NGWGroupResource
-from ..ngw_api.qt.qt_ngw_resource_model_job import NGWResourceModelJob, NGWResourceModelJobResult, NGWRootResourcesLoader, NGWResourceUpdater
+from ..ngw_api.qt.qt_ngw_resource_model_job import (
+    NGWCreateMapForStyle, NGWCreateWFSForVector, NGWGroupCreater, NGWRenameResource,
+    NGWResourceDelete, NGWRootResourcesLoader, NGWResourceUpdater, NGWResourceModelJob,
+    NGWResourceModelJobResult,
+)
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import NGWResourceModelJobError
 from ..ngw_api.utils import log  # TODO REMOVE
 
 from .item import QModelItem, QNGWResourceItem
+
+from ..ngw_api.qgis.ngw_resource_model_4qgis import (
+    QGISResourcesUploader,
+    QGISStyleUpdater,
+    QGISStyleAdder,
+    QGISProjectUploader,
+    MapForLayerCreater,
+    NGWCreateWMSForVector,
+    NGWUpdateVectorLayer,
+)
 
 
 __all__ = ["QNGWResourceTreeModel"]
@@ -215,7 +229,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         parent_item = self.item(parent)
         if isinstance(parent_item, QNGWResourceItem):
             ngw_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
-            return ngw_resource.common.children and ngw_resource.children_count != 0
+            has_fetched_children = ngw_resource.common.children and ngw_resource.children_count != 0
+            has_created_children = not ngw_resource.common.children and parent_item.childCount() > 0
+            return has_fetched_children or has_created_children
 
         return parent_item.childCount() > 0
 
@@ -432,21 +448,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             self.ngw_version = self._ngw_connection.get_version()
         except:
             self.ngw_version = None
-
-
-from ..ngw_api.qgis.ngw_resource_model_4qgis import (
-    QGISResourcesUploader,
-    QGISStyleUpdater,
-    QGISStyleAdder,
-    QGISProjectUploader,
-    MapForLayerCreater,
-    NGWCreateWMSForVector,
-    NGWUpdateVectorLayer,
-)
-from ..ngw_api.qt.qt_ngw_resource_model_job import (
-    NGWCreateMapForStyle, NGWCreateWFSForVector, NGWGroupCreater, NGWRenameResource,
-    NGWResourceDelete,
-)
 
 
 class NGWResourceModelResponse(QObject):

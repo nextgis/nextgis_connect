@@ -24,9 +24,14 @@ import os
 import traceback
 
 from qgis.core import (
-    Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer, QgsPluginLayer, QgsLayerTreeGroup, QgsProject,
-    QgsNetworkAccessManager,
+    Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer,
+    QgsPluginLayer, QgsLayerTreeGroup, QgsNetworkAccessManager,
 )
+
+from qgis.gui import (
+    QgisInterface
+)
+
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
@@ -35,8 +40,8 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
-    QAction, QDockWidget, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu, QMessageBox,
-    QPushButton, QSizePolicy, QToolBar, QToolButton,
+    QAction, QDockWidget, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu,
+    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton,
 )
 
 from .ngw_api.core import (
@@ -91,10 +96,10 @@ FORM_CLASS, _ = uic.loadUiType(os.path.join(
 ICONS_PATH = os.path.join(this_dir, 'icons/')
 
 
-def qgisLog(msg, level=Qgis.Info):
+def qgisLog(msg, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
-def ngwApiLog(msg, level=Qgis.Info):
+def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(msg, "NGW API", level)
 
 setLogger(ngwApiLog)
@@ -117,6 +122,9 @@ class TreePanel(QDockWidget):
 
 
 class TreeControl(QMainWindow, FORM_CLASS):
+    iface: QgisInterface
+    _resource_model: QNGWResourceTreeModel
+
     def __init__(self, iface, parent=None):
         super().__init__(parent)
 
@@ -220,14 +228,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.addToolBar(self.main_tool_bar)
 
         self.main_tool_bar.addAction(self.actionExport)
-        self.toolbuttonImport = QToolButton()
-        self.toolbuttonImport.setPopupMode(QToolButton.InstantPopup)
-        self.toolbuttonImport.setMenu(self.menuUpload)
-        self.toolbuttonImport.setIcon(self.menuUpload.icon())
-        self.toolbuttonImport.setText(self.menuUpload.title())
-        self.toolbuttonImport.setToolTip(self.menuUpload.title())
+        self.toolbuttonUpload = QToolButton()
+        self.toolbuttonUpload.setPopupMode(QToolButton.InstantPopup)
+        self.toolbuttonUpload.setMenu(self.menuUpload)
+        self.toolbuttonUpload.setIcon(self.menuUpload.icon())
+        self.toolbuttonUpload.setText(self.menuUpload.title())
+        self.toolbuttonUpload.setToolTip(self.menuUpload.title())
 
-        self.main_tool_bar.addWidget(self.toolbuttonImport)
+        self.main_tool_bar.addWidget(self.toolbuttonUpload)
         self.main_tool_bar.addSeparator()
         self.main_tool_bar.addAction(self.actionCreateNewGroup)
         self.main_tool_bar.addAction(self.actionRefresh)
@@ -338,7 +346,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             isinstance(current_qgis_layer, QgsVectorLayer)
         )
 
-        if isinstance(ngw_resource, NGWQGISVectorStyle) or isinstance(ngw_resource, NGWQGISRasterStyle):
+        if isinstance(ngw_resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
             ngw_layer = ngw_index.parent().data(QNGWResourceItem.NGWResourceRole)
             self.actionUpdateStyle.setEnabledByType(current_qgis_layer, ngw_layer)
             self.actionAddStyle.setEnabled(False)
@@ -348,10 +356,15 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionUploadProjectResources.setEnabled(QgsProject.instance().count() != 0)
 
-        self.toolbuttonImport.setEnabled(
-            (self.actionUploadSelectedResources.isEnabled() or self.actionUploadProjectResources.isEnabled() or
-                self.actionAddStyle.isEnabled() or self.actionUpdateStyle.isEnabled() or self.actionUpdateNGWVectorLayer.isEnabled())
-        )
+        upload_actions = [
+            self.actionUploadSelectedResources,
+            self.actionUploadProjectResources,
+            self.actionUpdateStyle,
+            self.actionAddStyle,
+            self.actionUpdateNGWVectorLayer
+        ]
+        upload_actions_is_enabled = [action.isEnabled() for action in upload_actions]
+        self.toolbuttonUpload.setEnabled(any(upload_actions_is_enabled))
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
         self.actionExport.setEnabled(
@@ -376,10 +389,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionDeleteResource.setEnabled(not is_ngw_root_selected)
 
     def __model_warning_process(self, job, exception):
-        self.__model_exception_process(job, exception, Qgis.Warning)
+        self.__model_exception_process(job, exception, Qgis.MessageLevel.Warning)
 
     def __model_error_process(self, job, exception):
-        self.__model_exception_process(job, exception, Qgis.Critical)
+        self.__model_exception_process(job, exception, Qgis.MessageLevel.Critical)
 
     def __model_exception_process(self, job, exception, level, trace=None):
         self.unblock_gui() # always unblock in case of any error so to allow to fix it
@@ -393,7 +406,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         if exception.__class__ == JobAuthorizationError:
             self.try_check_https = False
-            dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=True)
+            dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett,
+                                          only_password_change=True)
             dlg.setWindowTitle(self.tr("Access denied. Enter your login."))
             res = dlg.exec_()
             if res:
@@ -423,7 +437,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 else:
                     self.jobs_count = 0 # mark that the next connection will also be the first one
                     old_con_name = conn_sett.connection_name
-                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett, only_password_change=False)
+                    dlg = NGWConnectionEditDialog(ngw_connection_settings=conn_sett,
+                                                  only_password_change=False)
                     dlg.set_alert_msg(self.tr('Failed to connect. Please re-enter Web GIS connection settings.'))
                     res = dlg.exec_()
                     if res:
@@ -499,7 +514,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         return msg, msg_ext, icon
 
-    def __msg_in_qgis_mes_bar(self, message, need_show_log, level=Qgis.Info, duration=0):
+    def __msg_in_qgis_mes_bar(self, message, need_show_log, level=Qgis.MessageLevel.Info, duration=0):
         if need_show_log:
             message += " " + self.tr("See logs for details.")
         widget = self.iface.messageBar().createMessage(
@@ -555,12 +570,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
-        # TODO (ivanbarsukov): Disable parent action
-        for action in (self.actionUploadSelectedResources, self.actionUpdateStyle, self.actionAddStyle):
-            action.setEnabled(True)
+        self.checkImportActionsAvailability()
 
     def block_tools(self):
-        self.toolbuttonImport.setEnabled(False)
+        self.toolbuttonUpload.setEnabled(False)
 
 
     def reinit_tree(self, force=False):
@@ -663,7 +676,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             setDebugEnabled(debug_mode)
             QgsMessageLog.logMessage(
                 'Debug messages are now %s' % ('enabled' if debug_mode else 'disabled'),
-                PluginSettings._product, level=Qgis.Info)
+                PluginSettings._product, level=Qgis.MessageLevel.Info)
 
         self.reinit_tree()
 
@@ -900,9 +913,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     error_mes,
-                    level=Qgis.Critical
+                    level=Qgis.MessageLevel.Critical
                 )
-                qgisLog(error_mes, level=Qgis.Critical)
+                qgisLog(error_mes, level=Qgis.MessageLevel.Critical)
 
     def create_group(self):
         sel_index = self.trvResources.selectedIndex()
@@ -1030,35 +1043,35 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     self.tr("Error occurred while communicating with Web GIS."),
-                    level=Qgis.Critical
+                    level=Qgis.MessageLevel.Critical
                 )
                 self.trvResources.ngw_job_block_overlay.hide()
-                ngwApiLog(error_mes, level=Qgis.Critical)
+                ngwApiLog(error_mes, level=Qgis.MessageLevel.Critical)
 
             except Exception as ex:
                 error_mes = str(traceback.format_exc())
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     ex,
-                    level=Qgis.Critical
+                    level=Qgis.MessageLevel.Critical
                 )
                 self.trvResources.ngw_job_block_overlay.hide()
-                ngwApiLog(error_mes, level=Qgis.Critical)
+                ngwApiLog(error_mes, level=Qgis.MessageLevel.Critical)
 
             self.unblock_gui()
 
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        sel_index = self.trvResources.selectionModel().currentIndex()
-        response = self._resource_model.updateQGISStyle(qgs_map_layer, sel_index)
+        ngw_layer_index = self.trvResources.selectionModel().currentIndex()
+        response = self._resource_model.updateQGISStyle(qgs_map_layer, ngw_layer_index)
         response.done.connect(
             self.trvResources.setCurrentIndex
         )
 
     def add_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        sel_index = self.trvResources.selectionModel().currentIndex()
-        response = self._resource_model.addQGISStyle(qgs_map_layer, sel_index)
+        ngw_layer_index = self.trvResources.selectionModel().currentIndex()
+        response = self._resource_model.addQGISStyle(qgs_map_layer, ngw_layer_index)
         response.done.connect(
             self.trvResources.setCurrentIndex
         )
@@ -1109,7 +1122,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             authstr = QByteArray(('Basic ').encode('utf-8')).append(authstr)
             req.setRawHeader(("Authorization").encode('utf-8'), authstr)
 
-        if raster_file.open(QIODevice.WriteOnly):
+        if raster_file.open(QIODevice.OpenModeFlag.WriteOnly):
 
             ev_loop = QEventLoop()
             dwn_qml_manager = QNetworkAccessManager()
@@ -1237,9 +1250,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.iface.messageBar().pushMessage(
                     self.tr('Error'),
                     error_mes,
-                    level=Qgis.Critical
+                    level=Qgis.MessageLevel.Critical
                 )
-                qgisLog(error_mes, level=Qgis.Critical)
+                qgisLog(error_mes, level=Qgis.MessageLevel.Critical)
 
             # unblock gui
             self.trvResources.ngw_job_block_overlay.hide()
@@ -1405,7 +1418,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 self.__msg_in_qgis_mes_bar(
                     self.tr("QML file could not be downloaded"),
                     True,
-                    Qgis.Critical
+                    Qgis.MessageLevel.Critical
                 )
 
         reply.deleteLater()
