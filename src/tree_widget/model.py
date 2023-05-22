@@ -150,7 +150,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self._get_ngw_version()
 
         self.endResetModel()
-        self.modelReset.emit()
 
     def cleanModel(self):
         self.__cleanModel()
