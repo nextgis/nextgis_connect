@@ -65,11 +65,6 @@ class SettingsDialog(QDialog, FORM_CLASS):
         self.chSanitizeFixGeometry.hide()
         self.chSanitizeFixGeometry.stateChanged.connect(self.sanitizeOptionsChanged)
 
-        self.cbForceImport.setCheckState(
-            QtCore.Qt.Unchecked if NgwApiSettings.get_force_qgis_project_import() else QtCore.Qt.Checked
-        )
-        self.cbForceImport.stateChanged.connect(self.forceImportChanged)
-
         self.cbAutoOpenWebMap.setCheckState(
             QtCore.Qt.Checked if PluginSettings.auto_open_web_map_option() else QtCore.Qt.Unchecked
         )
@@ -157,10 +152,6 @@ class SettingsDialog(QDialog, FORM_CLASS):
 
         if optionWidget is self.chSanitizeFixGeometry:
             NgwApiSettings.set_sanitize_fix_geometry(option)
-
-    def forceImportChanged(self, state):
-        option = (state != QtCore.Qt.Checked)
-        NgwApiSettings.set_force_qgis_project_import(option)
 
     def autoOpenWebMapChanged(self, state):
         option = (state == QtCore.Qt.Checked)

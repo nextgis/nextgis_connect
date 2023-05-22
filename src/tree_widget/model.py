@@ -367,6 +367,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             # TODO Exception
             return
 
+        if (job_result.is_empty() and job.model_response is not None
+                and len(job.model_response.warnings()) > 0):
+            job.model_response.done.emit(QModelIndex())
+            return
+
         indexes = {}
         for ngw_resource in job_result.added_resources:
             if ngw_resource.common.parent is None:
@@ -395,6 +400,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             # Qt API has no signal like 'hasChildrenChanged'. This is a workaround
             self.beginInsertRows(ngw_index, 0, 0)
             self.endInsertRows()
+        elif len(indexes) > 0 and job_result.main_resource_id == -1:
+            job.model_response.done.emit(QModelIndex())
+            pass
 
         for ngw_resource in job_result.edited_resources:
             if ngw_resource.common.parent is None:

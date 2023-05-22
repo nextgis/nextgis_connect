@@ -101,16 +101,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="cbForceImport">
-     <property name="text">
-      <string>Abort project import after first layer import failure</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QCheckBox" name="cbAutoOpenWebMap">
      <property name="text">
       <string>Open web map automatically on creation</string>
