@@ -947,14 +947,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
         """
 
         def get_project_name():
-            current_project_title = ''
             current_project = QgsProject.instance()
             if current_project.title() != '':
-                current_project_title = current_project.title()
+                return current_project.title()
             elif current_project.fileName() != '':
-                current_project_title = current_project.baseName()
-
-            return current_project_title
+                return current_project.baseName()
+            return ''
 
         ngw_current_index = self.trvResources.selectionModel().currentIndex()
 

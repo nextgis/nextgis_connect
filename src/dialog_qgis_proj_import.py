@@ -9,34 +9,21 @@ class UploadQGISProjectDialog(QDialog):
         self.setWindowTitle(self.tr("Import parameters"))
 
         self.layout = QVBoxLayout(self)
-        self.layout.addWidget(
-            QLabel(self.tr("Project name"))
-        )
+        self.layout.addWidget(QLabel(self.tr("Resource group name:")))
+
         self.projectNameLineEdit = QLineEdit(default_project_name)
-        self.layout.addWidget(
-            self.projectNameLineEdit
-        )
+        self.layout.addWidget(self.projectNameLineEdit)
 
         btn_box = QDialogButtonBox(QDialogButtonBox.Ok, Qt.Horizontal, self)
         btn_box.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
-        self.layout.addWidget(
-            btn_box
-        )
+        self.layout.addWidget(btn_box)
 
         self._adjustSizeToContent()
 
     def projectName(self):
-        """
-        Get new project name
-        """
-
         return self.projectNameLineEdit.text()
 
     def _adjustSizeToContent(self):
-        """
-        Adjust dialog size to project name
-        """
-
         font_metrics = self.projectNameLineEdit.fontMetrics()
         extra_space = 40
         needed_width = font_metrics.width(self.projectName()) + extra_space
