@@ -44,22 +44,17 @@
         <translation>Переименовывать запрещенные поля</translation>
     </message>
     <message>
-        <location filename="../settings_dialog_base.ui" line="106"/>
-        <source>Abort project import after first layer import failure</source>
-        <translation>Прервать импорт проекта после первой ошибки импорта слоя</translation>
-    </message>
-    <message>
-        <location filename="../settings_dialog_base.ui" line="123"/>
+        <location filename="../settings_dialog_base.ui" line="113"/>
         <source>Add WFS layer to QGIS on WFS service creation</source>
         <translation>Добавлять слой WFS в QGIS после создания сервиса WFS</translation>
     </message>
     <message>
-        <location filename="../settings_dialog_base.ui" line="130"/>
+        <location filename="../settings_dialog_base.ui" line="120"/>
         <source>Upload rasters as Cloud Optimized GeoTIFF (COG)</source>
         <translation>Загружать растры как Cloud Optimized GeoTIFF (COG)</translation>
     </message>
     <message>
-        <location filename="../settings_dialog_base.ui" line="140"/>
+        <location filename="../settings_dialog_base.ui" line="130"/>
         <source>Enable log messages</source>
         <translation>Выводить отладочные сообщения</translation>
     </message>
@@ -94,7 +89,7 @@
         <translation>Редактировать метаданные</translation>
     </message>
     <message>
-        <location filename="../settings_dialog_base.ui" line="116"/>
+        <location filename="../settings_dialog_base.ui" line="106"/>
         <source>Open web map automatically on creation</source>
         <translation>Открывать веб-карту автоматически после создания</translation>
     </message>
@@ -206,7 +201,7 @@
 <context>
     <name>SettingsDialog</name>
     <message>
-        <location filename="../settings_dialog.py" line="110"/>
+        <location filename="../settings_dialog.py" line="105"/>
         <source>Edit connection</source>
         <translation>Редактировать соединение</translation>
     </message>
