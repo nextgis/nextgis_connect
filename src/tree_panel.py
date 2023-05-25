@@ -282,7 +282,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.jobs_count = 0
         self.try_check_https = False
 
-        self.iface.initializationCompleted.connect(self.reinit_tree)
         # update state
         if QSettings().value("proxy/proxyEnabled", None) is not None:
             self.reinit_tree()
