@@ -366,8 +366,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             # TODO Exception
             return
 
-        if (job_result.is_empty() and job.model_response is not None
-                and len(job.model_response.warnings()) > 0):
+        if (
+            job_result.is_empty() and job.model_response is not None
+            and len(job.model_response.warnings()) > 0
+        ):
             job.model_response.done.emit(QModelIndex())
             return
 
