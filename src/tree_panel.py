@@ -1175,7 +1175,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
                 'ogr'
             )
             if not qgs_layer.isValid():
-                raise Exception('Layer "%s" can\'t be added to the map!' % ngw_src.common.display_name)
+                raise Exception('Layer "{}" can\'t be added to the map!'.format(ngw_src.common.display_name))
             qgs_layer.dataProvider().setEncoding('UTF-8')
 
         elif ngw_src.type_id == NGWRasterLayer.type_id:
@@ -1183,7 +1183,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
             qgs_layer = QgsRasterLayer(raster_file.fileName(), ngw_src.common.display_name, 'gdal')
             if not qgs_layer.isValid():
                 log('Failed to add raster layer to QGIS')
-                raise Exception('Layer "%s" can\'t be added to the map!' % ngw_src.common.display_name)
+                raise Exception('Layer "{}" can\'t be added to the map!'.format(ngw_src.common.display_name))
         else:
             raise Exception('Wrong layer type! Type id: {}' % ngw_src.type_id)
 
