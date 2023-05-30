@@ -21,11 +21,11 @@
 """
 from os import path
 
-from qgis.PyQt.QtCore import Qt, QSettings, QTranslator, QCoreApplication
+from qgis.PyQt.QtCore import Qt, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from qgis.core import Qgis, QgsMessageLog, QgsMapLayerType
+from qgis.core import Qgis, QgsApplication, QgsMessageLog, QgsMapLayerType
 from qgis.gui import QgisInterface
 
 from .plugin_settings import PluginSettings
@@ -81,7 +81,7 @@ plugins['nextgis_connect'].enableDebug(False)
 
     def __init_translator(self):
         # initialize locale
-        locale = QSettings().value('locale/userLocale')[0:2]
+        locale = QgsApplication.instance().locale()
         self._translators = list()
 
         def add_translator(locale_path):
