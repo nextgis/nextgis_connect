@@ -220,7 +220,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionHelp = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionHelp.svg')),
             self.tr("Help"), self)
-        self.actionHelp.triggered.connect(self.action_help)
+        self.actionHelp.triggered.connect(utils.open_plugin_help)
 
         # Add toolbar
         self.main_tool_bar = NGWPanelToolBar()
@@ -678,8 +678,6 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.reinit_tree()
 
-    def action_help(self):
-        QDesktopServices.openUrl(QUrl('https://docs.nextgis.com/docs_ngconnect/source/toc.html'))
 
     def str_to_link(self, text, url):
         return '<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)

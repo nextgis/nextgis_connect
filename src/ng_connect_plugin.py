@@ -30,8 +30,10 @@ from qgis.gui import QgisInterface
 
 from .plugin_settings import PluginSettings
 from .tree_panel import TreePanel
+from . import utils
 
-from .ngw_api import qgis, utils
+from .ngw_api import qgis
+from .ngw_api import utils as ngwapi_utils
 from .ngw_api.utils import setDebugEnabled
 
 
@@ -141,9 +143,19 @@ plugins['nextgis_connect'].enableDebug(False)
             self.__show_ngw_resources_tree_action
         )
 
+        # Add action to Plugins
         self.iface.addPluginToMenu(
             self.title, self.__show_ngw_resources_tree_action
         )
+
+        # Add adction to Help > Plugins
+        self.__show_help_action = QAction(
+            QIcon(self.plugin_dir + '/icon.png'),
+            self.title,
+            self.iface.mainWindow()
+        )
+        self.__show_help_action.triggered.connect(utils.open_plugin_help)
+        self.iface.pluginHelpMenu().addAction(self.__show_help_action)
 
     def __unload_ng_connect_menus(self):
         self.iface.removePluginMenu(
@@ -152,6 +164,9 @@ plugins['nextgis_connect'].enableDebug(False)
 
         self.__ng_connect_toolbar.deleteLater()
         self.__show_ngw_resources_tree_action.deleteLater()
+
+        self.iface.pluginHelpMenu().removeAction(self.__show_help_action)
+        self.__show_help_action.deleteLater()
 
     def __init_ng_layer_actions(self):
         # Tools for NGW communicate
@@ -192,10 +207,10 @@ plugins['nextgis_connect'].enableDebug(False)
         from . import ngw_api
         print(("NGW API v. %s" % (ngw_api.__version__) ))
 
-        print(("NGW API log %s" % ("ON" if utils.debug else "OFF") ))
+        print(("NGW API log %s" % ("ON" if ngwapi_utils.debug else "OFF") ))
 
     @staticmethod
     def enableDebug(flag):
-        utils.debug = flag
+        ngwapi_utils.debug = flag
 
-        print(("NGW API log %s" % ("ON" if utils.debug else "OFF") ))
+        print(("NGW API log %s" % ("ON" if ngwapi_utils.debug else "OFF") ))

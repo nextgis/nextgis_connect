@@ -1,4 +1,5 @@
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout,
 )
@@ -69,3 +70,8 @@ class ChooserDialog(QDialog):
     def accept(self):
         self.seleced_options = [item.text() for item in self.list.selectedItems()]
         super().accept()
+
+def open_plugin_help():
+    QDesktopServices.openUrl(
+        QUrl('https://docs.nextgis.com/docs_ngconnect/source/toc.html')
+    )
