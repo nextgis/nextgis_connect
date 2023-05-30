@@ -19,8 +19,6 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.Qt import Qt
-from qgis.PyQt.QtCore import QSize, QPoint
 
 from .ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSettings
 
@@ -29,65 +27,6 @@ class PluginSettings(CommonPluginSettings):
 
     _company_name = 'NextGIS'
     _product = 'NextGISConnect'
-
-    @classmethod
-    def dock_area(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/dockWidgetArea', Qt.RightDockWidgetArea, type=int)
-
-    @classmethod
-    def set_dock_area(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/dockWidgetArea', val)
-
-    @classmethod
-    def dock_floating(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/dockIsFloating', False, type=bool)
-
-    @classmethod
-    def set_dock_floating(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/dockIsFloating', val)
-
-    @classmethod
-    def dock_size(cls):
-        settings = cls.get_settings()
-        def_value = QSize(150, 300)
-        value = settings.value('/ui/dockWidgetSize', def_value, type=QSize)
-        if value.isNull(): # see dock_pos() why we do this
-            return def_value
-        return value
-
-    @classmethod
-    def set_dock_size(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/dockWidgetSize', val)
-
-    @classmethod
-    def dock_pos(cls):
-        settings = cls.get_settings()
-        def_value = QPoint(500, 500)
-        value = settings.value('/ui/dockWidgetPos', def_value, type=QPoint)
-        # Avoid a bug/feature (in PyQt5?): the returned value will be a NULL QVariant instead of QPoint(0, 0) if "@Point(0 0)" is stored in settings.
-        if value.isNull():
-            return def_value
-        return value
-
-    @classmethod
-    def set_dock_pos(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/dockWidgetPos', val)
-
-    @classmethod
-    def dock_visibility(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/dockWidgetIsVisible', True, type=bool)
-
-    @classmethod
-    def set_dock_visibility(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/dockWidgetIsVisible', val)
 
     @classmethod
     def auto_open_web_map_option(cls):

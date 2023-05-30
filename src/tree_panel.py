@@ -29,7 +29,7 @@ from qgis.core import (
 )
 
 from qgis.gui import (
-    QgisInterface
+    QgsGui, QgisInterface, QgsDockWidget
 )
 
 from qgis.PyQt import uic
@@ -40,8 +40,8 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
-    QAction, QDockWidget, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu,
-    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton,
+    QAction, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu,
+    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton, QWidget
 )
 
 from .ngw_api.core import (
@@ -105,15 +105,14 @@ def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
 setLogger(ngwApiLog)
 
 
-class TreePanel(QDockWidget):
-    def __init__(self, iface, parent=None):
-        super().__init__(parent)
-
-        self.setWindowTitle('NextGIS Connect')
-        self.setObjectName('treePanel')
+class TreePanel(QgsDockWidget):
+    def __init__(self, title: str, iface: QgisInterface, parent: QWidget):
+        super().__init__(title, parent)
+        self.setObjectName('NGWResourcesTreeDock')
+        QgsGui.enableAutoGeometryRestore(self)
 
         self.inner_control = TreeControl(iface, self)
-        self.inner_control.setWindowFlags(Qt.Widget)
+        self.inner_control.setWindowFlags(Qt.WindowType.Widget)
         self.setWidget(self.inner_control)
 
     def close(self):

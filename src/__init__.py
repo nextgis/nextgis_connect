@@ -23,5 +23,5 @@
 
 
 def classFactory(iface):
-    from .ng_connect import NGConnectPlugin
+    from .ng_connect_plugin import NGConnectPlugin
     return NGConnectPlugin(iface)
