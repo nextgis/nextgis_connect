@@ -173,12 +173,11 @@ class MetadataDialog(QDialog, FORM_CLASS):
         progress.show()
         progress.setValue(0)
         QApplication.processEvents()
+
         try:
             self.ngw_res.update_metadata(md)
             self.ngw_res.metadata.__dict__['items'] = md
-            progress.cancel()
         except Exception as ex:
-            progress.cancel()
             err_txt = '{} {}'.format(self.tr('Error sending metadata update:'), ex)
 
             QMessageBox.about(self, self.tr("Error"), err_txt)
@@ -187,18 +186,14 @@ class MetadataDialog(QDialog, FORM_CLASS):
             qm = QMessageBox()
             qm.setIcon(QMessageBox.Question)
             qm.setText(self.tr("Error sending metadata update. Continue editing or exit?"))
-            qm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            buttonY = qm.button(QMessageBox.Yes)
-            buttonY.setText(self.tr('Continue'))
-            qm.exec_()
-
-            if qm.clickedButton() == buttonY:
-                return
-            else:
+            qm.setStandardButtons(QMessageBox.Yes | QMessageBox.Close)
+            qm.button(QMessageBox.Yes).setText(self.tr('Continue'))
+            if qm.exec_() != QMessageBox.Yes:
                 self.reject()
-                return
-
-        self.accept()
+        else:
+            self.accept()
+        finally:
+            progress.cancel()
 
     def checkTable(self):
         keys = []
