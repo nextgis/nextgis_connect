@@ -133,7 +133,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self._first_gui_block_on_refresh = False
 
-        self.actionOpenInNGW = QAction(self.tr("Open in WebGIS"), self)
+        self.actionOpenInNGW = QAction(self.tr("Open in Web GIS"), self)
         self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
 
         self.actionRename = QAction(self.tr("Rename"), self)
@@ -178,10 +178,10 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("Create resource group"), self)
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
-        self.actionCreateWebMap4Layer = QAction(self.tr("Create web Map"), self)
+        self.actionCreateWebMap4Layer = QAction(self.tr("Create web map"), self)
         self.actionCreateWebMap4Layer.triggered.connect(self.create_web_map_for_layer)
 
-        self.actionCreateWebMap4Style = QAction(self.tr("Create web Map"), self)
+        self.actionCreateWebMap4Style = QAction(self.tr("Create web map"), self)
         self.actionCreateWebMap4Style.triggered.connect(self.create_web_map_for_style)
 
         self.actionDownload = QAction(self.tr("Download as QML"), self)
@@ -1001,7 +1001,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         result = QMessageBox.question(
             self,
             self.tr("Overwrite resource"),
-            self.tr("Resource '%s' will be overwritten with QGIS layer '%s'. Current data will be lost.<br/> Are you sure you want to overwrite it?") % (
+            self.tr("Resource \"{}\" will be overwritten with QGIS layer \"{}\". Current data will be lost.<br/>Are you sure you want to overwrite it?").format(
                 index.data(Qt.DisplayRole),
                 html.escape(qgs_map_layer.name())
             ),
