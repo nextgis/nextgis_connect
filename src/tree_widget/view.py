@@ -104,7 +104,7 @@ class QNGWResourceTreeView(QTreeView):
         # no ngw connectiond message
         self.no_ngw_connections_overlay = QMessageOverlay(
             self, self.tr(
-                "No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at <a href=\"https://my.nextgis.com/\">nextgis.com</a>!"
+                "No connections to nextgis.com. Please create a connection. You can get your free Web GIS at <a href=\"https://my.nextgis.com/\">nextgis.com</a>!"
             ))
         self.no_ngw_connections_overlay.hide()
 

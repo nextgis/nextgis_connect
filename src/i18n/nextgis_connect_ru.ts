@@ -194,8 +194,8 @@
     <name>QNGWResourceTreeView</name>
     <message>
         <location filename="../tree_widget/view.py" line="105"/>
-        <source>No active connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</source>
-        <translation>Нет активных подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &amp;lt;a href=&amp;quot;https://my.nextgis.com/&amp;quot;&amp;gt;nextgis.com&amp;lt;/a&amp;gt;!</translation>
+        <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</source>
+        <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
 </context>
 <context>
@@ -541,7 +541,7 @@
     <message>
         <location filename="../tree_panel.py" line="1001"/>
         <source>Resource &quot;{}&quot; will be overwritten with QGIS layer &quot;{}&quot;. Current data will be lost.&lt;br/&gt;Are you sure you want to overwrite it?</source>
-        <translation>Ресурс &amp;quot;{}&amp;quot; будет перезаписан слоем QGIS &amp;quot;{}&amp;quot; . Текущие данные будут потеряны.&amp;lt;br/&amp;gt;Вы уверены, что хотите перезаписать его?</translation>
+        <translation>Ресурс &quot;{}&quot; будет перезаписан слоем QGIS &quot;{}&quot; . Текущие данные будут потеряны.&lt;br/&gt;Вы уверены, что хотите перезаписать его?</translation>
     </message>
 </context>
 <context>
