@@ -1,10 +1,13 @@
-from qgis.PyQt.QtCore import Qt, QUrl
-from qgis.PyQt.QtGui import QDesktopServices
+import platform
+from typing import Union
+
+from qgis.PyQt.QtCore import Qt, QUrl, QByteArray, QMimeData
+from qgis.PyQt.QtGui import QDesktopServices, QClipboard
 from qgis.PyQt.QtWidgets import (
     QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout,
 )
 
-from qgis.core import Qgis, QgsProject, QgsRasterLayer
+from qgis.core import Qgis, QgsApplication, QgsProject, QgsRasterLayer
 from qgis.utils import iface
 
 
@@ -75,3 +78,18 @@ def open_plugin_help():
     QDesktopServices.openUrl(
         QUrl('https://docs.nextgis.com/docs_ngconnect/source/toc.html')
     )
+
+
+def set_clipboard_data(
+    mime_type: str,
+    data: Union[QByteArray, bytes, bytearray],
+    text: str
+):
+    mime_data = QMimeData()
+    mime_data.setData(mime_type, data)
+    if len(text) > 0:
+        mime_data.setText(text)
+    if platform.system() == 'Linux':
+        selection_mode = QClipboard.Mode.Selection
+        QgsApplication.clipboard().setMimeData( mime_data, selection_mode)
+    QgsApplication.clipboard().setMimeData(mime_data, QClipboard.Mode.Clipboard)
