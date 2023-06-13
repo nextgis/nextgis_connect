@@ -25,24 +25,26 @@ import traceback
 
 from qgis.core import (
     Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer,
-    QgsPluginLayer, QgsLayerTreeGroup, QgsNetworkAccessManager,
+    QgsPluginLayer, QgsLayerTreeGroup, QgsNetworkAccessManager, QgsSettings,
+    QgsFileUtils
 )
 
 from qgis.gui import (
-    QgsGui, QgisInterface, QgsDockWidget
+     QgisInterface, QgsDockWidget
 )
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
-    QTemporaryFile, QUrl,
+    QTemporaryFile, QUrl, QDir, QFileInfo
 )
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu,
-    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton, QWidget
+    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton
 )
+from qgis.PyQt.QtXml import QDomDocument
 
 from .ngw_api.core import (
     NGWError,
@@ -106,10 +108,9 @@ setLogger(ngwApiLog)
 
 
 class TreePanel(QgsDockWidget):
-    def __init__(self, title: str, iface: QgisInterface, parent: QWidget):
-        super().__init__(title, parent)
+    def __init__(self, title: str, iface: QgisInterface):
+        super().__init__(title, parent=None)
         self.setObjectName('NGWResourcesTreeDock')
-        QgsGui.enableAutoGeometryRestore(self)
 
         self.inner_control = TreeControl(iface, self)
         self.inner_control.setWindowFlags(Qt.WindowType.Widget)
@@ -123,6 +124,7 @@ class TreePanel(QgsDockWidget):
 class TreeControl(QMainWindow, FORM_CLASS):
     iface: QgisInterface
     _resource_model: QNGWResourceTreeModel
+    trvResources: QNGWResourceTreeView
 
     def __init__(self, iface, parent=None):
         super().__init__(parent)
@@ -298,9 +300,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources.itemDoubleClicked.disconnect(self.trvDoubleClickProcess)
         self.trvResources.selectionModel().currentChanged.disconnect(self.checkImportActionsAvailability)
 
-        self.trvResources.setParent(None)
         self.trvResources.deleteLater()
-        del self.trvResources
 
         self.iface.currentLayerChanged.disconnect(self.checkImportActionsAvailability)
         project = QgsProject.instance()
@@ -315,9 +315,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self._resource_model.indexesLocked.disconnect(self.__onModelBlockIndexes)
         self._resource_model.indexesUnlocked.disconnect(self.__onModelReleaseIndexes)
 
-        self._resource_model.setParent(None)
         self._resource_model.deleteLater()
-        del self._resource_model
 
         super().close()
 
@@ -521,7 +519,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
         )
         # widget.setProperty("Error", message)
         if need_show_log:
-            button = QPushButton(self.tr("Open logs."), pressed=self.__show_message_log)
+            button = QPushButton(self.tr("Open logs."))
+            button.pressed.connect(self.__show_message_log)
             widget.layout().addWidget(button)
 
         self.iface.messageBar().pushWidget(widget, level, duration)
@@ -739,10 +738,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         elif isinstance(ngw_resource, NGWWebMap):
             services_actions.extend([self.actionOpenMapInBrowser])
         elif isinstance(ngw_resource, NGWQGISVectorStyle):
-            getting_actions.extend([self.actionExport, self.actionDownload])
+            getting_actions.extend(
+                [self.actionExport, self.actionDownload]
+            )
             creating_actions.extend([self.actionCreateWebMap4Style])
         elif isinstance(ngw_resource, NGWQGISRasterStyle):
-            getting_actions.extend([self.actionExport, self.actionDownload])
+            getting_actions.extend(
+                [self.actionExport, self.actionDownload]
+            )
             creating_actions.extend([self.actionCreateWebMap4Style])
         elif isinstance(ngw_resource, NGWRasterStyle):
             creating_actions.extend([self.actionCreateWebMap4Style])
@@ -1401,12 +1404,14 @@ class TreeControl(QMainWindow, FORM_CLASS):
         if reply.error():
             ngwApiLog('Failed to download QML: {}'.format(reply.errorString()))
 
-        if self.dwn_qml_file.open(QIODevice.WriteOnly):
+        result = False
+        if self.dwn_qml_file.open(QIODevice.OpenModeFlag.WriteOnly):
             ngwApiLog('dwn_qml_file: {}'.format(self.dwn_qml_file.fileName()))
             self.dwn_qml_file.write(reply.readAll())
             self.dwn_qml_file.close()
             if mes_bar:
                 self.__msg_in_qgis_mes_bar(self.tr("QML file downloaded"), False, duration=2)
+            result = True
         else:
             if mes_bar:
                 self.__msg_in_qgis_mes_bar(
@@ -1417,22 +1422,34 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         reply.deleteLater()
 
+        return result
+
 
     def downloadQML(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
 
+        settings = QgsSettings()
+        last_used_dir = settings.value("style/lastStyleDir", QDir.homePath())
+        style_name = ngw_qgis_style.common.display_name
+        path_to_qml = os.path.join(last_used_dir, f'{style_name}.qml')
         filepath, selected_filter = QFileDialog.getSaveFileName(
             self,
-            self.tr("Save QML"),
-            "%s.qml" % ngw_qgis_style.common.display_name,
-            filter=self.tr("QGIS style (*.qml)")
+            caption=self.tr("Save QML"),
+            directory=path_to_qml,
+            filter=self.tr("QGIS Layer Style File") + "(*.qml)"
         )
 
         if filepath == "":
             return
 
-        self._downloadStyleAsQML(ngw_qgis_style, qml_file=filepath)
+        filepath = QgsFileUtils.ensureFileNameHasExtension(filepath, ['qml'])
+
+        is_success = self._downloadStyleAsQML(ngw_qgis_style, qml_file=filepath)
+        if is_success:
+            settings.setValue(
+                "style/lastStyleDir", QFileInfo(filepath).absolutePath()
+            )
 
     def show_msg_box(self, text, title, icon, buttons):
         box = QMessageBox()

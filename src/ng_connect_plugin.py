@@ -96,7 +96,8 @@ plugins['nextgis_connect'].enableDebug(False)
 
         add_translator(path.join(
             self.plugin_dir, 'i18n',
-            'nextgis_connect_{}.qm'.format(locale)))
+            'nextgis_connect_{}.qm'.format(locale)
+        ))
         add_translator(path.join(
             path.dirname(qgis.__file__), "i18n",
             "qgis_ngw_api_{}.qm".format(locale)
@@ -105,7 +106,7 @@ plugins['nextgis_connect'].enableDebug(False)
     def __init_ng_resources_tree(self):
         # Dock tree panel
         self.__ng_resources_tree_dock = TreePanel(
-            self.title, self.iface, self.iface.mainWindow()
+            self.title, self.iface
         )
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea, self.__ng_resources_tree_dock
@@ -120,6 +121,7 @@ plugins['nextgis_connect'].enableDebug(False)
         # Show panel action
         self.__ng_connect_toolbar = self.iface.addToolBar(self.title)
         self.__ng_connect_toolbar.setObjectName('NGConnectToolbar')
+        self.__ng_connect_toolbar.setToolTip(self.tr('NextGIS Connect Toolbar'))
 
         self.__show_ngw_resources_tree_action = QAction(
             QIcon(self.plugin_dir + '/icon.png'),
@@ -162,6 +164,7 @@ plugins['nextgis_connect'].enableDebug(False)
             self.title, self.__show_ngw_resources_tree_action
         )
 
+        self.__ng_connect_toolbar.hide()
         self.__ng_connect_toolbar.deleteLater()
         self.__show_ngw_resources_tree_action.deleteLater()
 
@@ -198,6 +201,8 @@ plugins['nextgis_connect'].enableDebug(False)
             ic.actionAddStyle
         ]
         for action in layer_actions:
+            # For vector and raster types
+            self.iface.removeCustomActionForLayerType(action)
             self.iface.removeCustomActionForLayerType(action)
 
     @staticmethod
@@ -205,12 +210,12 @@ plugins['nextgis_connect'].enableDebug(False)
         print("Plugin NextGIS Connect.")
 
         from . import ngw_api
-        print(("NGW API v. %s" % (ngw_api.__version__) ))
+        print(f"NGW API v. {ngw_api.__version__}")
 
-        print(("NGW API log %s" % ("ON" if ngwapi_utils.debug else "OFF") ))
+        print("NGW API log {}".format("ON" if ngwapi_utils.debug else "OFF"))
 
     @staticmethod
     def enableDebug(flag):
         ngwapi_utils.debug = flag
 
-        print(("NGW API log %s" % ("ON" if ngwapi_utils.debug else "OFF") ))
+        print("NGW API log {}".format("ON" if ngwapi_utils.debug else "OFF"))
