@@ -181,7 +181,7 @@ plugins['nextgis_connect'].enableDebug(False)
         ]
         if Qgis.versionInt() < 33000:
             layer_types = (
-                QgsMapLayerType.Vector, QgsMapLayerType.Raster
+                QgsMapLayerType.VectorLayer, QgsMapLayerType.RasterLayer
             )
         else:
             layer_types = (
