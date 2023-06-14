@@ -188,6 +188,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionDownload = QAction(self.tr("Download as QML"), self)
         self.actionDownload.triggered.connect(self.downloadQML)
 
+        self.actionCopyStyle = QAction(self.tr("Copy Style"), self)
+        self.actionCopyStyle.triggered.connect(self.copy_style)
+
         self.actionCreateWFSService = QAction(self.tr("Create WFS service"), self)
         self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
 
@@ -739,12 +742,12 @@ class TreeControl(QMainWindow, FORM_CLASS):
             services_actions.extend([self.actionOpenMapInBrowser])
         elif isinstance(ngw_resource, NGWQGISVectorStyle):
             getting_actions.extend(
-                [self.actionExport, self.actionDownload]
+                [self.actionExport, self.actionDownload, self.actionCopyStyle]
             )
             creating_actions.extend([self.actionCreateWebMap4Style])
         elif isinstance(ngw_resource, NGWQGISRasterStyle):
             getting_actions.extend(
-                [self.actionExport, self.actionDownload]
+                [self.actionExport, self.actionDownload, self.actionCopyStyle]
             )
             creating_actions.extend([self.actionCreateWebMap4Style])
         elif isinstance(ngw_resource, NGWRasterStyle):
@@ -1450,6 +1453,40 @@ class TreeControl(QMainWindow, FORM_CLASS):
             settings.setValue(
                 "style/lastStyleDir", QFileInfo(filepath).absolutePath()
             )
+
+    def copy_style(self):
+        # Download style
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        self._downloadStyleAsQML(ngw_qgis_style, mes_bar=False)
+
+        # Set style to dom
+        dom_document = QDomDocument()
+        error_message = ''
+        if self.dwn_qml_file.open(QFile.OpenModeFlag.ReadOnly):
+            is_success, error_message, line, column = dom_document.setContent(
+                self.dwn_qml_file
+            )
+            self.dwn_qml_file.close()
+
+            if not is_success:
+                error_message = self.tr(
+                    f"{error_message} at line {line} column {column}"
+                )
+
+        if len(error_message) != 0:
+            self.iface.messageBar().pushMessage(
+                self.tr("Cannot copy style"),
+                error_message,
+                Qgis.MessageLevel.Critical
+            )
+            return
+
+        # Copy style
+        QGSCLIPBOARD_STYLE_MIME = 'application/qgis.style'
+        data = dom_document.toByteArray()
+        text = dom_document.toString()
+        utils.set_clipboard_data(QGSCLIPBOARD_STYLE_MIME, data, text)
 
     def show_msg_box(self, text, title, icon, buttons):
         box = QMessageBox()
