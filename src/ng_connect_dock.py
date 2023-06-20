@@ -722,14 +722,15 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.reinit_tree()
 
-
-    def str_to_link(self, text, url):
+    def str_to_link(self, text: str, url: str):
         return '<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)
 
     def _show_unsupported_raster_err(self):
         msg = '{}. {}'.format(
             self.tr('This type of raster is not supported yet'),
-                self.str_to_link(self.tr('Please add COG support'), self.tr('https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer')
+            self.str_to_link(
+                self.tr('Please add COG support'),
+                'https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer'
             )
         )
         self.show_info(msg)
