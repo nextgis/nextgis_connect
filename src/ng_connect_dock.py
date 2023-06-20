@@ -95,7 +95,7 @@ from .tree_widget import (
 this_dir = os.path.dirname(__file__)
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
-    this_dir, 'tree_panel_base.ui'))
+    this_dir, 'ng_connect_dock_base.ui'))
 
 ICONS_PATH = os.path.join(this_dir, 'icons/')
 

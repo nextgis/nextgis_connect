@@ -29,7 +29,7 @@ from qgis.core import Qgis, QgsApplication, QgsMessageLog, QgsMapLayerType
 from qgis.gui import QgisInterface
 
 from .plugin_settings import PluginSettings
-from .tree_panel import NGConnectDock
+from .ng_connect_dock import NGConnectDock
 from . import utils
 
 from .ngw_api import qgis
