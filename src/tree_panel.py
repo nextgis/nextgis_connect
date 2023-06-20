@@ -197,7 +197,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCreateWMSService = QAction(self.tr("Create WMS service"), self)
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
 
-        self.actionCopyResource = QAction(self.tr("Copy resource"), self)
+        self.actionCopyResource = QAction(self.tr("Duplicate Resource"), self)
         self.actionCopyResource.triggered.connect(self.copy_curent_ngw_resource)
 
         self.actionEditMetadata = QAction(self.tr("Edit metadata"), self)
@@ -1223,8 +1223,8 @@ class TreeControl(QMainWindow, FORM_CLASS):
             # ckeckbox
             res = QMessageBox.question(
                 self,
-                self.tr("Copy resource"),
-                self.tr("Are you sure you want to copy this resource?"),
+                self.tr("Duplicate Resource"),
+                self.tr("Are you sure you want to duplicate this resource?"),
                 QMessageBox.Yes and QMessageBox.No,
                 QMessageBox.Yes
             )
@@ -1237,7 +1237,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.trvResources.ngw_job_block_overlay.show()
             self.block_gui()
             self.trvResources.ngw_job_block_overlay.text.setText(
-                "<strong>{} {}</strong><br/>".format(self.tr('Copying'), ngw_resource.common.display_name)
+                "<strong>{} {}</strong><br/>".format(
+                    self.tr('Duplicating'), ngw_resource.common.display_name
+                )
             )
             # main part
             try:
