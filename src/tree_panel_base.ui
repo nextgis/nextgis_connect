@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>ResourcePanel</class>
- <widget class="QMainWindow" name="ResourcePanel">
+ <class>NGConnectDockBase</class>
+ <widget class="QDockWidget" name="NGConnectDockBase">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -10,23 +10,23 @@
     <height>349</height>
    </rect>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="content">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
     <property name="leftMargin">
-     <number>3</number>
+     <number>0</number>
     </property>
     <property name="topMargin">
      <number>0</number>
     </property>
     <property name="rightMargin">
-     <number>3</number>
+     <number>0</number>
     </property>
     <property name="bottomMargin">
      <number>0</number>
     </property>
-    <item>
-     <layout class="QVBoxLayout" name="nrw_reorces_tree_container"/>
-    </item>
    </layout>
   </widget>
  </widget>

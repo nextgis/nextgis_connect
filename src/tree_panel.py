@@ -1,6 +1,6 @@
 """
 /***************************************************************************
- TreePanel
+ NGConnectDock
                                  A QGIS plugin
  NGW Connect
                              -------------------
@@ -35,13 +35,13 @@ from qgis.gui import (
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
-    QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize, Qt,
-    QTemporaryFile, QUrl, QDir, QFileInfo
+    QByteArray, QEventLoop, QFile, QIODevice, QModelIndex, QSettings, QSize,
+    Qt, QTemporaryFile, QUrl, QDir, QFileInfo
 )
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
-    QAction, QFileDialog, QInputDialog, QLineEdit, QMainWindow, QMenu,
+    QAction, QFileDialog, QInputDialog, QLineEdit, QMenu,
     QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton
 )
 from qgis.PyQt.QtXml import QDomDocument
@@ -50,11 +50,11 @@ from .ngw_api.core import (
     NGWError,
     NGWGroupResource,
     NGWMapServerStyle,
+    NGWQGISRasterStyle,
+    NGWQGISVectorStyle,
     NGWRasterLayer,
     NGWRasterStyle,
     NGWVectorLayer,
-    NGWQGISRasterStyle,
-    NGWQGISVectorStyle,
     NGWWebMap,
     NGWWfsService,
     NGWWmsConnection,
@@ -63,8 +63,8 @@ from .ngw_api.core import (
 )
 
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
-    JobAuthorizationError, JobError, JobInternalError, JobNGWError, JobServerRequestError,
-    JobWarning,
+    JobAuthorizationError, JobError, JobInternalError, JobNGWError,
+    JobServerRequestError, JobWarning,
 )
 
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
@@ -87,7 +87,9 @@ from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
 from .plugin_settings import PluginSettings
 from .settings_dialog import SettingsDialog
-from .tree_widget import QNGWResourceTreeView, QNGWResourceItem, QNGWResourceTreeModel
+from .tree_widget import (
+    QNGWResourceTreeView, QNGWResourceItem, QNGWResourceTreeModel
+)
 
 
 this_dir = os.path.dirname(__file__)
@@ -101,35 +103,25 @@ ICONS_PATH = os.path.join(this_dir, 'icons/')
 def qgisLog(msg, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(msg, PluginSettings._product, level)
 
+
 def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
     QgsMessageLog.logMessage(msg, "NGW API", level)
+
 
 setLogger(ngwApiLog)
 
 
-class TreePanel(QgsDockWidget):
-    def __init__(self, title: str, iface: QgisInterface):
-        super().__init__(title, parent=None)
-        self.setObjectName('NGWResourcesTreeDock')
-
-        self.inner_control = TreeControl(iface, self)
-        self.inner_control.setWindowFlags(Qt.WindowType.Widget)
-        self.setWidget(self.inner_control)
-
-    def close(self):
-        self.inner_control.close()
-        super().close()
-
-
-class TreeControl(QMainWindow, FORM_CLASS):
+class NGConnectDock(QgsDockWidget, FORM_CLASS):
     iface: QgisInterface
     _resource_model: QNGWResourceTreeModel
     trvResources: QNGWResourceTreeView
 
-    def __init__(self, iface, parent=None):
-        super().__init__(parent)
+    def __init__(self, title: str, iface: QgisInterface):
+        super().__init__(title, parent=None)
 
         self.setupUi(self)
+        self.setObjectName('NGConnectDock')
+
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
@@ -146,22 +138,33 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
-        self.menuUpload.setIcon(QIcon(os.path.join(ICONS_PATH, 'mActionImport.svg')))
+        self.menuUpload.setIcon(
+            QIcon(os.path.join(ICONS_PATH, 'mActionImport.svg'))
+        )
         self.menuUpload.menuAction().setIconVisibleInMenu(False)
 
         self.actionUploadSelectedResources = QAction(
             self.tr("Upload selected"), self.menuUpload)
-        self.actionUploadSelectedResources.triggered.connect(self.upload_selected_resources)
+        self.actionUploadSelectedResources.triggered.connect(
+            self.upload_selected_resources
+        )
         self.actionUploadSelectedResources.setEnabled(False)
 
         self.actionUploadProjectResources = QAction(
-            self.tr("Upload all"), self.menuUpload)
-        self.actionUploadProjectResources.triggered.connect(self.upload_project_resources)
+            self.tr("Upload all"), self.menuUpload
+        )
+        self.actionUploadProjectResources.triggered.connect(
+            self.upload_project_resources
+        )
 
-        self.actionUpdateStyle = ActionStyleImportUpdate(self.tr('Update layer style'))
+        self.actionUpdateStyle = ActionStyleImportUpdate(
+            self.tr('Update layer style')
+        )
         self.actionUpdateStyle.triggered.connect(self.update_style)
 
-        self.actionAddStyle = ActionStyleImportUpdate(self.tr('Add new style to layer'))
+        self.actionAddStyle = ActionStyleImportUpdate(
+            self.tr('Add new style to layer')
+        )
         self.actionAddStyle.triggered.connect(self.add_style)
 
         self.menuUpload.addAction(self.actionUploadSelectedResources)
@@ -171,7 +174,9 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self.actionUpdateNGWVectorLayer = QAction(
             self.tr("Overwrite selected layer"), self.menuUpload)
-        self.actionUpdateNGWVectorLayer.triggered.connect(self.overwrite_ngw_layer)
+        self.actionUpdateNGWVectorLayer.triggered.connect(
+            self.overwrite_ngw_layer
+        )
         self.actionUpdateNGWVectorLayer.setEnabled(False)
 
         self.actionCreateNewGroup = QAction(
@@ -179,11 +184,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
             self.tr("Create resource group"), self)
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
-        self.actionCreateWebMap4Layer = QAction(self.tr("Create web map"), self)
-        self.actionCreateWebMap4Layer.triggered.connect(self.create_web_map_for_layer)
+        self.actionCreateWebMap4Layer = QAction(
+            self.tr("Create web map"), self
+        )
+        self.actionCreateWebMap4Layer.triggered.connect(
+            self.create_web_map_for_layer
+        )
 
-        self.actionCreateWebMap4Style = QAction(self.tr("Create web map"), self)
-        self.actionCreateWebMap4Style.triggered.connect(self.create_web_map_for_style)
+        self.actionCreateWebMap4Style = QAction(
+            self.tr("Create web map"),
+            self
+        )
+        self.actionCreateWebMap4Style.triggered.connect(
+            self.create_web_map_for_style
+        )
 
         self.actionDownload = QAction(self.tr("Download as QML"), self)
         self.actionDownload.triggered.connect(self.downloadQML)
@@ -191,21 +205,34 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.actionCopyStyle = QAction(self.tr("Copy Style"), self)
         self.actionCopyStyle.triggered.connect(self.copy_style)
 
-        self.actionCreateWFSService = QAction(self.tr("Create WFS service"), self)
+        self.actionCreateWFSService = QAction(
+            self.tr("Create WFS service"),
+            self
+        )
         self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
 
-        self.actionCreateWMSService = QAction(self.tr("Create WMS service"), self)
+        self.actionCreateWMSService = QAction(
+            self.tr("Create WMS service"),
+            self
+        )
         self.actionCreateWMSService.triggered.connect(self.create_wms_service)
 
         self.actionCopyResource = QAction(self.tr("Duplicate Resource"), self)
-        self.actionCopyResource.triggered.connect(self.copy_curent_ngw_resource)
+        self.actionCopyResource.triggered.connect(
+            self.copy_curent_ngw_resource
+        )
 
         self.actionEditMetadata = QAction(self.tr("Edit metadata"), self)
         self.actionEditMetadata.triggered.connect(self.edit_metadata)
 
         self.actionDeleteResource = QAction(
-            QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')), self.tr("Delete resource"), self)
-        self.actionDeleteResource.triggered.connect(self.delete_curent_ngw_resource)
+            QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')),
+            self.tr("Delete resource"),
+            self
+        )
+        self.actionDeleteResource.triggered.connect(
+            self.delete_curent_ngw_resource
+        )
 
         self.actionOpenMapInBrowser = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionOpenMap.svg')),
@@ -229,7 +256,7 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         # Add toolbar
         self.main_tool_bar = NGWPanelToolBar()
-        self.addToolBar(self.main_tool_bar)
+        self.content.layout().addWidget(self.main_tool_bar)
 
         self.main_tool_bar.addAction(self.actionExport)
         self.toolbuttonUpload = QToolButton()
@@ -251,12 +278,20 @@ class TreeControl(QMainWindow, FORM_CLASS):
 
         self._resource_model = QNGWResourceTreeModel(self)
         self._resource_model.errorOccurred.connect(self.__model_error_process)
-        self._resource_model.warningOccurred.connect(self.__model_warning_process)
-        self._resource_model.jobStarted.connect(self.__modelJobStarted)
-        self._resource_model.jobStatusChanged.connect(self.__modelJobStatusChanged)
+        self._resource_model.warningOccurred.connect(
+            self.__model_warning_process
+        )
+        self._resource_model.jobStarted.connect(
+            self.__modelJobStarted
+        )
+        self._resource_model.jobStatusChanged.connect(
+            self.__modelJobStatusChanged
+        )
         self._resource_model.jobFinished.connect(self.__modelJobFinished)
         self._resource_model.indexesLocked.connect(self.__onModelBlockIndexes)
-        self._resource_model.indexesUnlocked.connect(self.__onModelReleaseIndexes)
+        self._resource_model.indexesUnlocked.connect(
+            self.__onModelReleaseIndexes
+        )
 
         self.blocked_jobs = {
             "NGWGroupCreater": self.tr("Resource is being created"),
@@ -277,11 +312,18 @@ class TreeControl(QMainWindow, FORM_CLASS):
         self.trvResources = QNGWResourceTreeView(self)
         self.trvResources.setModel(self._resource_model)
 
-        self.trvResources.customContextMenuRequested.connect(self.slotCustomContextMenu)
+        self.trvResources.customContextMenuRequested.connect(
+            self.slotCustomContextMenu
+        )
         self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
-        self.trvResources.selectionModel().currentChanged.connect(self.checkImportActionsAvailability)
+        self.trvResources.selectionModel().currentChanged.connect(
+            self.checkImportActionsAvailability
+        )
+        size_policy = self.trvResources.sizePolicy()
+        size_policy.setVerticalPolicy(QSizePolicy.Policy.Expanding)
+        self.trvResources.setSizePolicy(size_policy)
 
-        self.nrw_reorces_tree_container.addWidget(self.trvResources)
+        self.content.layout().addWidget(self.trvResources)
 
         self.jobs_count = 0
         self.try_check_https = False

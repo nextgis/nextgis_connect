@@ -29,7 +29,7 @@ from qgis.core import Qgis, QgsApplication, QgsMessageLog, QgsMapLayerType
 from qgis.gui import QgisInterface
 
 from .plugin_settings import PluginSettings
-from .tree_panel import TreePanel
+from .tree_panel import NGConnectDock
 from . import utils
 
 from .ngw_api import qgis
@@ -64,22 +64,25 @@ plugins['nextgis_connect'].enableDebug(False)
         return QCoreApplication.translate('NGConnectPlugin', message)
 
     def initGui(self):
-        self.__init_ng_resources_tree()
+        self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
         self.__init_ng_layer_actions()
 
     def unload(self):
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
-        self.__unload_ng_resources_tree()
+        self.__unload_ng_connect_dock()
 
     def __init_debug(self):
         # Enable debug mode.
         debug_mode = PluginSettings.debug_mode()
         setDebugEnabled(debug_mode)
         QgsMessageLog.logMessage(
-            'Debug messages are %s' % ('enabled' if debug_mode else 'disabled'),
-            PluginSettings._product, level=Qgis.MessageLevel.Info)
+            'Debug messages are {}'.format(
+                'enabled' if debug_mode else 'disabled'
+            ),
+            PluginSettings._product, level=Qgis.MessageLevel.Info
+        )
 
     def __init_translator(self):
         # initialize locale
@@ -103,16 +106,17 @@ plugins['nextgis_connect'].enableDebug(False)
             "qgis_ngw_api_{}.qm".format(locale)
         ))
 
-    def __init_ng_resources_tree(self):
+    def __init_ng_connect_dock(self):
         # Dock tree panel
-        self.__ng_resources_tree_dock = TreePanel(
+        self.__ng_resources_tree_dock = NGConnectDock(
             self.title, self.iface
         )
         self.iface.addDockWidget(
-            Qt.DockWidgetArea.RightDockWidgetArea, self.__ng_resources_tree_dock
+            Qt.DockWidgetArea.RightDockWidgetArea,
+            self.__ng_resources_tree_dock
         )
 
-    def __unload_ng_resources_tree(self):
+    def __unload_ng_connect_dock(self):
         self.__ng_resources_tree_dock.setVisible(False)
         self.iface.removeDockWidget(self.__ng_resources_tree_dock)
         self.__ng_resources_tree_dock.deleteLater()
@@ -120,8 +124,10 @@ plugins['nextgis_connect'].enableDebug(False)
     def __init_ng_connect_menus(self):
         # Show panel action
         self.__ng_connect_toolbar = self.iface.addToolBar(self.title)
-        self.__ng_connect_toolbar.setObjectName('NGConnectToolbar')
-        self.__ng_connect_toolbar.setToolTip(self.tr('NextGIS Connect Toolbar'))
+        self.__ng_connect_toolbar.setObjectName('NGConnectToolBar')
+        self.__ng_connect_toolbar.setToolTip(
+            self.tr('NextGIS Connect Toolbar')
+        )
 
         self.__show_ngw_resources_tree_action = QAction(
             QIcon(self.plugin_dir + '/icon.png'),
@@ -129,7 +135,7 @@ plugins['nextgis_connect'].enableDebug(False)
             self.iface.mainWindow()
         )
         self.__show_ngw_resources_tree_action.setObjectName(
-            'ShowNGWResourcesTreeAction'
+            'NGConnectShowDock'
         )
         self.__show_ngw_resources_tree_action.setEnabled(True)
         self.__show_ngw_resources_tree_action.setCheckable(True)
@@ -173,19 +179,20 @@ plugins['nextgis_connect'].enableDebug(False)
 
     def __init_ng_layer_actions(self):
         # Tools for NGW communicate
-        ic = self.__ng_resources_tree_dock.inner_control
         layer_actions = [
-            ic.actionUploadSelectedResources,
-            ic.actionUpdateStyle,
-            ic.actionAddStyle
+            self.__ng_resources_tree_dock.actionUploadSelectedResources,
+            self.__ng_resources_tree_dock.actionUpdateStyle,
+            self.__ng_resources_tree_dock.actionAddStyle
         ]
         if Qgis.versionInt() < 33000:
             layer_types = (
-                QgsMapLayerType.VectorLayer, QgsMapLayerType.RasterLayer
+                QgsMapLayerType.VectorLayer,  # type: ignore
+                QgsMapLayerType.RasterLayer  # type: ignore
             )
         else:
             layer_types = (
-                Qgis.LayerType.Vector, Qgis.LayerType.Raster
+                Qgis.LayerType.Vector,  # type: ignore
+                Qgis.LayerType.Raster  # type: ignore
             )
         for action in layer_actions:
             for layer_type in layer_types:
@@ -194,11 +201,10 @@ plugins['nextgis_connect'].enableDebug(False)
                 )
 
     def __unload_ng_layer_actions(self):
-        ic = self.__ng_resources_tree_dock.inner_control
         layer_actions = [
-            ic.actionUploadSelectedResources,
-            ic.actionUpdateStyle,
-            ic.actionAddStyle
+            self.__ng_resources_tree_dock.actionUploadSelectedResources,
+            self.__ng_resources_tree_dock.actionUpdateStyle,
+            self.__ng_resources_tree_dock.actionAddStyle
         ]
         for action in layer_actions:
             # For vector and raster types
