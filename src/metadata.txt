@@ -4,11 +4,17 @@ qgisMinimumVersion=3.0
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=1.1.0
+version=1.2.0
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	1.2.0
+		* Add copy style from NGW to clipboard
+		* Add help action to QGIS menu
+		* Rename 'Copy resource' to 'Duplicate Resource'
+		* Speedup of uploading layer with attachments
+		* Fix saving last QML location
 	1.1.0
 		* Support multiple layer/group uploading
 		* Fix dock position saving, dark theme overlay

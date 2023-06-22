@@ -27,10 +27,11 @@ clean:
 	py3clean .
 
 release: compile_ts clean
-	mkdir -p $(BUILD_DIR)
-	mkdir $(BUILD_DIR)/$(PLUGIN_NAME)
+	mkdir -p $(BUILD_DIR)/$(PLUGIN_NAME)
 
 	cp -r src/* LICENSE $(BUILD_DIR)/$(PLUGIN_NAME)
+	rm -rf `find $(BUILD_DIR)/$(PLUGIN_NAME) -name '__pycache__'`
+	rm -rf `find $(BUILD_DIR)/$(PLUGIN_NAME) -name '.git' -o -name '.gitignore'`
 	cd $(BUILD_DIR) && zip -9r $(PLUGIN_NAME).zip $(PLUGIN_NAME)
 	mv $(BUILD_DIR)/$(PLUGIN_NAME).zip .
 
