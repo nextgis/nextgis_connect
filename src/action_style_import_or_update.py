@@ -23,17 +23,20 @@ class ActionStyleImportUpdate(QAction):
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POINT, NGWVectorLayer.MULTIPOINT,
                     NGWVectorLayer.POINTZ, NGWVectorLayer.MULTIPOINTZ
-            )) or (
+                )
+            ) or (
                 qgis_vector_layer_geom == QgsWkbTypes.LineGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.LINESTRING, NGWVectorLayer.MULTILINESTRING,
                     NGWVectorLayer.LINESTRINGZ, NGWVectorLayer.MULTILINESTRINGZ,
-            )) or (
+                )
+            ) or (
                 qgis_vector_layer_geom == QgsWkbTypes.PolygonGeometry
                 and ngw_vector_layer_geom in (
                     NGWVectorLayer.POLYGON, NGWVectorLayer.MULTIPOLYGON,
                     NGWVectorLayer.POLYGONZ, NGWVectorLayer.MULTIPOLYGONZ,
-            ))
+                )
+            )
         else:
             enabled = False
 

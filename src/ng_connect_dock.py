@@ -30,7 +30,7 @@ from qgis.core import (
 )
 
 from qgis.gui import (
-     QgisInterface, QgsDockWidget
+     QgisInterface, QgsDockWidget, QgsNewNameDialog
 )
 
 from qgis.PyQt import uic
@@ -42,7 +42,7 @@ from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction, QFileDialog, QInputDialog, QLineEdit, QMenu,
-    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton
+    QMessageBox, QPushButton, QSizePolicy, QToolBar, QToolButton, QDialog
 )
 from qgis.PyQt.QtXml import QDomDocument
 
@@ -82,7 +82,6 @@ from .ngw_api.utils import log, setDebugEnabled, setLogger
 from . import utils
 from .action_style_import_or_update import ActionStyleImportUpdate
 from .dialog_choose_style import NGWLayerStyleChooserDialog
-from .dialog_qgis_proj_import import UploadQGISProjectDialog
 from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
 from .plugin_settings import PluginSettings
@@ -335,19 +334,29 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
         self.checkImportActionsAvailability()
-        self.iface.currentLayerChanged.connect(self.checkImportActionsAvailability)
+        self.iface.currentLayerChanged.connect(
+            self.checkImportActionsAvailability
+        )
         project = QgsProject.instance()
         project.layersAdded.connect(self.checkImportActionsAvailability)
         project.layersRemoved.connect(self.checkImportActionsAvailability)
 
     def close(self):
-        self.trvResources.customContextMenuRequested.disconnect(self.slotCustomContextMenu)
-        self.trvResources.itemDoubleClicked.disconnect(self.trvDoubleClickProcess)
-        self.trvResources.selectionModel().currentChanged.disconnect(self.checkImportActionsAvailability)
+        self.trvResources.customContextMenuRequested.disconnect(
+            self.slotCustomContextMenu
+        )
+        self.trvResources.itemDoubleClicked.disconnect(
+            self.trvDoubleClickProcess
+        )
+        self.trvResources.selectionModel().currentChanged.disconnect(
+            self.checkImportActionsAvailability
+        )
 
         self.trvResources.deleteLater()
 
-        self.iface.currentLayerChanged.disconnect(self.checkImportActionsAvailability)
+        self.iface.currentLayerChanged.disconnect(
+            self.checkImportActionsAvailability
+        )
         project = QgsProject.instance()
         project.layersAdded.disconnect(self.checkImportActionsAvailability)
         project.layersRemoved.disconnect(self.checkImportActionsAvailability)
@@ -821,27 +830,52 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
             QDesktopServices.openUrl(QUrl(url))
 
     def rename_ngw_resource(self):
-        sel_index = self.trvResources.selectionModel().currentIndex()
-        if not sel_index.isValid():
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        if not selected_index.isValid():
             return
 
-        # Get current resource name. This name can differ from display text of tree item (see style resources).
-        item = sel_index.internalPointer()
-        ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
-        cur_name = ngw_resource.common.display_name
+        # Get current resource name. This name can differ from display
+        # text of tree item (see style resources).
+        ngw_resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        current_name = ngw_resource.common.display_name
 
-        new_name, res = QInputDialog.getText(
-            self,
-            self.tr("Change resource name"),
-            "",
-            text=cur_name
+        # Get existing names
+        existing_names = []
+        if (parent := selected_index.parent()).isValid():
+            model = parent.model()
+            for i in range(model.rowCount(parent)):
+                if i == selected_index.row():
+                    continue
+                sibling_index = model.index(i, 0, parent)
+                sibling_resource = sibling_index.data(
+                    QNGWResourceItem.NGWResourceRole
+                )
+                existing_names.append(sibling_resource.common.display_name)
+
+        dialog = QgsNewNameDialog(
+            initial=current_name,
+            existing=existing_names,
+            cs=Qt.CaseSensitivity.CaseSensitive,
+            parent=self.iface.mainWindow()
         )
+        dialog.setWindowTitle(self.tr('Change resource name'))
+        dialog.setOverwriteEnabled(False)
+        dialog.setAllowEmptyName(False)
+        dialog.setHintString(self.tr('Enter new name for selected resource'))
+        dialog.setConflictingNameWarning(self.tr('Resource already exists'))
 
-        if res is False or new_name == "":
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
             return
 
-        self.rename_resource_resp = self._resource_model.renameResource(sel_index, new_name)
-        self.rename_resource_resp.done.connect(
+        new_name = dialog.name()
+
+        if new_name == current_name:
+            return
+
+        self.rename_resource_resp = self._resource_model.renameResource(
+            selected_index, new_name
+        )
+        self.rename_resource_resp.done.connect(  # type: ignore
             self.trvResources.setCurrentIndex
         )
 
@@ -1001,18 +1035,29 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
 
         ngw_current_index = self.trvResources.selectionModel().currentIndex()
 
-        dlg = UploadQGISProjectDialog(get_project_name(), self)
-        result = dlg.exec_()
-        if not result:
+        dialog = QgsNewNameDialog(
+            initial=get_project_name(),
+            # existing=existing_names,
+            cs=Qt.CaseSensitivity.CaseSensitive,
+            parent=self.iface.mainWindow()
+        )
+        dialog.setWindowTitle(self.tr('Uploading parameters'))
+        dialog.setOverwriteEnabled(False)
+        dialog.setAllowEmptyName(False)
+        dialog.setHintString(self.tr('Enter name for resource group'))
+        # dialog.setConflictingNameWarning(self.tr('Resource already exists'))
+
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
             return
 
-        project_name = dlg.projectName()
+        project_name = dialog.name()
 
-        self.qgis_proj_import_response = self._resource_model.uploadProjectResources(
-            project_name,
-            ngw_current_index,
-            self.iface,
-        )
+        self.qgis_proj_import_response = \
+            self._resource_model.uploadProjectResources(
+                project_name,
+                ngw_current_index,
+                self.iface,
+            )
         self.qgis_proj_import_response.done.connect(
             self.trvResources.setCurrentIndex
         )
