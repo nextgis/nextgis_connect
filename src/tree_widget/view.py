@@ -1,9 +1,14 @@
-from qgis.PyQt.QtCore import Qt, pyqtSignal
+from qgis.PyQt.QtCore import Qt, QModelIndex, pyqtSignal
 from qgis.PyQt.QtGui import QBrush, QColor, QPalette, QPainter, QPen
 from qgis.PyQt.QtWidgets import (
-    QHeaderView, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpacerItem, QTreeView,
-    QVBoxLayout, QWidget,
+    QHeaderView, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpacerItem,
+    QTreeView, QVBoxLayout, QWidget, QDialog
 )
+
+from qgis.utils import iface
+from qgis.gui import QgsNewNameDialog
+
+from ..tree_widget.item import QNGWResourceItem
 
 
 __all__ = ["QNGWResourceTreeView"]
@@ -89,7 +94,6 @@ class QProcessOverlay(QOverlay):
 
 class QNGWResourceTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
-
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -98,7 +102,7 @@ class QNGWResourceTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         header = self.header()
-        header.setStretchLastSection(False)
+        header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
 
         # no ngw connectiond message
@@ -169,3 +173,57 @@ class QNGWResourceTreeView(QTreeView):
 
         if len(self.jobs) == 0:
             self.ngw_job_block_overlay.hide()
+
+    def keyPressEvent(self, event):
+        is_f2 = event.key() == Qt.Key.Key_F2
+        index = self.currentIndex()
+        if is_f2 and index.isValid():
+            self.rename_resource(index)
+        else:
+            super().keyPressEvent(event)
+
+    def rename_resource(self, index: QModelIndex):
+        # Get current resource name. This name can differ from display
+        # text of tree item (see style resources).
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        current_name = ngw_resource.common.display_name
+
+        # Get existing names
+        existing_names = []
+        if (parent := index.parent()).isValid():
+            model = parent.model()
+            for i in range(model.rowCount(parent)):
+                if i == index.row():
+                    continue
+                sibling_index = model.index(i, 0, parent)
+                sibling_resource = sibling_index.data(
+                    QNGWResourceItem.NGWResourceRole
+                )
+                existing_names.append(sibling_resource.common.display_name)
+
+        dialog = QgsNewNameDialog(
+            initial=current_name,
+            existing=existing_names,
+            cs=Qt.CaseSensitivity.CaseSensitive,
+            parent=iface.mainWindow()
+        )
+        dialog.setWindowTitle(self.tr('Change resource name'))
+        dialog.setOverwriteEnabled(False)
+        dialog.setAllowEmptyName(False)
+        dialog.setHintString(self.tr('Enter new name for selected resource'))
+        dialog.setConflictingNameWarning(self.tr('Resource already exists'))
+
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
+            return
+
+        new_name = dialog.name()
+
+        if new_name == current_name:
+            return
+
+        self.__rename_resource_resp = self.model().renameResource(
+            index, new_name
+        )
+        self.__rename_resource_resp.done.connect(  # type: ignore
+            self.setCurrentIndex
+        )

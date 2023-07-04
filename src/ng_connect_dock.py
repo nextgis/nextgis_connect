@@ -834,50 +834,7 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         if not selected_index.isValid():
             return
 
-        # Get current resource name. This name can differ from display
-        # text of tree item (see style resources).
-        ngw_resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
-        current_name = ngw_resource.common.display_name
-
-        # Get existing names
-        existing_names = []
-        if (parent := selected_index.parent()).isValid():
-            model = parent.model()
-            for i in range(model.rowCount(parent)):
-                if i == selected_index.row():
-                    continue
-                sibling_index = model.index(i, 0, parent)
-                sibling_resource = sibling_index.data(
-                    QNGWResourceItem.NGWResourceRole
-                )
-                existing_names.append(sibling_resource.common.display_name)
-
-        dialog = QgsNewNameDialog(
-            initial=current_name,
-            existing=existing_names,
-            cs=Qt.CaseSensitivity.CaseSensitive,
-            parent=self.iface.mainWindow()
-        )
-        dialog.setWindowTitle(self.tr('Change resource name'))
-        dialog.setOverwriteEnabled(False)
-        dialog.setAllowEmptyName(False)
-        dialog.setHintString(self.tr('Enter new name for selected resource'))
-        dialog.setConflictingNameWarning(self.tr('Resource already exists'))
-
-        if dialog.exec_() != QDialog.DialogCode.Accepted:
-            return
-
-        new_name = dialog.name()
-
-        if new_name == current_name:
-            return
-
-        self.rename_resource_resp = self._resource_model.renameResource(
-            selected_index, new_name
-        )
-        self.rename_resource_resp.done.connect(  # type: ignore
-            self.trvResources.setCurrentIndex
-        )
+        self.trvResources.rename_resource(selected_index)
 
     def __action_open_map(self):
         sel_index = self.trvResources.selectionModel().currentIndex()
@@ -886,7 +843,6 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
-
 
     def _add_with_style(self, resource):
         style_resource = None
