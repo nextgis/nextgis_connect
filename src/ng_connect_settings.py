@@ -208,7 +208,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        super().__init__('NextGIS Connect', QIcon(), 'ngconnect')
+        super().__init__('NextGIS Connect', QIcon())
 
     def icon(self) -> QIcon:
         ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
