@@ -5,11 +5,10 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from qgis.core import Qgis, QgsMessageLog
-from .plugin_settings import PluginSettings
 
 
-def qgisLog(msg, level=Qgis.Info):
-    QgsMessageLog.logMessage(msg, PluginSettings._product, level)
+def qgisLog(msg, level=Qgis.MessageLevel.Info):
+    QgsMessageLog.logMessage(msg, 'NextGIS Connect', level)
 
 
 class ExceptionsListDialog(QDialog):

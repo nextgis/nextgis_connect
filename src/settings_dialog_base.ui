@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>NgConnectSettingsWidgetBase</class>
+ <widget class="QWidget" name="NgConnectSettingsWidgetBase">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>430</width>
-    <height>360</height>
+    <height>462</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -33,40 +33,60 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QGroupBox" name="groupBox">
+    <widget class="QGroupBox" name="connectionsGroupBox">
      <property name="title">
       <string>Connections</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout">
-      <item row="1" column="0">
-       <widget class="QPushButton" name="btnNew">
-        <property name="text">
-         <string>New</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QPushButton" name="btnEdit">
-        <property name="text">
-         <string>Edit</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
-       <widget class="QPushButton" name="btnDelete">
-        <property name="text">
-         <string>Delete</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0" colspan="3">
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
        <widget class="QComboBox" name="cmbConnections"/>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QPushButton" name="btnNew">
+          <property name="text">
+           <string>New</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnEdit">
+          <property name="text">
+           <string>Edit</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="btnDelete">
+          <property name="text">
+           <string>Delete</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="groupBox_2">
+    <widget class="QGroupBox" name="uploadGroupBox">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -78,7 +98,7 @@
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
       <item row="1" column="0">
-       <widget class="QCheckBox" name="chSanitizeFixGeometry">
+       <widget class="QCheckBox" name="fixGeometryCheckBox">
         <property name="text">
          <string>Fix incorrect geometries</string>
         </property>
@@ -88,7 +108,7 @@
        </widget>
       </item>
       <item row="0" column="0">
-       <widget class="QCheckBox" name="chSanitizeRenameFields">
+       <widget class="QCheckBox" name="renameFieldsCheckBox">
         <property name="text">
          <string>Rename forbidden fields</string>
         </property>
@@ -101,21 +121,27 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="cbAutoOpenWebMap">
+    <widget class="QCheckBox" name="openWebMapAfterCreationCheckBox">
      <property name="text">
       <string>Open web map automatically on creation</string>
      </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="cbAutoAddWFS">
-     <property name="text">
-      <string>Add WFS layer to QGIS on WFS service creation</string>
+     <property name="checked">
+      <bool>true</bool>
      </property>
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="cbCog">
+    <widget class="QCheckBox" name="addWfsLayerAfterServiceCreationCheckBox">
+     <property name="text">
+      <string>Add WFS layer to QGIS on WFS service creation</string>
+     </property>
+     <property name="checked">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QCheckBox" name="cogCheckBox">
      <property name="text">
       <string>Upload rasters as Cloud Optimized GeoTIFF (COG)</string>
      </property>
@@ -125,12 +151,12 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="cbLog">
+    <widget class="QCheckBox" name="debugEnabledCheckBox">
      <property name="text">
       <string>Enable log messages</string>
      </property>
      <property name="checked">
-      <bool>true</bool>
+      <bool>false</bool>
      </property>
     </widget>
    </item>
@@ -147,57 +173,8 @@
      </property>
     </spacer>
    </item>
-   <item>
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Close</set>
-     </property>
-    </widget>
-   </item>
   </layout>
  </widget>
  <resources/>
- <connections>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>accepted()</signal>
-   <receiver>Dialog</receiver>
-   <slot>accept()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>248</x>
-     <y>254</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>157</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>buttonBox</sender>
-   <signal>rejected()</signal>
-   <receiver>Dialog</receiver>
-   <slot>reject()</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>316</x>
-     <y>260</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>286</x>
-     <y>274</y>
-    </hint>
-   </hints>
-  </connection>
- </connections>
+ <connections/>
 </ui>

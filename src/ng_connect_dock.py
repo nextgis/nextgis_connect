@@ -84,8 +84,7 @@ from .action_style_import_or_update import ActionStyleImportUpdate
 from .dialog_choose_style import NGWLayerStyleChooserDialog
 from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
-from .plugin_settings import PluginSettings
-from .settings_dialog import SettingsDialog
+from .plugin_settings import NgConnectSettings
 from .tree_widget import (
     QNGWResourceTreeView, QNGWResourceItem, QNGWResourceTreeModel
 )
@@ -100,7 +99,7 @@ ICONS_PATH = os.path.join(this_dir, 'icons/')
 
 
 def qgisLog(msg, level=Qgis.MessageLevel.Info):
-    QgsMessageLog.logMessage(msg, PluginSettings._product, level)
+    QgsMessageLog.logMessage(msg, 'NextGIS Connect', level)
 
 
 def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
@@ -110,7 +109,7 @@ def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
 setLogger(ngwApiLog)
 
 
-class NGConnectDock(QgsDockWidget, FORM_CLASS):
+class NgConnectDock(QgsDockWidget, FORM_CLASS):
     iface: QgisInterface
     _resource_model: QNGWResourceTreeModel
     trvResources: QNGWResourceTreeView
@@ -715,21 +714,9 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
-        old_debug_mode = PluginSettings.debug_mode()
-
-        sett_dialog = SettingsDialog()
-        sett_dialog.show()
-        sett_dialog.exec_()
-
-        debug_mode = PluginSettings.debug_mode()
-
-        if debug_mode != old_debug_mode:
-            setDebugEnabled(debug_mode)
-            QgsMessageLog.logMessage(
-                'Debug messages are now %s' % ('enabled' if debug_mode else 'disabled'),
-                PluginSettings._product, level=Qgis.MessageLevel.Info)
-
-        self.reinit_tree()
+        self.iface.showOptionsDialog(
+            self.iface.mainWindow(), 'NextGIS Connect'
+        )
 
     def str_to_link(self, text: str, url: str):
         return '<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(url, text)
@@ -1187,7 +1174,6 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         else:
             raise Exception(self.tr("Can't open file to write raster!"))
 
-
     def _copy_resource(self, ngw_src):
         ''' Create a copy of a ngw raster or vector layer
             1) Download ngw layer sources
@@ -1197,7 +1183,7 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         '''
         def qml_callback(total_size, readed_size):
             ngwApiLog(
-                'Style for "%s" - Upload (%d%%)' % (
+                self.tr('Style for "{}" - Upload ({}%)').format(
                     ngw_src.common.display_name,
                     readed_size * 100 / total_size
                 )
@@ -1342,7 +1328,7 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def add_created_wfs_service(self, index):
-        if not PluginSettings.auto_add_wfs_option():
+        if not NgConnectSettings().add_wfs_layer_after_service_creation():
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1409,7 +1395,7 @@ class NGConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def open_create_web_map(self, index):
-        if not PluginSettings.auto_open_web_map_option():
+        if not NgConnectSettings().open_web_map_after_creation():
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)

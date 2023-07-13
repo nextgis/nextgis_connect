@@ -28,8 +28,9 @@ from qgis.PyQt.QtWidgets import QAction
 from qgis.core import Qgis, QgsApplication, QgsMessageLog, QgsMapLayerType
 from qgis.gui import QgisInterface
 
-from .plugin_settings import PluginSettings
-from .ng_connect_dock import NGConnectDock
+from .plugin_settings import NgConnectSettings
+from .ng_connect_dock import NgConnectDock
+from .ng_connect_settings import NgConnectOptionsWidgetFactory
 from . import utils
 
 from .ngw_api import qgis
@@ -67,21 +68,23 @@ plugins['nextgis_connect'].enableDebug(False)
         self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
         self.__init_ng_layer_actions()
+        self.__init_ng_connect_settings()
 
     def unload(self):
+        self.__unload_ng_connect_settings()
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
         self.__unload_ng_connect_dock()
 
     def __init_debug(self):
         # Enable debug mode.
-        debug_mode = PluginSettings.debug_mode()
+        debug_mode = NgConnectSettings().is_debug_enabled()
         setDebugEnabled(debug_mode)
         QgsMessageLog.logMessage(
             'Debug messages are {}'.format(
                 'enabled' if debug_mode else 'disabled'
             ),
-            PluginSettings._product, level=Qgis.MessageLevel.Info
+            'NextGIS Connect', level=Qgis.MessageLevel.Info
         )
 
     def __init_translator(self):
@@ -108,7 +111,7 @@ plugins['nextgis_connect'].enableDebug(False)
 
     def __init_ng_connect_dock(self):
         # Dock tree panel
-        self.__ng_resources_tree_dock = NGConnectDock(
+        self.__ng_resources_tree_dock = NgConnectDock(
             self.title, self.iface
         )
         self.iface.addDockWidget(
@@ -210,6 +213,18 @@ plugins['nextgis_connect'].enableDebug(False)
             # For vector and raster types
             self.iface.removeCustomActionForLayerType(action)
             self.iface.removeCustomActionForLayerType(action)
+
+    def __init_ng_connect_settings(self):
+        self.__options_factory = NgConnectOptionsWidgetFactory()
+        self.iface.registerOptionsWidgetFactory(self.__options_factory)
+
+    def __unload_ng_connect_settings(self):
+        if self.__options_factory is None:
+            return
+
+        self.iface.unregisterOptionsWidgetFactory(self.__options_factory)
+        self.__options_factory.deleteLater()
+        self.__options_factory = None
 
     @staticmethod
     def info():

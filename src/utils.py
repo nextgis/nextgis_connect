@@ -15,7 +15,7 @@ def show_error_message(msg):
     iface.messageBar().pushMessage(
         'NextGIS Connect',
         msg,
-        level=Qgis.Critical
+        level=Qgis.MessageLevel.Critical
     )
 
 
@@ -74,6 +74,7 @@ class ChooserDialog(QDialog):
         self.seleced_options = [item.text() for item in self.list.selectedItems()]
         super().accept()
 
+
 def open_plugin_help():
     QDesktopServices.openUrl(
         QUrl('https://docs.nextgis.com/docs_ngconnect/source/toc.html')
@@ -91,5 +92,7 @@ def set_clipboard_data(
         mime_data.setText(text)
     if platform.system() == 'Linux':
         selection_mode = QClipboard.Mode.Selection
-        QgsApplication.clipboard().setMimeData( mime_data, selection_mode)
-    QgsApplication.clipboard().setMimeData(mime_data, QClipboard.Mode.Clipboard)
+        QgsApplication.clipboard().setMimeData(mime_data, selection_mode)
+    QgsApplication.clipboard().setMimeData(
+        mime_data, QClipboard.Mode.Clipboard
+    )

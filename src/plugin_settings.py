@@ -20,40 +20,80 @@
  ***************************************************************************/
 """
 
-from .ngw_api.qgis.common_plugin_settings import PluginSettings as CommonPluginSettings
+from qgis.PyQt.QtCore import QSettings
+from qgis.core import QgsSettings
 
 
-class PluginSettings(CommonPluginSettings):
+class NgConnectSettings:
+    """Convenience class for working with plugin settings"""
 
-    _company_name = 'NextGIS'
-    _product = 'NextGISConnect'
+    __settings: QgsSettings
 
-    @classmethod
-    def auto_open_web_map_option(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/autoOpenWebMapByDefault', True, type=bool)
+    def __init__(self) -> None:
+        self.__settings = QgsSettings()
+        self.__migrate()
 
-    @classmethod
-    def set_auto_open_web_map_option(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/autoOpenWebMapByDefault', val)
+    def open_web_map_after_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group())
+        result = self.__settings.value(
+            'openWebMapAfterCreation', defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
 
-    @classmethod
-    def auto_add_wfs_option(cls):
-        settings = cls.get_settings()
-        return settings.value('/ui/autoAddWFSByDefault', True, type=bool)
+    def set_open_web_map_after_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.setValue('openWebMapAfterCreation', value)
+        self.__settings.endGroup()
 
-    @classmethod
-    def set_auto_add_wfs_option(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/ui/autoAddWFSByDefault', val)
+    def add_wfs_layer_after_service_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group())
+        result = self.__settings.value(
+            'addWfsLayerAfterServiceCreation', defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
 
-    @classmethod
-    def debug_mode(cls):
-        settings = cls.get_settings()
-        return settings.value('/debugMode', False, type=bool)
+    def set_add_wfs_layer_after_service_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.setValue('addWfsLayerAfterServiceCreation', value)
+        self.__settings.endGroup()
 
-    @classmethod
-    def set_debug_mode(cls, val):
-        settings = cls.get_settings()
-        settings.setValue('/debugMode', val)
+    def is_debug_enabled(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group())
+        result = self.__settings.value(
+            'debugEnabled', defaultValue=False, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    def set_debug_enabled(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.setValue('debugEnabled', value)
+        self.__settings.endGroup()
+
+    @staticmethod
+    def __plugin_group() -> str:
+        return 'NextGIS/NGConnect'
+
+    def __migrate(self) -> None:
+        """Migrate from QSettings to QgsSettings"""
+        settings = QSettings('NextGIS', 'NextGISConnect')
+        if len(settings.allKeys()) == 0:
+            return
+
+        mapping = {
+            'ui/autoOpenWebMapByDefault': 'openWebMapAfterCreation',
+            'ui/autoAddWFSByDefault': 'addWfsLayerAfterServiceCreation',
+            'debugMode': 'debugEnabled',
+        }
+        self.__settings.beginGroup(self.__plugin_group())
+        for old_key, new_key in mapping.items():
+            if (value := settings.value(old_key)) is None:
+                continue
+            self.__settings.setValue(new_key, value)
+        self.__settings.endGroup()
+
+        self.__settings.sync()
+
+        settings.clear()
