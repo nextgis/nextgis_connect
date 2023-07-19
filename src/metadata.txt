@@ -16,7 +16,7 @@ changelog=
 	1.3.0
 		* Update settings dialog
 		* Add rename on F2
-		* Speedup layers loading up to 30%
+		* Speedup layers loading up to 30%%
 		* Bug fixes
 	1.2.1
 		* Fix attachments uploading
