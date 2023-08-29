@@ -572,7 +572,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         # widget.setProperty("Error", message)
         if need_show_log:
-            button = QPushButton(self.tr("Open logs."))
+            button = QPushButton(self.tr("Open logs"))
             button.pressed.connect(self.__show_message_log)
             widget.layout().addWidget(button)
 
