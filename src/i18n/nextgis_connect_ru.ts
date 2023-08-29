@@ -329,8 +329,8 @@
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="575"/>
-        <source>Open logs.</source>
-        <translation>Открыть отладочные сообщения.</translation>
+        <source>Open logs</source>
+        <translation>Открыть отладочные сообщения</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="725"/>
