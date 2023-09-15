@@ -565,6 +565,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __msg_in_qgis_mes_bar(self, message, need_show_log, level=Qgis.MessageLevel.Info, duration=0):
         if need_show_log:
+            if message.endswith('..'):
+                message = message[:-1]
             message += " " + self.tr("See logs for details.")
         widget = self.iface.messageBar().createMessage(
             'NextGIS Connect',
