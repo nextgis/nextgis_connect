@@ -1148,7 +1148,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         req = QNetworkRequest(QUrl(url))
         creds = ngw_lyr.get_creds()
-        if creds is not None:
+        if creds[0] and creds[1]:
             creds_str = creds[0] + ':' + creds[1]
             authstr = creds_str.encode('utf-8')
             authstr = QByteArray(authstr).toBase64()
@@ -1425,7 +1425,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         req = QNetworkRequest(QUrl(url))
         creds = ngw_style.get_creds_for_qml()
-        if creds is not None:
+        if creds[0] and creds[1]:
             creds_str = creds[0] + ':' + creds[1]
             authstr = creds_str.encode('utf-8')
             authstr = QByteArray(authstr).toBase64()
