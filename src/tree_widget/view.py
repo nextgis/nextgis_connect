@@ -1,5 +1,7 @@
 from qgis.PyQt.QtCore import Qt, QModelIndex, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QColor, QPalette, QPainter, QPen
+from qgis.PyQt.QtGui import (
+    QBrush, QPalette, QPainter, QPen, QKeyEvent
+)
 from qgis.PyQt.QtWidgets import (
     QHeaderView, QHBoxLayout, QLabel, QProgressBar, QSizePolicy, QSpacerItem,
     QTreeView, QVBoxLayout, QWidget, QDialog
@@ -94,14 +96,18 @@ class QProcessOverlay(QOverlay):
 
 class QNGWResourceTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
+
     def __init__(self, parent):
         super().__init__(parent)
 
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
         self.setHeaderHidden(True)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
+
         header = self.header()
+        assert header is not None
         header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
 
@@ -174,10 +180,9 @@ class QNGWResourceTreeView(QTreeView):
         if len(self.jobs) == 0:
             self.ngw_job_block_overlay.hide()
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent):
         is_f2 = event.key() == Qt.Key.Key_F2
-        index = self.currentIndex()
-        if is_f2 and index.isValid():
+        if is_f2 and (index := self.currentIndex()).isValid():
             self.rename_resource(index)
         else:
             super().keyPressEvent(event)

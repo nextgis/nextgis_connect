@@ -1,10 +1,10 @@
-from typing import AnyStr
+from typing import List, Union, Optional
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal, QThread, QVariant, Qt
 )
 
-from ..ngw_api.core import NGWGroupResource
+from ..ngw_api.core import NGWResource, NGWGroupResource
 from ..ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle, NGWCreateWFSForVector, NGWGroupCreater, NGWRenameResource,
     NGWResourceDelete, NGWRootResourcesLoader, NGWResourceUpdater, NGWResourceModelJob,
@@ -58,7 +58,7 @@ class NGWResourcesModelJob(QObject):
     def __rememberResult(self, result: NGWResourceModelJobResult):
         self.__result = result
 
-    def getJobId(self) -> AnyStr:
+    def getJobId(self) -> str:
         return self.__job_id
 
     def getResult(self) -> NGWResourceModelJobResult:
@@ -196,7 +196,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         return parent_item.childCount()
 
     def canFetchMore(self, parent):
-        if self._isIndexLockedByJob(parent) or self._isIndexLockedByJobError(parent):
+        if (
+            self._isIndexLockedByJob(parent)
+            or self._isIndexLockedByJobError(parent)
+        ):
             return False
 
         item = self.item(parent)
@@ -239,7 +242,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         return item.flags()
 
     # TODO job должен уметь не стартовать, например есди запущен job обновления дочерних ресурсов - нельзя запускать обновление
-    def _startJob(self, worker, index=None):
+    def _startJob(
+        self,
+        worker: NGWResourceModelJob,
+        lock_indexes: Union[List[QModelIndex], QModelIndex, None] = None
+    ):
         job = NGWResourcesModelJob(self, worker)
         job.started.connect(self.__jobStartedProcess)
         job.statusChanged.connect(self.__jobStatusChangedProcess)
@@ -249,7 +256,12 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.jobs.append(job)
 
-        if index is not None:
+        indexes_for_lock: List[QModelIndex] = []
+        if isinstance(lock_indexes, QModelIndex):
+            indexes_for_lock = [lock_indexes]
+        elif lock_indexes is not None:
+            indexes_for_lock = lock_indexes
+        for index in indexes_for_lock:
             self._lockIndexByJob(index, job)
 
         job.start()
@@ -385,7 +397,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 index = indexes[parent_id]
 
                 item = index.internalPointer()
-                current_ids = [item.child(i).ngw_resource_id() for i in range(item.childCount()) if isinstance(item.child(i), QNGWResourceItem)]
+                current_ids = [
+                    item.child(i).ngw_resource_id()
+                    for i in range(item.childCount())
+                    if isinstance(item.child(i), QNGWResourceItem)
+                ]
                 if ngw_resource.common.id not in current_ids:
                     new_index = self.addNGWResourceToTree(index, ngw_resource)
                 else:
@@ -483,6 +499,8 @@ def modelRequest():
     def modelRequestDecorator(method):
         def wrapper(self, *args, **kwargs):
             job = method(self, *args, **kwargs)
+            if job is None:
+                return None
             response = NGWResourceModelResponse(self)
             job.setResponseObject(response)
             return response
@@ -658,3 +676,43 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(
             NGWUpdateVectorLayer(ngw_vector_layer, qgs_vector_layer),
         )
+
+    @modelRequest()
+    def fetch_group(
+        self, group_indexes: Union[QModelIndex, List[QModelIndex]]
+    ) -> Optional[NGWResourcesModelJob]:
+        def collect_indexes(index: QModelIndex) -> List[QModelIndex]:
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            if not isinstance(ngw_resource, NGWGroupResource):
+                return []
+
+            if self.canFetchMore(index):
+                return [index]
+
+            if not self.hasChildren(index):
+                return []
+
+            indexes: List[QModelIndex] = []
+            for row in range(self.rowCount(index)):
+                child_index = self.index(row, 0, index)
+                indexes.extend(collect_indexes(child_index))
+
+            return indexes
+
+        if isinstance(group_indexes, QModelIndex):
+            group_indexes = [group_indexes]
+
+        indexes_for_fetch: List[QModelIndex] = []
+        for group_index in group_indexes:
+            indexes_for_fetch.extend(collect_indexes(group_index))
+
+        if len(indexes_for_fetch) == 0:
+            return None
+
+        resources: List[NGWResource] = [
+            index.data(QNGWResourceItem.NGWResourceRole)
+            for index in indexes_for_fetch
+        ]
+
+        worker = NGWResourceUpdater(resources, recursive=True)
+        return self._startJob(worker, lock_indexes=indexes_for_fetch)
