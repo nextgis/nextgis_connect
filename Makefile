@@ -26,7 +26,7 @@ compile_ts:
 clean:
 	py3clean .
 
-release: compile_ts clean
+release: compile_ts
 	mkdir -p $(BUILD_DIR)/$(PLUGIN_NAME)
 
 	cp -r src/* LICENSE $(BUILD_DIR)/$(PLUGIN_NAME)
