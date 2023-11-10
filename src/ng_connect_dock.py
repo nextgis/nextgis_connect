@@ -29,7 +29,7 @@ from typing import List, Optional, cast
 from qgis.core import (
     Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer,
     QgsNetworkAccessManager, QgsSettings, QgsFileUtils, QgsLayerTree,
-    QgsLayerTreeLayer, QgsLayerTreeRegistryBridge
+    QgsLayerTreeLayer, QgsLayerTreeRegistryBridge, QgsApplication
 )
 
 from qgis.gui import (
@@ -237,7 +237,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionEditMetadata.triggered.connect(self.edit_metadata)
 
         self.actionDeleteResource = QAction(
-            QIcon(os.path.join(ICONS_PATH, 'mActionDelete.svg')),
+            QgsApplication.getThemeIcon("mActionDeleteSelected.svg"),
             self.tr("Delete resource"),
             self
         )
@@ -269,21 +269,33 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar = NGWPanelToolBar()
         self.content.layout().addWidget(self.main_tool_bar)
 
-        self.main_tool_bar.addAction(self.actionExport)
+        self.toolbuttonDownload = QToolButton()
+        self.toolbuttonDownload.setIcon(
+            QIcon(os.path.join(ICONS_PATH, 'mActionExport.svg'))
+        )
+        self.toolbuttonDownload.setToolTip(self.tr("Add to QGIS"))
+        self.toolbuttonDownload.clicked.connect(self.__export_to_qgis)
+        self.main_tool_bar.addWidget(self.toolbuttonDownload)
+
         self.toolbuttonUpload = QToolButton()
         self.toolbuttonUpload.setPopupMode(QToolButton.InstantPopup)
         self.toolbuttonUpload.setMenu(self.menuUpload)
         self.toolbuttonUpload.setIcon(self.menuUpload.icon())
         self.toolbuttonUpload.setText(self.menuUpload.title())
         self.toolbuttonUpload.setToolTip(self.menuUpload.title())
-
         self.main_tool_bar.addWidget(self.toolbuttonUpload)
+
         self.main_tool_bar.addSeparator()
+
         self.main_tool_bar.addAction(self.actionCreateNewGroup)
         self.main_tool_bar.addAction(self.actionRefresh)
+
         self.main_tool_bar.addSeparator()
+
         self.main_tool_bar.addAction(self.actionOpenMapInBrowser)
+
         self.main_tool_bar.addSeparator()
+
         self.main_tool_bar.addAction(self.actionSettings)
         self.main_tool_bar.addAction(self.actionHelp)
 
@@ -486,7 +498,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
-        self.actionExport.setEnabled(
+        is_download_enabled = (
             not has_no_ngw_selection
             and all(
                 ngw_index.parent().isValid()
@@ -507,6 +519,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 for ngw_resource in ngw_resources
             )
         )
+        self.actionExport.setEnabled(is_download_enabled)
+        self.toolbuttonDownload.setEnabled(is_download_enabled)
 
         self.actionOpenMapInBrowser.setEnabled(
             not is_multiple_ngw_selection
@@ -811,7 +825,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self._resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
-        self.actionExport.setEnabled(False)
+        self.toolbuttonDownload.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
