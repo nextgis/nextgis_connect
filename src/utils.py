@@ -1,5 +1,5 @@
 import platform
-from typing import Union
+from typing import Union, cast
 
 from qgis.PyQt.QtCore import Qt, QUrl, QByteArray, QMimeData
 from qgis.PyQt.QtGui import QDesktopServices, QClipboard
@@ -7,13 +7,26 @@ from qgis.PyQt.QtWidgets import (
     QDialog, QDialogButtonBox, QListWidget, QListWidgetItem, QVBoxLayout,
 )
 
-from qgis.core import Qgis, QgsApplication, QgsProject, QgsRasterLayer
+from qgis.core import (
+    Qgis, QgsApplication, QgsProject, QgsMessageLog, QgsRasterLayer
+)
+from qgis.gui import QgisInterface
 from qgis.utils import iface
+
+iface = cast(QgisInterface, iface)
+
+PLUGIN_NAME = 'NextGIS Connect'
+
+
+def log_to_qgis(
+    message: str, level: Qgis.MessageLevel = Qgis.MessageLevel.Info
+) -> None:
+    QgsMessageLog.logMessage(message, tag=PLUGIN_NAME, level=level)
 
 
 def show_error_message(msg):
     iface.messageBar().pushMessage(
-        'NextGIS Connect',
+        PLUGIN_NAME,
         msg,
         level=Qgis.MessageLevel.Critical
     )

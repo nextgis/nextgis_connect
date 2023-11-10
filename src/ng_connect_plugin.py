@@ -53,7 +53,7 @@ plugins['nextgis_connect'].enableDebug(False)
     title: str
     plugin_dir: str
 
-    def __init__(self, iface):
+    def __init__(self, iface: QgisInterface) -> None:
         self.iface = iface
         self.title = 'NextGIS Connect'
         self.plugin_dir = path.dirname(__file__)
@@ -61,16 +61,16 @@ plugins['nextgis_connect'].enableDebug(False)
         self.__init_debug()
         self.__init_translator()
 
-    def tr(self, message):
+    def tr(self, message: str) -> str:
         return QCoreApplication.translate('NGConnectPlugin', message)
 
-    def initGui(self):
+    def initGui(self) -> None:
         self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
         self.__init_ng_layer_actions()
         self.__init_ng_connect_settings()
 
-    def unload(self):
+    def unload(self) -> None:
         self.__unload_ng_connect_settings()
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
@@ -78,13 +78,10 @@ plugins['nextgis_connect'].enableDebug(False)
 
     def __init_debug(self):
         # Enable debug mode.
-        debug_mode = NgConnectSettings().is_debug_enabled()
+        debug_mode = NgConnectSettings().is_debug_enabled
         setDebugEnabled(debug_mode)
-        QgsMessageLog.logMessage(
-            'Debug messages are {}'.format(
-                'enabled' if debug_mode else 'disabled'
-            ),
-            'NextGIS Connect', level=Qgis.MessageLevel.Info
+        utils.log_to_qgis(
+            f'Debug messages are {"enabled" if debug_mode else "disabled"}'
         )
 
     def __init_translator(self):

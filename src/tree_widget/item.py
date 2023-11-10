@@ -1,13 +1,13 @@
+from typing import cast
+
 from qgis.PyQt.QtCore import Qt, QVariant
 from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QTreeWidgetItem
 
 from ..ngw_api.core import (
-    NGWGroupResource, NGWMapServerStyle, NGWQGISRasterStyle, NGWQGISVectorStyle,
+    NGWGroupResource, NGWMapServerStyle, NGWQGISRasterStyle,
+    NGWQGISVectorStyle, NGWResource
 )
-from ..ngw_api.utils import log  # TODO REMOVE
-
-
-from qgis.PyQt.QtWidgets import QTreeWidgetItem
 
 
 # TODO: remove QTreeWidgetItem inheritance
@@ -15,16 +15,16 @@ class QModelItem(QTreeWidgetItem):
     def __init__(self):
         super().__init__()
 
-        #self.locked_item = ItemBase(["loading..."])
-        #self.locked_item.setFlags(Qt.NoItemFlags)
+        # self.locked_item = ItemBase(["loading..."])
+        # self.locked_item.setFlags(Qt.NoItemFlags)
 
         self._locked = False
         self.unlock()
 
     def lock(self):
         self._locked = True
-        #self.setFlags(Qt.NoItemFlags)
-        #self.addChild(self.locked_item)
+        # self.setFlags(Qt.NoItemFlags)
+        # self.addChild(self.locked_item)
 
     @property
     def locked(self):
@@ -32,22 +32,25 @@ class QModelItem(QTreeWidgetItem):
 
     def unlock(self):
         if self._locked:
-            #self.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
-            #self.removeChild(self.locked_item)
+            # self.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+            # self.removeChild(self.locked_item)
             self._locked = False
 
     def flags(self):
         if self._locked:
-            return Qt.NoItemFlags
-        return Qt.ItemIsEnabled | Qt.ItemIsSelectable
+            return Qt.ItemFlag.NoItemFlags
+        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
 
     def data(self, role):
         return QVariant()
 
 
 class QNGWResourceItem(QModelItem):
-    NGWResourceRole = Qt.UserRole
-    NGWResourceIdRole = Qt.UserRole + 1
+    NGWResourceRole = Qt.ItemDataRole.UserRole
+    NGWResourceIdRole = Qt.ItemDataRole.UserRole + 1
+
+    _title: str
+    _ngw_resource: NGWResource
 
     def __init__(self, ngw_resource):
         super().__init__()
@@ -61,9 +64,9 @@ class QNGWResourceItem(QModelItem):
         self._icon = QIcon(self._ngw_resource.icon_path)
 
     def data(self, role):
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             return self._title
-        if role == Qt.DecorationRole:
+        if role == Qt.ItemDataRole.DecorationRole:
             return self._icon
         if role == QNGWResourceItem.NGWResourceRole:
             return self._ngw_resource
@@ -75,7 +78,7 @@ class QNGWResourceItem(QModelItem):
         return self.data(QNGWResourceItem.NGWResourceIdRole)
 
     def is_group(self):
-        ngw_resource = self.data(self.NGWResourceRole)
+        ngw_resource = cast(NGWResource, self.data(self.NGWResourceRole))
         return ngw_resource.type_id == NGWGroupResource.type_id
 
     def more_priority(self, item):

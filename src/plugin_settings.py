@@ -20,8 +20,9 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt.QtCore import QSettings
+
 from qgis.core import QgsSettings
+from qgis.PyQt.QtCore import QSettings
 
 
 class NgConnectSettings:
@@ -33,47 +34,54 @@ class NgConnectSettings:
         self.__settings = QgsSettings()
         self.__migrate()
 
+    @property
     def open_web_map_after_creation(self) -> bool:
-        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
             'openWebMapAfterCreation', defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
 
-    def set_open_web_map_after_creation(self, value: bool) -> None:
-        self.__settings.beginGroup(self.__plugin_group())
+    @open_web_map_after_creation.setter
+    def open_web_map_after_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
         self.__settings.setValue('openWebMapAfterCreation', value)
         self.__settings.endGroup()
 
-    def add_wfs_layer_after_service_creation(self) -> bool:
-        self.__settings.beginGroup(self.__plugin_group())
+    @property
+    def add_layer_after_service_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        # TODO: remove "wfs" from key
         result = self.__settings.value(
             'addWfsLayerAfterServiceCreation', defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
 
-    def set_add_wfs_layer_after_service_creation(self, value: bool) -> None:
-        self.__settings.beginGroup(self.__plugin_group())
+    @add_layer_after_service_creation.setter
+    def add_layer_after_service_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
         self.__settings.setValue('addWfsLayerAfterServiceCreation', value)
         self.__settings.endGroup()
 
+    @property
     def is_debug_enabled(self) -> bool:
-        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
             'debugEnabled', defaultValue=False, type=bool
         )
         self.__settings.endGroup()
         return result
 
-    def set_debug_enabled(self, value: bool) -> None:
-        self.__settings.beginGroup(self.__plugin_group())
+    @is_debug_enabled.setter
+    def is_debug_enabled(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
         self.__settings.setValue('debugEnabled', value)
         self.__settings.endGroup()
 
-    @staticmethod
-    def __plugin_group() -> str:
+    @property
+    def __plugin_group(self) -> str:
         return 'NextGIS/NGConnect'
 
     def __migrate(self) -> None:
@@ -87,7 +95,7 @@ class NgConnectSettings:
             'ui/autoAddWFSByDefault': 'addWfsLayerAfterServiceCreation',
             'debugMode': 'debugEnabled',
         }
-        self.__settings.beginGroup(self.__plugin_group())
+        self.__settings.beginGroup(self.__plugin_group)
         for old_key, new_key in mapping.items():
             if (value := settings.value(old_key)) is None:
                 continue

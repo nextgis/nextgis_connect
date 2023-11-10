@@ -6,7 +6,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QMessageBox
 
 from qgis.utils import iface
-from qgis.core import Qgis, QgsMessageLog
+from qgis.core import Qgis
 from qgis.gui import (
     QgsOptionsPageWidget, QgsOptionsWidgetFactory
 )
@@ -18,6 +18,8 @@ from .ngw_api.utils import setDebugEnabled
 from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
 from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 
+from . import utils
+
 
 class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     """NextGIS Connect settings page"""
@@ -27,25 +29,39 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        pluginPath = os.path.dirname(__file__)
-        self.widget = uic.loadUi(
-            os.path.join(pluginPath, 'settings_dialog_base.ui')
-        )  # type: ignore
-        if self.widget is None:
-            # TODO log
-            return
+        plugin_path = os.path.dirname(__file__)
+        widget: Optional[QWidget] = None
+        try:
+            widget = uic.loadUi(
+                os.path.join(plugin_path, 'settings_dialog_base.ui')
+            )  # type: ignore
+        except FileNotFoundError:
+            message = self.tr("Can't load settings UI")
+            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
+            raise RuntimeError(message)
+        if widget is None:
+            message = self.tr("Errors in settings UI")
+            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
+            raise RuntimeError(message)
 
+        self.widget = widget
         self.widget.setParent(self)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setMargin(0)
+        layout.setMargin(0)  # type: ignore
         self.setLayout(layout)
         layout.addWidget(self.widget)
 
         self.__init_settings()
 
     def apply(self) -> None:
+        settings = NgConnectSettings()
+
+        # Connections settings
+        self.__save_connections()
+
+        # Sanitize settings
         NgwPluginSettings.set_sanitize_rename_fields(
             self.widget.renameFieldsCheckBox.isChecked()
         )
@@ -53,33 +69,24 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.widget.fixGeometryCheckBox.isChecked()
         )
 
-        settings = NgConnectSettings()
-        settings.set_open_web_map_after_creation(
+        # Creation settings
+        settings.open_web_map_after_creation = \
             self.widget.openWebMapAfterCreationCheckBox.isChecked()
-        )
-        settings.set_add_wfs_layer_after_service_creation(
+        settings.add_layer_after_service_creation = \
             self.widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
-        )
+
+        # Other settings
         NgwPluginSettings.set_upload_cog_rasters(
             self.widget.cogCheckBox.isChecked()
         )
-
-        old_debug_enabled = settings.is_debug_enabled()
+        old_debug_enabled = settings.is_debug_enabled
         new_debug_enabled = self.widget.debugEnabledCheckBox.isChecked()
-        settings.set_debug_enabled(
-            new_debug_enabled
-        )
+        settings.is_debug_enabled = new_debug_enabled
         if old_debug_enabled != new_debug_enabled:
             debug_state = 'enabled' if new_debug_enabled else 'disabled'
-            QgsMessageLog.logMessage(
-                f'Debug messages are now {debug_state}',
-                tag='NextGIS Connect',
-                level=Qgis.MessageLevel.Info
-            )
+            utils.log_to_qgis(f'Debug messages are now {debug_state}')
             # TODO refactoring
             setDebugEnabled(new_debug_enabled)
-
-        self.__save_connections()
 
     def cancel(self) -> None:
         self.__save_connections()
@@ -110,10 +117,10 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
     def __init_creation_settings(self, settings: NgConnectSettings) -> None:
         self.widget.openWebMapAfterCreationCheckBox.setChecked(
-            settings.open_web_map_after_creation()
+            settings.open_web_map_after_creation
         )
         self.widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
-            settings.add_wfs_layer_after_service_creation()
+            settings.add_layer_after_service_creation
         )
 
     def __init_other_settings(self, settings: NgConnectSettings) -> None:
@@ -121,7 +128,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             NgwPluginSettings.get_upload_cog_rasters()
         )
         self.widget.debugEnabledCheckBox.setChecked(
-            settings.is_debug_enabled()
+            settings.is_debug_enabled
         )
 
     def new_connection(self):
@@ -130,7 +137,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         if dlg.exec_():
             conn_sett = dlg.ngw_connection_settings
             NgwPluginSettings.save_ngw_connection(conn_sett)
-            NgwPluginSettings.set_selected_ngw_connection_name(conn_sett.connection_name)
+            NgwPluginSettings.set_selected_ngw_connection_name(
+                conn_sett.connection_name  # type: ignore
+            )
             self.populate_connection_list()
         del dlg
         self.__connections_were_changed = True
@@ -148,11 +157,16 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         if dlg.exec_():
             new_conn_sett = dlg.ngw_connection_settings
             # if conn was renamed - remove old
-            if conn_name is not None and conn_name != new_conn_sett.connection_name:
+            if (
+                conn_name is not None
+                and conn_name != new_conn_sett.connection_name  # type: ignore
+            ):
                 NgwPluginSettings.remove_ngw_connection(conn_name)
             # save new
             NgwPluginSettings.save_ngw_connection(new_conn_sett)
-            NgwPluginSettings.set_selected_ngw_connection_name(new_conn_sett.connection_name)
+            NgwPluginSettings.set_selected_ngw_connection_name(
+                new_conn_sett.connection_name  # type: ignore
+            )
 
             self.populate_connection_list()
         del dlg
@@ -208,16 +222,20 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        super().__init__('NextGIS Connect', QIcon())
-
-    def icon(self) -> QIcon:
         ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
-        return QIcon(os.path.join(ICONS_PATH, 'logo.svg'))
+        super().__init__(
+            'NextGIS Connect', QIcon(os.path.join(ICONS_PATH, 'logo.svg'))
+        )
 
     def path(self) -> List[str]:
         return ['NextGIS']
 
     def createWidget(
         self, parent: Optional[QWidget] = None
-    ) -> QgsOptionsPageWidget:
-        return NgConnectOptionsPageWidget(parent)
+    ) -> Optional[QgsOptionsPageWidget]:
+        try:
+            return NgConnectOptionsPageWidget(parent)
+        except Exception:
+            message = self.tr('Settings dialog was crashed')
+            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
+            return None

@@ -28,8 +28,8 @@ from typing import List, Optional, cast
 
 from qgis.core import (
     Qgis, QgsMessageLog, QgsProject, QgsVectorLayer, QgsRasterLayer,
-    QgsPluginLayer, QgsLayerTreeGroup, QgsNetworkAccessManager, QgsSettings,
-    QgsFileUtils, QgsLayerTree, QgsLayerTreeLayer, QgsLayerTreeRegistryBridge
+    QgsNetworkAccessManager, QgsSettings, QgsFileUtils, QgsLayerTree,
+    QgsLayerTreeLayer, QgsLayerTreeRegistryBridge
 )
 
 from qgis.gui import (
@@ -115,7 +115,7 @@ setLogger(ngwApiLog)
 
 @dataclass
 class AddLayersCommand:
-    job_id: str
+    job_uuid: str
     insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
     ngw_indexes: List[QModelIndex]
 
@@ -143,7 +143,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.actionExport = QAction(
             QIcon(os.path.join(ICONS_PATH, 'mActionExport.svg')),
-            self.tr("Add to QGIS"), self)
+            self.tr("Add to QGIS"),
+            self
+        )
         self.actionExport.triggered.connect(self.__export_to_qgis)
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
@@ -327,7 +329,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.slotCustomContextMenu
         )
         self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
-        self.trvResources.selectionModel().selectionChanged.connect(
+        selection_model = self.trvResources.selectionModel()
+        assert selection_model is not None
+        selection_model.selectionChanged.connect(
             self.checkImportActionsAvailability
         )
         size_policy = self.trvResources.sizePolicy()
@@ -350,6 +354,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.checkImportActionsAvailability
         )
         project = QgsProject.instance()
+        assert project is not None
         project.layersAdded.connect(self.checkImportActionsAvailability)
         project.layersRemoved.connect(self.checkImportActionsAvailability)
 
@@ -360,7 +365,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.trvResources.itemDoubleClicked.disconnect(
             self.trvDoubleClickProcess
         )
-        self.trvResources.selectionModel().currentChanged.disconnect(
+        selection_model = self.trvResources.selectionModel()
+        assert selection_model is not None
+        selection_model.currentChanged.disconnect(
             self.checkImportActionsAvailability
         )
 
@@ -370,16 +377,31 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.checkImportActionsAvailability
         )
         project = QgsProject.instance()
+        assert project is not None
         project.layersAdded.disconnect(self.checkImportActionsAvailability)
         project.layersRemoved.disconnect(self.checkImportActionsAvailability)
 
-        self._resource_model.errorOccurred.disconnect(self.__model_error_process)
-        self._resource_model.warningOccurred.disconnect(self.__model_warning_process)
-        self._resource_model.jobStarted.disconnect(self.__modelJobStarted)
-        self._resource_model.jobStatusChanged.disconnect(self.__modelJobStatusChanged)
-        self._resource_model.jobFinished.disconnect(self.__modelJobFinished)
-        self._resource_model.indexesLocked.disconnect(self.__onModelBlockIndexes)
-        self._resource_model.indexesUnlocked.disconnect(self.__onModelReleaseIndexes)
+        self._resource_model.errorOccurred.disconnect(
+            self.__model_error_process
+        )
+        self._resource_model.warningOccurred.disconnect(
+            self.__model_warning_process
+        )
+        self._resource_model.jobStarted.disconnect(
+            self.__modelJobStarted
+        )
+        self._resource_model.jobStatusChanged.disconnect(
+            self.__modelJobStatusChanged
+        )
+        self._resource_model.jobFinished.disconnect(
+            self.__modelJobFinished
+        )
+        self._resource_model.indexesLocked.disconnect(
+            self.__onModelBlockIndexes
+        )
+        self._resource_model.indexesUnlocked.disconnect(
+            self.__onModelReleaseIndexes
+        )
 
         self._resource_model.deleteLater()
 
@@ -392,13 +414,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         qgis_nodes = layer_tree_view.selectedNodes()
         has_no_qgis_selection = len(qgis_nodes) == 0
         is_one_qgis_selected = len(qgis_nodes) == 1
-        is_multiple_qgis_selection = len(qgis_nodes) > 1
+        # is_multiple_qgis_selection = len(qgis_nodes) > 1
         is_layer = (
             is_one_qgis_selected and QgsLayerTree.isLayer(qgis_nodes[0])
         )
-        is_group = (
-            is_one_qgis_selected and QgsLayerTree.isGroup(qgis_nodes[0])
-        )
+        # is_group = (
+        #     is_one_qgis_selected and QgsLayerTree.isGroup(qgis_nodes[0])
+        # )
 
         # NGW resources
         selected_ngw_indexes = self.trvResources.selectedIndexes()
@@ -492,6 +514,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             and isinstance(ngw_resources[0], NGWWebMap)
         )
 
+        self.actionCreateNewGroup.setEnabled(is_one_ngw_selected)
+
         self.actionDeleteResource.setEnabled(
             not is_multiple_ngw_selection
             and not has_no_ngw_selection
@@ -513,7 +537,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def __model_exception_process(self, job, exception, level, trace=None):
-        self.unblock_gui() # always unblock in case of any error so to allow to fix it
+        # always unblock in case of any error so to allow to fix it
+        self.unblock_gui()
 
         msg, msg_ext, icon = self.__get_model_exception_description(job, exception)
 
@@ -593,7 +618,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if msg_ext is not None:
             qgisLog(msg + "\n" + msg_ext)
 
-
     def __get_model_exception_description(self, job, exception):
         msg = None
         msg_ext = None
@@ -664,30 +688,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.trvResources.addJobStatus(self.blocked_jobs[job_id], status)
 
-    def __modelJobFinished(self, job_id):
+    def __modelJobFinished(self, job_id, job_uuid):
         self.jobs_count += 1  # note: __modelJobFinished will be triggered even if error/warning occured during job execution
         ngwApiLog('Jobs finished for current connection: {}'.format(self.jobs_count))
-
-        if any(
-            self._queue_to_add[(found_i := i)].job_id == job_id
-            for i in range(len(self._queue_to_add))
-        ):
-            project = QgsProject.instance()
-            assert project is not None
-            tree_rigistry_bridge = project.layerTreeRegistryBridge()
-            assert tree_rigistry_bridge is not None
-
-            command = self._queue_to_add[found_i]
-
-            backup_point = self.iface.layerTreeInsertionPoint()
-            tree_rigistry_bridge.setLayerInsertionPoint(command.insertion_point)
-
-            for index in command.ngw_indexes:
-                self.__add_resource_to_qgis(index)
-
-            tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
-
-            del self._queue_to_add[found_i]
 
         if job_id == 'NGWRootResourcesLoader':
             self.unblock_gui()
@@ -695,6 +698,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.unblock_gui()
             self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
+
+        self.__add_layers_after_finish(job_uuid)
 
     def __onModelBlockIndexes(self):
         self.block_gui()
@@ -704,7 +709,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self._first_gui_block_on_refresh = False
         else:
             self.unblock_gui()
-
 
     def block_gui(self):
         self.main_tool_bar.setEnabled(False)
@@ -722,7 +726,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def block_tools(self):
         self.toolbuttonUpload.setEnabled(False)
-
 
     def reinit_tree(self, force=False):
         # clear tree and states
@@ -1004,14 +1007,31 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         job = self._resource_model.fetch_group(group_indexes)
 
         if job is not None:
-            insert_point = self.iface.layerTreeInsertionPoint()
+            insertion_point = self.iface.layerTreeInsertionPoint()
             self._queue_to_add.append(AddLayersCommand(
-                job.job_id, insert_point, selected_indexes
+                job.job_uuid, insertion_point, selected_indexes
             ))
             return
 
+        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+
+        project = QgsProject.instance()
+        assert project is not None
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+        assert tree_rigistry_bridge is not None
+
+        insertion_point = self.iface.layerTreeInsertionPoint()
+        backup_point = InsertionPoint(insertion_point)
+
         for selected_index in selected_indexes:
-            self.__add_resource_to_qgis(selected_index)
+            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+            added = self.__add_resource_to_qgis(
+                selected_index, InsertionPoint(insertion_point)
+            )
+            if added:
+                insertion_point.position += 1
+
+        tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
 
     def __preprocess_indexes_list(
         self, ngw_indexes: List[QModelIndex]
@@ -1040,7 +1060,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             else:
                 i += 1
 
-    def __add_resource_to_qgis(self, index: QModelIndex) -> None:
+    def __add_resource_to_qgis(
+        self,
+        index: QModelIndex,
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
+    ) -> bool:
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         try:
             if isinstance(ngw_resource, NGWVectorLayer):
@@ -1081,7 +1105,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                             if res == QMessageBox.Ignore:
                                 ignore_z_in_wfs = True
                             else:
-                                return
+                                return False
                 add_resource_as_wfs_layers(ngw_resource)
             elif isinstance(ngw_resource, NGWWmsService):
                 utils.add_wms_layer(
@@ -1104,7 +1128,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.ngw_wms_layers,
                 )
             elif isinstance(ngw_resource, NGWGroupResource):
-                self.__add_group_to_qgis(index)
+                self.__add_group_to_qgis(index, insertion_point)
         except Exception as ex:
             error_mes = str(ex)
             self.iface.messageBar().pushMessage(
@@ -1113,12 +1137,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 level=Qgis.MessageLevel.Critical
             )
             qgisLog(error_mes, level=Qgis.MessageLevel.Critical)
+            return False
+
+        return True
 
     def __add_group_to_qgis(
         self,
         group_index: QModelIndex,
-        insertion_point:
-            Optional[QgsLayerTreeRegistryBridge.InsertionPoint] = None
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
     ) -> None:
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
         model = self._resource_model
@@ -1128,10 +1154,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         assert tree_rigistry_bridge is not None
 
         # Save current insertion point
-        if insertion_point is None:
-            insertion_point = self.iface.layerTreeInsertionPoint()
-        insertion_point_backup = \
-            InsertionPoint(insertion_point.group, insertion_point.position + 1)
+        insertion_point_backup = InsertionPoint(insertion_point)
 
         # Create new group and set point to it
         group_resource = group_index.data(QNGWResourceItem.NGWResourceRole)
@@ -1147,15 +1170,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         for row in range(model.rowCount(group_index)):
             child_index = model.index(row, 0, group_index)
             child_resource = child_index.data(QNGWResourceItem.NGWResourceRole)
-            if isinstance(child_resource, NGWGroupResource):
-                self.__add_group_to_qgis(
-                    child_index, InsertionPoint(insertion_point)
-                )
-                insertion_point.position += 1
-            elif isinstance(child_resource, NGWVectorLayer):
-                self._add_with_style(child_resource)
-                insertion_point.position += 1
+            if not isinstance(child_resource, (NGWGroupResource, NGWVectorLayer)):
+                continue
+
             tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+            added = self.__add_resource_to_qgis(
+                child_index, InsertionPoint(insertion_point)
+            )
+            if added:
+                insertion_point.position += 1
 
         # Restore insertion point
         tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
@@ -1179,7 +1202,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if (not ok or new_group_name == ""):
             return
 
-        self.create_group_resp = self._resource_model.tryCreateNGWGroup(new_group_name, sel_index)
+        self.create_group_resp = self._resource_model.tryCreateNGWGroup(
+            new_group_name, sel_index
+        )
         self.create_group_resp.done.connect(
             self.trvResources.setCurrentIndex
         )
@@ -1549,7 +1574,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def add_created_wfs_service(self, index):
-        if not NgConnectSettings().add_wfs_layer_after_service_creation():
+        if not NgConnectSettings().add_layer_after_service_creation:
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1616,7 +1641,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def open_create_web_map(self, index):
-        if not NgConnectSettings().open_web_map_after_creation():
+        if not NgConnectSettings().open_web_map_after_creation:
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1632,7 +1657,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 w_msg, w_msg_ext, icon = self.__get_model_exception_description(job_id, w)
                 dlg.addException(w_msg, w_msg_ext, icon)
                 dlg.show()
-
 
     def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
         if not qml_file:
@@ -1679,7 +1703,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         reply.deleteLater()
 
         return result
-
 
     def downloadQML(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
@@ -1759,10 +1782,42 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             title = self.tr('Error')
         self.show_msg_box(text, title, QMessageBox.Critical, QMessageBox.Ok)
 
+    def __add_layers_after_finish(self, job_uuid: str):
+        found_i = -1
+        if not any(
+            self._queue_to_add[(found_i := i)].job_uuid == job_uuid
+            for i in range(len(self._queue_to_add))
+        ):
+            return
+
+        project = QgsProject.instance()
+        assert project is not None
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+        assert tree_rigistry_bridge is not None
+
+        command = self._queue_to_add[found_i]
+
+        del self._queue_to_add[found_i]
+
+        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+
+        insertion_point = InsertionPoint(command.insertion_point)
+        backup_point = self.iface.layerTreeInsertionPoint()
+
+        for selected_index in command.ngw_indexes:
+            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+            added = self.__add_resource_to_qgis(
+                selected_index, InsertionPoint(insertion_point)
+            )
+            if added:
+                insertion_point.position += 1
+
+        tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
+
 
 class NGWPanelToolBar(QToolBar):
     def __init__(self):
-        QToolBar.__init__(self, None)
+        super().__init__(None)
 
         self.setIconSize(QSize(24, 24))
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
@@ -1771,5 +1826,5 @@ class NGWPanelToolBar(QToolBar):
         event.accept()
 
     def resizeEvent(self, event):
-        QToolBar.setIconSize(self, QSize(24, 24))
+        super().setIconSize(QSize(24, 24))
         event.accept()
