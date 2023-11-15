@@ -20,9 +20,11 @@
  ***************************************************************************/
 """
 
+import os
+from typing import Optional
 
 from qgis.core import QgsSettings
-from qgis.PyQt.QtCore import QSettings
+from qgis.PyQt.QtCore import QSettings, QStandardPaths
 
 
 class NgConnectSettings:
@@ -83,6 +85,57 @@ class NgConnectSettings:
         self.__settings.beginGroup(self.__plugin_group)
         self.__settings.setValue("debugEnabled", value)
         self.__settings.endGroup()
+
+    @property
+    def cache_directory(self) -> str:
+        return self.__settings.value(
+            self.__plugin_group + '/cache/directory',
+            defaultValue=self.cache_directory_default,
+            type=str
+        )
+
+    @property
+    def cache_directory_default(self) -> str:
+        application_cache_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.CacheLocation
+        )
+        return os.path.join(application_cache_path, 'NGConnect')
+
+    @cache_directory.setter
+    def cache_directory(self, value: Optional[str]) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + '/cache/directory', value
+        )
+
+    @property
+    def cache_duration(self) -> int:
+        """Keeping cache duration in days"""
+        return self.__settings.value(
+            self.__plugin_group + '/cache/duration',
+            defaultValue=30,
+            type=int
+        )
+
+    @cache_duration.setter
+    def cache_duration(self, value: int) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + '/cache/duration', value
+        )
+
+    @property
+    def cache_max_size(self) -> int:
+        """Cache max size in MB"""
+        return self.__settings.value(
+            self.__plugin_group + '/cache/size',
+            defaultValue=12 * 1024,  # 12 GB
+            type=int
+        )
+
+    @cache_max_size.setter
+    def cache_max_size(self, value: int) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + '/cache/size', value
+        )
 
     @property
     def __plugin_group(self) -> str:
