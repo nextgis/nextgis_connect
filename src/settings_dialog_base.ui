@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>430</width>
-    <height>462</height>
+    <width>750</width>
+    <height>620</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -33,6 +33,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <widget class="QgsMessageBar" name="messageBar" native="true"/>
+   </item>
+   <item>
     <widget class="QGroupBox" name="connectionsGroupBox">
      <property name="title">
       <string>Connections</string>
@@ -51,6 +54,117 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="cacheGroupBox">
+     <property name="title">
+      <string>Cache Settings</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <layout class="QFormLayout" name="cacheLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="directoryLabel">
+          <property name="text">
+           <string>Directory</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QLineEdit" name="cacheDirectoryLineEdit"/>
+          </item>
+          <item>
+           <widget class="QToolButton" name="cacheDirectoryButton">
+            <property name="toolTip">
+             <string>Select folder</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="resetCacheDirectoryButton">
+            <property name="toolTip">
+             <string>Reset</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="autoRemoveLabel">
+          <property name="text">
+           <string>Auto-remove</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QComboBox" name="autoRemoveCacheComboBox">
+          <property name="currentText">
+           <string>1 month</string>
+          </property>
+          <property name="currentIndex">
+           <number>2</number>
+          </property>
+          <item>
+           <property name="text">
+            <string>1 day</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>1 week</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>1 month</string>
+           </property>
+          </item>
+          <item>
+           <property name="text">
+            <string>Never</string>
+           </property>
+          </item>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="maxSizeLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Max size</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <layout class="QVBoxLayout" name="maxSizeLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QPushButton" name="clearCacheButton">
+        <property name="text">
+         <string>Clear Cache</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="uploadGroupBox">
      <property name="minimumSize">
       <size>
@@ -62,20 +176,20 @@
       <string>Sanitize on upload</string>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="fixGeometryCheckBox">
+      <item row="0" column="0">
+       <widget class="QCheckBox" name="renameFieldsCheckBox">
         <property name="text">
-         <string>Fix incorrect geometries</string>
+         <string>Rename forbidden fields</string>
         </property>
         <property name="checked">
          <bool>true</bool>
         </property>
        </widget>
       </item>
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="renameFieldsCheckBox">
+      <item row="1" column="0">
+       <widget class="QCheckBox" name="fixGeometryCheckBox">
         <property name="text">
-         <string>Rename forbidden fields</string>
+         <string>Fix incorrect geometries</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -140,6 +254,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QgsMessageBar</class>
+   <extends>QWidget</extends>
+   <header>qgis.gui</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
