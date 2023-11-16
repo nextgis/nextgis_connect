@@ -25,17 +25,20 @@ from qgis.PyQt.QtCore import Qt, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
 
-from qgis.core import Qgis, QgsApplication, QgsMessageLog, QgsMapLayerType
+from qgis.core import Qgis, QgsApplication, QgsMapLayerType
 from qgis.gui import QgisInterface
 
 from .plugin_settings import NgConnectSettings
 from .ng_connect_dock import NgConnectDock
 from .ng_connect_settings import NgConnectOptionsWidgetFactory
+from .detached_editing.detached_edititng import DetachedEditing
 from . import utils
 
 from .ngw_api import qgis
 from .ngw_api import utils as ngwapi_utils
 from .ngw_api.utils import setDebugEnabled
+
+from .ng_connect_cache_manager import PurgeNgConnectCacheTask
 
 
 class NGConnectPlugin:
@@ -65,16 +68,19 @@ plugins['nextgis_connect'].enableDebug(False)
         return QCoreApplication.translate('NGConnectPlugin', message)
 
     def initGui(self) -> None:
+        self.__init_detached_editing()
         self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
         self.__init_ng_layer_actions()
         self.__init_ng_connect_settings()
+        self.__init_cache_purging()
 
     def unload(self) -> None:
         self.__unload_ng_connect_settings()
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
         self.__unload_ng_connect_dock()
+        self.__unload_detached_editing()
 
     def __init_debug(self):
         # Enable debug mode.
@@ -106,6 +112,13 @@ plugins['nextgis_connect'].enableDebug(False)
             "qgis_ngw_api_{}.qm".format(locale)
         ))
 
+    def __init_detached_editing(self) -> None:
+        self.__detached_editing = DetachedEditing()
+
+    def __unload_detached_editing(self) -> None:
+        self.__detached_editing.unload()
+        self.__detached_editing = None
+
     def __init_ng_connect_dock(self):
         # Dock tree panel
         self.__ng_resources_tree_dock = NgConnectDock(
@@ -115,6 +128,9 @@ plugins['nextgis_connect'].enableDebug(False)
             Qt.DockWidgetArea.RightDockWidgetArea,
             self.__ng_resources_tree_dock
         )
+
+        if self.__detached_editing is None:
+            raise RuntimeError('Detached layers mechanism isn\'t created')
 
     def __unload_ng_connect_dock(self):
         self.__ng_resources_tree_dock.setVisible(False)
@@ -222,6 +238,12 @@ plugins['nextgis_connect'].enableDebug(False)
         self.iface.unregisterOptionsWidgetFactory(self.__options_factory)
         self.__options_factory.deleteLater()
         self.__options_factory = None
+
+    def __init_cache_purging(self) -> None:
+        self.__purge_cache_task = PurgeNgConnectCacheTask()
+        task_manager = QgsApplication.taskManager()
+        assert task_manager is not None
+        task_manager.addTask(self.__purge_cache_task)
 
     @staticmethod
     def info():
