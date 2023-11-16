@@ -23,6 +23,7 @@ import html
 import os
 import traceback
 from dataclasses import dataclass
+from pathlib import Path
 
 from typing import List, Optional, cast
 
@@ -112,6 +113,9 @@ from .ngw_api.qgis.resource_to_map import (
     add_resource_as_wfs_layers,
     UnsupportedRasterTypeException,
     add_ogcf_resource,
+    add_resource_as_cog_raster, add_resource_as_cog_raster_with_style,
+    add_resource_as_wfs_layers, UnsupportedRasterTypeException,
+    _add_aliases, _apply_style
 )
 from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
 from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -138,6 +142,7 @@ except ImportError:
 
 from .ngw_connection.ngw_connection_edit_dialog import NgwConnectionEditDialog
 from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
+from .ng_connect_cache_manager import NgConnectCacheManager
 
 
 this_dir = os.path.dirname(__file__)
@@ -1097,7 +1102,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     )
 
         if resource.type_id == NGWVectorLayer.type_id:
-            add_resource_as_geojson(resource, style_resources, default_style)
+            # add_resource_as_geojson(resource, style_resources, default_style)
+            self.__add_gpkg_layer(resource, style_resource=style_resource)
         elif resource.type_id == NGWRasterLayer.type_id:
             add_resource_as_cog_raster(
                 resource, style_resources, default_style
@@ -1125,6 +1131,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     job.job_uuid, insertion_point, selected_indexes
                 )
             )
+            return
+
+        model = self._resource_model
+        download_job = \
+            model.download_vector_layers_if_needed(selected_indexes)
+        if download_job is not None:
+            insertion_point = self.iface.layerTreeInsertionPoint()
+            self._queue_to_add.append(AddLayersCommand(
+                download_job.job_uuid, insertion_point, selected_indexes
+            ))
             return
 
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
@@ -1190,9 +1206,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 parent_resource: NGWResource = index.parent().data(
                     QNGWResourceItem.NGWResourceRole
                 )
-                siblings = parent_resource.get_children()
-                add_resource_as_geojson(
-                    parent_resource, siblings, ngw_resource
+                # siblings = parent_resource.get_children()
+                # add_resource_as_geojson(
+                #     parent_resource, siblings, ngw_resource
+                # )
+                self.__add_gpkg_layer(
+                    parent_resource, style_resource=ngw_resource
                 )
             elif isinstance(ngw_resource, NGWRasterLayer):
                 try:
@@ -1990,9 +2009,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
         assert tree_rigistry_bridge is not None
 
+        model = self._resource_model
         command = self._queue_to_add[found_i]
 
         del self._queue_to_add[found_i]
+
+        download_job = \
+            model.download_vector_layers_if_needed(command.ngw_indexes)
+        if download_job is not None:
+            command.job_uuid = download_job.job_uuid
+            self._queue_to_add.append(command)
+            return
 
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
@@ -2019,6 +2046,35 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         self.reinit_tree(force=True)
+
+    def __add_gpkg_layer(
+        self,
+        vector_layer: NGWVectorLayer,
+        style_resource: Optional[NGWQGISVectorStyle] = None,
+    ) -> None:
+        cache_manager = NgConnectCacheManager()
+        # TODO (GP): path
+        connection_path = Path(cache_manager.cache_directory) / 'kek'
+
+        qgs_gpkg_layer = QgsVectorLayer(
+            str(connection_path / f'{vector_layer.common.id}.gpkg'),
+            vector_layer.common.display_name,
+            'ogr'
+        )
+        if not qgs_gpkg_layer.isValid():
+            raise Exception('Layer "{}" can\'t be added to the map!'.format(
+                vector_layer.common.display_name
+            ))
+        qgs_gpkg_layer.dataProvider().setEncoding('UTF-8')  # type: ignore
+
+        if style_resource is not None:
+            _apply_style(style_resource, qgs_gpkg_layer)
+
+        _add_aliases(qgs_gpkg_layer, vector_layer)
+
+        project = QgsProject.instance()
+        assert project is not None
+        project.addMapLayer(qgs_gpkg_layer)
 
 
 class NGWPanelToolBar(QToolBar):

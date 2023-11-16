@@ -45,8 +45,8 @@ from ..ngw_api.qgis.ngw_resource_model_4qgis import (
     NGWUpdateVectorLayer,
 )
 
-from ..plugin_settings import NgConnectSettings
-from .. import utils
+from ..ng_connect_cache_manager import NgConnectCacheManager
+from ..detached_editing.detached_layer_factory import DetachedLayerFactory
 
 
 __all__ = ["QNGWResourceTreeModel"]
@@ -180,7 +180,6 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
             gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
             ngw_resource.export(str(gpkg_path))
             detached_factory.create(str(gpkg_path))
-            cache_manager.touch_file(str(gpkg_path))
 
 
 class QNGWResourceTreeModelBase(QAbstractItemModel):
@@ -818,3 +817,66 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         worker = NGWResourceUpdater(resources, recursive=True)
         return self._startJob(worker, lock_indexes=indexes_for_fetch)
+
+    @modelRequest
+    def download_vector_layers_if_needed(
+        self, indexes: Union[QModelIndex, List[QModelIndex]]
+    ):
+        cache_manager = NgConnectCacheManager()
+
+        def collect_indexes(
+            index: QModelIndex
+        ) -> Tuple[List[QModelIndex], List[QModelIndex]]:
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            if isinstance(ngw_resource, NGWVectorLayer):
+                # TODO (GP)
+                if cache_manager.exists(f'kek/{ngw_resource.common.id}.gpkg'):
+                    return [index], []
+                return [index], [index]
+
+            if isinstance(ngw_resource, NGWQGISVectorStyle):
+                # TODO (GP)
+                parent = index.parent()
+                parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
+                if cache_manager.exists(f'kek/{parent_resource.common.id}.gpkg'):
+                    return [parent, index], []
+                return [parent, index], [parent]
+
+            if not isinstance(ngw_resource, NGWGroupResource):
+                return [], []
+
+            indexes_for_lock: List[QModelIndex] = []
+            indexes_for_fetch: List[QModelIndex] = []
+            for row in range(self.rowCount(index)):
+                child_index = self.index(row, 0, index)
+                lock_indexes, fetch_indexes = collect_indexes(child_index)
+                indexes_for_lock.extend(lock_indexes)
+                indexes_for_fetch.extend(fetch_indexes)
+
+            if len(indexes_for_lock) > 0:
+                indexes_for_lock.append(index)
+
+            return indexes_for_lock, indexes_for_fetch
+
+        if isinstance(indexes, QModelIndex):
+            indexes = [indexes]
+
+        indexes_for_lock: List[QModelIndex] = []
+        indexes_for_fetch: List[QModelIndex] = []
+        for index in indexes:
+            lock_indexes, fetch_indexes = collect_indexes(index)
+            indexes_for_lock.extend(lock_indexes)
+            indexes_for_fetch.extend(fetch_indexes)
+
+        if len(indexes_for_fetch) == 0:
+            return None
+
+        vector_layers: List[NGWVectorLayer] = [
+            index.data(QNGWResourceItem.NGWResourceRole)
+            for index in indexes_for_fetch
+        ]
+
+        worker = NgwCacheVectorLayers(vector_layers)
+        return self._startJob(
+            worker, lock_indexes=indexes_for_lock
+        )
