@@ -873,10 +873,10 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         vector_layers: List[NGWVectorLayer] = [
             index.data(QNGWResourceItem.NGWResourceRole)
-            for index in indexes_for_fetch
+            for index in set(indexes_for_fetch)
         ]
 
         worker = NgwCacheVectorLayers(vector_layers)
         return self._startJob(
-            worker, lock_indexes=indexes_for_lock
+            worker, lock_indexes=list(set(indexes_for_lock))
         )
