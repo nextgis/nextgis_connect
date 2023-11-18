@@ -2,8 +2,11 @@ import os
 from typing import Optional, List
 
 from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout, QMessageBox
+from qgis.PyQt.QtWidgets import (
+    QWidget, QHBoxLayout, QVBoxLayout, QMessageBox, QLabel
+)
 
 from qgis.utils import iface
 from qgis.core import Qgis
@@ -220,6 +223,25 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             dock.reinit_tree()
 
 
+class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
+    widget: QWidget
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.widget = QLabel(self.tr('Settings dialog was crashed'), self)
+        self.widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self.widget)
+
+    def apply(self) -> None:
+        pass
+
+    def cancel(self) -> None:
+        pass
+
+
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
         ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
@@ -235,7 +257,9 @@ class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     ) -> Optional[QgsOptionsPageWidget]:
         try:
             return NgConnectOptionsPageWidget(parent)
-        except Exception:
-            message = self.tr('Settings dialog was crashed')
-            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
-            return None
+        except Exception as error:
+            utils.log_to_qgis(
+                'Settings dialog was crashed', Qgis.MessageLevel.Critical
+            )
+            utils.log_to_qgis(str(error), Qgis.MessageLevel.Critical)
+            return NgConnectOptionsErrorPageWidget(parent)
