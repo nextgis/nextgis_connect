@@ -1,5 +1,6 @@
 from typing import Optional
 from pathlib import Path
+from datetime import datetime
 from pkg_resources import resource_filename
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot
@@ -41,18 +42,26 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
             / 'detached_layers'
         )
 
+        tooltip = self.tr('NGW Layer')
+        date_property: datetime = \
+            self.__layer.customProperty('ngw_synchronization_date')
+        sync_datetime = date_property.strftime('%c')
+        date_tooltip = f'\n{self.tr("Synchronization date")}: {sync_datetime}'
+
         if state == DetachedLayerState.NotSynchronized:
             self.setIcon(QIcon(str(icons_path / 'not_synchronized.svg')))
-            self.setToolTip(self.tr('Layer is not synchronized!'))
+            tooltip = self.tr('Layer is not synchronized!') + date_tooltip
         elif state == DetachedLayerState.Synchronized:
             self.setIcon(QIcon(str(icons_path / 'synchronized.svg')))
-            self.setToolTip(self.tr('Layer is synchronized'))
+            tooltip = self.tr('Layer is synchronized') + date_tooltip
         elif state == DetachedLayerState.Synchronization:
             self.setIcon(QIcon(str(icons_path / 'synchronization.svg')))
+            tooltip = self.tr('Layer is syncing')
         elif state == DetachedLayerState.Error:
             self.setIcon(QIcon(str(icons_path / 'error.svg')))
-        else:
-            self.setToolTip(self.tr('NGW Layer'))
+            tooltip = self.tr('Synchronization error!') + date_tooltip
+
+        self.setToolTip(tooltip)
 
     @pyqtSlot(name='openDetails')
     def __open_details(self) -> None:
