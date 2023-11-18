@@ -82,9 +82,15 @@ class NgConnectSettings:
 
     @property
     def __plugin_group(self) -> str:
-        return 'NextGIS/NGConnect'
+        return 'NextGIS/Connect'
 
     def __migrate(self) -> None:
+        self.__migrate_from_qsettings()
+        self.__migrate_to_more_beautiful_path()
+
+        self.__settings.sync()
+
+    def __migrate_from_qsettings(self):
         """Migrate from QSettings to QgsSettings"""
         settings = QSettings('NextGIS', 'NextGISConnect')
         if len(settings.allKeys()) == 0:
@@ -102,6 +108,25 @@ class NgConnectSettings:
             self.__settings.setValue(new_key, value)
         self.__settings.endGroup()
 
-        self.__settings.sync()
-
         settings.clear()
+
+    def __migrate_to_more_beautiful_path(self):
+        """Rename NextGIS/NGConnect to NextGIS/Connect"""
+        self.__settings.beginGroup('NextGIS/NGConnect')
+        keys = self.__settings.allKeys()
+        if len(keys) == 0:
+            self.__settings.endGroup()
+            return
+
+        values = {key: self.__settings.value(key) for key in keys}
+        self.__settings.endGroup()
+
+        self.__settings.beginGroup(self.__plugin_group)
+        for key, value in values.items():
+            self.__settings.setValue(key, value)
+        self.__settings.endGroup()
+
+        self.__settings.beginGroup('NextGIS/NGConnect')
+        for key in keys:
+            self.__settings.remove(key)
+        self.__settings.endGroup()
