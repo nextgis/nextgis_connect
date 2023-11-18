@@ -1,5 +1,8 @@
+from typing import Optional
+from qgis.PyQt.QtCore import QAbstractItemModel, QModelIndex
 from qgis.PyQt.QtWidgets import (
-    QDialog, QDialogButtonBox, QHeaderView, QSizePolicy, QTreeView, QVBoxLayout,
+    QDialog, QDialogButtonBox, QHeaderView, QSizePolicy, QTreeView,
+    QVBoxLayout, QWidget
 )
 from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
@@ -39,25 +42,33 @@ class StyleFilterProxyModel(QSortFilterProxyModel):
 
 
 class NGWLayerStyleChooserDialog(QDialog):
-
-    def __init__(self, title, ngw_resources_model_index, model, filter_styles, parent=None):  # TODO: 4th param - parent?
+    def __init__(
+        self,
+        title: str,
+        ngw_resources_model_index: QModelIndex,
+        model: QAbstractItemModel,
+        parent: Optional[QWidget] = None
+    ) -> None:
         super().__init__(parent)
-
         self.setWindowTitle(title)
 
-        self.layout = QVBoxLayout(self)
+        self.__sort_model = StyleFilterProxyModel(self)
+        self.__sort_model.setSourceModel(model)
 
+        self.__layout = QVBoxLayout(self)
         self.tree = NGWResourcesTreeView(self)
-        sort_model = StyleFilterProxyModel() # TODO: understand is it ok to leave this proxy model without parent? When it will be deleted?
-        sort_model.setSourceModel(model)
-        self.tree.setModel(sort_model)
-        self.tree.setRootIndex(sort_model.mapFromSource(ngw_resources_model_index))
+        self.tree.setModel(self.__sort_model)
+        self.tree.setRootIndex(
+            self.__sort_model.mapFromSource(ngw_resources_model_index)
+        )
         self.tree.selectionModel().selectionChanged.connect(self.validate)
-        self.layout.addWidget(self.tree)
+        self.__layout.addWidget(self.tree)
 
-        self.btn_box = QDialogButtonBox(QDialogButtonBox.Ok, Qt.Horizontal, self)
+        self.btn_box = QDialogButtonBox(
+            QDialogButtonBox.Ok, Qt.Orientation.Horizontal, self
+        )
         self.btn_box.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
-        self.layout.addWidget(self.btn_box)
+        self.__layout.addWidget(self.btn_box)
 
         self.validate()
 

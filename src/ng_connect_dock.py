@@ -61,7 +61,7 @@ from qgis.PyQt.QtCore import (
     QPoint,
 )
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
-from qgis.PyQt.QtNetwork import QNetworkAccessManager, QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction,
     QFileDialog,
@@ -106,8 +106,6 @@ from .ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobWarning,
 )
 
-from .ngw_api.qgis.ngw_connection_edit_dialog import NGWConnectionEditDialog
-from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from .ngw_api.qgis.resource_to_map import (
     add_resource_as_cog_raster,
     add_resource_as_geojson,
@@ -131,6 +129,15 @@ from .tree_widget import (
     QNGWResourceItem,
     QNGWResourceTreeModel,
 )
+
+HAS_NGSTD = True
+try:
+    from ngstd.framework import NGAccess
+except ImportError:
+    HAS_NGSTD = False
+
+from .ngw_connection.ngw_connection_edit_dialog import NgwConnectionEditDialog
+from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
 
 
 this_dir = os.path.dirname(__file__)
@@ -415,8 +422,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.try_check_https = False
 
         # update state
-        if QSettings().value("proxy/proxyEnabled", None) is not None:
-            self.reinit_tree()
+        self.reinit_tree(force=True)
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
@@ -428,6 +434,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         assert project is not None
         project.layersAdded.connect(self.checkImportActionsAvailability)
         project.layersRemoved.connect(self.checkImportActionsAvailability)
+
+        if HAS_NGSTD:
+            NGAccess.instance().userInfoUpdated.connect(
+                self.__on_ngstd_user_info_updated
+            )
 
     def close(self):
         self.trvResources.customContextMenuRequested.disconnect(
@@ -617,93 +628,91 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             job, exception
         )
 
-        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
-        conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
+        connections_manager = NgwConnectionsManager()
+        current_connection_id = connections_manager.current_connection_id
+        assert current_connection_id
+        current_connection = connections_manager.current_connection
+        assert current_connection
 
         ngwApiLog("Exception name: " + exception.__class__.__name__)
 
-        if exception.__class__ == JobAuthorizationError:
+        if exception is JobAuthorizationError:
             self.try_check_https = False
-            dlg = NGWConnectionEditDialog(
-                ngw_connection_settings=conn_sett, only_password_change=True
+            dialog = NgwConnectionEditDialog(
+                self.iface.mainWindow(), current_connection_id
             )
-            dlg.setWindowTitle(self.tr("Access denied. Enter your login."))
-            res = dlg.exec_()
-            if res:
-                conn_sett = dlg.ngw_connection_settings
-                NgwPluginSettings.save_ngw_connection(conn_sett)
-                self.reinit_tree(
-                    force=True
-                )  # force reconnect in order to correctly show connection dialog each time
+            dialog.set_message(
+                self.tr(
+                    'Failed to connect. Please check your connection details'
+                ),
+                Qgis.MessageLevel.Critical,
+                duration=0
+            )
+            result = dialog.exec_()
+            if result == QDialog.DialogCode.Accepted:
+                self.reinit_tree(force=True)
             else:
                 self.block_tools()
-            del dlg
+            del dialog
             return
 
         # Detect very first connection.
         if self.jobs_count == 1:
-            if (
-                exception.__class__ == JobServerRequestError
-                and exception.need_reconnect
-            ):
-                # Try to fix http -> https. Useful for fixing old (saved) cloud connections.
-                if conn_sett.server_url.startswith(
-                    "http://"
-                ) and conn_sett.server_url.endswith(".nextgis.com"):
+            if exception is JobServerRequestError and exception.need_reconnect:
+                server_url = current_connection.url
+
+                # Try to fix http -> https. Useful for fixing old (saved) cloud
+                # connections.
+                if (
+                    server_url.startswith('http://')
+                    and server_url.endswith('.nextgis.com')
+                ):
                     self.try_check_https = True
-                    conn_sett.server_url = conn_sett.server_url.replace(
-                        "http://", "https://"
-                    )
-                    NgwPluginSettings.save_ngw_connection(conn_sett)
+                    current_connection.url = \
+                        server_url.replace('http://', 'https://')
+                    connections_manager.save(current_connection)
                     ngwApiLog(
-                        'Meet "http://" ".nextgis.com" connection error at very first time using this web gis connection. Trying to reconnect with "https://"'
+                        'Meet "http://", ".nextgis.com" connection error at '
+                        'very first time using this web gis connection. Trying'
+                        ' to reconnect with "https://"'
                     )
-                    self.reinit_tree()
+                    self.reinit_tree(force=True)
                     return
 
                 # Show connect dialog again.
                 else:
-                    self.jobs_count = 0  # mark that the next connection will also be the first one
-                    old_con_name = conn_sett.connection_name
-                    dlg = NGWConnectionEditDialog(
-                        ngw_connection_settings=conn_sett,
-                        only_password_change=False,
+                    self.try_check_https = False
+                    dialog = NgwConnectionEditDialog(
+                        self.iface.mainWindow(), current_connection_id
                     )
-                    dlg.set_alert_msg(
+                    dialog.set_message(
                         self.tr(
-                            "Failed to connect. Please re-enter Web GIS connection settings."
-                        )
+                            'Failed to connect. Please check your connection details'
+                        ),
+                        Qgis.MessageLevel.Critical,
+                        duration=0
                     )
-                    res = dlg.exec_()
-                    if res:
-                        conn_sett = dlg.ngw_connection_settings
-                        new_con_name = conn_sett.connection_name
-                        NgwPluginSettings.save_ngw_connection(conn_sett)
-                        NgwPluginSettings.set_selected_ngw_connection_name(
-                            new_con_name
-                        )
-                        if new_con_name != old_con_name:
-                            NgwPluginSettings.remove_ngw_connection(
-                                old_con_name
-                            )  # delete unused old bad connection
+                    result = dialog.exec_()
+                    if result == QDialog.DialogCode.Accepted:
                         self.reinit_tree(force=True)
-                    del dlg
+                    else:
+                        self.block_tools()
+                    del dialog
                     return
 
         # The second time return back http if there was an error: this might be some
         # other error, not related to http/https changing.
-        if (
-            self.try_check_https
-        ):  # this can be only when there are more than 1 connection errors
+        if self.try_check_https:
+            # this can be only when there are more than 1 connection errors
             self.try_check_https = False
-            conn_sett.server_url = conn_sett.server_url.replace(
-                "https://", "http://"
-            )
-            NgwPluginSettings.save_ngw_connection(conn_sett)
+            server_url = current_connection.url
+            current_connection.url = \
+                server_url.replace('https://', 'http://')
+            connections_manager.save(current_connection)
             ngwApiLog(
                 'Failed to reconnect with "https://". Return "http://" back'
             )
-            self.reinit_tree()
+            self.reinit_tree(force=True)
             return
 
         if (
@@ -715,7 +724,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         elif msg is not None:
             self.__msg_in_qgis_mes_bar(msg, msg_ext is not None, level=level)
 
-        if msg_ext is not None:
+        if msg is not None and msg_ext is not None:
             qgisLog(msg + "\n" + msg_ext)
 
     def __get_model_exception_description(self, job, exception):
@@ -791,9 +800,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __modelJobFinished(self, job_id, job_uuid):
         self.jobs_count += 1  # note: __modelJobFinished will be triggered even if error/warning occured during job execution
-        ngwApiLog(
-            "Jobs finished for current connection: {}".format(self.jobs_count)
-        )
+        ngwApiLog(f'Jobs finished for current connection: {self.jobs_count}')
 
         if job_id == "NGWRootResourcesLoader":
             self.unblock_gui()
@@ -834,66 +841,37 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # clear tree and states
         self.disable_tools()
 
-        name_of_conn = NgwPluginSettings.get_selected_ngw_connection_name()
-        if not name_of_conn:
-            self.trvResources.showWelcomeMessage()
-            self._resource_model.cleanModel()
+        connections_manager = NgwConnectionsManager()
+        current_connection = connections_manager.current_connection
+        if current_connection is None:
+            self.jobs_count = 0
+            self._resource_model.resetModel(None)
+            if connections_manager.has_old_connections():
+                self.trvResources.migration_overlay.show()
+            else:
+                self.trvResources.showWelcomeMessage()
+            return
+
+        if (
+            HAS_NGSTD and current_connection.auth_config_id == 'NextGIS'
+            and not NGAccess.instance().isUserAuthorized()
+        ):
+            self.jobs_count = 0
+            self._resource_model.resetModel(None)
+            self.trvResources.no_oauth_auth_overlay.show()
             return
 
         self.trvResources.hideWelcomeMessage()
+        self.trvResources.migration_overlay.hide()
+        self.trvResources.no_oauth_auth_overlay.hide()
 
-        conn_sett = NgwPluginSettings.get_ngw_connection(name_of_conn)
-        if not conn_sett:
-            return
-
-        s = QSettings()
-        proxyEnabled = s.value("proxy/proxyEnabled", "", type=str)
-        proxy_type = s.value("proxy/proxyType", "", type=str)
-        proxy_host = s.value("proxy/proxyHost", "", type=str)
-        proxy_port = s.value("proxy/proxyPort", "", type=str)
-        proxy_user = s.value("proxy/proxyUser", "", type=str)
-        proxy_password = s.value("proxy/proxyPassword", "", type=str)
-
-        if proxyEnabled == "true":
-            if proxy_type == "DefaultProxy":
-                qgsNetMan = QgsNetworkAccessManager.instance()
-                proxy = qgsNetMan.proxy().applicationProxy()
-                proxy_host = proxy.hostName()
-                proxy_port = str(proxy.port())
-                proxy_user = proxy.user()
-                proxy_password = proxy.password()
-
-            if proxy_type in [
-                "DefaultProxy",
-                "Socks5Proxy",
-                "HttpProxy",
-                "HttpCachingProxy",
-            ]:
-                # QgsMessageLog.logMessage("%s  %s  %s  %s" % (
-                #     proxy_host,
-                #     proxy_port,
-                #     proxy_user,
-                #     proxy_password,
-                # ))
-                conn_sett.set_proxy(
-                    proxy_host, proxy_port, proxy_user, proxy_password
-                )
-
-        if force or not self._resource_model.isCurrentConnectionSame(
-            conn_sett
-        ):
-            self.trvResources.unsupported_version_overlay.hide()
-            if not self._resource_model.isCurruntConnectionSameWoProtocol(
-                conn_sett
-            ):
-                self.jobs_count = (
-                    0  # start working with connection at very first time
-                )
+        if force:
+            # start working with connection at very first time
+            self.jobs_count = 0
 
             self._first_gui_block_on_refresh = True
-            ngw_connection = QgsNgwConnection(conn_sett)
-
             self.block_gui()  # block GUI to prevent extra clicks on toolbuttons
+            ngw_connection = QgsNgwConnection(current_connection.id)
             self._resource_model.resetModel(ngw_connection)
             if not self._resource_model.is_ngw_version_supported:
                 self.unblock_gui()
@@ -907,11 +885,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # expand root item
         # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
 
-        # save last selected connection
-        # NgwPluginSettings.set_selected_ngw_connection_name(name_of_conn)
-
     def __action_refresh_tree(self):
-        self.reinit_tree(True)
+        self.reinit_tree(force=True)
 
     def __add_resource_to_tree(self, ngw_resource):
         # TODO: fix duplicate with model.processJobResult
@@ -1111,7 +1086,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.tr("Select style"),
                 current_index,
                 self._resource_model,
-                self,
+                self
             )
             result = dialog.exec()
             if result == QDialog.DialogCode.Accepted:
@@ -1204,7 +1179,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         index: QModelIndex,
         insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
     ) -> bool:
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        ngw_resource: NGWResource = index.data(QNGWResourceItem.NGWResourceRole)
+        connection_manager = NgwConnectionsManager()
+        connection = connection_manager.connection(ngw_resource.connection_id)
+        assert connection is not None
         try:
             if isinstance(ngw_resource, NGWVectorLayer):
                 self._add_with_style(ngw_resource)
@@ -1267,23 +1245,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.common.display_name,
                     ngw_resource.get_url(),
                     ngw_resource.get_layer_keys(),
-                    ngw_resource.get_creds(),
-                    ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
+                    connection.auth_config_id,
+                    ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1
                 )
             elif isinstance(ngw_resource, NGWWmsConnection):
                 utils.add_wms_layer(
                     ngw_resource.common.display_name,
                     ngw_resource.get_connection_url(),
                     ngw_resource.layers(),
-                    ngw_resource.get_creds(),
-                    ask_choose_layers=len(ngw_resource.layers()) > 1,
+                    connection.auth_config_id,
+                    ask_choose_layers=len(ngw_resource.layers()) > 1
                 )
             elif isinstance(ngw_resource, NGWWmsLayer):
                 utils.add_wms_layer(
                     ngw_resource.common.display_name,
                     ngw_resource.ngw_wms_connection_url,
                     ngw_resource.ngw_wms_layers,
-                    ngw_resource.get_creds(),
+                    connection.auth_config_id,
                 )
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
@@ -1565,17 +1543,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             raster_file.write(data)
 
         req = QNetworkRequest(QUrl(url))
-        creds = ngw_lyr.get_creds()
-        if creds[0] and creds[1]:
-            creds_str = creds[0] + ":" + creds[1]
-            authstr = creds_str.encode("utf-8")
-            authstr = QByteArray(authstr).toBase64()
-            authstr = QByteArray(("Basic ").encode("utf-8")).append(authstr)
-            req.setRawHeader(("Authorization").encode("utf-8"), authstr)
+
+        connections_manager = NgwConnectionsManager()
+        connection = connections_manager.connection(ngw_lyr.connection_id)
+        assert connection is not None
+        connection.update_network_request(req)
 
         if raster_file.open(QIODevice.OpenModeFlag.WriteOnly):
             ev_loop = QEventLoop()
-            dwn_qml_manager = QNetworkAccessManager()
+            dwn_qml_manager = QgsNetworkAccessManager()
 
             # dwn_qml_manager.finished.connect(ev_loop.quit)
             reply = dwn_qml_manager.get(req)
@@ -1786,18 +1762,20 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.tr("Create WMS service for layer"),
             selected_index,
             self._resource_model,
-            self,
+            self
         )
         result = dlg.exec_()
-        if result:
-            ngw_resource_style_id = None
-            if dlg.selectedStyleId():
-                ngw_resource_style_id = dlg.selectedStyleId()
+        if result != QDialog.DialogCode.Accepted:
+            return
 
-            responce = self._resource_model.createWMSForVector(
-                selected_index, ngw_resource_style_id
-            )
-            responce.done.connect(self.trvResources.setCurrentIndex)
+        ngw_resource_style_id = None
+        if dlg.selectedStyleId():
+            ngw_resource_style_id = dlg.selectedStyleId()
+
+        responce = self._resource_model.createWMSForVector(
+            selected_index, ngw_resource_style_id
+        )
+        responce.done.connect(self.trvResources.setCurrentIndex)
 
     def create_web_map_for_style(self):
         selected_index = self.trvResources.selectionModel().currentIndex()
@@ -1825,7 +1803,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self.tr("Create web map for layer"),
                     selected_index,
                     self._resource_model,
-                    self,
+                    self
                 )
                 result = dlg.exec_()
                 if result:
@@ -1881,16 +1859,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         url = ngw_style.download_qml_url()
 
         req = QNetworkRequest(QUrl(url))
-        creds = ngw_style.get_creds_for_qml()
-        if creds[0] and creds[1]:
-            creds_str = creds[0] + ":" + creds[1]
-            authstr = creds_str.encode("utf-8")
-            authstr = QByteArray(authstr).toBase64()
-            authstr = QByteArray(("Basic ").encode("utf-8")).append(authstr)
-            req.setRawHeader(("Authorization").encode("utf-8"), authstr)
+
+        connections_manager = NgwConnectionsManager()
+        connection = connections_manager.connection(ngw_style.connection_id)
+        assert connection is not None
+        connection.update_network_request(req)
 
         ev_loop = QEventLoop()
-        dwn_qml_manager = QNetworkAccessManager()
+        dwn_qml_manager = QgsNetworkAccessManager()
         dwn_qml_manager.finished.connect(ev_loop.quit)
         reply = dwn_qml_manager.get(req)
         ev_loop.exec_()
@@ -2032,6 +2008,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 insertion_point.position += 1
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
+
+    def __on_ngstd_user_info_updated(self):
+        connections_manager = NgwConnectionsManager()
+        current_connection = connections_manager.current_connection
+        if (
+            current_connection is None
+            or current_connection.auth_config_id != 'NextGIS'
+        ):
+            return
+
+        self.reinit_tree(force=True)
 
 
 class NGWPanelToolBar(QToolBar):

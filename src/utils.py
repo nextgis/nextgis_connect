@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.core import (
     Qgis,
     QgsApplication,
+    QgsProviderRegistry,
     QgsProject,
     QgsMessageLog,
     QgsRasterLayer,
@@ -49,32 +50,36 @@ def show_error_message(msg):
     )
 
 
-def add_wms_layer(name, url, layer_keys, creds, *, ask_choose_layers=False):
-    url = f"url={url}"
-
+def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
         result = layersChooser.exec_()
-        if result == ChooserDialog.Accepted:
-            layer_keys = layersChooser.seleced_options
-        else:
+        if result != ChooserDialog.DialogCode.Accepted:
             return
+        layer_keys = layersChooser.seleced_options
 
-    for layer_key in layer_keys:
-        url += "&layers=%s&styles=" % layer_key
+    provider_regstry = QgsProviderRegistry.instance()
+    assert provider_regstry is not None
+    wms_metadata = provider_regstry.providerMetadata('wms')
+    assert wms_metadata is not None
+    uri_params = {
+        'url': url,
+        'format': 'image/png',
+        'crs': 'EPSG:3857',
+        'layers': ','.join(layer_keys),
+        'styles': '',
+        'authcfg': auth_cfg
+    }
+    uri = wms_metadata.encodeUri(uri_params)
 
-    url += "&format=image/png&crs=EPSG:3857"
-
-    if creds[0] and creds[1]:
-        url += f"&username={creds[0]}&password={creds[1]}"
-
-    rlayer = QgsRasterLayer(url, name, "wms")
-
+    rlayer = QgsRasterLayer(uri, name, 'wms')
     if not rlayer.isValid():
-        show_error_message('Invalid wms url "%s"' % url)
+        show_error_message(f'Invalid wms url "{uri}"')
         return
 
-    QgsProject.instance().addMapLayer(rlayer)
+    project = QgsProject.instance()
+    assert project is not None
+    project.addMapLayer(rlayer)
 
 
 class ChooserDialog(QDialog):

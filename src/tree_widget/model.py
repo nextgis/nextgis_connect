@@ -195,7 +195,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
 
-        self.__ngw_connection_settings = None
         self._ngw_connection = None
 
         self.jobs = []
@@ -206,25 +205,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
 
-    # TODO: rework same connection identify
-    def isCurrentConnectionSame(self, other):
-        return False
-        return self.__ngw_connection_settings == other
-
-    def isCurruntConnectionSameWoProtocol(self, other):
-        return False
-        if self.__ngw_connection_settings is None:
-            if other is None:
-                return True
-            return False
-        return self.__ngw_connection_settings.equalWoProtocol(other)
-
     def resetModel(self, ngw_connection):
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
 
         self._ngw_connection = ngw_connection
-        self._ngw_connection.setParent(self)
+        if ngw_connection is not None:
+            self._ngw_connection.setParent(self)
 
         self.__cleanModel()
         self.beginResetModel()
@@ -232,7 +219,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.root_item = QModelItem()
 
         # Get NGW version.
-        self._get_ngw_version()
+        if ngw_connection is not None:
+            self._get_ngw_version()
+        else:
+            self.ngw_version = None
 
         self.endResetModel()
 

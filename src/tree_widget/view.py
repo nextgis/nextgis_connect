@@ -11,6 +11,7 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QDialog,
+    QPushButton
 )
 
 from qgis.utils import iface
@@ -18,6 +19,8 @@ from qgis.gui import QgsNewNameDialog
 
 from ..tree_widget.item import QNGWResourceItem
 from ..utils import SupportStatus
+
+from ..ngw_connection.ngw_connections_manager import NgwConnectionsManager
 
 
 __all__ = ["QNGWResourceTreeView"]
@@ -59,6 +62,53 @@ class QMessageOverlay(QOverlay):
 
     def set_text(self, text: str) -> None:
         self.text.setText(text)
+
+
+class MigrationOverlay(QOverlay):
+    def __init__(self, parent):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        spacer_before = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
+        spacer_after = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
+
+        self.text = QLabel(
+            self.tr(
+                'We are transitioning to the QGIS Authentication System to '
+                'enhance security and streamline your experience. This change '
+                'requires the conversion of existing connections.\n\nPlease be'
+                ' aware that your current connections will be converted to the'
+                ' new format automatically. This is a one-time process and '
+                'should not affect your workflow.\n'
+            ),
+            self
+        )
+        self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text.setOpenExternalLinks(True)
+        self.text.setWordWrap(True)
+
+        full_migrate_button = QPushButton(
+            self.tr('Convert connectons and authentification data')
+        )
+        full_migrate_button.clicked.connect(self.__full_migrate)
+
+        layout.addSpacerItem(spacer_before)
+        layout.addWidget(self.text)
+        layout.addWidget(full_migrate_button)
+        layout.addSpacerItem(spacer_after)
+
+    def __full_migrate(self):
+        NgwConnectionsManager().convert_old_connections(convert_auth=True)
+        self.__reinit()
+
+    def __reinit(self):
+        dock = iface.mainWindow().findChild(QWidget, 'NGConnectDock')
+        dock.reinit_tree(force=True)
 
 
 class QProcessOverlay(QOverlay):
@@ -172,6 +222,14 @@ class QNGWResourceTreeView(QTreeView):
 
         self.unsupported_version_overlay = UnsupportedVersionOverlay(self)
         self.unsupported_version_overlay.hide()
+        self.migration_overlay = MigrationOverlay(self)
+        self.migration_overlay.hide()
+
+        self.no_oauth_auth_overlay = QMessageOverlay(
+            self, self.tr(
+                "Please authorize via NextGIS Account Toolbar"
+            ))
+        self.no_oauth_auth_overlay.hide()
 
         self.ngw_job_block_overlay = QProcessOverlay(self)
         self.ngw_job_block_overlay.hide()
@@ -199,8 +257,10 @@ class QNGWResourceTreeView(QTreeView):
         self.no_ngw_connections_overlay.resize(event.size())
         self.ngw_job_block_overlay.resize(event.size())
         self.unsupported_version_overlay.resize(event.size())
+        self.migration_overlay.resize(event.size())
+        self.no_oauth_auth_overlay.resize(event.size())
 
-        QTreeView.resizeEvent(self, event)
+        super().resizeEvent(event)
 
     def mouseDoubleClickEvent(self, e):
         index = self.indexAt(e.pos())
