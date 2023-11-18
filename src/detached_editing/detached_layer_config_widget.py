@@ -10,7 +10,7 @@ from qgis.gui import (
     QgsMapCanvas, QgsMapLayerConfigWidget, QgsMapLayerConfigWidgetFactory
 )
 
-from ..ngw_connection.ngw_connections_widget import NgwConnectionsWidget
+# from ..ngw_connection.ngw_connections_widget import NgwConnectionsWidget
 from . import utils
 
 
@@ -33,10 +33,10 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
             # TODO log
             return
 
-        connections_widget = NgwConnectionsWidget(self.widget)
-        self.widget.connectionGroupBox.layout().addWidget(
-            connections_widget
-        )
+        # connections_widget = NgwConnectionsWidget(self.widget)
+        # self.widget.connectionGroupBox.layout().addWidget(
+        #     connections_widget
+        # )
 
         self.widget.setParent(self)
 
