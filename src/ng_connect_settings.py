@@ -75,12 +75,12 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
         unit = self.tr('GB')
-        self.widget.cacheSizeSlider = LabeledSlider(
+        self.__widget.cacheSizeSlider = LabeledSlider(
             [f'{number} {unit}' for number in [8, 12, 16, 24, 32, 64]]
             + [self.tr('No limit')],
-            self.widget
+            self.__widget
         )
-        self.widget.maxSizeLayout.addWidget(self.widget.cacheSizeSlider)
+        self.__widget.maxSizeLayout.addWidget(self.__widget.cacheSizeSlider)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -100,15 +100,15 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         # Cache settings
         cache_manager = NgConnectCacheManager()
-        cache_directory = self.widget.cacheDirectoryLineEdit.text()
+        cache_directory = self.__widget.cacheDirectoryLineEdit.text()
         cache_manager.cache_directory = (
             cache_directory if len(cache_directory) > 0 else None
         )
         cache_duration_combobox = cast(
-            QComboBox, self.widget.autoRemoveCacheComboBox
+            QComboBox, self.__widget.autoRemoveCacheComboBox
         )
         cache_manager.cache_duration = cache_duration_combobox.currentData()
-        cache_size_index = self.widget.cacheSizeSlider.value()
+        cache_size_index = self.__widget.cacheSizeSlider.value()
         cache_manager.cache_max_size = self.CACHE_SIZE_VALUES[cache_size_index]
 
         # Sanitize settings
@@ -197,39 +197,39 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
         # Cache directory lineedit
-        self.widget.cacheDirectoryLineEdit.setPlaceholderText(
+        self.__widget.cacheDirectoryLineEdit.setPlaceholderText(
             cache_manager.cache_directory_default
         )
         if not is_cache_directory_default:
-            self.widget.cacheDirectoryLineEdit.setText(
+            self.__widget.cacheDirectoryLineEdit.setText(
                 cache_manager.cache_directory
             )
-        self.widget.cacheDirectoryLineEdit.textChanged.connect(
+        self.__widget.cacheDirectoryLineEdit.textChanged.connect(
             self.__update_reset_cache_button
         )
 
         # Choose cache directory button
-        self.widget.cacheDirectoryButton.setIcon(
+        self.__widget.cacheDirectoryButton.setIcon(
             QgsApplication.getThemeIcon('mActionFileOpen.svg')
         )
-        self.widget.cacheDirectoryButton.clicked.connect(
+        self.__widget.cacheDirectoryButton.clicked.connect(
             self.__choose_cache_directory
         )
 
         # Cache directory reset button
-        self.widget.resetCacheDirectoryButton.setIcon(
+        self.__widget.resetCacheDirectoryButton.setIcon(
             QgsApplication.getThemeIcon('mActionUndo.svg')
         )
-        self.widget.resetCacheDirectoryButton.clicked.connect(
+        self.__widget.resetCacheDirectoryButton.clicked.connect(
             self.__reset_cache_directory
         )
-        self.widget.resetCacheDirectoryButton.setDisabled(
+        self.__widget.resetCacheDirectoryButton.setDisabled(
             is_cache_directory_default
         )
 
         # Cache duration combobox
         cache_duration_combobox = cast(
-            QComboBox, self.widget.autoRemoveCacheComboBox
+            QComboBox, self.__widget.autoRemoveCacheComboBox
         )
         cache_duration_combobox.setItemData(0, 1)
         cache_duration_combobox.setItemData(1, 7)
@@ -240,27 +240,27 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
         # Cache size button
-        self.widget.cacheSizeSlider.setValue(
+        self.__widget.cacheSizeSlider.setValue(
             self.CACHE_SIZE_VALUES.index(cache_manager.cache_max_size)
         )
 
         # Clear cache button
-        self.widget.clearCacheButton.setIcon(
+        self.__widget.clearCacheButton.setIcon(
             QgsApplication.getThemeIcon('mActionDeleteSelected.svg')
         )
-        self.widget.clearCacheButton.clicked.connect(
+        self.__widget.clearCacheButton.clicked.connect(
             self.__clear_cache
         )
 
         if (cache_size := cache_manager.cache_size) == 0:
-            self.widget.clearCacheButton.setText(self.tr('Clear Cache'))
-            self.widget.clearCacheButton.setToolTip(self.tr('Cache is empty'))
-            self.widget.clearCacheButton.setEnabled(False)
+            self.__widget.clearCacheButton.setText(self.tr('Clear Cache'))
+            self.__widget.clearCacheButton.setToolTip(self.tr('Cache is empty'))
+            self.__widget.clearCacheButton.setEnabled(False)
         else:
-            self.widget.clearCacheButton.setText(
+            self.__widget.clearCacheButton.setText(
                 self.tr('Clear Cache') + f'  ({self.format_size(cache_size)})'
             )
-            self.widget.clearCacheButton.setEnabled(True)
+            self.__widget.clearCacheButton.setEnabled(True)
 
     def __init_other_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.cogCheckBox.setChecked(
@@ -293,6 +293,50 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             dock = iface.mainWindow().findChild(NgConnectDock, 'NGConnectDock')
             dock.reinit_tree(force=True)
 
+    def __choose_cache_directory(self) -> None:
+        cache_manager = NgConnectCacheManager()
+        directory = QFileDialog.getExistingDirectory(
+            self,
+            caption=self.tr(
+                'Choose a directory to store NextGIS Connect cache'
+            ),
+            directory=cache_manager.cache_directory,
+        )
+        if not directory:
+            return
+
+        self.__widget.cacheDirectoryLineEdit.setText(directory)
+
+    def __update_reset_cache_button(self, text: str) -> None:
+        self.__widget.resetCacheDirectoryButton.setEnabled(
+            len(text) > 0
+        )
+
+    def __reset_cache_directory(self) -> None:
+        self.__widget.cacheDirectoryLineEdit.setText('')
+
+    def __clear_cache(self) -> None:
+        cache_manager = NgConnectCacheManager()
+        cache_manager.clear_cache()
+        cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
+            self.tr('Cache has been successfully cleared'),
+            Qgis.MessageLevel.Success
+        )
+        self.__widget.clearCacheButton.setText(self.tr('Clear Cache'))
+        self.__widget.clearCacheButton.setEnabled(False)
+
+    def format_size(self, size_in_kb):
+        units = [
+            self.tr('KiB'), self.tr('MiB'), self.tr('GiB'), self.tr('TiB'),
+        ]
+        size = size_in_kb
+        unit_index = 0
+        while size > 1024 and unit_index < len(units) - 1:
+            size /= 1024
+            unit_index += 1
+        precision = 2 if size < 10 else 1
+        return f'{size:.{precision}f} {units[unit_index]}'
+
 
 class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
     widget: QWidget
@@ -311,50 +355,6 @@ class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
 
     def cancel(self) -> None:
         pass
-
-    def __choose_cache_directory(self) -> None:
-        cache_manager = NgConnectCacheManager()
-        directory = QFileDialog.getExistingDirectory(
-            self,
-            caption=self.tr(
-                'Choose a directory to store NextGIS Connect cache'
-            ),
-            directory=cache_manager.cache_directory,
-        )
-        if not directory:
-            return
-
-        self.widget.cacheDirectoryLineEdit.setText(directory)
-
-    def __update_reset_cache_button(self, text: str) -> None:
-        self.widget.resetCacheDirectoryButton.setEnabled(
-            len(text) > 0
-        )
-
-    def __reset_cache_directory(self) -> None:
-        self.widget.cacheDirectoryLineEdit.setText('')
-
-    def __clear_cache(self) -> None:
-        cache_manager = NgConnectCacheManager()
-        cache_manager.clear_cache()
-        cast(QgsMessageBar, self.widget.messageBar).pushMessage(
-            self.tr('Cache has been successfully cleared'),
-            Qgis.MessageLevel.Success
-        )
-        self.widget.clearCacheButton.setText(self.tr('Clear Cache'))
-        self.widget.clearCacheButton.setEnabled(False)
-
-    def format_size(self, size_in_kb):
-        units = [
-            self.tr('KiB'), self.tr('MiB'), self.tr('GiB'), self.tr('TiB'),
-        ]
-        size = size_in_kb
-        unit_index = 0
-        while size > 1024 and unit_index < len(units) - 1:
-            size /= 1024
-            unit_index += 1
-        precision = 2 if size < 10 else 1
-        return f'{size:.{precision}f} {units[unit_index]}'
 
 
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
