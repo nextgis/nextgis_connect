@@ -74,10 +74,10 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.connections_widget
         )
 
-        unit = self.tr('GB')
+        unit = self.tr('GiB')
         self.__widget.cacheSizeSlider = LabeledSlider(
             [f'{number} {unit}' for number in [8, 12, 16, 24, 32, 64]]
-            + [self.tr('No limit')],
+            + ['∞'],
             self.__widget
         )
         self.__widget.maxSizeLayout.addWidget(self.__widget.cacheSizeSlider)

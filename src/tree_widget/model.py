@@ -164,12 +164,12 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
         detached_factory = DetachedLayerFactory()
 
         for ngw_resource in self.ngw_resources:
-            instance_cache_path = cache_directory / 'kek'
+            # TODO set instance id
+            instance_cache_path = cache_directory / ngw_resource.connection_id
             instance_cache_path.mkdir(parents=True, exist_ok=True)
-            # TODO add instance path
             gpkg_path = instance_cache_path / f'{ngw_resource.common.id}.gpkg'
             ngw_resource.export(str(gpkg_path))
-            detached_factory.create(str(gpkg_path))
+            detached_factory.create(ngw_resource, str(gpkg_path))
 
 
 class QNGWResourceTreeModelBase(QAbstractItemModel):
@@ -797,16 +797,20 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ) -> Tuple[List[QModelIndex], List[QModelIndex]]:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
             if isinstance(ngw_resource, NGWVectorLayer):
-                # TODO (GP)
-                if cache_manager.exists(f'kek/{ngw_resource.common.id}.gpkg'):
+                # TODO set instance id
+                if cache_manager.exists(
+                    f'{ngw_resource.connection_id}/{ngw_resource.common.id}.gpkg'
+                ):
                     return [index], []
                 return [index], [index]
 
             if isinstance(ngw_resource, NGWQGISVectorStyle):
-                # TODO (GP)
+                # TODO set instance id
                 parent = index.parent()
                 parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
-                if cache_manager.exists(f'kek/{parent_resource.common.id}.gpkg'):
+                if cache_manager.exists(
+                    f'{ngw_resource.connection_id}/{parent_resource.common.id}.gpkg'
+                ):
                     return [parent, index], []
                 return [parent, index], [parent]
 

@@ -76,7 +76,7 @@
           <item>
            <widget class="QToolButton" name="cacheDirectoryButton">
             <property name="toolTip">
-             <string>Select folder</string>
+             <string>Select directory</string>
             </property>
             <property name="text">
              <string/>

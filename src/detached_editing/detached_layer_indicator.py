@@ -46,7 +46,8 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
         date_property: datetime = \
             self.__layer.customProperty('ngw_synchronization_date')
         sync_datetime = date_property.strftime('%c')
-        date_tooltip = f'\n{self.tr("Synchronization date")}: {sync_datetime}'
+        sync_date_label = self.tr("Synchronization date")
+        date_tooltip = f'\n{sync_date_label}: {sync_datetime}'
 
         if state == DetachedLayerState.NotSynchronized:
             self.setIcon(QIcon(str(icons_path / 'not_synchronized.svg')))

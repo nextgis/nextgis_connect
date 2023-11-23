@@ -68,13 +68,13 @@ class NgConnectCacheManager:
 
     def exists(self, path: str) -> bool:
         path_to_file = Path(path)
-        if not path_to_file.is_relative_to(self.cache_directory):
+        if not path_to_file.is_absolute():
             path_to_file = self.cache_directory / path_to_file
         return path_to_file.exists()
 
     def absolute_path(self, path: str) -> str:
         path_to_file = Path(path)
-        if not path_to_file.is_relative_to(self.cache_directory):
+        if not path_to_file.is_absolute():
             path_to_file = self.cache_directory / path_to_file
 
         return str(path_to_file.absolute())

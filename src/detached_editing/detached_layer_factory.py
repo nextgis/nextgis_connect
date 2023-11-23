@@ -1,35 +1,27 @@
-import os
 from contextlib import closing
-from typing import Optional
 from datetime import datetime
 
 import sqlite3
-from osgeo import ogr
 
-from qgis.PyQt.QtCore import QFile
-
-from qgis.core import (
-    QgsVectorLayer, QgsVectorFileWriter, QgsReadWriteContext, QgsProject,
-    QgsMapLayerStyle
-)
-
-from ..ng_connect_cache_manager import NgConnectCacheManager
+from ..ngw_api.core.ngw_vector_layer import NGWVectorLayer
 
 
 class DetachedLayerFactory:
-    def create(self, container_path: str) -> bool:
+    def create(self, ngw_layer: NGWVectorLayer, container_path: str) -> bool:
 
-        self.__prepare_container(container_path)
+        self.__prepare_container(ngw_layer, container_path)
 
         return True
 
-    def __prepare_container(self, path: str) -> None:
+    def __prepare_container(
+        self, ngw_layer: NGWVectorLayer, path: str
+    ) -> None:
         with closing(sqlite3.connect(path)) as connection:
             with closing(connection.cursor()) as cursor:
                 cursor.execute('PRAGMA foreign_keys = 1')
                 self.__initialize_spatial_metadata(cursor)
                 self.__create_container_tables(cursor)
-                self.__insert_metadata(cursor)
+                self.__insert_metadata(ngw_layer, cursor)
 
             connection.commit()
 
@@ -41,8 +33,9 @@ class DetachedLayerFactory:
         cursor.executescript(
             """
             CREATE TABLE ngw_metadata (
-                'connection' TEXT,
-                'instance_uuid' TEXT,
+                'container_version' TEXT,
+                'connection_id' TEXT,
+                'instance_id' TEXT,
                 'resource_id' INTEGER,
                 'synchronization_date' TEXT,
                 'auto_synchronization' INTEGER
@@ -63,14 +56,16 @@ class DetachedLayerFactory:
             """
         )
 
-    def __insert_metadata(self, cursor: sqlite3.Cursor) -> None:
-        connection = 'xxxxxxxx-xxxx-xxxx-xxxx-xxconnection'
-        instance = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxinstance'
-        resource_id = 1377
+    def __insert_metadata(
+        self, ngw_layer: NGWVectorLayer, cursor: sqlite3.Cursor
+    ) -> None:
+        connection = ngw_layer.connection_id
+        # instance = 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxinstance'
+        resource_id = ngw_layer.common.id
         date = datetime.now().isoformat()
 
         cursor.execute(f'''
             INSERT INTO ngw_metadata VALUES (
-                '{connection}', '{instance}', {resource_id}, '{date}', TRUE
+                '0.1.0', '{connection}', NULL, {resource_id}, '{date}', TRUE
             )
         ''')
