@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from qgis.core import (
     QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer, QgsLayerTreeLayer,
-    QgsTask
+    QgsTask, QgsApplication
 )
 
 from qgis.gui import QgisInterface
@@ -15,6 +15,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
 from .detached_layer_indicator import DetachedLayerIndicator
+from .tasks.upload_changes_task import UploadChangesTask
 from . import utils
 from .utils import DetachedLayerState
 
@@ -69,8 +70,20 @@ class DetachedLayer(QObject):
         return self.__state
 
     def synchronize(self) -> None:
+        if self.state == DetachedLayerState.Synchronized:
+            return
+
         self.__state = DetachedLayerState.Synchronization
         self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+        self.__layer.setReadOnly(True)
+        self.__sync_task = UploadChangesTask(self.__layer)
+        self.__sync_task.synchronization_finished.connect(
+            self.__on_task_finished
+        )
+
+        task_manager = QgsApplication.taskManager()
+        assert task_manager is not None
+        task_manager.addTask(self.__sync_task)
 
     def force_synchronize(self) -> None:
         self.__state = DetachedLayerState.Synchronization
@@ -112,7 +125,7 @@ class DetachedLayer(QObject):
             with closing(connection.cursor()) as cursor:
                 cursor.execute('''
                     SELECT
-                        connection, resource_id, synchronization_date,
+                        connection_id, resource_id, synchronization_date,
                         auto_synchronization
                     FROM ngw_metadata
                 ''')
@@ -120,7 +133,7 @@ class DetachedLayer(QObject):
 
                 self.__update_state(cursor)
 
-        self.__layer.setCustomProperty('ngw_connection', result[0])
+        self.__layer.setCustomProperty('ngw_connection_id', result[0])
         self.__layer.setCustomProperty('ngw_resource_id', int(result[1]))
         self.__layer.setCustomProperty(
             'ngw_synchronization_date', datetime.fromisoformat(result[2])
@@ -174,6 +187,9 @@ class DetachedLayer(QObject):
         self.__layer.committedGeometriesChanges.disconnect(
             self.__log_geometry_changes
         )
+
+        if self.__state == DetachedLayerState.NotSynchronized:
+            self.synchronize()
 
     def __log_added_features(
         self, layer_id: str, features: List[QgsFeature]
@@ -312,3 +328,13 @@ class DetachedLayer(QObject):
 
         self.__state = state
         self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+
+    def __on_task_finished(self, result: bool) -> None:
+        if result:
+            self.__state = DetachedLayerState.Synchronized
+        else:
+            self.__state = DetachedLayerState.Error
+        self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+
+        self.__sync_task = None
+        self.__layer.setReadOnly(False)

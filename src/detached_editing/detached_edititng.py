@@ -40,8 +40,8 @@ class DetachedEditing(QObject):
         self.__exit_blocker = ExitBlocker(self)
         iface.registerApplicationExitBlocker(self.__exit_blocker)
 
-        self.__properties_factory = DetachedLayerConfigWidgetFactory()
-        iface.registerMapLayerConfigWidgetFactory(self.__properties_factory)
+        # self.__properties_factory = DetachedLayerConfigWidgetFactory()
+        # iface.registerMapLayerConfigWidgetFactory(self.__properties_factory)
 
         iface.currentLayerChanged.connect(self.__update_actions)
 
@@ -63,8 +63,8 @@ class DetachedEditing(QObject):
         for layer in self.__layers.values():
             layer.remove_indicator()
 
-        iface.unregisterMapLayerConfigWidgetFactory(self.__properties_factory)
-        del self.__properties_factory
+        # iface.unregisterMapLayerConfigWidgetFactory(self.__properties_factory)
+        # del self.__properties_factory
 
         iface.unregisterApplicationExitBlocker(self.__exit_blocker)
         del self.__exit_blocker

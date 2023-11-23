@@ -115,7 +115,7 @@ from .ngw_api.qgis.resource_to_map import (
     add_ogcf_resource,
     add_resource_as_cog_raster, add_resource_as_cog_raster_with_style,
     add_resource_as_wfs_layers, UnsupportedRasterTypeException,
-    _add_aliases, _apply_style
+    _add_aliases, _apply_style, _add_lookup_tables
 )
 from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
 from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -2053,8 +2053,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         style_resource: Optional[NGWQGISVectorStyle] = None,
     ) -> None:
         cache_manager = NgConnectCacheManager()
-        # TODO (GP): path
-        connection_path = Path(cache_manager.cache_directory) / 'kek'
+        # TODO: set instance id
+        connection_path = \
+            Path(cache_manager.cache_directory) / vector_layer.connection_id
 
         qgs_gpkg_layer = QgsVectorLayer(
             str(connection_path / f'{vector_layer.common.id}.gpkg'),
@@ -2070,6 +2071,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if style_resource is not None:
             _apply_style(style_resource, qgs_gpkg_layer)
 
+        _add_lookup_tables(qgs_gpkg_layer, vector_layer)
         _add_aliases(qgs_gpkg_layer, vector_layer)
 
         project = QgsProject.instance()

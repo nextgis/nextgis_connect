@@ -24,7 +24,7 @@ def container_path(layer: QgsMapLayer) -> str:
 
 def is_ngw_container(layer: QgsMapLayer) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
-        return 'ngw_connection' in layer.customPropertyKeys()
+        return 'ngw_connection_id' in layer.customPropertyKeys()
 
     def has_metadata(layer: QgsMapLayer) -> bool:
         try:

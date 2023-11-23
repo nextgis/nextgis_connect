@@ -20,7 +20,10 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         self.setupUi(self)
 
         Button = QDialogButtonBox.StandardButton
-        self.buttonBox.button(Button.Retry).setText(self.tr('Synchronization'))
+        self.buttonBox.button(Button.Retry).hide()
+        # self.buttonBox.button(Button.Retry).setText(self.tr('Synchronization'))
+        # self.buttonBox.rejected.connect(self.reject)
+
         self.buttonBox.rejected.connect(self.reject)
 
         self.__fill_changes(path)
