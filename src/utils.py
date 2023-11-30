@@ -32,8 +32,10 @@ def show_error_message(msg):
     )
 
 
-def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
-    url = "url=%s" % url
+def add_wms_layer(
+    name, url, layer_keys, creds, *, ask_choose_layers=False
+):
+    url = f"url={url}"
 
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
@@ -47,6 +49,9 @@ def add_wms_layer(name, url, layer_keys, ask_choose_layers=False):
         url += "&layers=%s&styles=" % layer_key
 
     url += "&format=image/png&crs=EPSG:3857"
+
+    if creds[0] and creds[1]:
+        url += f'&username={creds[0]}&password={creds[1]}'
 
     rlayer = QgsRasterLayer(url, name, 'wms')
 

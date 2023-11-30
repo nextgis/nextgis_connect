@@ -1126,20 +1126,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.common.display_name,
                     ngw_resource.get_url(),
                     ngw_resource.get_layer_keys(),
-                    len(ngw_resource.get_layer_keys()) > 1
+                    ngw_resource.get_creds(),
+                    ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1
                 )
             elif isinstance(ngw_resource, NGWWmsConnection):
                 utils.add_wms_layer(
                     ngw_resource.common.display_name,
                     ngw_resource.get_connection_url(),
                     ngw_resource.layers(),
-                    len(ngw_resource.layers()) > 1
+                    ngw_resource.get_creds(),
+                    ask_choose_layers=len(ngw_resource.layers()) > 1
                 )
             elif isinstance(ngw_resource, NGWWmsLayer):
                 utils.add_wms_layer(
                     ngw_resource.common.display_name,
                     ngw_resource.ngw_wms_connection_url,
                     ngw_resource.ngw_wms_layers,
+                    ngw_resource.get_creds(),
                 )
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
