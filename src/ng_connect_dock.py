@@ -1924,6 +1924,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         _add_lookup_tables(qgs_gpkg_layer, vector_layer)
         _add_aliases(qgs_gpkg_layer, vector_layer)
+        _add_lookup_tables(qgs_gpkg_layer, vector_layer)
 
         project = QgsProject.instance()
         assert project is not None
