@@ -76,7 +76,9 @@ class DetachedLayer(QObject):
         self.__state = DetachedLayerState.Synchronization
         self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
         self.__layer.setReadOnly(True)
-        self.__sync_task = UploadChangesTask(self.__layer)
+        self.__sync_task = UploadChangesTask(
+            utils.container_path(self.__layer)
+        )
         self.__sync_task.synchronization_finished.connect(
             self.__on_task_finished
         )
