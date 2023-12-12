@@ -8,25 +8,18 @@ from ..ngw_api.core.ngw_vector_layer import NGWVectorLayer
 
 class DetachedLayerFactory:
     def create(self, ngw_layer: NGWVectorLayer, container_path: str) -> bool:
-
-        self.__prepare_container(ngw_layer, container_path)
-
-        return True
-
-    def __prepare_container(
-        self, ngw_layer: NGWVectorLayer, path: str
-    ) -> None:
-        with closing(sqlite3.connect(path)) as connection:
+        with closing(sqlite3.connect(container_path)) as connection:
             with closing(connection.cursor()) as cursor:
-                cursor.execute('PRAGMA foreign_keys = 1')
-                self.__initialize_spatial_metadata(cursor)
+                self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)
-                self.__insert_metadata(ngw_layer, cursor)
+                self.__fill_tables(ngw_layer, cursor)
 
             connection.commit()
 
-    def __initialize_spatial_metadata(self, cursor: sqlite3.Cursor) -> None:
-        pass
+        return True
+
+    def __initialize_container_settings(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('PRAGMA foreign_keys = 1')
 
     def __create_container_tables(self, cursor: sqlite3.Cursor) -> None:
         # TODO add aliases
@@ -39,6 +32,10 @@ class DetachedLayerFactory:
                 'resource_id' INTEGER,
                 'synchronization_date' TEXT,
                 'auto_synchronization' INTEGER
+            );
+            CREATE TABLE ngw_features_id (
+                'fid' INTEGER,
+                'ngw_id' INTEGER
             );
             CREATE TABLE ngw_added_features (
                 'fid' INTEGER
@@ -56,6 +53,12 @@ class DetachedLayerFactory:
             """
         )
 
+    def __fill_tables(
+        self, ngw_layer: NGWVectorLayer, cursor: sqlite3.Cursor
+    ) -> None:
+        self.__insert_metadata(ngw_layer, cursor)
+        self.__insert_ngw_ids(cursor)
+
     def __insert_metadata(
         self, ngw_layer: NGWVectorLayer, cursor: sqlite3.Cursor
     ) -> None:
@@ -66,6 +69,16 @@ class DetachedLayerFactory:
 
         cursor.execute(f'''
             INSERT INTO ngw_metadata VALUES (
-                '0.1.0', '{connection}', NULL, {resource_id}, '{date}', TRUE
+                '0.2.0', '{connection}', NULL, {resource_id}, '{date}', TRUE
             )
         ''')
+
+    def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute('''
+            SELECT table_name FROM gpkg_contents
+            WHERE data_type='features'
+        ''')
+        table_name = cursor.fetchone()[0]
+        cursor.execute(
+            f"INSERT INTO ngw_features_id SELECT fid, fid FROM '{table_name}'"
+        )

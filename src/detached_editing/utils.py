@@ -1,6 +1,8 @@
 import sqlite3
+from typing import List
 from contextlib import closing
 from enum import Enum
+from dataclasses import dataclass
 
 from qgis.core import QgsMapLayer, QgsVectorLayer
 
@@ -16,6 +18,14 @@ class DetachedLayerState(str, Enum):
 
     def __str__(self):
         return str(self.value)
+
+
+@dataclass
+class DetachedLayerMetaData:
+    connection_id: str
+    resource_id: str
+    table_name: str
+    fields: List[str]
 
 
 def container_path(layer: QgsMapLayer) -> str:
@@ -45,4 +55,27 @@ def is_ngw_container(layer: QgsMapLayer) -> bool:
         isinstance(layer, QgsVectorLayer)
         and layer.storageType() == 'GPKG'
         and (has_properties(layer) or has_metadata(layer))
+    )
+
+
+def container_metadata(cursor: sqlite3.Cursor) -> DetachedLayerMetaData:
+    cursor.execute('''
+        SELECT connection_id, resource_id FROM ngw_metadata
+    ''')
+    connection_id, resource_id = cursor.fetchone()
+
+    cursor.execute('''
+        SELECT table_name FROM gpkg_contents
+        WHERE data_type='features'
+    ''')
+    table_name = cursor.fetchone()[0]
+    columns = [
+        row[0] for row in cursor.execute(
+            f"SELECT name FROM pragma_table_info('{table_name}') ORDER BY cid"
+        )
+        if row[0] != 'geom'
+    ]
+
+    return DetachedLayerMetaData(
+        connection_id, resource_id, table_name, columns
     )
