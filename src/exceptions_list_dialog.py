@@ -53,7 +53,6 @@ class ExceptionWidget(QFrame):
                     border-top-color: transparent;
                     border-left-color: transparent;
                     border-right-color: transparent;
-
                 }
             """
         )

@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 import html
+import json
 import os
 import traceback
 from dataclasses import dataclass
@@ -679,12 +680,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         icon = os.path.join(ICONS_PATH, 'Error.svg')
 
         if exception.__class__ == JobServerRequestError:
-            msg = self.tr("Error occurred while communicating with Web GIS.")
+            msg = self.tr("Error occurred while communicating with Web GIS")
             msg_ext = "URL: %s" % str(exception)
             msg_ext += "\nMSG: %s" % exception
 
         elif exception.__class__ == JobNGWError:
-            msg = " %s." % str(exception)
+            msg = str(exception)
             msg_ext = "URL: " + exception.url
 
         elif exception.__class__ == JobAuthorizationError:
@@ -693,13 +694,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         elif exception.__class__ == JobError:
             msg = str(exception)
             if exception.wrapped_exception is not None:
-                msg_ext = "%s" % exception.wrapped_exception
-
                 # If we have message for user - add it instead of system message.
                 # TODO: put it somewhere globally.
                 user_msg = getattr(exception.wrapped_exception, "user_msg", None)
-                if not user_msg is None:
+                if user_msg is not None:
                     msg_ext = user_msg
+                else:
+                    msg_ext = json.loads(str(exception.wrapped_exception))['message']
 
         elif exception.__class__ == JobWarning:
             msg = str(exception)
@@ -1719,7 +1720,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ngw_model_job_resp = self.sender()
         job_id = ngw_model_job_resp.job_id
         if len(ngw_model_job_resp.warnings()) > 0:
-            dlg = ExceptionsListDialog(self.tr("NextGIS Connect operation exceptions"), self)
+            dlg = ExceptionsListDialog(self.tr("NextGIS Connect operation errors"), self)
             for w in ngw_model_job_resp.warnings():
                 w_msg, w_msg_ext, icon = self.__get_model_exception_description(job_id, w)
                 dlg.addException(w_msg, w_msg_ext, icon)
