@@ -99,7 +99,7 @@ class NgConnectSettings:
         application_cache_path = QStandardPaths.writableLocation(
             QStandardPaths.StandardLocation.CacheLocation
         )
-        return os.path.join(application_cache_path, 'NGConnect')
+        return application_cache_path + '/NGConnect'
 
     @cache_directory.setter
     def cache_directory(self, value: Optional[str]) -> None:
