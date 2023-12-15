@@ -111,6 +111,41 @@ class MigrationOverlay(QOverlay):
         dock.reinit_tree(force=True)
 
 
+class NoNgstdAuthOverlay(QOverlay):
+    def __init__(self, parent):
+        super().__init__(parent)
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
+        spacer_before = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
+        spacer_after = QSpacerItem(
+            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
+
+        self.text = QLabel(
+            self.tr("Sign in with your NextGIS account to get access to your Web GIS\n"),
+            self
+        )
+        self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text.setOpenExternalLinks(True)
+        self.text.setWordWrap(True)
+
+        full_migrate_button = QPushButton(
+            self.tr('Open NextGIS settings')
+        )
+        full_migrate_button.clicked.connect(self.__open_nextgis_settings)
+
+        layout.addSpacerItem(spacer_before)
+        layout.addWidget(self.text)
+        layout.addWidget(full_migrate_button)
+        layout.addSpacerItem(spacer_after)
+
+    def __open_nextgis_settings(self):
+        iface.showOptionsDialog(iface.mainWindow(), 'NextGIS')
+
+
 class QProcessOverlay(QOverlay):
     def __init__(self, parent):
         super().__init__(parent)
@@ -225,10 +260,7 @@ class QNGWResourceTreeView(QTreeView):
         self.migration_overlay = MigrationOverlay(self)
         self.migration_overlay.hide()
 
-        self.no_oauth_auth_overlay = QMessageOverlay(
-            self, self.tr(
-                "Please authorize via NextGIS Account Toolbar"
-            ))
+        self.no_oauth_auth_overlay = NoNgstdAuthOverlay(self)
         self.no_oauth_auth_overlay.hide()
 
         self.ngw_job_block_overlay = QProcessOverlay(self)

@@ -65,8 +65,6 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self.__populate_by_existed(connection_id)
         else:
             self.__connection_id = str(uuid.uuid4())
-            if HAS_NGSTD:
-                self.authWidget.setConfigId('NextGIS')
 
         self.__is_save_clicked = False
         self.__name_was_manually_changed = False
