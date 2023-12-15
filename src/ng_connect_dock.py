@@ -137,6 +137,7 @@ from .tree_widget import (
 
 HAS_NGSTD = True
 try:
+    from ngstd.core import NGRequest
     from ngstd.framework import NGAccess
 except ImportError:
     HAS_NGSTD = False
@@ -870,6 +871,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.trvResources.no_oauth_auth_overlay.hide()
 
         if force:
+            if HAS_NGSTD and current_connection.auth_config_id == 'NextGIS':
+                NGRequest.addAuthURL(
+                    NGAccess.instance().endPoint(), current_connection.url
+                )
+
             # start working with connection at very first time
             self.jobs_count = 0
 
