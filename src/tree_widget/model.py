@@ -173,8 +173,15 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
 
         detached_factory = DetachedLayerFactory()
 
-        for ngw_resource in self.ngw_resources:
+        total = str(len(self.ngw_resources))
+        for i, ngw_resource in enumerate(self.ngw_resources):
             # TODO set instance id
+            name = ngw_resource.common.display_name
+            progress = '' if total == '1' else f' ({i + 1}/{total})'
+            self.statusChanged.emit(
+                self.tr('Downloading layer "{name}"').format(name=name)
+                + progress
+            )
             instance_cache_path = cache_directory / ngw_resource.connection_id
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             gpkg_path = instance_cache_path / f'{ngw_resource.common.id}.gpkg'

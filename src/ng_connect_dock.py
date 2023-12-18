@@ -404,6 +404,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "QGISStyleAdder": self.tr("Style for layer is being created"),
             "NGWRenameResource": self.tr("Resource is being renamed"),
             "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
+            "NgwCacheVectorLayers": self.tr("Resources is being cached"),
         }
 
         # ngw resources view
