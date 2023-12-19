@@ -1,7 +1,6 @@
 from typing import Optional
 from pathlib import Path
 from datetime import datetime
-from pkg_resources import resource_filename
 
 from qgis.PyQt.QtCore import QObject, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
@@ -37,9 +36,7 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
         state = DetachedLayerState(state_string)
 
         icons_path = (
-            Path(resource_filename('nextgis_connect', ''))
-            / 'icons'
-            / 'detached_layers'
+            Path(__file__) / '..' / '..' / 'icons' / 'detached_layers'
         )
 
         tooltip = self.tr('NGW Layer')
