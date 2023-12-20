@@ -1,11 +1,11 @@
 # NextGIS Connect
 
 A QGIS plugin. Manage NextGIS Web resources. NextGIS Connect can:
-upload data layers from QGIS to nextgis.com or stand-alone NextGIS Web
-add resources from nextgis.com to QGIS as data layers
-import a whole project from QGIS to nextgis.com
-create WFS services from data layers in nextgis.com
-and much more
+- upload data layers from QGIS to nextgis.com or stand-alone NextGIS Web
+- add resources from nextgis.com to QGIS as data layers
+- import a whole project from QGIS to nextgis.com
+- create WFS services from data layers in nextgis.com
+- and much more
 
 QGIS plugins page: https://plugins.qgis.org/plugins/nextgis_connect/ 
 
