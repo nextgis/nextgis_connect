@@ -182,7 +182,8 @@ class QNGWResourceTreeView(QTreeView):
 
     def keyPressEvent(self, event: QKeyEvent):
         is_f2 = event.key() == Qt.Key.Key_F2
-        if is_f2 and (index := self.currentIndex()).isValid():
+        index = self.currentIndex()
+        if is_f2 and index.isValid():
             self.rename_resource(index)
         else:
             super().keyPressEvent(event)
@@ -195,8 +196,10 @@ class QNGWResourceTreeView(QTreeView):
 
         # Get existing names
         existing_names = []
-        if (parent := index.parent()).isValid():
+        parent = index.parent()
+        if parent.isValid():
             model = parent.model()
+            assert model is not None
             for i in range(model.rowCount(parent)):
                 if i == index.row():
                     continue

@@ -103,7 +103,8 @@ class NgConnectSettings:
         }
         self.__settings.beginGroup(self.__plugin_group)
         for old_key, new_key in mapping.items():
-            if (value := settings.value(old_key)) is None:
+            value = settings.value(old_key)
+            if value is None:
                 continue
             self.__settings.setValue(new_key, value)
         self.__settings.endGroup()

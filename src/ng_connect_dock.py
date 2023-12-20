@@ -1801,10 +1801,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __add_layers_after_finish(self, job_uuid: str):
         found_i = -1
-        if not any(
-            self._queue_to_add[(found_i := i)].job_uuid == job_uuid
-            for i in range(len(self._queue_to_add))
-        ):
+        for i in range(len(self._queue_to_add)):
+            if self._queue_to_add[i].job_uuid == job_uuid:
+                found_i = i
+                break
+        if found_i == -1:
             return
 
         project = QgsProject.instance()
