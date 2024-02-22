@@ -61,6 +61,7 @@ from .ngw_api.core import (
     NGWVectorLayer,
     NGWWebMap,
     NGWWfsService,
+    NGWOgcfService,
     NGWWmsConnection,
     NGWWmsLayer,
     NGWWmsService,
@@ -77,6 +78,7 @@ from .ngw_api.qgis.resource_to_map import (
     add_resource_as_cog_raster, add_resource_as_cog_raster_with_style,
     add_resource_as_geojson, add_resource_as_geojson_with_style,
     add_resource_as_wfs_layers, UnsupportedRasterTypeException,
+    add_ogcf_resource
 )
 from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
 from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -220,7 +222,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.tr("Create WFS service"),
             self
         )
-        self.actionCreateWFSService.triggered.connect(self.create_wfs_service)
+        self.actionCreateWFSService.triggered.connect(
+            lambda: self.create_wfs_or_ogcf_service('WFS')
+        )
+
+        self.actionCreateOgcService = QAction(
+            self.tr("Create OGC API - Features service"),
+            self
+        )
+        self.actionCreateOgcService.triggered.connect(
+            lambda: self.create_wfs_or_ogcf_service('OGC API - Features')
+        )
 
         self.actionCreateWMSService = QAction(
             self.tr("Create WMS service"),
@@ -323,7 +335,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "NGWResourceDelete": self.tr("Resource is being deleted"),
             "QGISResourcesUploader": self.tr("Layer is being imported"),
             "QGISProjectUploader": self.tr("Project is being imported"),
-            "NGWCreateWFSForVector": self.tr("WFS service is being created"),
+            "NGWCreateWfsService": self.tr("WFS service is being created"),
+            "NGWCreateOgcfService": self.tr("OGC API - Features service is being created"),
             "NGWCreateWMSForVector": self.tr("WMS service is being created"),
             "NGWCreateMapForStyle": self.tr("Web map is being created"),
             "MapForLayerCreater": self.tr("Web map is being created"),
@@ -508,6 +521,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 isinstance(ngw_resource, (
                     NGWGroupResource,
                     NGWWfsService,
+                    NGWOgcfService,
                     NGWWmsService,
                     NGWWmsConnection,
                     NGWWmsLayer,
@@ -871,6 +885,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 NGWRasterLayer,
                 NGWWmsLayer,
                 NGWWfsService,
+                NGWOgcfService,
                 NGWWmsService,
                 NGWWmsConnection,
                 NGWQGISVectorStyle,
@@ -906,6 +921,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             creating_actions.extend([
                 self.actionCreateWFSService,
+                self.actionCreateOgcService,
                 self.actionCreateWMSService,
             ])
 
@@ -1121,6 +1137,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                             else:
                                 return False
                 add_resource_as_wfs_layers(ngw_resource)
+            elif isinstance(ngw_resource, NGWOgcfService):
+                add_ogcf_resource(ngw_resource)
             elif isinstance(ngw_resource, NGWWmsService):
                 utils.add_wms_layer(
                     ngw_resource.common.display_name,
@@ -1553,7 +1571,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.trvResources.ngw_job_block_overlay.hide()
             self.unblock_gui()
 
-    def create_wfs_service(self):
+    def create_wfs_or_ogcf_service(self, service_type: str):
+        assert service_type in ('WFS', 'OGC API - Features')
         selected_index = self.trvResources.selectionModel().currentIndex()
 
         if not selected_index.isValid():
@@ -1562,7 +1581,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         item = selected_index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        if isinstance(ngw_resource, NGWVectorLayer) and ngw_resource.is_geom_with_z():
+        if service_type == 'WFS' and ngw_resource.is_geom_with_z():
             self.show_error(self.tr(
                 'You are trying to create a WFS service '
                 'for a layer that contains Z geometries. '
@@ -1571,9 +1590,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 'and create a WFS service again.'))
             return
 
-        ret_obj_num, res = QInputDialog.getInt(
+        max_features, res = QInputDialog.getInt(
             self,
-            self.tr("Create WFS service"),
+            self.tr("Create ") + service_type,
             self.tr("The number of objects returned by default"),
             1000,
             0,
@@ -1582,13 +1601,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if res is False:
             return
 
-        response = self._resource_model.createWFSForVector(selected_index, ret_obj_num)
+        response = self._resource_model.createWfsOrOgcfForVector(
+            service_type, selected_index, max_features
+        )
         response.done.connect(
             self.trvResources.setCurrentIndex
         )
-        response.done.connect(
+        adder = (
             self.add_created_wfs_service
+            if service_type == 'WFS'
+            else self.add_created_ogc_service
         )
+        response.done.connect(adder)
 
     def add_created_wfs_service(self, index):
         if not NgConnectSettings().add_layer_after_service_creation:
@@ -1596,6 +1620,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         add_resource_as_wfs_layers(ngw_resource)
+
+    def add_created_ogc_service(self, index: QModelIndex) -> None:
+        if not NgConnectSettings().add_layer_after_service_creation:
+            return
+
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        add_ogcf_resource(ngw_resource)
 
     def create_wms_service(self):
         selected_index = self.trvResources.selectionModel().currentIndex()

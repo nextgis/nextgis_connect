@@ -12,12 +12,12 @@ from ..ngw_api.core import (
     NGWResource,
     NGWGroupResource,
     NGWVectorLayer,
-    NGWQGISVectorStyle
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job import (
-    NGWCreateMapForStyle, NGWCreateWFSForVector, NGWGroupCreater,
-    NGWRenameResource, NGWResourceDelete, NGWRootResourcesLoader,
-    NGWResourceUpdater, NGWResourceModelJob, NGWResourceModelJobResult
+    NGWCreateMapForStyle,  NGWGroupCreater, NGWRenameResource,
+    NGWResourceDelete, NGWRootResourcesLoader, NGWResourceUpdater,
+    NGWResourceModelJob, NGWResourceModelJobResult,
+    NGWCreateWfsService, NGWCreateOgcfService
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError
@@ -621,7 +621,10 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         )
 
     @modelRequest
-    def createWFSForVector(self, index, ret_obj_num):
+    def createWfsOrOgcfForVector(
+        self, service_type: str, index: QModelIndex, max_features: int
+    ):
+        assert service_type in ('WFS', 'OGC API - Features')
         if not index.isValid():
             index = self.index(0, 0, index)
 
@@ -635,8 +638,14 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(NGWCreateWFSForVector(
-            ngw_resource, ngw_parent_resource, ret_obj_num
+        job_type = (
+            NGWCreateWfsService
+            if service_type == 'WFS'
+            else NGWCreateOgcfService
+        )
+
+        return self._startJob(job_type(
+            ngw_resource, ngw_parent_resource, max_features
         ))
 
     @modelRequest
