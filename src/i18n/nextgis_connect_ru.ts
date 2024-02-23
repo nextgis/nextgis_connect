@@ -203,6 +203,11 @@
         <translation>Копировать стиль</translation>
     </message>
     <message>
+        <location filename="../ng_connect_dock.py" line="216"/>
+        <source>Copy TMS URL</source>
+        <translation>Копировать адрес TMS</translation>
+    </message>
+    <message>
         <location filename="../ng_connect_dock.py" line="1574"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>

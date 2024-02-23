@@ -216,6 +216,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionCopyStyle = QAction(self.tr("Copy Style"), self)
         self.actionCopyStyle.triggered.connect(self.copy_style)
 
+        self.actionCopyStyleTMSURL = QAction(self.tr("Copy TMS URL"), self)
+        self.actionCopyStyleTMSURL.triggered.connect(self.copy_style_tms_url)
+        
         self.actionCreateWFSService = QAction(
             self.tr("Create WFS service"),
             self
@@ -886,7 +889,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if not is_multiple_selection and isinstance(ngw_resource, (
             NGWQGISVectorStyle, NGWQGISRasterStyle
         )):
-            getting_actions.extend([self.actionDownload, self.actionCopyStyle])
+            getting_actions.extend([self.actionDownload, self.actionCopyStyle, self.actionCopyStyleTMSURL])
 
         if (
             not is_multiple_selection
@@ -1780,7 +1783,20 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         data = dom_document.toByteArray()
         text = dom_document.toString()
         utils.set_clipboard_data(QGSCLIPBOARD_STYLE_MIME, data, text)
+        
+    def copy_style_tms_url(self):
+        # get style id
+        selected_index = self.trvResources.selectionModel().currentIndex()
+        ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        resource_id = ngw_qgis_style._json['resource']['id']
+        tms_url='https://trolleway.nextgis.com/api/component/render/tile?resource='+str(resource_id)+'&nd=204&z={z}&x={x}&y={y}'
 
+        # Copy url
+        QGSCLIPBOARD_STYLE_MIME = 'text/plain'
+        data = bytes()
+        text = tms_url
+        utils.set_clipboard_data(QGSCLIPBOARD_STYLE_MIME, data, text)
+        
     def show_msg_box(self, text, title, icon, buttons):
         box = QMessageBox()
         box.setText(text)
