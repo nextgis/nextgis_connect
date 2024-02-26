@@ -5,7 +5,7 @@ from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
 
 from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
-from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from .ngw_api.core.ngw_abstract_vector_resource import NGWAbstractVectorResource
 from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
 
 from .tree_widget import QNGWResourceItem
@@ -34,7 +34,7 @@ class StyleFilterProxyModel(QSortFilterProxyModel):
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         return isinstance(ngw_resource, (
             NGWQGISVectorStyle, NGWQGISRasterStyle,
-            NGWVectorLayer, NGWRasterLayer,  # must also be included here so styles could be displayed
+            NGWAbstractVectorResource, NGWRasterLayer,  # must also be included here so styles could be displayed
         ))
 
 

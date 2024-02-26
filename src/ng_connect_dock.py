@@ -92,6 +92,7 @@ from .ngw_api.core import (
     NGWWmsConnection,
     NGWWmsLayer,
     NGWWmsService,
+    NGWPostgisLayer
 )
 
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
@@ -1009,7 +1010,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             creating_actions.append(self.actionCreateNewGroup)
 
         if not is_multiple_selection and isinstance(
-            ngw_resource, NGWVectorLayer
+            ngw_resource, (NGWVectorLayer, NGWPostgisLayer)
         ):
             creating_actions.extend(
                 [
