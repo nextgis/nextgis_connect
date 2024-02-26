@@ -35,6 +35,9 @@ from ..ngw_api.qgis.ngw_resource_model_4qgis import (
     NGWUpdateVectorLayer,
 )
 
+from ..plugin_settings import NgConnectSettings
+from .. import utils
+
 
 __all__ = ["QNGWResourceTreeModel"]
 
@@ -179,7 +182,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     indexesLocked = pyqtSignal()
     indexesUnlocked = pyqtSignal()
 
-    ngw_version = None
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -189,6 +191,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.jobs = []
         self.root_item = QModelItem()
+        self.ngw_version = None
 
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
@@ -273,7 +276,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
     def canFetchMore(self, parent):
         if (
-            self._isIndexLockedByJob(parent)
+            not self.is_ngw_version_supported
+            or self._isIndexLockedByJob(parent)
             or self._isIndexLockedByJobError(parent)
         ):
             return False
@@ -567,6 +571,14 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             self.ngw_version = self._ngw_connection.get_version()
         except:
             self.ngw_version = None
+
+    @property
+    def is_ngw_version_supported(self) -> bool:
+        if self.ngw_version is None:
+            return False
+
+        supported_version = NgConnectSettings().supported_ngw_version
+        return utils.is_version_supported(self.ngw_version, supported_version)
 
 
 def modelRequest(

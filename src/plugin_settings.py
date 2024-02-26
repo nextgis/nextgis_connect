@@ -35,10 +35,14 @@ class NgConnectSettings:
         self.__migrate()
 
     @property
+    def supported_ngw_version(self) -> str:
+        return "4.7.0"
+
+    @property
     def open_web_map_after_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
-            'openWebMapAfterCreation', defaultValue=True, type=bool
+            "openWebMapAfterCreation", defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -46,7 +50,7 @@ class NgConnectSettings:
     @open_web_map_after_creation.setter
     def open_web_map_after_creation(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue('openWebMapAfterCreation', value)
+        self.__settings.setValue("openWebMapAfterCreation", value)
         self.__settings.endGroup()
 
     @property
@@ -54,7 +58,7 @@ class NgConnectSettings:
         self.__settings.beginGroup(self.__plugin_group)
         # TODO: remove "wfs" from key
         result = self.__settings.value(
-            'addWfsLayerAfterServiceCreation', defaultValue=True, type=bool
+            "addWfsLayerAfterServiceCreation", defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -62,14 +66,14 @@ class NgConnectSettings:
     @add_layer_after_service_creation.setter
     def add_layer_after_service_creation(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue('addWfsLayerAfterServiceCreation', value)
+        self.__settings.setValue("addWfsLayerAfterServiceCreation", value)
         self.__settings.endGroup()
 
     @property
     def is_debug_enabled(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
-            'debugEnabled', defaultValue=False, type=bool
+            "debugEnabled", defaultValue=False, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -77,12 +81,12 @@ class NgConnectSettings:
     @is_debug_enabled.setter
     def is_debug_enabled(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue('debugEnabled', value)
+        self.__settings.setValue("debugEnabled", value)
         self.__settings.endGroup()
 
     @property
     def __plugin_group(self) -> str:
-        return 'NextGIS/Connect'
+        return "NextGIS/Connect"
 
     def __migrate(self) -> None:
         self.__migrate_from_qsettings()
@@ -92,14 +96,14 @@ class NgConnectSettings:
 
     def __migrate_from_qsettings(self):
         """Migrate from QSettings to QgsSettings"""
-        settings = QSettings('NextGIS', 'NextGISConnect')
+        settings = QSettings("NextGIS", "NextGISConnect")
         if len(settings.allKeys()) == 0:
             return
 
         mapping = {
-            'ui/autoOpenWebMapByDefault': 'openWebMapAfterCreation',
-            'ui/autoAddWFSByDefault': 'addWfsLayerAfterServiceCreation',
-            'debugMode': 'debugEnabled',
+            "ui/autoOpenWebMapByDefault": "openWebMapAfterCreation",
+            "ui/autoAddWFSByDefault": "addWfsLayerAfterServiceCreation",
+            "debugMode": "debugEnabled",
         }
         self.__settings.beginGroup(self.__plugin_group)
         for old_key, new_key in mapping.items():
@@ -113,7 +117,7 @@ class NgConnectSettings:
 
     def __migrate_to_more_beautiful_path(self):
         """Rename NextGIS/NGConnect to NextGIS/Connect"""
-        self.__settings.beginGroup('NextGIS/NGConnect')
+        self.__settings.beginGroup("NextGIS/NGConnect")
         keys = self.__settings.allKeys()
         if len(keys) == 0:
             self.__settings.endGroup()
@@ -127,7 +131,7 @@ class NgConnectSettings:
             self.__settings.setValue(key, value)
         self.__settings.endGroup()
 
-        self.__settings.beginGroup('NextGIS/NGConnect')
+        self.__settings.beginGroup("NextGIS/NGConnect")
         for key in keys:
             self.__settings.remove(key)
         self.__settings.endGroup()
