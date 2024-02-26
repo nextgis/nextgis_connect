@@ -140,7 +140,7 @@ class QNGWResourceTreeView(QTreeView):
             self,
             self.tr(
                 "Version of NextGIS Web service is not supported. Please "
-                "update NextGIS Connect or contact your server administrator "
+                "upgrade NextGIS Connect or contact your server administrator "
                 "for further assistance"
             ),
         )
