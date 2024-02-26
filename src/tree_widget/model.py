@@ -4,8 +4,12 @@ from pathlib import Path
 from typing import Optional, List, Union, Callable, Tuple, cast
 
 from qgis.PyQt.QtCore import (
-    QAbstractItemModel, QCoreApplication, QModelIndex, QObject, pyqtSignal,
-    QThread
+    QAbstractItemModel,
+    QCoreApplication,
+    QModelIndex,
+    QObject,
+    pyqtSignal,
+    QThread,
 )
 
 from ..ngw_api.core import (
@@ -14,13 +18,19 @@ from ..ngw_api.core import (
     NGWVectorLayer,
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job import (
-    NGWCreateMapForStyle,  NGWGroupCreater, NGWRenameResource,
-    NGWResourceDelete, NGWRootResourcesLoader, NGWResourceUpdater,
-    NGWResourceModelJob, NGWResourceModelJobResult,
-    NGWCreateWfsService, NGWCreateOgcfService
+    NGWCreateMapForStyle,
+    NGWGroupCreater,
+    NGWRenameResource,
+    NGWResourceDelete,
+    NGWRootResourcesLoader,
+    NGWResourceUpdater,
+    NGWResourceModelJob,
+    NGWResourceModelJobResult,
+    NGWCreateWfsService,
+    NGWCreateOgcfService,
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
-    NGWResourceModelJobError
+    NGWResourceModelJobError,
 )
 
 from .item import QModelItem, QNGWResourceItem
@@ -164,10 +174,10 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
         detached_factory = DetachedLayerFactory()
 
         for ngw_resource in self.ngw_resources:
-            instance_cache_path = cache_directory / 'kek'
+            instance_cache_path = cache_directory / "kek"
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             # TODO add instance path
-            gpkg_path = instance_cache_path / f'{ngw_resource.common.id}.gpkg'
+            gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
             ngw_resource.export(str(gpkg_path))
             detached_factory.create(str(gpkg_path))
             cache_manager.touch_file(str(gpkg_path))
@@ -182,7 +192,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     indexesLocked = pyqtSignal()
     indexesUnlocked = pyqtSignal()
 
-
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
 
@@ -192,6 +201,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.jobs = []
         self.root_item = QModelItem()
         self.ngw_version = None
+        self.support_status = None
 
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
@@ -262,9 +272,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return QModelIndex()
         assert parent_item is not None
         return self.createIndex(
-            parent_item.parent().indexOfChild(parent_item),
-            0,
-            parent_item
+            parent_item.parent().indexOfChild(parent_item), 0, parent_item
         )
 
     def columnCount(self, parent):
@@ -317,8 +325,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return parent_item.childCount() > 0
 
         ngw_resource = cast(
-            NGWResource,
-            parent_item.data(QNGWResourceItem.NGWResourceRole)
+            NGWResource, parent_item.data(QNGWResourceItem.NGWResourceRole)
         )
         children = ngw_resource.common.children
         has_fetched_children = children and ngw_resource.children_count != 0
@@ -334,7 +341,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     def _startJob(
         self,
         worker: NGWResourceModelJob,
-        lock_indexes: Union[List[QModelIndex], QModelIndex, None] = None
+        lock_indexes: Union[List[QModelIndex], QModelIndex, None] = None,
     ):
         job = NGWResourcesModelJob(self, worker)
         job.started.connect(self.__jobStartedProcess)
@@ -462,8 +469,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         for i in range(item.childCount()):
             index = self.getIndexByNGWResourceId(
-                ngw_resource_id,
-                self.index(i, 0, parent)
+                ngw_resource_id, self.index(i, 0, parent)
             )
 
             if index is not None:
@@ -477,7 +483,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return
 
         if (
-            job_result.is_empty() and job.model_response is not None
+            job_result.is_empty()
+            and job.model_response is not None
             and len(job.model_response.warnings()) > 0
         ):
             job.model_response.done.emit(QModelIndex())
@@ -491,7 +498,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             else:
                 parent_id = ngw_resource.common.parent.id
                 if parent_id not in indexes:
-                    indexes[parent_id] = self.getIndexByNGWResourceId(parent_id)
+                    indexes[parent_id] = self.getIndexByNGWResourceId(
+                        parent_id
+                    )
                 index = indexes[parent_id]
 
                 item = index.internalPointer()
@@ -510,8 +519,12 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                     job.model_response.done.emit(new_index)
 
         if len(indexes) == 0 and job.getJobId() == NGWResourceUpdater.__name__:
-            ngw_index = self.getIndexByNGWResourceId(job_result.main_resource_id)
-            self.data(ngw_index, QNGWResourceItem.NGWResourceRole).set_children_count(0)
+            ngw_index = self.getIndexByNGWResourceId(
+                job_result.main_resource_id
+            )
+            self.data(
+                ngw_index, QNGWResourceItem.NGWResourceRole
+            ).set_children_count(0)
             # Qt API has no signal like 'hasChildrenChanged'. This is a workaround
             self.beginInsertRows(ngw_index, 0, 0)
             self.endInsertRows()
@@ -521,7 +534,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         for ngw_resource in job_result.edited_resources:
             if ngw_resource.common.parent is None:
-                self.cleanModel() # remove root item
+                self.cleanModel()  # remove root item
                 index = QModelIndex()
             else:
                 index = self.getIndexByNGWResourceId(
@@ -530,7 +543,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 item = index.internalPointer()
 
                 for i in range(item.childCount()):
-                    if item.child(i).ngw_resource_id() == ngw_resource.common.id:
+                    if (
+                        item.child(i).ngw_resource_id()
+                        == ngw_resource.common.id
+                    ):
                         self.beginRemoveRows(index, i, i)
                         item.removeChild(item.child(i))
                         self.endRemoveRows()
@@ -569,20 +585,21 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     def _get_ngw_version(self):
         try:
             self.ngw_version = self._ngw_connection.get_version()
+            self.support_status = utils.is_version_supported(self.ngw_version)
         except:
             self.ngw_version = None
+            self.support_status = None
 
     @property
     def is_ngw_version_supported(self) -> bool:
-        if self.ngw_version is None:
+        if self.support_status is None:
             return False
 
-        supported_version = NgConnectSettings().supported_ngw_version
-        return utils.is_version_supported(self.ngw_version, supported_version)
+        return self.support_status == utils.SupportStatus.SUPPORTED
 
 
 def modelRequest(
-    method: Callable[..., Optional[NGWResourcesModelJob]]
+    method: Callable[..., Optional[NGWResourcesModelJob]],
 ) -> Callable[..., Optional[NGWResourceModelResponse]]:
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -592,6 +609,7 @@ def modelRequest(
         response = NGWResourceModelResponse(self)
         job.setResponseObject(response)
         return response
+
     return wrapper
 
 
@@ -628,15 +646,13 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            NGWResourceDelete(ngw_resource)
-        )
+        return self._startJob(NGWResourceDelete(ngw_resource))
 
     @modelRequest
     def createWfsOrOgcfForVector(
         self, service_type: str, index: QModelIndex, max_features: int
     ):
-        assert service_type in ('WFS', 'OGC API - Features')
+        assert service_type in ("WFS", "OGC API - Features")
         if not index.isValid():
             index = self.index(0, 0, index)
 
@@ -652,13 +668,13 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         job_type = (
             NGWCreateWfsService
-            if service_type == 'WFS'
+            if service_type == "WFS"
             else NGWCreateOgcfService
         )
 
-        return self._startJob(job_type(
-            ngw_resource, ngw_parent_resource, max_features
-        ))
+        return self._startJob(
+            job_type(ngw_resource, ngw_parent_resource, max_features)
+        )
 
     @modelRequest
     def createMapForStyle(self, index):
@@ -668,18 +684,14 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            NGWCreateMapForStyle(ngw_resource)
-        )
+        return self._startJob(NGWCreateMapForStyle(ngw_resource))
 
     @modelRequest
     def renameResource(self, index, new_name):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            NGWRenameResource(ngw_resource, new_name)
-        )
+        return self._startJob(NGWRenameResource(ngw_resource, new_name))
 
     @modelRequest
     def uploadResourcesList(
@@ -688,14 +700,17 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         if not ngw_current_index.isValid():
             ngw_current_index = self.index(0, 0, ngw_current_index)
 
-        ngw_group_index = \
-            self._nearest_ngw_group_resource_parent(ngw_current_index)
+        ngw_group_index = self._nearest_ngw_group_resource_parent(
+            ngw_current_index
+        )
         group_item = ngw_group_index.internalPointer()
         ngw_group = group_item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(QGISResourcesUploader(
-            qgs_layer_tree_nodes, ngw_group, iface, self.ngw_version
-        ))
+        return self._startJob(
+            QGISResourcesUploader(
+                qgs_layer_tree_nodes, ngw_group, iface, self.ngw_version
+            )
+        )
 
     @modelRequest
     def updateQGISStyle(self, qgs_map_layer, index):
@@ -705,9 +720,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            QGISStyleUpdater(qgs_map_layer, ngw_resource)
-        )
+        return self._startJob(QGISStyleUpdater(qgs_map_layer, ngw_resource))
 
     @modelRequest
     def addQGISStyle(self, qgs_map_layer, index):
@@ -717,23 +730,24 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            QGISStyleAdder(qgs_map_layer, ngw_resource)
-        )
+        return self._startJob(QGISStyleAdder(qgs_map_layer, ngw_resource))
 
     @modelRequest
     def uploadProjectResources(self, ngw_group_name, ngw_current_index, iface):
         if not ngw_current_index.isValid():
             ngw_current_index = self.index(0, 0, ngw_current_index)
 
-        ngw_group_index = \
-            self._nearest_ngw_group_resource_parent(ngw_current_index)
+        ngw_group_index = self._nearest_ngw_group_resource_parent(
+            ngw_current_index
+        )
         group_item = ngw_group_index.internalPointer()
         ngw_resource = group_item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(QGISProjectUploader(
-            ngw_group_name, ngw_resource, iface, self.ngw_version
-        ))
+        return self._startJob(
+            QGISProjectUploader(
+                ngw_group_name, ngw_resource, iface, self.ngw_version
+            )
+        )
 
     @modelRequest
     def createMapForLayer(self, index, ngw_style_id):
@@ -743,9 +757,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(
-            MapForLayerCreater(ngw_resource, ngw_style_id)
-        )
+        return self._startJob(MapForLayerCreater(ngw_resource, ngw_style_id))
 
     @modelRequest
     def createWMSForVector(self, index, ngw_resource_style_id):
@@ -762,9 +774,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(NGWCreateWMSForVector(
-            ngw_resource, ngw_parent_resource, ngw_resource_style_id
-        ))
+        return self._startJob(
+            NGWCreateWMSForVector(
+                ngw_resource, ngw_parent_resource, ngw_resource_style_id
+            )
+        )
 
     @modelRequest
     def updateNGWLayer(self, index, qgs_vector_layer):

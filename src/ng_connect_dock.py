@@ -92,7 +92,7 @@ from .ngw_api.core import (
     NGWWmsConnection,
     NGWWmsLayer,
     NGWWmsService,
-    NGWPostgisLayer
+    NGWPostgisLayer,
 )
 
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
@@ -897,6 +897,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self._resource_model.resetModel(ngw_connection)
             if not self._resource_model.is_ngw_version_supported:
                 self.unblock_gui()
+                self.trvResources.unsupported_version_overlay.set_status(
+                    self._resource_model.support_status
+                )
                 self.trvResources.unsupported_version_overlay.show()
 
         # expand root item

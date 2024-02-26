@@ -17,6 +17,7 @@ from qgis.utils import iface
 from qgis.gui import QgsNewNameDialog
 
 from ..tree_widget.item import QNGWResourceItem
+from ..utils import SupportStatus
 
 
 __all__ = ["QNGWResourceTreeView"]
@@ -52,6 +53,9 @@ class QMessageOverlay(QOverlay):
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
         self.layout.addWidget(self.text)
+
+    def set_text(self, text: str) -> None:
+        self.text.setText(text)
 
 
 class QProcessOverlay(QOverlay):
@@ -110,6 +114,28 @@ class QProcessOverlay(QOverlay):
         self.text.setText(text)
 
 
+class UnsupportedVersionOverlay(QMessageOverlay):
+    def __init__(self, parent: QWidget):
+        super().__init__(parent, "")
+
+    def set_status(self, status: SupportStatus) -> None:
+        if status == SupportStatus.OLD_CONNECT:
+            self.set_text(
+                self.tr(
+                    "Version of NextGIS Connect is outdated. Please "
+                    "upgrade the plugin"
+                )
+            )
+        elif status == SupportStatus.OLD_NGW:
+            self.set_text(
+                self.tr(
+                    "Version of NextGIS Web service is outdated and not "
+                    "supported. Please contact your server administrator for "
+                    "further assistance"
+                )
+            )
+
+
 class QNGWResourceTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(object)
 
@@ -136,14 +162,7 @@ class QNGWResourceTreeView(QTreeView):
         )
         self.no_ngw_connections_overlay.hide()
 
-        self.unsupported_version_overlay = QMessageOverlay(
-            self,
-            self.tr(
-                "Version of NextGIS Web service is not supported. Please "
-                "upgrade NextGIS Connect or contact your server administrator "
-                "for further assistance"
-            ),
-        )
+        self.unsupported_version_overlay = UnsupportedVersionOverlay(self)
         self.unsupported_version_overlay.hide()
 
         self.ngw_job_block_overlay = QProcessOverlay(self)

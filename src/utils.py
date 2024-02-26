@@ -2,6 +2,7 @@ import platform
 from typing import Union, cast, Tuple
 from itertools import islice
 from functools import lru_cache
+from enum import Enum, auto
 
 from qgis.PyQt.QtCore import Qt, QUrl, QByteArray, QMimeData
 from qgis.PyQt.QtGui import QDesktopServices, QClipboard
@@ -23,9 +24,17 @@ from qgis.core import (
 from qgis.gui import QgisInterface
 from qgis.utils import iface
 
+from .plugin_settings import NgConnectSettings
+
 iface = cast(QgisInterface, iface)
 
 PLUGIN_NAME = "NextGIS Connect"
+
+
+class SupportStatus(Enum):
+    OLD_NGW = auto()
+    OLD_CONNECT = auto()
+    SUPPORTED = auto()
 
 
 def log_to_qgis(
@@ -122,13 +131,11 @@ def set_clipboard_data(
     if platform.system() == "Linux":
         selection_mode = QClipboard.Mode.Selection
         clipboard.setMimeData(mime_data, selection_mode)
-    clipboard.setMimeData(
-        mime_data, QClipboard.Mode.Clipboard
-    )
+    clipboard.setMimeData(mime_data, QClipboard.Mode.Clipboard)
 
 
 @lru_cache
-def is_version_supported(current_version: str, supported_version: str) -> bool:
+def is_version_supported(current_version_string: str) -> SupportStatus:
     def version_to_tuple(version: str) -> Tuple[int, int]:
         minor, major = islice(map(int, version.split(".")), 2)
         return minor, major
@@ -138,13 +145,18 @@ def is_version_supported(current_version: str, supported_version: str) -> bool:
         shifted_version = version_number + shift
         return shifted_version // 10, shifted_version % 10
 
-    current = version_to_tuple(current_version)
-    supported = version_to_tuple(supported_version)
-    all_supported = (
-        version_shift(supported, -2),
-        version_shift(supported, -1),
-        supported,
-        version_shift(supported, 1),
-    )
+    current_version = version_to_tuple(current_version_string)
 
-    return current in all_supported
+    supported_version_string = NgConnectSettings().supported_ngw_version
+    supported_version = version_to_tuple(supported_version_string)
+
+    oldest_version = version_shift(supported_version, -2)
+    newest_version = version_shift(supported_version, 1)
+
+    if current_version < oldest_version:
+        return SupportStatus.OLD_NGW
+
+    if current_version > newest_version:
+        return SupportStatus.OLD_CONNECT
+
+    return SupportStatus.SUPPORTED
