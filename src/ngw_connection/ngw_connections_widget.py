@@ -1,23 +1,21 @@
-
-import warnings
 import os.path
+import warnings
 from typing import Optional
 
+from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import pyqtSignal, QSize
+from qgis.PyQt.QtCore import QSize, pyqtSignal
 from qgis.PyQt.QtWidgets import QWidget
-
-from qgis.core import  QgsApplication
 
 from .ngw_connection_edit_dialog import NgwConnectionEditDialog
 from .ngw_connections_manager import NgwConnectionsManager
-
 
 pluginPath = os.path.dirname(__file__)
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     WIDGET, BASE = uic.loadUiType(
-        os.path.join(pluginPath, 'ngw_connections_widget_base.ui'))
+        os.path.join(pluginPath, "ngw_connections_widget_base.ui")
+    )
 
 
 class NgwConnectionsWidget(BASE, WIDGET):
@@ -30,7 +28,9 @@ class NgwConnectionsWidget(BASE, WIDGET):
 
         warning_icon = QgsApplication.getThemeIcon("mIconWarning.svg")
         size = int(max(24.0, self.connectionComboBox.minimumSize().height()))
-        pixmap = warning_icon.pixmap(warning_icon.actualSize(QSize(size, size)))
+        pixmap = warning_icon.pixmap(
+            warning_icon.actualSize(QSize(size, size))
+        )
         self.warningLabel.setPixmap(pixmap)
         self.warningLabel.hide()
 

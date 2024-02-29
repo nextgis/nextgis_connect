@@ -1,6 +1,6 @@
 """
 /***************************************************************************
- NGConnectPlugin
+ NgConnectPlugin
                                  A QGIS plugin
  NGW Connect
                               -------------------
@@ -21,68 +21,67 @@
 """
 from os import path
 
-from qgis.PyQt.QtCore import Qt, QTranslator, QCoreApplication
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
-
+from qgis import utils as qgis_utils
 from qgis.core import Qgis, QgsApplication, QgsMapLayerType
 from qgis.gui import QgisInterface
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QToolBar
 
-from .plugin_settings import NgConnectSettings
-from .ng_connect_dock import NgConnectDock
-from .ng_connect_settings import NgConnectOptionsWidgetFactory
-from .detached_editing.detached_edititng import DetachedEditing
 from . import utils
-
+from .detached_editing.detached_edititng import DetachedEditing
+from .ng_connect_cache_manager import PurgeNgConnectCacheTask
+from .ng_connect_dock import NgConnectDock
+from .ng_connect_settings import NgConnectSettings
+from .ng_connect_settings_page import NgConnectOptionsWidgetFactory
 from .ngw_api import qgis
-from .ngw_api import utils as ngwapi_utils
 from .ngw_api.utils import setDebugEnabled
 
-from .ng_connect_cache_manager import PurgeNgConnectCacheTask
 
+class NgConnectPlugin:
+    """NextGIS Connect Plugin"""
 
-class NGConnectPlugin:
-    """QGIS Plugin Implementation.
-
-        Utils:
-
-from qgis.utils import plugins
-plugins['nextgis_connect'].info()
-plugins['nextgis_connect'].enableDebug(True)
-plugins['nextgis_connect'].enableDebug(False)
-    """
+    TITLE: str = "NextGIS Connect"
 
     iface: QgisInterface
-    title: str
     plugin_dir: str
 
     def __init__(self, iface: QgisInterface) -> None:
         self.iface = iface
-        self.title = 'NextGIS Connect'
         self.plugin_dir = path.dirname(__file__)
 
         self.__init_debug()
         self.__init_translator()
 
-    def tr(self, message: str) -> str:
-        return QCoreApplication.translate('NGConnectPlugin', message)
-
-    def initGui(self) -> None:
+    def initGui(self) -> None:  # noqa: N802
         self.__init_detached_editing()
         self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
         self.__init_ng_layer_actions()
-        self.__init_ng_connect_settings()
+        self.__init_ng_connect_settings_page()
         self.__init_cache_purging()
 
     def unload(self) -> None:
-        self.__unload_ng_connect_settings()
+        self.__unload_ng_connect_settings_page()
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
         self.__unload_ng_connect_dock()
         self.__unload_detached_editing()
 
-    def __init_debug(self):
+    @property
+    def toolbar(self) -> QToolBar:
+        assert self.__ng_connect_toolbar is not None
+        return self.__ng_connect_toolbar
+
+    @staticmethod
+    def tr(message: str) -> str:
+        return QCoreApplication.translate("NgConnectPlugin", message)
+
+    @staticmethod
+    def instance() -> "NgConnectPlugin":
+        return qgis_utils.plugins["nextgis_connect"]
+
+    def __init_debug(self) -> None:
         # Enable debug mode.
         debug_mode = NgConnectSettings().is_debug_enabled
         setDebugEnabled(debug_mode)
@@ -90,12 +89,14 @@ plugins['nextgis_connect'].enableDebug(False)
             f'Debug messages are {"enabled" if debug_mode else "disabled"}'
         )
 
-    def __init_translator(self):
+    def __init_translator(self) -> None:
         # initialize locale
-        locale = QgsApplication.instance().locale()
+        application = QgsApplication.instance()
+        assert application is not None
+        locale = application.locale()
         self._translators = list()
 
-        def add_translator(locale_path):
+        def add_translator(locale_path: str) -> None:
             if not path.exists(locale_path):
                 return
             translator = QTranslator()
@@ -103,55 +104,57 @@ plugins['nextgis_connect'].enableDebug(False)
             QCoreApplication.installTranslator(translator)
             self._translators.append(translator)  # Should be kept in memory
 
-        add_translator(path.join(
-            self.plugin_dir, 'i18n',
-            'nextgis_connect_{}.qm'.format(locale)
-        ))
-        add_translator(path.join(
-            path.dirname(qgis.__file__), "i18n",
-            "qgis_ngw_api_{}.qm".format(locale)
-        ))
+        add_translator(
+            path.join(self.plugin_dir, "i18n", f"nextgis_connect_{locale}.qm")
+        )
+        add_translator(
+            path.join(
+                path.dirname(qgis.__file__),
+                "i18n",
+                f"qgis_ngw_api_{locale}.qm",
+            )
+        )
 
     def __init_detached_editing(self) -> None:
         self.__detached_editing = DetachedEditing()
 
     def __unload_detached_editing(self) -> None:
+        assert self.__detached_editing is not None
         self.__detached_editing.unload()
         self.__detached_editing = None
 
-    def __init_ng_connect_dock(self):
+    def __init_ng_connect_dock(self) -> None:
         # Dock tree panel
-        self.__ng_resources_tree_dock = NgConnectDock(
-            self.title, self.iface
-        )
+        self.__ng_resources_tree_dock = NgConnectDock(self.TITLE, self.iface)
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea,
-            self.__ng_resources_tree_dock
+            self.__ng_resources_tree_dock,
         )
 
         if self.__detached_editing is None:
-            raise RuntimeError('Detached layers mechanism isn\'t created')
+            raise RuntimeError("Detached layers mechanism isn't created")
 
-    def __unload_ng_connect_dock(self):
+    def __unload_ng_connect_dock(self) -> None:
         self.__ng_resources_tree_dock.setVisible(False)
         self.iface.removeDockWidget(self.__ng_resources_tree_dock)
         self.__ng_resources_tree_dock.deleteLater()
 
-    def __init_ng_connect_menus(self):
+    def __init_ng_connect_menus(self) -> None:
         # Show panel action
-        self.__ng_connect_toolbar = self.iface.addToolBar(self.title)
-        self.__ng_connect_toolbar.setObjectName('NGConnectToolBar')
+        self.__ng_connect_toolbar = self.iface.addToolBar(self.TITLE)
+        assert self.__ng_connect_toolbar is not None
+        self.__ng_connect_toolbar.setObjectName("NgConnectToolBar")
         self.__ng_connect_toolbar.setToolTip(
-            self.tr('NextGIS Connect Toolbar')
+            self.tr("NextGIS Connect Toolbar")
         )
 
         self.__show_ngw_resources_tree_action = QAction(
-            QIcon(self.plugin_dir + '/icon.png'),
-            self.tr('Show/Hide NextGIS Connect panel'),
-            self.iface.mainWindow()
+            QIcon(self.plugin_dir + "/icon.png"),
+            self.tr("Show/Hide NextGIS Connect panel"),
+            self.iface.mainWindow(),
         )
         self.__show_ngw_resources_tree_action.setObjectName(
-            'NGConnectShowDock'
+            "NGConnectShowDock"
         )
         self.__show_ngw_resources_tree_action.setEnabled(True)
         self.__show_ngw_resources_tree_action.setCheckable(True)
@@ -169,69 +172,74 @@ plugins['nextgis_connect'].enableDebug(False)
 
         # Add action to Plugins
         self.iface.addPluginToMenu(
-            self.title, self.__show_ngw_resources_tree_action
+            self.TITLE, self.__show_ngw_resources_tree_action
         )
 
         # Add adction to Help > Plugins
         self.__show_help_action = QAction(
-            QIcon(self.plugin_dir + '/icon.png'),
-            self.title,
-            self.iface.mainWindow()
+            QIcon(self.plugin_dir + "/icon.png"),
+            self.TITLE,
+            self.iface.mainWindow(),
         )
         self.__show_help_action.triggered.connect(utils.open_plugin_help)
-        self.iface.pluginHelpMenu().addAction(self.__show_help_action)
+        plugin_help_menu = self.iface.pluginHelpMenu()
+        assert plugin_help_menu is not None
+        plugin_help_menu.addAction(self.__show_help_action)
 
-    def __unload_ng_connect_menus(self):
+    def __unload_ng_connect_menus(self) -> None:
         self.iface.removePluginMenu(
-            self.title, self.__show_ngw_resources_tree_action
+            self.TITLE, self.__show_ngw_resources_tree_action
         )
 
+        assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.hide()
         self.__ng_connect_toolbar.deleteLater()
         self.__show_ngw_resources_tree_action.deleteLater()
 
-        self.iface.pluginHelpMenu().removeAction(self.__show_help_action)
+        plugin_help_menu = self.iface.pluginHelpMenu()
+        assert plugin_help_menu is not None
+        plugin_help_menu.removeAction(self.__show_help_action)
         self.__show_help_action.deleteLater()
 
-    def __init_ng_layer_actions(self):
+    def __init_ng_layer_actions(self) -> None:
         # Tools for NGW communicate
         layer_actions = [
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,
-            self.__ng_resources_tree_dock.actionAddStyle
+            self.__ng_resources_tree_dock.actionAddStyle,
         ]
         if Qgis.versionInt() < 33000:
             layer_types = (
                 QgsMapLayerType.VectorLayer,  # type: ignore
-                QgsMapLayerType.RasterLayer  # type: ignore
+                QgsMapLayerType.RasterLayer,  # type: ignore
             )
         else:
             layer_types = (
                 Qgis.LayerType.Vector,  # type: ignore
-                Qgis.LayerType.Raster  # type: ignore
+                Qgis.LayerType.Raster,  # type: ignore
             )
         for action in layer_actions:
             for layer_type in layer_types:
                 self.iface.addCustomActionForLayerType(
-                    action, self.title, layer_type, True
+                    action, self.TITLE, layer_type, True
                 )
 
-    def __unload_ng_layer_actions(self):
+    def __unload_ng_layer_actions(self) -> None:
         layer_actions = [
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,
-            self.__ng_resources_tree_dock.actionAddStyle
+            self.__ng_resources_tree_dock.actionAddStyle,
         ]
         for action in layer_actions:
             # For vector and raster types
             self.iface.removeCustomActionForLayerType(action)
             self.iface.removeCustomActionForLayerType(action)
 
-    def __init_ng_connect_settings(self):
+    def __init_ng_connect_settings_page(self) -> None:
         self.__options_factory = NgConnectOptionsWidgetFactory()
         self.iface.registerOptionsWidgetFactory(self.__options_factory)
 
-    def __unload_ng_connect_settings(self):
+    def __unload_ng_connect_settings_page(self) -> None:
         if self.__options_factory is None:
             return
 
@@ -244,18 +252,3 @@ plugins['nextgis_connect'].enableDebug(False)
         task_manager = QgsApplication.taskManager()
         assert task_manager is not None
         task_manager.addTask(self.__purge_cache_task)
-
-    @staticmethod
-    def info():
-        print("Plugin NextGIS Connect.")
-
-        from . import ngw_api
-        print(f"NGW API v. {ngw_api.__version__}")
-
-        print("NGW API log {}".format("ON" if ngwapi_utils.debug else "OFF"))
-
-    @staticmethod
-    def enableDebug(flag):
-        ngwapi_utils.debug = flag
-
-        print("NGW API log {}".format("ON" if ngwapi_utils.debug else "OFF"))

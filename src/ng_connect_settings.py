@@ -1,380 +1,185 @@
-import os
-from typing import Optional, ClassVar, List, cast
+"""
+/***************************************************************************
+ Plugins settings
+                                 A QGIS plugin
+ Compulink QGIS tools
+                             -------------------
+        begin                : 2014-10-31
+        git sha              : $Format:%H$
+        copyright            : (C) 2014 by NextGIS
+        email                : info@nextgis.com
+ ***************************************************************************/
 
-from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QFileDialog, QComboBox
-)
+/***************************************************************************
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ ***************************************************************************/
+"""
 
-from qgis.utils import iface
-from qgis.core import Qgis, QgsApplication
-from qgis.gui import (
-    QgsOptionsPageWidget, QgsOptionsWidgetFactory, QgsMessageBar
-)
+from typing import Optional
 
-from .ng_connect_dock import NgConnectDock
-from .plugin_settings import NgConnectSettings
-from .ng_connect_cache_manager import NgConnectCacheManager
-
-from .ngw_api.utils import setDebugEnabled
-from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-
-from .ngw_connection.ngw_connection import NgwConnection
-from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
-from .ngw_connection.ngw_connections_widget import NgwConnectionsWidget
-
-from . import utils
-from .widgets.labeled_slider import LabeledSlider
+from qgis.core import QgsSettings
+from qgis.PyQt.QtCore import QSettings, QStandardPaths
 
 
-class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
-    """NextGIS Connect settings page"""
+class NgConnectSettings:
+    """Convenience class for working with plugin settings"""
 
-    __widget: QWidget
-    __current_connection: Optional[NgwConnection]
-    __connections: List[NgwConnection]
-    __is_accepted: bool
-    __is_cancelled: bool
+    __settings: QgsSettings
 
-    CACHE_SIZE_VALUES: ClassVar[List[int]] = [
-        8 * 1024,
-        12 * 1024,
-        16 * 1024,
-        24 * 1024,
-        32 * 1024,
-        64 * 1024,
-        -1
-    ]
+    def __init__(self) -> None:
+        self.__settings = QgsSettings()
+        self.__migrate()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
+    @property
+    def supported_ngw_version(self) -> str:
+        return "4.7.0"
 
-        plugin_path = os.path.dirname(__file__)
-        widget: Optional[QWidget] = None
-        try:
-            widget = uic.loadUi(
-                os.path.join(plugin_path, 'settings_dialog_base.ui')
-            )  # type: ignore
-        except FileNotFoundError:
-            message = self.tr("Can't load settings UI")
-            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
-            raise RuntimeError(message)
-        if widget is None:
-            message = self.tr("Errors in settings UI")
-            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
-            raise RuntimeError(message)
+    @property
+    def open_web_map_after_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "openWebMapAfterCreation", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
 
-        self.__widget = widget
-        self.__widget.setParent(self)
+    @open_web_map_after_creation.setter
+    def open_web_map_after_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("openWebMapAfterCreation", value)
+        self.__settings.endGroup()
 
-        self.connections_widget = NgwConnectionsWidget(self.__widget)
-        self.__widget.connectionsGroupBox.layout().addWidget(
-            self.connections_widget
+    @property
+    def add_layer_after_service_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        # TODO: remove "wfs" from key
+        result = self.__settings.value(
+            "addWfsLayerAfterServiceCreation", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @add_layer_after_service_creation.setter
+    def add_layer_after_service_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("addWfsLayerAfterServiceCreation", value)
+        self.__settings.endGroup()
+
+    @property
+    def is_debug_enabled(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "debugEnabled", defaultValue=False, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @is_debug_enabled.setter
+    def is_debug_enabled(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("debugEnabled", value)
+        self.__settings.endGroup()
+
+    @property
+    def cache_directory(self) -> str:
+        return self.__settings.value(
+            self.__plugin_group + "/cache/directory",
+            defaultValue=self.cache_directory_default,
+            type=str,
         )
 
-        unit = self.tr('GiB')
-        self.__widget.cacheSizeSlider = LabeledSlider(
-            [f'{number} {unit}' for number in [8, 12, 16, 24, 32, 64]]
-            + ['∞'],
-            self.__widget
+    @property
+    def cache_directory_default(self) -> str:
+        application_cache_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.CacheLocation
         )
-        self.__widget.maxSizeLayout.addWidget(self.__widget.cacheSizeSlider)
+        return application_cache_path + "/NGConnect"
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setMargin(0)  # type: ignore
-        self.setLayout(layout)
-        layout.addWidget(self.__widget)
-
-        self.__init_settings()
-
-    def apply(self) -> None:
-        self.__is_accepted = True
-
-        settings = NgConnectSettings()
-
-        # Connections settings
-        self.__save_current_connection()
-
-        # Cache settings
-        cache_manager = NgConnectCacheManager()
-        cache_directory = self.__widget.cacheDirectoryLineEdit.text()
-        cache_manager.cache_directory = (
-            cache_directory if len(cache_directory) > 0 else None
-        )
-        cache_duration_combobox = cast(
-            QComboBox, self.__widget.autoRemoveCacheComboBox
-        )
-        cache_manager.cache_duration = cache_duration_combobox.currentData()
-        cache_size_index = self.__widget.cacheSizeSlider.value()
-        cache_manager.cache_max_size = self.CACHE_SIZE_VALUES[cache_size_index]
-
-        # Sanitize settings
-        NgwPluginSettings.set_sanitize_rename_fields(
-            self.__widget.renameFieldsCheckBox.isChecked()
-        )
-        NgwPluginSettings.set_sanitize_fix_geometry(
-            self.__widget.fixGeometryCheckBox.isChecked()
+    @cache_directory.setter
+    def cache_directory(self, value: Optional[str]) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + "/cache/directory", value
         )
 
-        # Creation settings
-        settings.open_web_map_after_creation = \
-            self.__widget.openWebMapAfterCreationCheckBox.isChecked()
-        settings.add_layer_after_service_creation = \
-            self.__widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
-
-        # Other settings
-        NgwPluginSettings.set_upload_cog_rasters(
-            self.__widget.cogCheckBox.isChecked()
-        )
-        old_debug_enabled = settings.is_debug_enabled
-        new_debug_enabled = self.__widget.debugEnabledCheckBox.isChecked()
-        settings.is_debug_enabled = new_debug_enabled
-        if old_debug_enabled != new_debug_enabled:
-            debug_state = 'enabled' if new_debug_enabled else 'disabled'
-            utils.log_to_qgis(f'Debug messages are now {debug_state}')
-            # TODO refactoring
-            setDebugEnabled(new_debug_enabled)
-
-    def __del__(self):
-        # Workaround
-        if not self.__is_accepted and not self.__is_cancelled:
-            self.cancel()
-
-    def cancel(self) -> None:
-        self.__is_cancelled = True
-        connections_manager = NgwConnectionsManager()
-        current_connections = connections_manager.connections()
-
-        # Remove new
-        delta = set(current_connections) - set(self.__connections)
-        for connection in delta:
-            connections_manager.remove(connection.id)
-
-        # Restore old
-        for connection in self.__connections:
-            connections_manager.save(connection)
-
-    def __init_settings(self) -> None:
-        settings = NgConnectSettings()
-        self.__is_accepted = False
-        self.__is_cancelled = False
-        self.__init_connections(settings)
-        self.__init_cache_settings(settings)
-        self.__init_sanitize_settings(settings)
-        self.__init_creation_settings(settings)
-        self.__init_other_settings(settings)
-
-    def __init_connections(self, settings: NgConnectSettings) -> None:
-        connections_manager = NgwConnectionsManager()
-        self.__current_connection = connections_manager.current_connection
-        self.__connections = connections_manager.connections()
-
-    def __init_sanitize_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.renameFieldsCheckBox.setChecked(
-            NgwPluginSettings.get_sanitize_rename_fields()
-        )
-        self.__widget.fixGeometryCheckBox.setChecked(
-            NgwPluginSettings.get_sanitize_fix_geometry()
-        )
-        self.__widget.fixGeometryCheckBox.hide()  # Rely on NGW
-
-    def __init_creation_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.openWebMapAfterCreationCheckBox.setChecked(
-            settings.open_web_map_after_creation
-        )
-        self.__widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
-            settings.add_layer_after_service_creation
+    @property
+    def cache_duration(self) -> int:
+        """Keeping cache duration in days"""
+        return self.__settings.value(
+            self.__plugin_group + "/cache/duration", defaultValue=30, type=int
         )
 
-    def __init_cache_settings(self, settings: NgConnectSettings) -> None:
-        cache_manager = NgConnectCacheManager()
-        is_cache_directory_default = (
-            cache_manager.cache_directory ==
-            cache_manager.cache_directory_default
+    @cache_duration.setter
+    def cache_duration(self, value: int) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + "/cache/duration", value
         )
 
-        # Cache directory lineedit
-        self.__widget.cacheDirectoryLineEdit.setPlaceholderText(
-            cache_manager.cache_directory_default
-        )
-        if not is_cache_directory_default:
-            self.__widget.cacheDirectoryLineEdit.setText(
-                cache_manager.cache_directory
-            )
-        self.__widget.cacheDirectoryLineEdit.textChanged.connect(
-            self.__update_reset_cache_button
+    @property
+    def cache_max_size(self) -> int:
+        """Cache max size in MB"""
+        return self.__settings.value(
+            self.__plugin_group + "/cache/size",
+            defaultValue=12 * 1024,  # 12 GB
+            type=int,
         )
 
-        # Choose cache directory button
-        self.__widget.cacheDirectoryButton.setIcon(
-            QgsApplication.getThemeIcon('mActionFileOpen.svg')
-        )
-        self.__widget.cacheDirectoryButton.clicked.connect(
-            self.__choose_cache_directory
-        )
+    @cache_max_size.setter
+    def cache_max_size(self, value: int) -> None:
+        self.__settings.setValue(self.__plugin_group + "/cache/size", value)
 
-        # Cache directory reset button
-        self.__widget.resetCacheDirectoryButton.setIcon(
-            QgsApplication.getThemeIcon('mActionUndo.svg')
-        )
-        self.__widget.resetCacheDirectoryButton.clicked.connect(
-            self.__reset_cache_directory
-        )
-        self.__widget.resetCacheDirectoryButton.setDisabled(
-            is_cache_directory_default
-        )
+    @property
+    def __plugin_group(self) -> str:
+        return "NextGIS/Connect"
 
-        # Cache duration combobox
-        cache_duration_combobox = cast(
-            QComboBox, self.__widget.autoRemoveCacheComboBox
-        )
-        cache_duration_combobox.setItemData(0, 1)
-        cache_duration_combobox.setItemData(1, 7)
-        cache_duration_combobox.setItemData(2, 30)
-        cache_duration_combobox.setItemData(3, -1)
-        cache_duration_combobox.setCurrentIndex(
-            cache_duration_combobox.findData(cache_manager.cache_duration)
-        )
+    def __migrate(self) -> None:
+        self.__migrate_from_qsettings()
+        self.__migrate_to_more_beautiful_path()
 
-        # Cache size button
-        self.__widget.cacheSizeSlider.setValue(
-            self.CACHE_SIZE_VALUES.index(cache_manager.cache_max_size)
-        )
+        self.__settings.sync()
 
-        # Clear cache button
-        self.__widget.clearCacheButton.setIcon(
-            QgsApplication.getThemeIcon('mActionDeleteSelected.svg')
-        )
-        self.__widget.clearCacheButton.clicked.connect(
-            self.__clear_cache
-        )
-
-        if (cache_size := cache_manager.cache_size) == 0:
-            self.__widget.clearCacheButton.setText(self.tr('Clear Cache'))
-            self.__widget.clearCacheButton.setToolTip(self.tr('Cache is empty'))
-            self.__widget.clearCacheButton.setEnabled(False)
-        else:
-            self.__widget.clearCacheButton.setText(
-                self.tr('Clear Cache') + f'  ({self.format_size(cache_size)})'
-            )
-            self.__widget.clearCacheButton.setEnabled(True)
-
-    def __init_other_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.cogCheckBox.setChecked(
-            NgwPluginSettings.get_upload_cog_rasters()
-        )
-        self.__widget.debugEnabledCheckBox.setChecked(
-            settings.is_debug_enabled
-        )
-
-    def __save_current_connection(self):
-        connections_manager = NgwConnectionsManager()
-        old_connection = self.__current_connection
-        new_connection_id = self.connections_widget.connection_id()
-
-        need_reinint = False
-
-        if (
-            old_connection is not None and new_connection_id is None
-            or old_connection is None and new_connection_id is not None
-        ):
-            need_reinint = True
-            connections_manager.current_connection_id = new_connection_id
-        elif old_connection is not None and new_connection_id is not None:
-            new_connection = connections_manager.connection(new_connection_id)
-            if old_connection != new_connection:
-                need_reinint = True
-                connections_manager.current_connection_id = new_connection_id
-
-        if need_reinint:
-            dock = iface.mainWindow().findChild(NgConnectDock, 'NGConnectDock')
-            dock.reinit_tree(force=True)
-
-    def __choose_cache_directory(self) -> None:
-        cache_manager = NgConnectCacheManager()
-        directory = QFileDialog.getExistingDirectory(
-            self,
-            caption=self.tr(
-                'Choose a directory to store NextGIS Connect cache'
-            ),
-            directory=cache_manager.cache_directory,
-        )
-        if not directory:
+    def __migrate_from_qsettings(self):
+        """Migrate from QSettings to QgsSettings"""
+        settings = QSettings("NextGIS", "NextGISConnect")
+        if len(settings.allKeys()) == 0:
             return
 
-        self.__widget.cacheDirectoryLineEdit.setText(directory)
+        mapping = {
+            "ui/autoOpenWebMapByDefault": "openWebMapAfterCreation",
+            "ui/autoAddWFSByDefault": "addWfsLayerAfterServiceCreation",
+            "debugMode": "debugEnabled",
+        }
+        self.__settings.beginGroup(self.__plugin_group)
+        for old_key, new_key in mapping.items():
+            value = settings.value(old_key)
+            if value is None:
+                continue
+            self.__settings.setValue(new_key, value)
+        self.__settings.endGroup()
 
-    def __update_reset_cache_button(self, text: str) -> None:
-        self.__widget.resetCacheDirectoryButton.setEnabled(
-            len(text) > 0
-        )
+        settings.clear()
 
-    def __reset_cache_directory(self) -> None:
-        self.__widget.cacheDirectoryLineEdit.setText('')
+    def __migrate_to_more_beautiful_path(self):
+        """Rename NextGIS/NGConnect to NextGIS/Connect"""
+        self.__settings.beginGroup("NextGIS/NGConnect")
+        keys = self.__settings.allKeys()
+        if len(keys) == 0:
+            self.__settings.endGroup()
+            return
 
-    def __clear_cache(self) -> None:
-        cache_manager = NgConnectCacheManager()
-        cache_manager.clear_cache()
-        cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
-            self.tr('Cache has been successfully cleared'),
-            Qgis.MessageLevel.Success
-        )
-        self.__widget.clearCacheButton.setText(self.tr('Clear Cache'))
-        self.__widget.clearCacheButton.setEnabled(False)
+        values = {key: self.__settings.value(key) for key in keys}
+        self.__settings.endGroup()
 
-    def format_size(self, size_in_kb):
-        units = [
-            self.tr('KiB'), self.tr('MiB'), self.tr('GiB'), self.tr('TiB'),
-        ]
-        size = size_in_kb
-        unit_index = 0
-        while size > 1024 and unit_index < len(units) - 1:
-            size /= 1024
-            unit_index += 1
-        precision = 2 if size < 10 else 1
-        return f'{size:.{precision}f} {units[unit_index]}'
+        self.__settings.beginGroup(self.__plugin_group)
+        for key, value in values.items():
+            self.__settings.setValue(key, value)
+        self.__settings.endGroup()
 
-
-class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
-    widget: QWidget
-
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-        self.widget = QLabel(self.tr('Settings dialog was crashed'), self)
-        self.widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        layout = QVBoxLayout()
-        self.setLayout(layout)
-        layout.addWidget(self.widget)
-
-    def apply(self) -> None:
-        pass
-
-    def cancel(self) -> None:
-        pass
-
-
-class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
-    def __init__(self):
-        ICONS_PATH = os.path.join(os.path.dirname(__file__), 'icons/')
-        super().__init__(
-            'NextGIS Connect', QIcon(os.path.join(ICONS_PATH, 'logo.svg'))
-        )
-
-    def path(self) -> List[str]:
-        return ['NextGIS']
-
-    def createWidget(
-        self, parent: Optional[QWidget] = None
-    ) -> Optional[QgsOptionsPageWidget]:
-        try:
-            return NgConnectOptionsPageWidget(parent)
-        except Exception as error:
-            utils.log_to_qgis(
-                'Settings dialog was crashed', Qgis.MessageLevel.Critical
-            )
-            utils.log_to_qgis(str(error), Qgis.MessageLevel.Critical)
-            return NgConnectOptionsErrorPageWidget(parent)
+        self.__settings.beginGroup("NextGIS/NGConnect")
+        for key in keys:
+            self.__settings.remove(key)
+        self.__settings.endGroup()

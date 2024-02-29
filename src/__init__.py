@@ -21,7 +21,10 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
+from qgis.gui import QgisInterface
 
-def classFactory(iface):
-    from .ng_connect_plugin import NGConnectPlugin
-    return NGConnectPlugin(iface)
+
+def classFactory(iface: QgisInterface):  # noqa: N802
+    from .ng_connect_plugin import NgConnectPlugin
+
+    return NgConnectPlugin(iface)

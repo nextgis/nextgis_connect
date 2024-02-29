@@ -236,7 +236,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
 </context>
 <context>
-    <name>NGConnectPlugin</name>
+    <name>NgConnectPlugin</name>
     <message>
         <location filename="../ng_connect_plugin.py" line="148"/>
         <source>Show/Hide NextGIS Connect panel</source>
@@ -719,7 +719,7 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgConnectOptionsErrorPageWidget</name>
     <message>
-        <location filename="../ng_connect_settings.py" line="346"/>
+        <location filename="../ng_connect_settings_page.py" line="346"/>
         <source>Settings dialog was crashed</source>
         <translation>Произошла ошибка в диалоге настроек</translation>
     </message>
@@ -727,52 +727,52 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgConnectOptionsPageWidget</name>
     <message>
-        <location filename="../ng_connect_settings.py" line="61"/>
+        <location filename="../ng_connect_settings_page.py" line="61"/>
         <source>Can&apos;t load settings UI</source>
         <translation>Невозможно загрузить страницу настроек</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="65"/>
+        <location filename="../ng_connect_settings_page.py" line="65"/>
         <source>Errors in settings UI</source>
         <translation>Ошибки в странице настроек</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="325"/>
+        <location filename="../ng_connect_settings_page.py" line="325"/>
         <source>Clear Cache</source>
         <translation>Очистить кэш</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="257"/>
+        <location filename="../ng_connect_settings_page.py" line="257"/>
         <source>Cache is empty</source>
         <translation>Кэш пуст</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="298"/>
+        <location filename="../ng_connect_settings_page.py" line="298"/>
         <source>Choose a directory to store NextGIS Connect cache</source>
         <translation>Выберите каталог для хранения кэша NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="321"/>
+        <location filename="../ng_connect_settings_page.py" line="321"/>
         <source>Cache has been successfully cleared</source>
         <translation>Кэш был успешно очищен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="330"/>
+        <location filename="../ng_connect_settings_page.py" line="330"/>
         <source>KiB</source>
         <translation>КиБ</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="330"/>
+        <location filename="../ng_connect_settings_page.py" line="330"/>
         <source>MiB</source>
         <translation>МиБ</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="330"/>
+        <location filename="../ng_connect_settings_page.py" line="330"/>
         <source>GiB</source>
         <translation>ГиБ</translation>
     </message>
     <message>
-        <location filename="../ng_connect_settings.py" line="330"/>
+        <location filename="../ng_connect_settings_page.py" line="330"/>
         <source>TiB</source>
         <translation>ТиБ</translation>
     </message>

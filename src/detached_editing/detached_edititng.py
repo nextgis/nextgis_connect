@@ -1,18 +1,19 @@
 from typing import Dict, List, Optional, cast
 
-from qgis.PyQt.QtCore import QObject
-
 from qgis.core import (
-    QgsProject, QgsMapLayer, QgsVectorLayer, QgsLayerTree, QgsLayerTreeNode,
-    QgsLayerTreeLayer
+    QgsLayerTree,
+    QgsLayerTreeLayer,
+    QgsLayerTreeNode,
+    QgsMapLayer,
+    QgsProject,
+    QgsVectorLayer,
 )
 from qgis.gui import QgisInterface, QgsApplicationExitBlockerInterface
+from qgis.PyQt.QtCore import QObject
 from qgis.utils import iface
 
 from . import utils
-
 from .detached_layer import DetachedLayer
-from .detached_layer_config_widget import DetachedLayerConfigWidgetFactory
 
 iface: QgisInterface
 

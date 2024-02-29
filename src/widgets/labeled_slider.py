@@ -1,9 +1,12 @@
-from typing import Optional, List
+from typing import List, Optional
 
-from qgis.PyQt.QtCore import Qt, QSize
-from qgis.PyQt.QtGui import QPaintEvent, QFontMetrics
+from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtGui import QFontMetrics, QPaintEvent
 from qgis.PyQt.QtWidgets import (
-    QSlider, QStyleOptionSlider, QStylePainter, QWidget
+    QSlider,
+    QStyleOptionSlider,
+    QStylePainter,
+    QWidget,
 )
 
 
@@ -12,9 +15,7 @@ class LabeledSlider(QSlider):
 
     SPACE_SIZE = 10
 
-    def __init__(
-        self, labels: List[str], parent: Optional[QWidget]
-    ) -> None:
+    def __init__(self, labels: List[str], parent: Optional[QWidget]) -> None:
         super().__init__(parent)
         self.__labels = labels
 
@@ -30,7 +31,7 @@ class LabeledSlider(QSlider):
     def index(self) -> int:
         return self.value()
 
-    def paintEvent(self, event: QPaintEvent) -> None:
+    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
         super().paintEvent(event)
 
         painter = QStylePainter(self)
@@ -58,7 +59,7 @@ class LabeledSlider(QSlider):
             y = self.height()
             painter.drawText(align_x, y, text)
 
-    def sizeHint(self) -> QSize:
+    def sizeHint(self) -> QSize:  # noqa: N802
         size = super().sizeHint()
         font_metrics = QFontMetrics(self.font())
         size.setHeight(size.height() + font_metrics.height())

@@ -1,16 +1,27 @@
 from typing import Optional
-from qgis.PyQt.QtCore import QAbstractItemModel, QModelIndex
-from qgis.PyQt.QtWidgets import (
-    QDialog, QDialogButtonBox, QHeaderView, QSizePolicy, QTreeView,
-    QVBoxLayout, QWidget
+
+from qgis.PyQt.QtCore import (
+    QAbstractItemModel,
+    QModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+    pyqtSignal,
 )
-from qgis.PyQt.QtCore import pyqtSignal, QSortFilterProxyModel, Qt
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QHeaderView,
+    QSizePolicy,
+    QTreeView,
+    QVBoxLayout,
+    QWidget,
+)
 
-from .ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
-from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle
-from .ngw_api.core.ngw_abstract_vector_resource import NGWAbstractVectorResource
+from .ngw_api.core.ngw_abstract_vector_resource import (
+    NGWAbstractVectorResource,
+)
+from .ngw_api.core.ngw_qgis_style import NGWQGISRasterStyle, NGWQGISVectorStyle
 from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
-
 from .tree_widget import QNGWResourceItem
 
 
@@ -29,16 +40,20 @@ class NGWResourcesTreeView(QTreeView):
 
 
 class StyleFilterProxyModel(QSortFilterProxyModel):
-
     def filterAcceptsRow(self, sourceRow, sourceParent):
         index = self.sourceModel().index(sourceRow, 0, sourceParent)
         if index is None or not index.isValid():
             return False
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        return isinstance(ngw_resource, (
-            NGWQGISVectorStyle, NGWQGISRasterStyle,
-            NGWAbstractVectorResource, NGWRasterLayer,  # must also be included here so styles could be displayed
-        ))
+        return isinstance(
+            ngw_resource,
+            (
+                NGWQGISVectorStyle,
+                NGWQGISRasterStyle,
+                NGWAbstractVectorResource,
+                NGWRasterLayer,  # must also be included here so styles could be displayed
+            ),
+        )
 
 
 class NGWLayerStyleChooserDialog(QDialog):
@@ -47,7 +62,7 @@ class NGWLayerStyleChooserDialog(QDialog):
         title: str,
         ngw_resources_model_index: QModelIndex,
         model: QAbstractItemModel,
-        parent: Optional[QWidget] = None
+        parent: Optional[QWidget] = None,
     ) -> None:
         super().__init__(parent)
         self.setWindowTitle(title)
@@ -94,4 +109,5 @@ class NGWLayerStyleChooserDialog(QDialog):
     def validate(self):
         index = self.selectedStyleIndex()
         self.btn_box.button(QDialogButtonBox.Ok).setEnabled(
-            index is not None and index.isValid())
+            index is not None and index.isValid()
+        )

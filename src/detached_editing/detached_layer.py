@@ -5,17 +5,21 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from qgis.core import (
-    QgsFeature, QgsGeometry, QgsProject, QgsVectorLayer, QgsLayerTreeLayer,
-    QgsTask, QgsApplication
+    QgsApplication,
+    QgsFeature,
+    QgsGeometry,
+    QgsLayerTreeLayer,
+    QgsProject,
+    QgsTask,
+    QgsVectorLayer,
 )
-
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
+from . import utils
 from .detached_layer_indicator import DetachedLayerIndicator
 from .tasks.upload_changes_task import UploadChangesTask
-from . import utils
 from .utils import DetachedLayerState
 
 
@@ -32,7 +36,7 @@ class DetachedLayer(QObject):
     __indicator: Optional[DetachedLayerIndicator]
     __sync_task: Optional[QgsTask]
 
-    state_changed = pyqtSignal(DetachedLayerState, name='stateChanged')
+    state_changed = pyqtSignal(DetachedLayerState, name="stateChanged")
 
     def __init__(
         self, layer: QgsVectorLayer, parent: Optional[QObject] = None
@@ -53,8 +57,8 @@ class DetachedLayer(QObject):
         # TODO timer for update
 
         # TODO (PyQt6): remove type ignore
-        self.__layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore  # NOQA: E501
-        self.__layer.editingStopped.connect(self.__stop_listen_changes)  # type: ignore  # NOQA: E501
+        self.__layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore
+        self.__layer.editingStopped.connect(self.__stop_listen_changes)  # type: ignore
 
     @property
     def container_path(self) -> str:
@@ -73,7 +77,7 @@ class DetachedLayer(QObject):
             return
 
         self.__state = DetachedLayerState.Synchronization
-        self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+        self.__layer.setCustomProperty("ngw_layer_state", str(self.__state))
         self.__layer.setReadOnly(True)
         self.__sync_task = UploadChangesTask(
             utils.container_path(self.__layer)
@@ -88,7 +92,7 @@ class DetachedLayer(QObject):
 
     def force_synchronize(self) -> None:
         self.__state = DetachedLayerState.Synchronization
-        self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+        self.__layer.setCustomProperty("ngw_layer_state", str(self.__state))
 
     def add_indicator(self, node: QgsLayerTreeLayer) -> None:
         assert isinstance(iface, QgisInterface)
@@ -124,23 +128,25 @@ class DetachedLayer(QObject):
         result = (None, None, None, None)
         with closing(sqlite3.connect(self.container_path)) as connection:
             with closing(connection.cursor()) as cursor:
-                cursor.execute('''
+                cursor.execute(
+                    """
                     SELECT
                         connection_id, resource_id, synchronization_date,
                         auto_synchronization
                     FROM ngw_metadata
-                ''')
+                """
+                )
                 result = cursor.fetchone()
 
                 self.__update_state(cursor)
 
-        self.__layer.setCustomProperty('ngw_connection_id', result[0])
-        self.__layer.setCustomProperty('ngw_resource_id', int(result[1]))
+        self.__layer.setCustomProperty("ngw_connection_id", result[0])
+        self.__layer.setCustomProperty("ngw_resource_id", int(result[1]))
         self.__layer.setCustomProperty(
-            'ngw_synchronization_date', datetime.fromisoformat(result[2])
+            "ngw_synchronization_date", datetime.fromisoformat(result[2])
         )
         self.__layer.setCustomProperty(
-            'ngw_auto_synchronization', bool(result[3])
+            "ngw_auto_synchronization", bool(result[3])
         )
 
     def __create_indicator(self) -> None:
@@ -153,17 +159,15 @@ class DetachedLayer(QObject):
 
         node = root.findLayer(self.__layer.id())
         if node is None:
-            raise RuntimeError('Detached layer is not found')
+            raise RuntimeError("Detached layer is not found")
 
         view = iface.layerTreeView()
         assert view is not None
         self.__indicator = DetachedLayerIndicator(self.__layer, view)
 
-    @pyqtSlot(name='startListenChanges')
+    @pyqtSlot(name="startListenChanges")
     def __start_listen_changes(self) -> None:
-        self.__layer.committedFeaturesAdded.connect(
-            self.__log_added_features
-        )
+        self.__layer.committedFeaturesAdded.connect(self.__log_added_features)
         self.__layer.committedFeaturesRemoved.connect(
             self.__log_removed_features
         )
@@ -174,7 +178,7 @@ class DetachedLayer(QObject):
             self.__log_geometry_changes
         )
 
-    @pyqtSlot(name='stopListenChanges')
+    @pyqtSlot(name="stopListenChanges")
     def __stop_listen_changes(self) -> None:
         self.__layer.committedFeaturesAdded.disconnect(
             self.__log_added_features
@@ -198,8 +202,8 @@ class DetachedLayer(QObject):
         with closing(sqlite3.connect(self.container_path)) as connection:
             with closing(connection.cursor()) as cursor:
                 cursor.executemany(
-                    'INSERT INTO ngw_added_features VALUES (?);',
-                    list((feature.id(),) for feature in features)
+                    "INSERT INTO ngw_added_features VALUES (?);",
+                    list((feature.id(),) for feature in features),
                 )
                 self.__update_state(cursor)
 
@@ -216,14 +220,14 @@ class DetachedLayer(QObject):
                     DELETE
                     FROM ngw_added_features
                     WHERE fid in ({fids})
-                """.format(fids=','.join(['?'] * len(added_fids)))
+                """.format(fids=",".join(["?"] * len(added_fids)))
                 cursor.execute(delete_added_query, added_fids)
 
                 # Synchronized features
                 removed_fids = list(set(feature_ids) - set(added_fids))
 
                 # Delete other logs
-                fids_placeholder = ','.join(['?'] * len(removed_fids))
+                fids_placeholder = ",".join(["?"] * len(removed_fids))
                 delete_attributes_log_query = f"""
                     DELETE
                     FROM ngw_updated_attributes
@@ -239,8 +243,8 @@ class DetachedLayer(QObject):
 
                 # Log removed features
                 cursor.executemany(
-                    'INSERT INTO ngw_removed_features VALUES (?);',
-                    list((fid,) for fid in removed_fids)
+                    "INSERT INTO ngw_removed_features VALUES (?);",
+                    list((fid,) for fid in removed_fids),
                 )
 
                 self.__update_state(cursor)
@@ -262,8 +266,8 @@ class DetachedLayer(QObject):
                     for attribute in changed_attributes[fid]:
                         attributes.append((fid, attribute))
                 cursor.executemany(
-                    'INSERT INTO ngw_updated_attributes VALUES (?, ?);',
-                    attributes
+                    "INSERT INTO ngw_updated_attributes VALUES (?, ?);",
+                    attributes,
                 )
 
                 self.__update_state(cursor)
@@ -281,8 +285,8 @@ class DetachedLayer(QObject):
                     return
                 changed_fids = list(set(feature_ids) - set(added_fids))
                 cursor.executemany(
-                    'INSERT INTO ngw_updated_geometries VALUES (?);',
-                    list((fid,) for fid in changed_fids)
+                    "INSERT INTO ngw_updated_geometries VALUES (?);",
+                    list((fid,) for fid in changed_fids),
                 )
 
                 self.__update_state(cursor)
@@ -296,28 +300,28 @@ class DetachedLayer(QObject):
             SELECT fid
             FROM ngw_added_features
             WHERE fid in ({placeholders})
-        """.format(placeholders=','.join(['?'] * len(feature_ids)))
+        """.format(placeholders=",".join(["?"] * len(feature_ids)))
         cursor.execute(fetch_added_query, feature_ids)
         return [row[0] for row in cursor.fetchall()]
 
     def __has_changes(self, cursor: sqlite3.Cursor) -> bool:
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT
                 EXISTS(SELECT 1 FROM ngw_added_features)
                 OR EXISTS(SELECT 1 FROM ngw_removed_features)
                 OR EXISTS(SELECT 1 FROM ngw_updated_attributes)
                 OR EXISTS(SELECT 1 FROM ngw_updated_geometries)
-        ''')
+        """
+        )
         return bool(cursor.fetchone()[0])
 
     def __update_state(self, cursor: sqlite3.Cursor) -> None:
         state = DetachedLayerState.NotInitialized
 
-        if (
-            self.__sync_task is not None
-            and self.__sync_task.status() not in (
-                QgsTask.TaskStatus.Complete, QgsTask.TaskStatus.Terminated
-            )
+        if self.__sync_task is not None and self.__sync_task.status() not in (
+            QgsTask.TaskStatus.Complete,
+            QgsTask.TaskStatus.Terminated,
         ):
             state = DetachedLayerState.Synchronization
         else:
@@ -328,14 +332,14 @@ class DetachedLayer(QObject):
             )
 
         self.__state = state
-        self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+        self.__layer.setCustomProperty("ngw_layer_state", str(self.__state))
 
     def __on_task_finished(self, result: bool) -> None:
         if result:
             self.__state = DetachedLayerState.Synchronized
         else:
             self.__state = DetachedLayerState.Error
-        self.__layer.setCustomProperty('ngw_layer_state', str(self.__state))
+        self.__layer.setCustomProperty("ngw_layer_state", str(self.__state))
 
         self.__sync_task = None
         self.__layer.setReadOnly(False)

@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union
 
 from qgis.core import QgsApplication, QgsTask
 
-from .plugin_settings import NgConnectSettings
+from .ng_connect_settings import NgConnectSettings
 from .utils import log_to_qgis
 
 
@@ -51,7 +51,7 @@ class NgConnectCacheManager:
         """Current cache size in KB"""
         cache_path = Path(self.cache_directory)
         cache_size = 0.0
-        for file_path in cache_path.glob('**/*'):
+        for file_path in cache_path.glob("**/*"):
             if not file_path.is_file():
                 continue
             cache_size += file_path.stat().st_size / 1024
@@ -89,7 +89,7 @@ class NgConnectCacheManager:
 
         cache_size = 0
         files_with_time: List[Tuple[Path, float, float]] = []
-        for file_path in cache_path.glob('**/*'):
+        for file_path in cache_path.glob("**/*"):
             if not file_path.is_file():
                 continue
 
@@ -109,9 +109,8 @@ class NgConnectCacheManager:
         check_date = cache_duration != -1
 
         for file_path, mtime, file_size in files_with_time:
-            if (
-                (check_size and cache_size > cache_max_size)
-                or (check_date and current_time - mtime > cache_duration)
+            if (check_size and cache_size > cache_max_size) or (
+                check_date and current_time - mtime > cache_duration
             ):
                 cache_size -= file_size
                 file_path.unlink()
@@ -133,7 +132,7 @@ class NgConnectCacheManager:
 class PurgeNgConnectCacheTask(QgsTask):
     def __init__(self):
         description = QgsApplication.translate(
-            'NGConnectPlugin', 'Clearing cache'
+            "NgConnectPlugin", "Clearing cache"
         )
         super().__init__(description, QgsTask.Flags())
 
@@ -150,4 +149,4 @@ class PurgeNgConnectCacheTask(QgsTask):
     def finished(self, successful: bool):
         if successful:
             return
-        log_to_qgis(f'An error occured while clearing cache: {self.error}')
+        log_to_qgis(f"An error occured while clearing cache: {self.error}")

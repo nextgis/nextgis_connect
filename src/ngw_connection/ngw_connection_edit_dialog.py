@@ -1,18 +1,15 @@
-import os.path
-import uuid
 import json
-from urllib.parse import urlparse, urljoin
+import os.path
 import re
+import uuid
 from typing import Optional
-
-from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QUrl, QTimer, QStringListModel
-from qgis.PyQt.QtWidgets import (
-    QWidget, QDialogButtonBox, QDialog, QCompleter
-)
-from qgis.PyQt.QtNetwork import QNetworkRequest, QNetworkReply
+from urllib.parse import urljoin, urlparse
 
 from qgis.core import Qgis, QgsNetworkAccessManager
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import QStringListModel, QTimer, QUrl
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
+from qgis.PyQt.QtWidgets import QCompleter, QDialog, QDialogButtonBox, QWidget
 
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
@@ -27,12 +24,12 @@ except ImportError:
 pluginPath = os.path.dirname(__file__)
 
 WIDGET, BASE = uic.loadUiType(
-    os.path.join(pluginPath, 'ngw_connection_edit_dialog_base.ui'))
+    os.path.join(pluginPath, "ngw_connection_edit_dialog_base.ui")
+)
 
 
 class NgwConnectionEditDialog(QDialog, WIDGET):
-
-    NEXTGIS_DOMAIN = '.nextgis.com'
+    NEXTGIS_DOMAIN = ".nextgis.com"
 
     __is_edit: bool
     __connection_id: str
@@ -58,7 +55,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__is_edit = connection_id is not None
         if self.__is_edit:
-            self.setWindowTitle(self.tr('Edit the NextGIS Web Connection'))
+            self.setWindowTitle(self.tr("Edit the NextGIS Web Connection"))
             assert connection_id is not None
             self.__connection_id = connection_id
             self.__name_was_manually_changed = True
@@ -117,7 +114,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self,
         text: str,
         level: Qgis.MessageLevel = Qgis.MessageLevel.Info,
-        duration: int = -1
+        duration: int = -1,
     ) -> None:
         self.messageBar.clearWidgets()
         self.messageBar.pushMessage(text, level, duration)
@@ -165,20 +162,20 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.__validate()
 
     def __update_url_completer(self, value: str):
-        if any(char in value for char in [':', '\\', '/']):
+        if any(char in value for char in [":", "\\", "/"]):
             self.__url_completer_model.setStringList([])
             return
 
         suffix = self.NEXTGIS_DOMAIN
 
-        first_point_pos = value.find('.')
+        first_point_pos = value.find(".")
         if first_point_pos != -1:
             text_after_point = value[first_point_pos:]
             if not self.NEXTGIS_DOMAIN.startswith(text_after_point):
                 self.__url_completer_model.setStringList([])
                 return
 
-            suffix = self.NEXTGIS_DOMAIN[len(text_after_point):]
+            suffix = self.NEXTGIS_DOMAIN[len(text_after_point) :]
 
         self.__url_completer_model.setStringList([value + suffix])
 
@@ -187,7 +184,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         parse_result = urlparse(url)
         connection_name = parse_result.netloc
-        connection_name = connection_name.split('.')[0]
+        connection_name = connection_name.split(".")[0]
 
         if not self.__is_edit and not self.__name_was_manually_changed:
             self.nameLineEdit.textChanged.disconnect(self.__on_name_changed)
@@ -229,23 +226,21 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         test_connection = NgwConnection(
             str(uuid.uuid4()),
-            'TEST_CONNECTION',
+            "TEST_CONNECTION",
             self.__make_valid_url(self.urlLineEdit.text()),
-            self.authWidget.configId()
+            self.authWidget.configId(),
         )
 
-        url = urljoin(
-            test_connection.url, 'api/component/auth/current_user'
-        )
+        url = urljoin(test_connection.url, "api/component/auth/current_user")
         request = QNetworkRequest(QUrl(url))
         try:
             test_connection.update_network_request(request)
         except Exception:
             self.messageBar.clearWidgets()
             self.messageBar.pushMessage(
-                self.tr('Connection failed'),
-                self.tr('Authentification error'),
-                Qgis.MessageLevel.Warning
+                self.tr("Connection failed"),
+                self.tr("Authentification error"),
+                Qgis.MessageLevel.Warning,
             )
             return
 
@@ -281,8 +276,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.messageBar.clearWidgets()
         self.messageBar.pushMessage(
-            self.tr('Connection successful'),
-            Qgis.MessageLevel.Success
+            self.tr("Connection successful"), Qgis.MessageLevel.Success
         )
 
         self.__unlock_gui()
@@ -294,14 +288,14 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__is_save_clicked = False
 
-        message_title = self.tr('Connection failed')
+        message_title = self.tr("Connection failed")
         message = None
         if is_timeout:
-            message = self.tr('Request timeout')
+            message = self.tr("Request timeout")
         elif len(content := bytes(self.__reply.readAll())) > 0:
             try:
                 json_content = json.loads(content)
-                message = json_content.get('title', None)
+                message = json_content.get("title", None)
             except Exception:
                 pass
 
@@ -309,9 +303,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             (message_title,) if message is None else (message_title, message)
         )
         self.messageBar.clearWidgets()
-        self.messageBar.pushMessage(
-            *arguments, Qgis.MessageLevel.Warning
-        )
+        self.messageBar.pushMessage(*arguments, Qgis.MessageLevel.Warning)
         self.__unlock_gui()
 
     def __save_connection(self):
@@ -355,22 +347,22 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         # Always remove trailing slashes (this is only a base url which will
         # not be used standalone anywhere).
-        while url.endswith('/'):
+        while url.endswith("/"):
             url = url[:-1]
 
         # Replace common ending when user copy-pastes from browser URL
-        url = re.sub('/resource/[0-9]+', '', url)
+        url = re.sub("/resource/[0-9]+", "", url)
 
         parse_result = urlparse(url)
         hostname = parse_result.hostname
 
         # Select https if protocol has not been defined by user
         if hostname is None:
-            url = f'https://{url}'
+            url = f"https://{url}"
 
         # Force https regardless of what user has selected, but only for cloud
         # connections.
-        if url.startswith('http://') and url.endswith(self.NEXTGIS_DOMAIN):
-            url = url.replace('http://', 'https://')
+        if url.startswith("http://") and url.endswith(self.NEXTGIS_DOMAIN):
+            url = url.replace("http://", "https://")
 
         return url

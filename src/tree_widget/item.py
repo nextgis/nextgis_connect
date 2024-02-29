@@ -5,8 +5,11 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QTreeWidgetItem
 
 from ..ngw_api.core import (
-    NGWGroupResource, NGWMapServerStyle, NGWQGISRasterStyle,
-    NGWQGISVectorStyle, NGWResource
+    NGWGroupResource,
+    NGWMapServerStyle,
+    NGWQGISRasterStyle,
+    NGWQGISVectorStyle,
+    NGWResource,
 )
 
 

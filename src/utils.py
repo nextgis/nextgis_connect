@@ -1,11 +1,20 @@
 import platform
-from typing import Union, cast, Tuple
-from itertools import islice
-from functools import lru_cache
 from enum import Enum, auto
+from functools import lru_cache
+from itertools import islice
+from typing import Tuple, Union, cast
 
-from qgis.PyQt.QtCore import Qt, QUrl, QByteArray, QMimeData
-from qgis.PyQt.QtGui import QDesktopServices, QClipboard
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsMessageLog,
+    QgsProject,
+    QgsProviderRegistry,
+    QgsRasterLayer,
+)
+from qgis.gui import QgisInterface
+from qgis.PyQt.QtCore import QByteArray, QMimeData, Qt, QUrl
+from qgis.PyQt.QtGui import QClipboard, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -13,19 +22,9 @@ from qgis.PyQt.QtWidgets import (
     QListWidgetItem,
     QVBoxLayout,
 )
-
-from qgis.core import (
-    Qgis,
-    QgsApplication,
-    QgsProviderRegistry,
-    QgsProject,
-    QgsMessageLog,
-    QgsRasterLayer,
-)
-from qgis.gui import QgisInterface
 from qgis.utils import iface
 
-from .plugin_settings import NgConnectSettings
+from .ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
 
@@ -60,19 +59,19 @@ def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
 
     provider_regstry = QgsProviderRegistry.instance()
     assert provider_regstry is not None
-    wms_metadata = provider_regstry.providerMetadata('wms')
+    wms_metadata = provider_regstry.providerMetadata("wms")
     assert wms_metadata is not None
     uri_params = {
-        'url': url,
-        'format': 'image/png',
-        'crs': 'EPSG:3857',
-        'layers': ','.join(layer_keys),
-        'styles': '',
-        'authcfg': auth_cfg
+        "url": url,
+        "format": "image/png",
+        "crs": "EPSG:3857",
+        "layers": ",".join(layer_keys),
+        "styles": "",
+        "authcfg": auth_cfg,
     }
     uri = wms_metadata.encodeUri(uri_params)
 
-    rlayer = QgsRasterLayer(uri, name, 'wms')
+    rlayer = QgsRasterLayer(uri, name, "wms")
     if not rlayer.isValid():
         show_error_message(f'Invalid wms url "{uri}"')
         return

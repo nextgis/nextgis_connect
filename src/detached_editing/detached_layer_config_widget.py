@@ -1,14 +1,15 @@
 import os
 from typing import Optional
 
-from qgis.PyQt import uic
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QWidget, QHBoxLayout
-
 from qgis.core import QgsMapLayer
 from qgis.gui import (
-    QgsMapCanvas, QgsMapLayerConfigWidget, QgsMapLayerConfigWidgetFactory
+    QgsMapCanvas,
+    QgsMapLayerConfigWidget,
+    QgsMapLayerConfigWidgetFactory,
 )
+from qgis.PyQt import uic
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
 # from ..ngw_connection.ngw_connections_widget import NgwConnectionsWidget
 from . import utils
@@ -19,15 +20,15 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
         self,
         layer: Optional[QgsMapLayer],
         canvas: Optional[QgsMapCanvas],
-        parent: Optional[QWidget]
+        parent: Optional[QWidget],
     ) -> None:
         super().__init__(layer, canvas, parent)
-        self.setPanelTitle(self.tr('NextGIS'))
+        self.setPanelTitle(self.tr("NextGIS"))
 
         # TODO try-catch
         plugin_path = os.path.dirname(__file__)
         self.widget = uic.loadUi(
-            os.path.join(plugin_path, 'detached_layer_config_widget_base.ui')
+            os.path.join(plugin_path, "detached_layer_config_widget_base.ui")
         )  # type: ignore
         if self.widget is None:
             # TODO log
@@ -62,10 +63,12 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
 
 class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
-        icon = QIcon(os.path.join(
-            os.path.dirname(__file__), os.pardir, 'icons/', 'logo.svg'
-        ))
-        super().__init__('NextGIS', icon)
+        icon = QIcon(
+            os.path.join(
+                os.path.dirname(__file__), os.pardir, "icons/", "logo.svg"
+            )
+        )
+        super().__init__("NextGIS", icon)
         self.setSupportLayerPropertiesDialog(True)
 
     def supportsLayer(self, layer: Optional[QgsMapLayer]) -> bool:
@@ -81,6 +84,6 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
         layer: Optional[QgsMapLayer],
         canvas: Optional[QgsMapCanvas],
         dockWidget: bool = True,
-        parent: Optional[QWidget] = None
+        parent: Optional[QWidget] = None,
     ) -> QgsMapLayerConfigWidget:
         return DetachedLayerConfigWidget(layer, canvas, parent)

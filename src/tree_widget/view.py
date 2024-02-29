@@ -1,27 +1,24 @@
-from qgis.PyQt.QtCore import Qt, QModelIndex, pyqtSignal
-from qgis.PyQt.QtGui import QBrush, QPalette, QPainter, QPen, QKeyEvent
+from qgis.gui import QgsNewNameDialog
+from qgis.PyQt.QtCore import QModelIndex, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QBrush, QKeyEvent, QPainter, QPalette, QPen
 from qgis.PyQt.QtWidgets import (
-    QHeaderView,
+    QDialog,
     QHBoxLayout,
+    QHeaderView,
     QLabel,
     QProgressBar,
+    QPushButton,
     QSizePolicy,
     QSpacerItem,
     QTreeView,
     QVBoxLayout,
     QWidget,
-    QDialog,
-    QPushButton
 )
-
 from qgis.utils import iface
-from qgis.gui import QgsNewNameDialog
-
-from ..tree_widget.item import QNGWResourceItem
-from ..utils import SupportStatus
 
 from ..ngw_connection.ngw_connections_manager import NgwConnectionsManager
-
+from ..tree_widget.item import QNGWResourceItem
+from ..utils import SupportStatus
 
 __all__ = ["QNGWResourceTreeView"]
 
@@ -79,21 +76,21 @@ class MigrationOverlay(QOverlay):
 
         self.text = QLabel(
             self.tr(
-                'We are transitioning to the QGIS Authentication System to '
-                'enhance security and streamline your experience. This change '
-                'requires the conversion of existing connections.\n\nPlease be'
-                ' aware that your current connections will be converted to the'
-                ' new format automatically. This is a one-time process and '
-                'should not affect your workflow.\n'
+                "We are transitioning to the QGIS Authentication System to "
+                "enhance security and streamline your experience. This change "
+                "requires the conversion of existing connections.\n\nPlease be"
+                " aware that your current connections will be converted to the"
+                " new format automatically. This is a one-time process and "
+                "should not affect your workflow.\n"
             ),
-            self
+            self,
         )
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
 
         full_migrate_button = QPushButton(
-            self.tr('Convert connectons and authentification data')
+            self.tr("Convert connectons and authentification data")
         )
         full_migrate_button.clicked.connect(self.__full_migrate)
 
@@ -107,7 +104,7 @@ class MigrationOverlay(QOverlay):
         self.__reinit()
 
     def __reinit(self):
-        dock = iface.mainWindow().findChild(QWidget, 'NGConnectDock')
+        dock = iface.mainWindow().findChild(QWidget, "NGConnectDock")
         dock.reinit_tree(force=True)
 
 
@@ -125,16 +122,16 @@ class NoNgstdAuthOverlay(QOverlay):
         )
 
         self.text = QLabel(
-            self.tr("Sign in with your NextGIS account to get access to your Web GIS\n"),
-            self
+            self.tr(
+                "Sign in with your NextGIS account to get access to your Web GIS\n"
+            ),
+            self,
         )
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
 
-        full_migrate_button = QPushButton(
-            self.tr('Open NextGIS settings')
-        )
+        full_migrate_button = QPushButton(self.tr("Open NextGIS settings"))
         full_migrate_button.clicked.connect(self.__open_nextgis_settings)
 
         layout.addSpacerItem(spacer_before)
@@ -143,7 +140,7 @@ class NoNgstdAuthOverlay(QOverlay):
         layout.addSpacerItem(spacer_after)
 
     def __open_nextgis_settings(self):
-        iface.showOptionsDialog(iface.mainWindow(), 'NextGIS')
+        iface.showOptionsDialog(iface.mainWindow(), "NextGIS")
 
 
 class QProcessOverlay(QOverlay):
@@ -250,7 +247,9 @@ class QNGWResourceTreeView(QTreeView):
         self.no_ngw_connections_overlay = QMessageOverlay(
             self,
             self.tr(
-                'No connections to nextgis.com. Please create a connection. You can get your free Web GIS at <a href="https://my.nextgis.com/">nextgis.com</a>!'
+                "No connections to nextgis.com. Please create a connection. "
+                "You can get your free Web GIS at "
+                '<a href="https://my.nextgis.com/">nextgis.com</a>!'
             ),
         )
         self.no_ngw_connections_overlay.hide()
@@ -299,7 +298,7 @@ class QNGWResourceTreeView(QTreeView):
         if index.isValid():
             self.itemDoubleClicked.emit(index)
 
-        super(QNGWResourceTreeView, self).mouseDoubleClickEvent(e)
+        super().mouseDoubleClickEvent(e)
 
     def showWelcomeMessage(self):
         self.no_ngw_connections_overlay.show()

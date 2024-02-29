@@ -1,7 +1,6 @@
+import sqlite3
 from contextlib import closing
 from datetime import datetime
-
-import sqlite3
 
 from ..ngw_api.core.ngw_vector_layer import NGWVectorLayer
 
@@ -19,7 +18,7 @@ class DetachedLayerFactory:
         return True
 
     def __initialize_container_settings(self, cursor: sqlite3.Cursor) -> None:
-        cursor.execute('PRAGMA foreign_keys = 1')
+        cursor.execute("PRAGMA foreign_keys = 1")
 
     def __create_container_tables(self, cursor: sqlite3.Cursor) -> None:
         # TODO add aliases
@@ -67,17 +66,21 @@ class DetachedLayerFactory:
         resource_id = ngw_layer.common.id
         date = datetime.now().isoformat()
 
-        cursor.execute(f'''
+        cursor.execute(
+            f"""
             INSERT INTO ngw_metadata VALUES (
                 '0.2.0', '{connection}', NULL, {resource_id}, '{date}', TRUE
             )
-        ''')
+        """
+        )
 
     def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:
-        cursor.execute('''
+        cursor.execute(
+            """
             SELECT table_name FROM gpkg_contents
             WHERE data_type='features'
-        ''')
+        """
+        )
         table_name = cursor.fetchone()[0]
         cursor.execute(
             f"INSERT INTO ngw_features_id SELECT fid, fid FROM '{table_name}'"

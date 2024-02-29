@@ -1,53 +1,51 @@
 import functools
 import uuid
 from pathlib import Path
-from typing import Optional, List, Union, Callable, Tuple, cast
+from typing import Callable, List, Optional, Tuple, Union, cast
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QCoreApplication,
     QModelIndex,
     QObject,
-    pyqtSignal,
     QThread,
+    pyqtSignal,
 )
 
+from .. import utils
+from ..detached_editing.detached_layer_factory import DetachedLayerFactory
+from ..ng_connect_cache_manager import NgConnectCacheManager
 from ..ngw_api.core import (
-    NGWResource,
     NGWGroupResource,
+    NGWResource,
     NGWVectorLayer,
+)
+from ..ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
+from ..ngw_api.qgis.ngw_resource_model_4qgis import (
+    MapForLayerCreater,
+    NGWCreateWMSForVector,
+    NGWUpdateVectorLayer,
+    QGISProjectUploader,
+    QGISResourcesUploader,
+    QGISStyleAdder,
+    QGISStyleUpdater,
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle,
+    NGWCreateOgcfService,
+    NGWCreateWfsService,
     NGWGroupCreater,
     NGWRenameResource,
     NGWResourceDelete,
-    NGWRootResourcesLoader,
-    NGWResourceUpdater,
     NGWResourceModelJob,
     NGWResourceModelJobResult,
-    NGWCreateWfsService,
-    NGWCreateOgcfService,
+    NGWResourceUpdater,
+    NGWRootResourcesLoader,
 )
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
-
 from .item import QModelItem, QNGWResourceItem
-
-from ..ngw_api.qgis.ngw_resource_model_4qgis import (
-    QGISResourcesUploader,
-    QGISStyleUpdater,
-    QGISStyleAdder,
-    QGISProjectUploader,
-    MapForLayerCreater,
-    NGWCreateWMSForVector,
-    NGWUpdateVectorLayer,
-)
-
-from ..ng_connect_cache_manager import NgConnectCacheManager
-from ..detached_editing.detached_layer_factory import DetachedLayerFactory
-
 
 __all__ = ["QNGWResourceTreeModel"]
 
@@ -177,14 +175,14 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
         for i, ngw_resource in enumerate(self.ngw_resources):
             # TODO set instance id
             name = ngw_resource.common.display_name
-            progress = '' if total == '1' else f' ({i + 1}/{total})'
+            progress = "" if total == "1" else f" ({i + 1}/{total})"
             self.statusChanged.emit(
                 self.tr('Downloading layer "{name}"').format(name=name)
                 + progress
             )
             instance_cache_path = cache_directory / ngw_resource.connection_id
             instance_cache_path.mkdir(parents=True, exist_ok=True)
-            gpkg_path = instance_cache_path / f'{ngw_resource.common.id}.gpkg'
+            gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
             ngw_resource.export(str(gpkg_path))
             detached_factory.create(ngw_resource, str(gpkg_path))
 
@@ -582,7 +580,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         try:
             self.ngw_version = self._ngw_connection.get_version()
             self.support_status = utils.is_version_supported(self.ngw_version)
-        except:
+        except Exception:
             self.ngw_version = None
             self.support_status = None
 
@@ -832,13 +830,13 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         cache_manager = NgConnectCacheManager()
 
         def collect_indexes(
-            index: QModelIndex
+            index: QModelIndex,
         ) -> Tuple[List[QModelIndex], List[QModelIndex]]:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
             if isinstance(ngw_resource, NGWVectorLayer):
                 # TODO set instance id
                 if cache_manager.exists(
-                    f'{ngw_resource.connection_id}/{ngw_resource.common.id}.gpkg'
+                    f"{ngw_resource.connection_id}/{ngw_resource.common.id}.gpkg"
                 ):
                     return [index], []
                 return [index], [index]
@@ -848,7 +846,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                 parent = index.parent()
                 parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
                 if cache_manager.exists(
-                    f'{ngw_resource.connection_id}/{parent_resource.common.id}.gpkg'
+                    f"{ngw_resource.connection_id}/{parent_resource.common.id}.gpkg"
                 ):
                     return [parent, index], []
                 return [parent, index], [parent]
@@ -888,6 +886,4 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ]
 
         worker = NgwCacheVectorLayers(vector_layers)
-        return self._startJob(
-            worker, lock_indexes=list(set(indexes_for_lock))
-        )
+        return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))
