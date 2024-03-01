@@ -52,6 +52,9 @@ class QMessageOverlay(QOverlay):
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
+        self.text.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
         self.layout.addWidget(self.text)
 
     def set_text(self, text: str) -> None:
@@ -118,22 +121,27 @@ class UnsupportedVersionOverlay(QMessageOverlay):
     def __init__(self, parent: QWidget):
         super().__init__(parent, "")
 
-    def set_status(self, status: SupportStatus) -> None:
+    def set_status(
+        self, status: SupportStatus, ngc_version: str, ngw_version: str
+    ) -> None:
+        text = ""
         if status == SupportStatus.OLD_CONNECT:
-            self.set_text(
-                self.tr(
-                    "Version of NextGIS Connect is outdated. Please "
-                    "upgrade the plugin"
-                )
+            text = self.tr(
+                "NextGIS Connect is outdated. Please update the plugin "
+                "via Plugins - Manage and install plugins menu."
             )
         elif status == SupportStatus.OLD_NGW:
-            self.set_text(
-                self.tr(
-                    "Version of NextGIS Web service is outdated and not "
-                    "supported. Please contact your server administrator for "
-                    "further assistance"
-                )
+            text = self.tr(
+                "NextGIS Web service is outdated and not supported by "
+                "NextGIS Connect. Please contact your server administrator"
+                " for further assistance."
             )
+
+        text += "\n\n" + self.tr(
+            "NextGIS Connect version: {}\nNextGIS Web version: {}"
+        ).format(ngc_version, ngw_version)
+
+        self.set_text(text)
 
 
 class QNGWResourceTreeView(QTreeView):

@@ -26,6 +26,7 @@ from dataclasses import dataclass
 
 from typing import List, Optional, cast
 
+from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
     QgsMessageLog,
@@ -897,7 +898,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if not self._resource_model.is_ngw_version_supported:
                 self.unblock_gui()
                 self.trvResources.unsupported_version_overlay.set_status(
-                    self._resource_model.support_status
+                    self._resource_model.support_status,
+                    qgis_utils.pluginMetadata("nextgis_connect", "version"),
+                    ngw_connection.get_version()
                 )
                 self.trvResources.unsupported_version_overlay.show()
 
