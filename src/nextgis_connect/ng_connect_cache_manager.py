@@ -132,7 +132,8 @@ class NgConnectCacheManager:
 class PurgeNgConnectCacheTask(QgsTask):
     def __init__(self):
         description = QgsApplication.translate(
-            "NgConnectPlugin", "Clearing cache"
+            "NgConnectPlugin",
+            "Clearing cache",
         )
         super().__init__(description, QgsTask.Flags())
 
