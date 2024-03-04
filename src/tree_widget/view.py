@@ -127,12 +127,12 @@ class UnsupportedVersionOverlay(QMessageOverlay):
         text = ""
         if status == SupportStatus.OLD_CONNECT:
             text = self.tr(
-                "NextGIS Connect is outdated. Please update the plugin "
-                "via Plugins - Manage and install plugins menu."
+                "NextGIS Connect version is outdated. Please update the "
+                "plugin via Plugins - Manage and install plugins menu."
             )
         elif status == SupportStatus.OLD_NGW:
             text = self.tr(
-                "NextGIS Web service is outdated and not supported by "
+                "NextGIS Web service version is outdated and not supported by "
                 "NextGIS Connect. Please contact your server administrator"
                 " for further assistance."
             )

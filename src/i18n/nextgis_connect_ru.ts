@@ -633,21 +633,21 @@
 <context>
     <name>UnsupportedVersionOverlay</name>
     <message>
-        <location filename="../tree_widget/view.py" line="129"/>
-        <source>NextGIS Connect is outdated. Please update the plugin via Plugins - Manage and install plugins menu.</source>
-        <translation>Плагин NextGIS Connect устарел. Пожалуйста, обновите плагин через меню Плагины - Управление и установка плагинов.</translation>
-    </message>
-    <message>
-        <location filename="../tree_widget/view.py" line="134"/>
-        <source>NextGIS Web service is outdated and not supported by NextGIS Connect. Please contact your server administrator for further assistance.</source>
-        <translation>Сервис NextGIS Web устарел и не поддерживается NextGIS Connect. Обратитесь к администратору вашего сервера за дополнительной помощью.</translation>
-    </message>
-    <message>
         <location filename="../tree_widget/view.py" line="140"/>
         <source>NextGIS Connect version: {}
 NextGIS Web version: {}</source>
         <translation>Версия NextGIS Connect: {}
 Версия NextGIS Web: {}</translation>
+    </message>
+    <message>
+        <location filename="../tree_widget/view.py" line="129"/>
+        <source>NextGIS Connect version is outdated. Please update the plugin via Plugins - Manage and install plugins menu.</source>
+        <translation>Версия плагина NextGIS Connect устарела. Пожалуйста, обновите его через меню Плагины - Управление и настройка плагинов.</translation>
+    </message>
+    <message>
+        <location filename="../tree_widget/view.py" line="134"/>
+        <source>NextGIS Web service version is outdated and not supported by NextGIS Connect. Please contact your server administrator for further assistance.</source>
+        <translation>Версия сервиса NextGIS Web устарела и не поддерживается NextGIS Connect. Обратитесь к администратору вашего сервера за дополнительной помощью.</translation>
     </message>
 </context>
 </TS>
