@@ -1104,25 +1104,22 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_resource = current_index.data(QNGWResourceItem.NGWResourceRole)
         group_add = isinstance(current_resource, NGWGroupResource)
 
-        if len(style_resources) == 1:
-            default_style = style_resources[0]
+        if len(style_resources) == 1 or group_add:
+            default_style = None
         elif len(style_resources) > 1:
-            if group_add:
-                default_style = style_resources[0]
-            else:
-                dialog = NGWLayerStyleChooserDialog(
-                    self.tr("Select style"),
-                    current_index,
-                    self._resource_model,
-                    self,
-                )
-                result = dialog.exec()
-                if result == QDialog.DialogCode.Accepted:
-                    sel_index = dialog.selectedStyleIndex()
-                    if sel_index is not None and sel_index.isValid():
-                        default_style = sel_index.data(
-                            QNGWResourceItem.NGWResourceRole
-                        )
+            dialog = NGWLayerStyleChooserDialog(
+                self.tr("Select style"),
+                current_index,
+                self._resource_model,
+                self,
+            )
+            result = dialog.exec()
+            if result == QDialog.DialogCode.Accepted:
+                sel_index = dialog.selectedStyleIndex()
+                if sel_index is not None and sel_index.isValid():
+                    default_style = sel_index.data(
+                        QNGWResourceItem.NGWResourceRole
+                    )
 
         if resource.type_id == NGWVectorLayer.type_id:
             add_resource_as_geojson(resource, style_resources, default_style)
@@ -1212,11 +1209,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if isinstance(ngw_resource, NGWVectorLayer):
                 self._add_with_style(ngw_resource)
             elif isinstance(ngw_resource, NGWQGISVectorStyle):
-                parent_resource = index.parent().data(
+                parent_resource: NGWResource = index.parent().data(
                     QNGWResourceItem.NGWResourceRole
                 )
+                siblings = parent_resource.get_children()
                 add_resource_as_geojson(
-                    parent_resource, [ngw_resource]
+                    parent_resource, siblings, ngw_resource
                 )
             elif isinstance(ngw_resource, NGWRasterLayer):
                 try:
@@ -1225,11 +1223,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self._show_unsupported_raster_err()
             elif isinstance(ngw_resource, NGWQGISRasterStyle):
                 try:
-                    parent_resource = index.parent().data(
+                    parent_resource: NGWResource = index.parent().data(
                         QNGWResourceItem.NGWResourceRole
                     )
+                    siblings = parent_resource.get_children()
                     add_resource_as_cog_raster(
-                        parent_resource, [ngw_resource]
+                        parent_resource, siblings, ngw_resource
                     )
                 except UnsupportedRasterTypeException:
                     self._show_unsupported_raster_err()
