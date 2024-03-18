@@ -3,10 +3,7 @@ from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Union
 
-from qgis.core import QgsApplication, QgsTask
-
-from .ng_connect_settings import NgConnectSettings
-from .utils import log_to_qgis
+from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 
 class NgConnectCacheManager:
@@ -127,27 +124,3 @@ class NgConnectCacheManager:
 
         if not any(path.iterdir()):
             path.rmdir()
-
-
-class PurgeNgConnectCacheTask(QgsTask):
-    def __init__(self):
-        description = QgsApplication.translate(
-            "NgConnectPlugin",
-            "Clearing cache",
-        )
-        super().__init__(description, QgsTask.Flags())
-
-    def run(self) -> bool:
-        try:
-            cache_manager = NgConnectCacheManager()
-            cache_manager.purge_cache()
-        except Exception as error:
-            self.error = error
-            return False
-
-        return True
-
-    def finished(self, successful: bool):
-        if successful:
-            return
-        log_to_qgis(f"An error occured while clearing cache: {self.error}")

@@ -20,16 +20,19 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from . import utils
-from .ng_connect_cache_manager import NgConnectCacheManager
-from .ng_connect_dock import NgConnectDock
-from .ng_connect_settings import NgConnectSettings
-from .ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from .ngw_api.utils import setDebugEnabled
-from .ngw_connection.ngw_connection import NgwConnection
-from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
-from .ngw_connection.ngw_connections_widget import NgwConnectionsWidget
-from .widgets.labeled_slider import LabeledSlider
+from nextgis_connect import utils
+from nextgis_connect.ng_connect_dock import NgConnectDock
+from nextgis_connect.ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
+from nextgis_connect.ngw_api.utils import setDebugEnabled
+from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
+)
+from nextgis_connect.ngw_connection.ngw_connections_widget import (
+    NgwConnectionsWidget,
+)
+from nextgis_connect.settings import NgConnectCacheManager, NgConnectSettings
+from nextgis_connect.widgets.labeled_slider import LabeledSlider
 
 
 class NgConnectOptionsPageWidget(QgsOptionsPageWidget):

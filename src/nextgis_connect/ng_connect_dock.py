@@ -19,6 +19,7 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 import html
 import json
 import os
@@ -74,21 +75,21 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
+from nextgis_connect.settings import NgConnectSettings
+
 from . import utils
 from .action_style_import_or_update import ActionStyleImportUpdate
 from .dialog_choose_style import NGWLayerStyleChooserDialog
 from .dialog_metadata import MetadataDialog
 from .exceptions_list_dialog import ExceptionsListDialog
-from .ng_connect_cache_manager import NgConnectCacheManager
-from .ng_connect_settings import NgConnectSettings
 from .ngw_api.core import (
     NGWError,
     NGWGroupResource,
     NGWMapServerStyle,
-    NGWQGISStyle,
     NGWOgcfService,
     NGWPostgisLayer,
     NGWQGISRasterStyle,
+    NGWQGISStyle,
     NGWQGISVectorStyle,
     NGWRasterLayer,
     NGWRasterStyle,
@@ -105,11 +106,10 @@ from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from .ngw_api.qgis.resource_to_map import (
     UnsupportedRasterTypeException,
     _add_aliases,
+    _add_all_styles_to_layer,
     _add_lookup_tables,
-    _apply_style,
     add_ogcf_resource,
     add_resource_as_cog_raster,
-    add_resource_as_cog_raster_with_style,
     add_resource_as_wfs_layers,
 )
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
@@ -120,23 +120,10 @@ from .ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobServerRequestError,
     JobWarning,
 )
-
-from .ngw_api.qgis.resource_to_map import (
-    add_resource_as_cog_raster,
-    add_resource_as_geojson,
-    add_resource_as_wfs_layers,
-    UnsupportedRasterTypeException,
-    add_ogcf_resource,
-    add_resource_as_cog_raster,
-    add_resource_as_wfs_layers, UnsupportedRasterTypeException,
-    _add_aliases, _add_lookup_tables
-)
-from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
-from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-
 from .ngw_api.utils import log, setLogger
 from .ngw_connection.ngw_connection_edit_dialog import NgwConnectionEditDialog
 from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
+from .settings.ng_connect_cache_manager import NgConnectCacheManager
 from .tree_widget import (
     QNGWResourceItem,
     QNGWResourceTreeModel,
@@ -896,7 +883,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.trvResources.unsupported_version_overlay.set_status(
                     self._resource_model.support_status,
                     qgis_utils.pluginMetadata("nextgis_connect", "version"),
-                    ngw_connection.get_version()
+                    ngw_connection.get_version(),
                 )
                 self.trvResources.unsupported_version_overlay.show()
 
@@ -1113,8 +1100,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     )
 
         if resource.type_id == NGWVectorLayer.type_id:
-            # add_resource_as_geojson(resource, style_resources, default_style)
-            self.__add_gpkg_layer(resource, style_resource=style_resource)
+            self.__add_gpkg_layer(resource, style_resources, default_style)
         elif resource.type_id == NGWRasterLayer.type_id:
             add_resource_as_cog_raster(
                 resource, style_resources, default_style
@@ -1127,7 +1113,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         selection_model = self.trvResources.selectionModel()
         if selection_model is None:
-            raise RuntimeError()
+            raise RuntimeError
 
         selected_indexes = selection_model.selectedIndexes()
         self.__preprocess_indexes_list(selected_indexes)
@@ -1207,9 +1193,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         index: QModelIndex,
         insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
     ) -> bool:
-        ngw_resource: NGWResource = index.data(
-            QNGWResourceItem.NGWResourceRole
-        )
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         connection_manager = NgwConnectionsManager()
         connection = connection_manager.connection(ngw_resource.connection_id)
         assert connection is not None
@@ -1217,16 +1201,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if isinstance(ngw_resource, NGWVectorLayer):
                 self._add_with_style(ngw_resource)
             elif isinstance(ngw_resource, NGWQGISVectorStyle):
-                parent_resource: NGWResource = index.parent().data(
+                parent_resource = index.parent().data(
                     QNGWResourceItem.NGWResourceRole
                 )
-                # siblings = parent_resource.get_children()
-                # add_resource_as_geojson(
-                #     parent_resource, siblings, ngw_resource
-                # )
-                self.__add_gpkg_layer(
-                    parent_resource, style_resource=ngw_resource
+                siblings = cast(
+                    List[NGWQGISStyle], parent_resource.get_children()
                 )
+                self.__add_gpkg_layer(parent_resource, siblings, ngw_resource)
             elif isinstance(ngw_resource, NGWRasterLayer):
                 try:
                     self._add_with_style(ngw_resource)
@@ -1919,13 +1900,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self.tr("QML file downloaded"), False, duration=2
                 )
             result = True
-        else:
-            if mes_bar:
-                self.__msg_in_qgis_mes_bar(
-                    self.tr("QML file could not be downloaded"),
-                    True,
-                    Qgis.MessageLevel.Critical,
-                )
+        elif mes_bar:
+            self.__msg_in_qgis_mes_bar(
+                self.tr("QML file could not be downloaded"),
+                True,
+                Qgis.MessageLevel.Critical,
+            )
 
         reply.deleteLater()
 
@@ -2067,7 +2047,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def __add_gpkg_layer(
         self,
         vector_layer: NGWVectorLayer,
-        style_resource: Optional[NGWQGISVectorStyle] = None,
+        children: List[NGWQGISStyle],
+        default_style: Optional[NGWQGISVectorStyle] = None,
     ) -> None:
         cache_manager = NgConnectCacheManager()
         # TODO: set instance id
@@ -2088,10 +2069,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
         qgs_gpkg_layer.dataProvider().setEncoding("UTF-8")  # type: ignore
 
-        if style_resource is not None:
-            _apply_style(style_resource, qgs_gpkg_layer)
+        _add_all_styles_to_layer(qgs_gpkg_layer, children, default_style)
 
-        _add_lookup_tables(qgs_gpkg_layer, vector_layer)
         _add_aliases(qgs_gpkg_layer, vector_layer)
         _add_lookup_tables(qgs_gpkg_layer, vector_layer)
 

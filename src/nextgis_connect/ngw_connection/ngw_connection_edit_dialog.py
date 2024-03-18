@@ -16,7 +16,7 @@ from .ngw_connections_manager import NgwConnectionsManager
 
 HAS_NGSTD = True
 try:
-    import ngstd
+    import ngstd  # noqa: F401
 except ImportError:
     HAS_NGSTD = False
 

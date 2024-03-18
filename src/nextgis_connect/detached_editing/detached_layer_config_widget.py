@@ -49,7 +49,6 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
 
     def apply(self) -> None:
         """Called when changes to the layer need to be made"""
-        pass
 
     def focusDefaultWidget(self) -> None:
         return self.synchronizeButton.setFocus()

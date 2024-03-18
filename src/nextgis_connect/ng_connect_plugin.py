@@ -19,13 +19,15 @@
  *                                                                         *
  ***************************************************************************/
 """
+
 from pathlib import Path
 
-from qgis.core import Qgis, QgsApplication, QgsMapLayerType
+from qgis.core import Qgis, QgsApplication, QgsMapLayerType, QgsTaskManager
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QCoreApplication,
+    QItemSelectionModel,
     Qt,
     QTranslator,
 )
@@ -34,33 +36,37 @@ from qgis.PyQt.QtWidgets import QAction, QToolBar
 
 from nextgis_connect import utils
 from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
-from nextgis_connect.ng_connect_cache_manager import PurgeNgConnectCacheTask
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.ng_connect_settings import NgConnectSettings
-from nextgis_connect.ng_connect_settings_page import (
-    NgConnectOptionsWidgetFactory,
-)
 from nextgis_connect.ngw_api import qgis
 from nextgis_connect.ngw_api.utils import setDebugEnabled
+from nextgis_connect.settings import (
+    NgConnectSettings,
+)
+from nextgis_connect.settings.ng_connect_settings_page import (
+    NgConnectOptionsWidgetFactory,
+)
+from nextgis_connect.tasks.ng_connect_task_manager import NgConnectTaskManager
+from nextgis_connect.tasks.purge_ng_connect_cache_task import (
+    PurgeNgConnectCacheTask,
+)
 
 
 class NgConnectPlugin(NgConnectInterface):
     """NextGIS Connect Plugin"""
 
-    TITLE: str = "NextGIS Connect"
-
     iface: QgisInterface
-    plugin_dir: str
+    plugin_dir: Path
 
     def __init__(self, iface: QgisInterface) -> None:
         self.iface = iface
-        self.plugin_dir = str(Path(__file__).parent)
+        self.plugin_dir = Path(__file__).parent
 
         self.__init_debug()
         self.__init_translator()
 
     def initGui(self) -> None:  # noqa: N802
+        self.__init_task_manager()
         self.__init_detached_editing()
         self.__init_ng_connect_dock()
         self.__init_ng_connect_menus()
@@ -74,6 +80,7 @@ class NgConnectPlugin(NgConnectInterface):
         self.__unload_ng_connect_menus()
         self.__unload_ng_connect_dock()
         self.__unload_detached_editing()
+        self.__unload_task_manger()
 
     @property
     def toolbar(self) -> QToolBar:
@@ -84,9 +91,18 @@ class NgConnectPlugin(NgConnectInterface):
     def model(self) -> QAbstractItemModel:
         return self.__ng_resources_tree_dock._resource_model
 
-    @staticmethod
-    def tr(message: str) -> str:
-        return QCoreApplication.translate("NgConnectPlugin", message)
+    @property
+    def selection_model(self) -> QItemSelectionModel:
+        return None  # type: ignore
+
+    @property
+    def task_manager(self) -> QgsTaskManager:
+        assert self.__task_manager is not None
+        return self.__task_manager
+
+    @classmethod
+    def tr(cls, message: str) -> str:
+        return QCoreApplication.translate(cls.TRANSLATE_CONTEXT, message)
 
     def __init_debug(self) -> None:
         # Enable debug mode.
@@ -118,6 +134,13 @@ class NgConnectPlugin(NgConnectInterface):
             Path(qgis.__file__).parent / "i18n" / f"qgis_ngw_api_{locale}.qm",
         )
 
+    def __init_task_manager(self) -> None:
+        self.__task_manager = NgConnectTaskManager()
+
+    def __unload_task_manger(self) -> None:
+        assert self.__task_manager is not None
+        self.__task_manager = None
+
     def __init_detached_editing(self) -> None:
         self.__detached_editing = DetachedEditing()
 
@@ -128,7 +151,9 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __init_ng_connect_dock(self) -> None:
         # Dock tree panel
-        self.__ng_resources_tree_dock = NgConnectDock(self.TITLE, self.iface)
+        self.__ng_resources_tree_dock = NgConnectDock(
+            self.PLUGIN_NAME, self.iface
+        )
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea,
             self.__ng_resources_tree_dock,
@@ -145,7 +170,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __init_ng_connect_menus(self) -> None:
         # Show panel action
-        self.__ng_connect_toolbar = self.iface.addToolBar(self.TITLE)
+        self.__ng_connect_toolbar = self.iface.addToolBar(self.PLUGIN_NAME)
         assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.setObjectName("NgConnectToolBar")
         self.__ng_connect_toolbar.setToolTip(
@@ -153,7 +178,7 @@ class NgConnectPlugin(NgConnectInterface):
         )
 
         self.__show_ngw_resources_tree_action = QAction(
-            QIcon(self.plugin_dir + "/icon.png"),
+            QIcon(str(self.plugin_dir / "icon.png")),
             self.tr("Show/Hide NextGIS Connect panel"),
             self.iface.mainWindow(),
         )
@@ -176,14 +201,14 @@ class NgConnectPlugin(NgConnectInterface):
 
         # Add action to Plugins
         self.iface.addPluginToMenu(
-            self.TITLE,
+            self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
 
         # Add adction to Help > Plugins
         self.__show_help_action = QAction(
-            QIcon(self.plugin_dir + "/icon.png"),
-            self.TITLE,
+            QIcon(str(self.plugin_dir / "icon.png")),
+            self.PLUGIN_NAME,
             self.iface.mainWindow(),
         )
         self.__show_help_action.triggered.connect(utils.open_plugin_help)
@@ -193,7 +218,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __unload_ng_connect_menus(self) -> None:
         self.iface.removePluginMenu(
-            self.TITLE,
+            self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
 
@@ -228,7 +253,7 @@ class NgConnectPlugin(NgConnectInterface):
             for layer_type in layer_types:
                 self.iface.addCustomActionForLayerType(
                     action,
-                    self.TITLE,
+                    self.PLUGIN_NAME,
                     layer_type,
                     allLayers=True,
                 )

@@ -24,11 +24,10 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from .ng_connect_settings import NgConnectSettings
+from nextgis_connect.ng_connect_interface import NgConnectInterface
+from nextgis_connect.settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
-
-PLUGIN_NAME = "NextGIS Connect"
 
 
 class SupportStatus(Enum):
@@ -40,12 +39,14 @@ class SupportStatus(Enum):
 def log_to_qgis(
     message: str, level: Qgis.MessageLevel = Qgis.MessageLevel.Info
 ) -> None:
-    QgsMessageLog.logMessage(message, tag=PLUGIN_NAME, level=level)
+    QgsMessageLog.logMessage(
+        message, tag=NgConnectInterface.PLUGIN_NAME, level=level
+    )
 
 
 def show_error_message(msg):
     iface.messageBar().pushMessage(
-        PLUGIN_NAME, msg, level=Qgis.MessageLevel.Critical
+        NgConnectInterface.PLUGIN_NAME, msg, level=Qgis.MessageLevel.Critical
     )
 
 

@@ -27,14 +27,14 @@ class NgwConnection:
         if HAS_NGSTD and self.auth_config_id == "NextGIS":
             ngaccess = NGAccess.instance()
             if not ngaccess.isUserAuthorized():
-                raise Exception()
+                raise Exception
 
             header_string: str = NGRequest.getAuthHeader(ngaccess.endPoint())
             if not header_string:
-                raise Exception()
+                raise Exception
 
             name, value = header_string.split(": ")
-            request.setRawHeader(name.encode("UTF-8"), value.encode("UTF-8"))
+            request.setRawHeader(name.encode(), value.encode())
 
             is_succeeded = True
         else:

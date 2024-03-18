@@ -16,9 +16,10 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.utils import SupportStatus
+
 from ..ngw_connection.ngw_connections_manager import NgwConnectionsManager
 from ..tree_widget.item import QNGWResourceItem
-from ..utils import SupportStatus
 
 __all__ = ["QNGWResourceTreeView"]
 

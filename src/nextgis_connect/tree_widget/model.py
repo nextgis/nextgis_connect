@@ -14,7 +14,6 @@ from qgis.PyQt.QtCore import (
 
 from .. import utils
 from ..detached_editing.detached_layer_factory import DetachedLayerFactory
-from ..ng_connect_cache_manager import NgConnectCacheManager
 from ..ngw_api.core import (
     NGWGroupResource,
     NGWResource,
@@ -45,6 +44,7 @@ from ..ngw_api.qt.qt_ngw_resource_model_job import (
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
+from nextgis_connect.settings.ng_connect_cache_manager import NgConnectCacheManager
 from .item import QModelItem, QNGWResourceItem
 
 __all__ = ["QNGWResourceTreeModel"]
@@ -524,7 +524,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             self.endInsertRows()
         elif len(indexes) > 0 and job_result.main_resource_id == -1:
             job.model_response.done.emit(QModelIndex())
-            pass
 
         for ngw_resource in job_result.edited_resources:
             if ngw_resource.common.parent is None:
