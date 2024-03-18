@@ -131,8 +131,8 @@ class DetachedLayer(QObject):
                 cursor.execute(
                     """
                     SELECT
-                        connection_id, resource_id, synchronization_date,
-                        auto_synchronization
+                        connection_id, resource_id, sync_date,
+                        is_auto_sync_enabled
                     FROM ngw_metadata
                 """
                 )

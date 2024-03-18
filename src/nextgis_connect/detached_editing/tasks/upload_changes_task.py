@@ -62,7 +62,7 @@ class UploadChangesTask(QgsTask):
         now = datetime.now()
         sync_date = now.isoformat()
         cursor.execute(
-            f"UPDATE ngw_metadata SET synchronization_date='{sync_date}'"
+            f"UPDATE ngw_metadata SET sync_date='{sync_date}'"
         )
 
     def __upload_changes(
@@ -119,7 +119,7 @@ class UploadChangesTask(QgsTask):
         cursor.executescript(
             f"""
             BEGIN TRANSACTION;
-            INSERT INTO ngw_features_id (fid, ngw_id) VALUES {values};
+            INSERT INTO ngw_features_metadata (fid, ngw_id) VALUES {values};
             DELETE FROM ngw_added_features;
             COMMIT;
         """
@@ -135,7 +135,7 @@ class UploadChangesTask(QgsTask):
             {"id": row[0]}
             for row in cursor.execute(
                 """
-                SELECT ngw_id from ngw_features_id fids
+                SELECT ngw_id from ngw_features_metadata fids
                 RIGHT JOIN ngw_removed_features removed
                     ON fids.fid = removed.fid
             """
@@ -150,7 +150,7 @@ class UploadChangesTask(QgsTask):
         cursor.executescript(
             """
             BEGIN TRANSACTION;
-            DELETE FROM ngw_features_id
+            DELETE FROM ngw_features_metadata
                 WHERE fid in (SELECT fid FROM ngw_removed_features);
             DELETE FROM ngw_removed_features;
             COMMIT;
@@ -202,7 +202,7 @@ class UploadChangesTask(QgsTask):
             fid: ngw_id
             for fid, ngw_id in cursor.execute(
                 f"""
-                SELECT fid, ngw_id FROM ngw_features_id
+                SELECT fid, ngw_id FROM ngw_features_metadata
                 WHERE fid IN ({all_updated_fids_joined})
             """
             )

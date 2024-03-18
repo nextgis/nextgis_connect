@@ -184,7 +184,7 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
             ngw_resource.export(str(gpkg_path))
-            detached_factory.create(ngw_resource, str(gpkg_path))
+            detached_factory.update_container(ngw_resource, str(gpkg_path))
 
 
 class QNGWResourceTreeModelBase(QAbstractItemModel):
