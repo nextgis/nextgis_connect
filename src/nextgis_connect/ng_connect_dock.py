@@ -36,7 +36,6 @@ from qgis.core import (
     QgsLayerTree,
     QgsLayerTreeLayer,
     QgsLayerTreeRegistryBridge,
-    QgsMessageLog,
     QgsNetworkAccessManager,
     QgsProject,
     QgsRasterLayer,
@@ -75,6 +74,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
+from nextgis_connect.logging import logger
 from nextgis_connect.settings import NgConnectSettings
 
 from . import utils
@@ -120,7 +120,6 @@ from .ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobServerRequestError,
     JobWarning,
 )
-from .ngw_api.utils import log, setLogger
 from .ngw_connection.ngw_connection_edit_dialog import NgwConnectionEditDialog
 from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
 from .settings.ng_connect_cache_manager import NgConnectCacheManager
@@ -144,17 +143,6 @@ FORM_CLASS, _ = uic.loadUiType(
 )
 
 ICONS_PATH = os.path.join(this_dir, "icons/")
-
-
-def qgisLog(msg, level=Qgis.MessageLevel.Info):
-    QgsMessageLog.logMessage(msg, "NextGIS Connect", level)
-
-
-def ngwApiLog(msg, level=Qgis.MessageLevel.Info):
-    QgsMessageLog.logMessage(msg, "NGW API", level)
-
-
-setLogger(ngwApiLog)
 
 
 @dataclass
@@ -632,7 +620,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_connection = connections_manager.current_connection
         assert current_connection
 
-        ngwApiLog("Exception name: " + exception.__class__.__name__)
+        logger.debug("Exception name: " + exception.__class__.__name__)
 
         if exception is JobAuthorizationError:
             self.try_check_https = False
@@ -669,7 +657,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         "http://", "https://"
                     )
                     connections_manager.save(current_connection)
-                    ngwApiLog(
+                    logger.debug(
                         'Meet "http://", ".nextgis.com" connection error at '
                         "very first time using this web gis connection. Trying"
                         ' to reconnect with "https://"'
@@ -706,7 +694,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             server_url = current_connection.url
             current_connection.url = server_url.replace("https://", "http://")
             connections_manager.save(current_connection)
-            ngwApiLog(
+            logger.debug(
                 'Failed to reconnect with "https://". Return "http://" back'
             )
             self.reinit_tree(force=True)
@@ -722,7 +710,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__msg_in_qgis_mes_bar(msg, msg_ext is not None, level=level)
 
         if msg is not None and msg_ext is not None:
-            qgisLog(msg + "\n" + msg_ext)
+            logger.info(msg + "\n" + msg_ext)
 
     def __get_model_exception_description(self, job, exception):
         msg = None
@@ -799,7 +787,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __modelJobFinished(self, job_id, job_uuid):
         self.jobs_count += 1  # note: __modelJobFinished will be triggered even if error/warning occured during job execution
-        ngwApiLog(f"Jobs finished for current connection: {self.jobs_count}")
+        logger.debug(
+            f"Jobs finished for current connection: {self.jobs_count}"
+        )
 
         if job_id == "NGWRootResourcesLoader":
             self.unblock_gui()
@@ -1284,7 +1274,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.iface.messageBar().pushMessage(
                 self.tr("Error"), error_mes, level=Qgis.MessageLevel.Critical
             )
-            qgisLog(error_mes, level=Qgis.MessageLevel.Critical)
+            logger.exception(error_mes)
             return False
 
         return True
@@ -1485,7 +1475,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     level=Qgis.MessageLevel.Critical,
                 )
                 self.trvResources.ngw_job_block_overlay.hide()
-                ngwApiLog(error_mes, level=Qgis.MessageLevel.Critical)
+                logger.exception(error_mes)
 
             except Exception as ex:
                 error_mes = str(traceback.format_exc())
@@ -1493,7 +1483,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self.tr("Error"), ex, level=Qgis.MessageLevel.Critical
                 )
                 self.trvResources.ngw_job_block_overlay.hide()
-                ngwApiLog(error_mes, level=Qgis.MessageLevel.Critical)
+                logger.exception(error_mes)
 
             self.unblock_gui()
 
@@ -1548,14 +1538,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         def write_chuck():
             if reply.error():
-                raise Exception(
+                raise RuntimeError(
                     "{} {}".format(
                         self.tr("Failed to download raster source:"),
                         reply.errorString(),
                     )
                 )
             data = reply.readAll()
-            log(f"Write chunk! Size: {data.size()}")
+            logger.debug(f"Write chunk! Size: {data.size()}")
             raster_file.write(data)
 
         req = QNetworkRequest(QUrl(url))
@@ -1594,7 +1584,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         """
 
         def qml_callback(total_size, readed_size):
-            ngwApiLog(
+            logger.debug(
                 self.tr('Style for "{}" - Upload ({}%)').format(
                     ngw_src.common.display_name, readed_size * 100 / total_size
                 )
@@ -1622,9 +1612,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
             if not qgs_layer.isValid():
                 raise Exception(
-                    'Layer "{}" can\'t be added to the map!'.format(
-                        ngw_src.common.display_name
-                    )
+                    f'Layer "{ngw_src.common.display_name}" can\'t be added to the map!'
                 )
             qgs_layer.dataProvider().setEncoding("UTF-8")
 
@@ -1634,11 +1622,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 raster_file.fileName(), ngw_src.common.display_name, "gdal"
             )
             if not qgs_layer.isValid():
-                log("Failed to add raster layer to QGIS")
+                logger.error("Failed to add raster layer to QGIS")
                 raise Exception(
-                    'Layer "{}" can\'t be added to the map!'.format(
-                        ngw_src.common.display_name
-                    )
+                    f'Layer "{ngw_src.common.display_name}" can\'t be added to the map!'
                 )
         else:
             raise Exception("Wrong layer type! Type id: {}" % ngw_src.type_id)
@@ -1707,7 +1693,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     error_mes,
                     level=Qgis.MessageLevel.Critical,
                 )
-                qgisLog(error_mes, level=Qgis.MessageLevel.Critical)
+                logger.exception(error_mes)
 
             # unblock gui
             self.trvResources.ngw_job_block_overlay.hide()
@@ -1888,11 +1874,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ev_loop.exec_()
 
         if reply.error():
-            ngwApiLog(f"Failed to download QML: {reply.errorString()}")
+            logger.debug(f"Failed to download QML: {reply.errorString()}")
 
         result = False
         if self.dwn_qml_file.open(QIODevice.OpenModeFlag.WriteOnly):
-            ngwApiLog(f"dwn_qml_file: {self.dwn_qml_file.fileName()}")
+            logger.debug(f"dwn_qml_file: {self.dwn_qml_file.fileName()}")
             self.dwn_qml_file.write(reply.readAll())
             self.dwn_qml_file.close()
             if mes_bar:
@@ -2063,9 +2049,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         if not qgs_gpkg_layer.isValid():
             raise Exception(
-                'Layer "{}" can\'t be added to the map!'.format(
-                    vector_layer.common.display_name
-                )
+                f'Layer "{vector_layer.common.display_name}" can\'t be added to the map!'
             )
         qgs_gpkg_layer.dataProvider().setEncoding("UTF-8")  # type: ignore
 

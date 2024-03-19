@@ -1,4 +1,4 @@
-from nextgis_connect import utils
+from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectCacheManager
 from nextgis_connect.tasks.ng_connect_task import NgConnectTask
@@ -27,6 +27,6 @@ class PurgeNgConnectCacheTask(NgConnectTask):
         if successful:
             return
 
-        utils.log_to_qgis(
+        logger.error(
             f"An error occured while clearing cache: {self.error}",
         )

@@ -4,9 +4,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List
 
+from nextgis_connect.logging import logger
 from qgis.core import QgsMapLayer, QgsVectorLayer
-
-from ..utils import log_to_qgis
 
 
 class DetachedLayerState(str, Enum):
@@ -48,8 +47,8 @@ def is_ngw_container(layer: QgsMapLayer) -> bool:
                     """
                     )
                     return cursor.fetchone()[0] == 1
-        except Exception as error:
-            log_to_qgis(str(error))
+        except Exception:
+            logger.exception("Could not get the layer metadata")
 
         return False
 

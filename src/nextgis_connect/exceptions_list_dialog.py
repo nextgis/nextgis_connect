@@ -1,4 +1,3 @@
-from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QPixmap
 from qgis.PyQt.QtWidgets import (
@@ -11,10 +10,6 @@ from qgis.PyQt.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-
-def qgisLog(msg, level=Qgis.MessageLevel.Info):
-    QgsMessageLog.logMessage(msg, "NextGIS Connect", level)
 
 
 class ExceptionsListDialog(QDialog):

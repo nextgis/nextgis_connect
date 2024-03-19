@@ -20,7 +20,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from nextgis_connect import utils
+from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from nextgis_connect.ngw_api.utils import setDebugEnabled
@@ -63,13 +63,13 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             widget = uic.loadUi(
                 os.path.join(plugin_path, "settings_dialog_base.ui")
             )  # type: ignore
-        except FileNotFoundError:
+        except FileNotFoundError as error:
             message = self.tr("Can't load settings UI")
-            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
-            raise RuntimeError(message)
+            logger.exception(message)
+            raise RuntimeError(message) from error
         if widget is None:
             message = self.tr("Errors in settings UI")
-            utils.log_to_qgis(message, Qgis.MessageLevel.Critical)
+            logger.error(message)
             raise RuntimeError(message)
 
         self.__widget = widget
@@ -141,8 +141,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         settings.is_debug_enabled = new_debug_enabled
         if old_debug_enabled != new_debug_enabled:
             debug_state = "enabled" if new_debug_enabled else "disabled"
-            utils.log_to_qgis(f"Debug messages are now {debug_state}")
-            # TODO refactoring
+            logger.info(f"Debug messages are now {debug_state}")
             setDebugEnabled(new_debug_enabled)
 
     def __del__(self):
@@ -382,9 +381,6 @@ class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     ) -> Optional[QgsOptionsPageWidget]:
         try:
             return NgConnectOptionsPageWidget(parent)
-        except Exception as error:
-            utils.log_to_qgis(
-                "Settings dialog was crashed", Qgis.MessageLevel.Critical
-            )
-            utils.log_to_qgis(str(error), Qgis.MessageLevel.Critical)
+        except Exception:
+            logger.exception("Settings dialog was crashed")
             return NgConnectOptionsErrorPageWidget(parent)

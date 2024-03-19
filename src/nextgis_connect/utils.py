@@ -7,7 +7,6 @@ from typing import Tuple, Union, cast
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsMessageLog,
     QgsProject,
     QgsProviderRegistry,
     QgsRasterLayer,
@@ -34,14 +33,6 @@ class SupportStatus(Enum):
     OLD_NGW = auto()
     OLD_CONNECT = auto()
     SUPPORTED = auto()
-
-
-def log_to_qgis(
-    message: str, level: Qgis.MessageLevel = Qgis.MessageLevel.Info
-) -> None:
-    QgsMessageLog.logMessage(
-        message, tag=NgConnectInterface.PLUGIN_NAME, level=level
-    )
 
 
 def show_error_message(msg):

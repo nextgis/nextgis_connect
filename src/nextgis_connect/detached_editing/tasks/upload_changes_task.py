@@ -61,9 +61,7 @@ class UploadChangesTask(QgsTask):
     def __update_sync_date(self, cursor: sqlite3.Cursor) -> None:
         now = datetime.now()
         sync_date = now.isoformat()
-        cursor.execute(
-            f"UPDATE ngw_metadata SET sync_date='{sync_date}'"
-        )
+        cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")
 
     def __upload_changes(
         self, layer_metadata: DetachedLayerMetaData, cursor: sqlite3.Cursor

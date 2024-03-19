@@ -36,6 +36,7 @@ from qgis.PyQt.QtWidgets import QAction, QToolBar
 
 from nextgis_connect import utils
 from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
+from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api import qgis
@@ -106,11 +107,10 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __init_debug(self) -> None:
         # Enable debug mode.
-        debug_mode = NgConnectSettings().is_debug_enabled
-        setDebugEnabled(debug_mode)
-        utils.log_to_qgis(
-            f'Debug messages are {"enabled" if debug_mode else "disabled"}',
-        )
+        is_debug_enabled = NgConnectSettings().is_debug_enabled
+        setDebugEnabled(is_debug_enabled)
+        if is_debug_enabled:
+            logger.warning("Debug messages are enabled")
 
     def __init_translator(self) -> None:
         # initialize locale

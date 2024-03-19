@@ -12,6 +12,8 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
 )
 
+from nextgis_connect.settings import NgConnectCacheManager
+
 from .. import utils
 from ..detached_editing.detached_layer_factory import DetachedLayerFactory
 from ..ngw_api.core import (
@@ -44,7 +46,6 @@ from ..ngw_api.qt.qt_ngw_resource_model_job import (
 from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
-from nextgis_connect.settings.ng_connect_cache_manager import NgConnectCacheManager
 from .item import QModelItem, QNGWResourceItem
 
 __all__ = ["QNGWResourceTreeModel"]
