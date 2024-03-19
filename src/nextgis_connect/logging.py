@@ -36,7 +36,7 @@ class QgisLoggerHandler(logging.Handler):
         message = self.format(record)
         message_log = QgsApplication.messageLog()
         if record.levelno == logging.DEBUG:
-            message = f"[DEBUG] {message}"
+            message = f"<i>[DEBUG]</i>&nbsp;&nbsp;&nbsp;&nbsp;{message}"
         assert message_log is not None
         message_log.logMessage(message, record.name, level)
 
