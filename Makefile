@@ -1,8 +1,8 @@
-SRC_FILES = `find . ! -path "./src/ngw_api/*" \( -name "*.ui" -o -name "*.py" \) | tr "\n" " "`
-SRC2_FILES = `find ./src/ngw_api/qgis/ -name "*.ui" -o -name "*.py" | tr "\n" " "`
+SRC_FILES = `find . ! -path "./src/nextgis_connect/ngw_api/*" \( -name "*.ui" -o -name "*.py" \) | tr "\n" " "`
+SRC2_FILES = `find ./src/nextgis_connect/ngw_api/qgis/ -name "*.ui" -o -name "*.py" | tr "\n" " "`
 
-TS_FILE = src/i18n/*.ts
-TS2_FILE = src/ngw_api/qgis/i18n/*.ts
+TS_FILE = src/nextgis_connect/i18n/*.ts
+TS2_FILE = src/nextgis_connect/ngw_api/qgis/i18n/*.ts
 
 BUILD_DIR=/tmp/build_plugin
 PLUGIN_NAME=nextgis_connect
