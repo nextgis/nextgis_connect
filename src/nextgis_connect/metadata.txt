@@ -9,6 +9,8 @@ author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	2.0.0
+		* Ускорена загрузка плагина
 	1.6.2
 		* Caching resources operation made blocking
 	1.6.1
