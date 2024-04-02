@@ -1,15 +1,19 @@
 import logging
 from types import MethodType
-from typing import Protocol
+from typing import List, Protocol
 
 from qgis.core import Qgis, QgsApplication
 
 from nextgis_connect.ng_connect_interface import NgConnectInterface
+from nextgis_connect.settings import NgConnectSettings
 
 
 class QgisLoggerProtocol(Protocol):
+    handlers: List[logging.Handler]
+
     def setLevel(self, level: int) -> None: ...  # noqa: N802
     def addHandler(self, handler: logging.Handler) -> None: ...  # noqa: N802
+    def removeHandler(self, handler: logging.Handler) -> None: ...  # noqa: N802
 
     def debug(self, message: str, *args, **kwargs) -> None: ...
     def info(self, message: str, *args, **kwargs) -> None: ...
@@ -36,7 +40,7 @@ class QgisLoggerHandler(logging.Handler):
         message = self.format(record)
         message_log = QgsApplication.messageLog()
         if record.levelno == logging.DEBUG:
-            message = f"<i>[DEBUG]</i>&nbsp;&nbsp;&nbsp;&nbsp;{message}"
+            message = f"<i>[DEBUG]&nbsp;&nbsp;&nbsp;&nbsp;{message}</i>"
         assert message_log is not None
         message_log.logMessage(message, record.name, level)
 
@@ -53,8 +57,37 @@ class QgisLoggerHandler(logging.Handler):
         return Qgis.MessageLevel.NoLevel
 
 
-logger: QgisLoggerProtocol = logging.getLogger(NgConnectInterface.PLUGIN_NAME)  # type: ignore
-logger.setLevel(logging.DEBUG)
-logger.success = MethodType(_log_success, logger)
-handler = QgisLoggerHandler()
-logger.addHandler(handler)
+def init_logger() -> QgisLoggerProtocol:
+    logger: QgisLoggerProtocol = logging.getLogger(
+        NgConnectInterface.PLUGIN_NAME
+    )  # type: ignore
+    logger.success = MethodType(_log_success, logger)
+
+    handler = QgisLoggerHandler()
+    logger.addHandler(handler)
+
+    is_debug_enabled = NgConnectSettings().is_debug_enabled
+    logger.setLevel(logging.DEBUG if is_debug_enabled else logging.INFO)
+    if is_debug_enabled:
+        logger.warning("Debug messages are enabled")
+
+    return logger
+
+
+def update_level() -> None:
+    is_debug_enabled = NgConnectSettings().is_debug_enabled
+    logger.setLevel(logging.DEBUG if is_debug_enabled else logging.INFO)
+
+
+def unload_logger():
+    handlers = logger.handlers.copy()
+    for handler in handlers:
+        logger.removeHandler(handler)
+        handler.close()
+
+    del logger.success
+
+    logger.setLevel(logging.NOTSET)
+
+
+logger = init_logger()

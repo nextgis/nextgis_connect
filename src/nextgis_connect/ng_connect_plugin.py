@@ -21,8 +21,13 @@
 """
 
 from pathlib import Path
+from typing import Optional
 
-from qgis.core import Qgis, QgsApplication, QgsMapLayerType, QgsTaskManager
+from qgis.core import (
+    QgsApplication,
+    QgsRuntimeProfiler,
+    QgsTaskManager,
+)
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
@@ -35,15 +40,12 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QToolBar
 
 from nextgis_connect import utils
-from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
-from nextgis_connect.logging import logger
+from nextgis_connect.compat import LayerType
+from nextgis_connect.detached_editing import DetachedEditing
+from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.ngw_api import qgis
-from nextgis_connect.ngw_api.utils import setDebugEnabled
-from nextgis_connect.settings import (
-    NgConnectSettings,
-)
+from nextgis_connect.ngw_api import qgis as qgis_ngw_api
 from nextgis_connect.settings.ng_connect_settings_page import (
     NgConnectOptionsWidgetFactory,
 )
@@ -63,25 +65,44 @@ class NgConnectPlugin(NgConnectInterface):
         self.iface = iface
         self.plugin_dir = Path(__file__).parent
 
-        self.__init_debug()
         self.__init_translator()
 
+        logger.debug("<b>Plugin object created</b>")
+
     def initGui(self) -> None:  # noqa: N802
-        self.__init_task_manager()
-        self.__init_detached_editing()
-        self.__init_ng_connect_dock()
-        self.__init_ng_connect_menus()
-        self.__init_ng_layer_actions()
-        self.__init_ng_connect_settings_page()
-        self.__init_cache_purging()
+        with QgsRuntimeProfiler.profile("Interface initialization"):  # type: ignore
+            logger.debug("<b>Start interface initialization</b>")
+
+            with QgsRuntimeProfiler.profile("Task manager initialization"):  # type: ignore
+                self.__init_task_manager()
+            with QgsRuntimeProfiler.profile("Detached layers initialization"):  # type: ignore
+                self.__init_detached_editing()
+            with QgsRuntimeProfiler.profile("Dock widget initialization"):  # type: ignore
+                self.__init_ng_connect_dock()
+            with QgsRuntimeProfiler.profile("Menus initialization"):  # type: ignore
+                self.__init_ng_connect_menus()
+            with QgsRuntimeProfiler.profile("Actions initialization"):  # type: ignore
+                self.__init_ng_layer_actions()
+            with QgsRuntimeProfiler.profile("Settings initialization"):  # type: ignore
+                self.__init_ng_connect_settings_page()
+            with QgsRuntimeProfiler.profile("Cache initialization"):  # type: ignore
+                self.__init_cache_purging()
+
+            logger.debug("<b>End interface initialization</b>")
 
     def unload(self) -> None:
+        logger.debug("<b>Start plugin unload</b>")
+
         self.__unload_ng_connect_settings_page()
         self.__unload_ng_layer_actions()
         self.__unload_ng_connect_menus()
         self.__unload_ng_connect_dock()
         self.__unload_detached_editing()
         self.__unload_task_manger()
+
+        logger.debug("<b>End plugin unload</b>")
+
+        unload_logger()
 
     @property
     def toolbar(self) -> QToolBar:
@@ -90,7 +111,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     @property
     def model(self) -> QAbstractItemModel:
-        return self.__ng_resources_tree_dock._resource_model
+        return self.__ng_resources_tree_dock.resource_model
 
     @property
     def selection_model(self) -> QItemSelectionModel:
@@ -101,16 +122,19 @@ class NgConnectPlugin(NgConnectInterface):
         assert self.__task_manager is not None
         return self.__task_manager
 
-    @classmethod
-    def tr(cls, message: str) -> str:
-        return QCoreApplication.translate(cls.TRANSLATE_CONTEXT, message)
+    def update_layers(self) -> None:
+        assert self.__detached_editing is not None
+        self.__detached_editing.update_layers()
 
-    def __init_debug(self) -> None:
-        # Enable debug mode.
-        is_debug_enabled = NgConnectSettings().is_debug_enabled
-        setDebugEnabled(is_debug_enabled)
-        if is_debug_enabled:
-            logger.warning("Debug messages are enabled")
+    def tr(
+        self,
+        source_text: str,
+        disambiguation: Optional[str] = None,
+        n: int = -1,
+    ) -> str:
+        return QgsApplication.translate(
+            self.TRANSLATE_CONTEXT, source_text, disambiguation, n
+        )
 
     def __init_translator(self) -> None:
         # initialize locale
@@ -131,23 +155,32 @@ class NgConnectPlugin(NgConnectInterface):
             Path(self.plugin_dir) / "i18n" / f"nextgis_connect_{locale}.qm",
         )
         add_translator(
-            Path(qgis.__file__).parent / "i18n" / f"qgis_ngw_api_{locale}.qm",
+            Path(qgis_ngw_api.__file__).parent
+            / "i18n"
+            / f"qgis_ngw_api_{locale}.qm",
         )
 
     def __init_task_manager(self) -> None:
         self.__task_manager = NgConnectTaskManager()
+        logger.debug("Task manager initialized")
 
     def __unload_task_manger(self) -> None:
         assert self.__task_manager is not None
         self.__task_manager = None
 
+        logger.debug("Task manager unloaded")
+
     def __init_detached_editing(self) -> None:
         self.__detached_editing = DetachedEditing()
+        logger.debug("Detached editing initialized")
 
     def __unload_detached_editing(self) -> None:
         assert self.__detached_editing is not None
         self.__detached_editing.unload()
+        self.__detached_editing.deleteLater()
         self.__detached_editing = None
+
+        logger.debug("Detached editing unloaded")
 
     def __init_ng_connect_dock(self) -> None:
         # Dock tree panel
@@ -239,18 +272,9 @@ class NgConnectPlugin(NgConnectInterface):
             self.__ng_resources_tree_dock.actionUpdateStyle,
             self.__ng_resources_tree_dock.actionAddStyle,
         ]
-        if Qgis.versionInt() < 33000:  # noqa: PLR2004
-            layer_types = (
-                QgsMapLayerType.VectorLayer,  # type: ignore
-                QgsMapLayerType.RasterLayer,  # type: ignore
-            )
-        else:
-            layer_types = (
-                Qgis.LayerType.Vector,  # type: ignore
-                Qgis.LayerType.Raster,  # type: ignore
-            )
+
         for action in layer_actions:
-            for layer_type in layer_types:
+            for layer_type in (LayerType.Vector, LayerType.Raster):
                 self.iface.addCustomActionForLayerType(
                     action,
                     self.PLUGIN_NAME,

@@ -1,7 +1,7 @@
 import os
 from typing import ClassVar, List, Optional, cast
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsMessageLogNotifyBlocker
 from qgis.gui import (
     QgsMessageBar,
     QgsOptionsPageWidget,
@@ -20,10 +20,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from nextgis_connect.logging import logger
+from nextgis_connect.logging import logger, update_level
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
-from nextgis_connect.ngw_api.utils import setDebugEnabled
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
@@ -136,13 +135,14 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         NgwPluginSettings.set_upload_cog_rasters(
             self.__widget.cogCheckBox.isChecked()
         )
+
         old_debug_enabled = settings.is_debug_enabled
         new_debug_enabled = self.__widget.debugEnabledCheckBox.isChecked()
         settings.is_debug_enabled = new_debug_enabled
         if old_debug_enabled != new_debug_enabled:
             debug_state = "enabled" if new_debug_enabled else "disabled"
+            update_level()
             logger.info(f"Debug messages are now {debug_state}")
-            setDebugEnabled(new_debug_enabled)
 
     def __del__(self):
         # Workaround
@@ -322,14 +322,20 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__widget.cacheDirectoryLineEdit.setText("")
 
     def __clear_cache(self) -> None:
+        log_blocker = QgsMessageLogNotifyBlocker()
+
         cache_manager = NgConnectCacheManager()
         cache_manager.clear_cache()
+        message = self.tr("Cache has been successfully cleared")
         cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
-            self.tr("Cache has been successfully cleared"),
+            message,
             Qgis.MessageLevel.Success,
         )
+        logger.success(message)
         self.__widget.clearCacheButton.setText(self.tr("Clear Cache"))
         self.__widget.clearCacheButton.setEnabled(False)
+
+        del log_blocker
 
     def format_size(self, size_in_kb):
         units = [

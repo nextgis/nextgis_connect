@@ -12,17 +12,18 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
 )
 
-from nextgis_connect.settings import NgConnectCacheManager
-
-from .. import utils
-from ..detached_editing.detached_layer_factory import DetachedLayerFactory
-from ..ngw_api.core import (
+from nextgis_connect import utils
+from nextgis_connect.detached_editing.detached_layer_factory import (
+    DetachedLayerFactory,
+)
+from nextgis_connect.logging import logger
+from nextgis_connect.ngw_api.core import (
     NGWGroupResource,
     NGWResource,
     NGWVectorLayer,
 )
-from ..ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
-from ..ngw_api.qgis.ngw_resource_model_4qgis import (
+from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
+from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
     NGWCreateWMSForVector,
     NGWUpdateVectorLayer,
@@ -31,7 +32,7 @@ from ..ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISStyleAdder,
     QGISStyleUpdater,
 )
-from ..ngw_api.qt.qt_ngw_resource_model_job import (
+from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle,
     NGWCreateOgcfService,
     NGWCreateWfsService,
@@ -43,9 +44,11 @@ from ..ngw_api.qt.qt_ngw_resource_model_job import (
     NGWResourceUpdater,
     NGWRootResourcesLoader,
 )
-from ..ngw_api.qt.qt_ngw_resource_model_job_error import (
+from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
+from nextgis_connect.settings import NgConnectCacheManager
+
 from .item import QModelItem, QNGWResourceItem
 
 __all__ = ["QNGWResourceTreeModel"]
@@ -154,7 +157,7 @@ class NGWResourcesModelJob(QObject):
         self.finished.emit()
 
 
-class NgwCacheVectorLayers(NGWResourceModelJob):
+class NgwCreateVectorLayersStubs(NGWResourceModelJob):
     def __init__(
         self,
         ngw_resources: Union[NGWVectorLayer, List[NGWVectorLayer]],
@@ -178,14 +181,12 @@ class NgwCacheVectorLayers(NGWResourceModelJob):
             name = ngw_resource.common.display_name
             progress = "" if total == "1" else f" ({i + 1}/{total})"
             self.statusChanged.emit(
-                self.tr('Downloading layer "{name}"').format(name=name)
-                + progress
+                self.tr('Adding layer "{name}"').format(name=name) + progress
             )
             instance_cache_path = cache_directory / ngw_resource.connection_id
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
-            ngw_resource.export(str(gpkg_path))
-            detached_factory.update_container(ngw_resource, str(gpkg_path))
+            detached_factory.create_container(ngw_resource, gpkg_path)
 
 
 class QNGWResourceTreeModelBase(QAbstractItemModel):
@@ -305,9 +306,12 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         assert isinstance(parent_item, QModelItem)
         if parent_item is self.root_item:
             worker = NGWRootResourcesLoader(self._ngw_connection)
+            logger.debug("Fetch root resource")
         else:
             ngw_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
             worker = NGWResourceUpdater(ngw_resource)
+            logger.debug(f"Fetch children for id={ngw_resource.resource_id}")
+
         self._startJob(worker, parent)
 
     def data(self, index, role):
@@ -885,5 +889,5 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             for index in set(indexes_for_fetch)
         ]
 
-        worker = NgwCacheVectorLayers(vector_layers)
+        worker = NgwCreateVectorLayersStubs(vector_layers)
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))

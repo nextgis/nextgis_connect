@@ -1,5 +1,5 @@
 import configparser
-from abc import ABC, abstractproperty
+from abc import ABC, abstractmethod, abstractproperty
 
 from qgis import utils
 from qgis.core import QgsTaskManager
@@ -35,6 +35,9 @@ class NgConnectInterface(ABC):
 
     @abstractproperty
     def task_manager(self) -> QgsTaskManager: ...
+
+    @abstractmethod
+    def update_layers(self) -> None: ...
 
     # TODO(ibarsukov): add import adction
     # TODO(ibarsukov): add export adction

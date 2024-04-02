@@ -11,6 +11,8 @@ from qgis.PyQt import uic
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
 
+from nextgis_connect.logging import logger
+
 # from ..ngw_connection.ngw_connections_widget import NgwConnectionsWidget
 from . import utils
 
@@ -70,13 +72,17 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
         super().__init__("NextGIS", icon)
         self.setSupportLayerPropertiesDialog(True)
 
+    def __del__(self) -> None:
+        logger.debug("Delete detached layer config factory")
+
     def supportsLayer(self, layer: Optional[QgsMapLayer]) -> bool:
         if layer is None:
             return False
         return utils.is_ngw_container(layer)
 
     def supportLayerPropertiesDialog(self) -> bool:
-        return True
+        # TODO
+        return False
 
     def createWidget(
         self,

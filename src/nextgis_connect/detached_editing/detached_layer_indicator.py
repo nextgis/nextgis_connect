@@ -1,68 +1,108 @@
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, cast
 
-from qgis.core import QgsVectorLayer
 from qgis.gui import QgsLayerTreeViewIndicator
-from qgis.PyQt.QtCore import QObject, pyqtSlot
+from qgis.PyQt.QtCore import QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 
-from . import utils
+from nextgis_connect.logging import logger
+
 from .detached_layer_status_dialog import DetachedLayerStatusDialog
 from .utils import DetachedLayerState
 
+if TYPE_CHECKING:
+    from .detached_container import DetachedContainer
+
 
 class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
-    __layer: QgsVectorLayer
+    __tick: int
+    __timer: QTimer
 
-    def __init__(
-        self, layer: QgsVectorLayer, parent: Optional[QObject] = None
-    ) -> None:
-        super().__init__(parent)
+    def __init__(self, container: "DetachedContainer") -> None:
+        super().__init__(container)
 
-        self.__layer = layer
-        self.__layer.customPropertyChanged.connect(
-            self.__on_custom_property_changed
-        )
-        self.__on_custom_property_changed("ngw_layer_state")
         self.clicked.connect(self.__open_details)
 
-    def __on_custom_property_changed(self, property_name: str) -> None:
-        if property_name != "ngw_layer_state":
-            return
+        self.__tick = 0
+        self.__timer = QTimer(self)
+        self.__timer.setInterval(250)
+        self.__timer.timeout.connect(self.__sync_tick)
 
-        state_string = self.__layer.customProperty("ngw_layer_state")
-        state = DetachedLayerState(state_string)
+        self.__container.state_changed.connect(self.__on_state_changed)
+        self.__on_state_changed(self.__container.state)
 
-        icons_path = Path(__file__) / ".." / ".." / "icons" / "detached_layers"
+        logger.debug(f"Create indicator for container {container.metadata}")
 
-        tooltip = self.tr("NGW Layer")
-        date_property: datetime = self.__layer.customProperty(
-            "ngw_synchronization_date"
-        )
-        sync_datetime = date_property.strftime("%c")
-        sync_date_label = self.tr("Synchronization date")
-        date_tooltip = f"{sync_date_label}: {sync_datetime}"
+    def __del__(self) -> None:
+        logger.debug(f'Delete indicator for "{self.__container.metadata}"')
 
-        if state == DetachedLayerState.NotSynchronized:
+    @property
+    def __container(self) -> "DetachedContainer":
+        return cast("DetachedContainer", self.parent())
+
+    @pyqtSlot(DetachedLayerState, name="onStateChanged")
+    def __on_state_changed(self, state: DetachedLayerState) -> None:
+        icons_path = Path(__file__).parents[1] / "icons" / "detached_layers"
+
+        self.__timer.stop()
+        self.__tick = 0
+
+        tooltip = self.tr("NextGIS Web Layer")
+        date_tooltip = ""
+
+        sync_date = self.__container.sync_date
+        if sync_date is not None:
+            sync_datetime = sync_date.strftime("%c")
+            sync_date_label = self.tr("Synchronization date")
+            date_tooltip += f"\n{sync_date_label}: {sync_datetime}"
+
+        check_date = self.__container.check_date
+        if check_date is not None:
+            check_datetime = check_date.strftime("%c")
+            check_date_label = self.tr("Check date")
+            date_tooltip += f"\n{check_date_label}: {check_datetime}"
+
+        if state in (
+            DetachedLayerState.NotInitialized,
+            DetachedLayerState.NotSynchronized,
+        ):
             self.setIcon(QIcon(str(icons_path / "not_synchronized.svg")))
             status_tooltip = self.tr("Layer is not synchronized!")
-            tooltip = f"{status_tooltip}\n{date_tooltip}"
+            tooltip = f"{status_tooltip}{date_tooltip}"
         elif state == DetachedLayerState.Synchronized:
             self.setIcon(QIcon(str(icons_path / "synchronized.svg")))
             status_tooltip = self.tr("Layer is synchronized")
-            tooltip = f"{status_tooltip}\n{date_tooltip}"
+            tooltip = f"{status_tooltip}{date_tooltip}"
         elif state == DetachedLayerState.Synchronization:
             self.setIcon(QIcon(str(icons_path / "synchronization.svg")))
             tooltip = self.tr("Layer is syncing")
         elif state == DetachedLayerState.Error:
             self.setIcon(QIcon(str(icons_path / "error.svg")))
-            status_tooltip = self.tr("Synchronization error!")
-            tooltip = f"{status_tooltip}\n{date_tooltip}"
+            if self.__container.error_type.is_sync_error:
+                status_tooltip = self.tr("Synchronization error!")
+            elif self.__container.error_type.is_container_error:
+                status_tooltip = self.tr("Layer error!")
+            else:
+                status_tooltip = self.tr("Unknown error!")
+            spoiler = self.tr("Click to see more details")
+            tooltip = f"{status_tooltip}{date_tooltip}\n\n{spoiler}"
 
         self.setToolTip(tooltip)
 
+        if state == DetachedLayerState.Synchronization:
+            self.__timer.start()
+
     @pyqtSlot(name="openDetails")
     def __open_details(self) -> None:
-        dialog = DetachedLayerStatusDialog(utils.container_path(self.__layer))
-        dialog.exec_()
+        dialog = DetachedLayerStatusDialog(self.__container)
+        dialog.exec()
+
+    @pyqtSlot(name="syncTick")
+    def __sync_tick(self) -> None:
+        self.__tick += 1
+
+        icons_path = Path(__file__).parents[1] / "icons" / "detached_layers"
+        if self.__tick % 5 == 0:
+            self.setIcon(QIcon(str(icons_path / "empty.svg")))
+        else:
+            self.setIcon(QIcon(str(icons_path / "synchronization.svg")))

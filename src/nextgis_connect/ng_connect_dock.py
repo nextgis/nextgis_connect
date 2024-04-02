@@ -55,6 +55,7 @@ from qgis.PyQt.QtCore import (
     QSize,
     Qt,
     QTemporaryFile,
+    QTimer,
     QUrl,
 )
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
@@ -75,6 +76,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.PyQt.QtXml import QDomDocument
 
 from nextgis_connect.logging import logger
+from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
 
 from . import utils
@@ -154,8 +156,8 @@ class AddLayersCommand:
 
 class NgConnectDock(QgsDockWidget, FORM_CLASS):
     iface: QgisInterface
-    _resource_model: QNGWResourceTreeModel
-    trvResources: QNGWResourceTreeView
+    resource_model: QNGWResourceTreeModel
+    resources_tree_view: QNGWResourceTreeView
 
     def __init__(self, title: str, iface: QgisInterface):
         super().__init__(title, parent=None)
@@ -349,18 +351,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.addAction(self.actionSettings)
         self.main_tool_bar.addAction(self.actionHelp)
 
-        self._resource_model = QNGWResourceTreeModel(self)
-        self._resource_model.errorOccurred.connect(self.__model_error_process)
-        self._resource_model.warningOccurred.connect(
+        self.resource_model = QNGWResourceTreeModel(self)
+        self.resource_model.errorOccurred.connect(self.__model_error_process)
+        self.resource_model.warningOccurred.connect(
             self.__model_warning_process
         )
-        self._resource_model.jobStarted.connect(self.__modelJobStarted)
-        self._resource_model.jobStatusChanged.connect(
+        self.resource_model.jobStarted.connect(self.__modelJobStarted)
+        self.resource_model.jobStatusChanged.connect(
             self.__modelJobStatusChanged
         )
-        self._resource_model.jobFinished.connect(self.__modelJobFinished)
-        self._resource_model.indexesLocked.connect(self.__onModelBlockIndexes)
-        self._resource_model.indexesUnlocked.connect(
+        self.resource_model.jobFinished.connect(self.__modelJobFinished)
+        self.resource_model.indexesLocked.connect(self.__onModelBlockIndexes)
+        self.resource_model.indexesUnlocked.connect(
             self.__onModelReleaseIndexes
         )
 
@@ -386,29 +388,31 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         }
 
         # ngw resources view
-        self.trvResources = QNGWResourceTreeView(self)
-        self.trvResources.setModel(self._resource_model)
+        self.resources_tree_view = QNGWResourceTreeView(self)
+        self.resources_tree_view.setModel(self.resource_model)
 
-        self.trvResources.customContextMenuRequested.connect(
+        self.resources_tree_view.customContextMenuRequested.connect(
             self.slotCustomContextMenu
         )
-        self.trvResources.itemDoubleClicked.connect(self.trvDoubleClickProcess)
-        selection_model = self.trvResources.selectionModel()
+        self.resources_tree_view.itemDoubleClicked.connect(
+            self.trvDoubleClickProcess
+        )
+        selection_model = self.resources_tree_view.selectionModel()
         assert selection_model is not None
         selection_model.selectionChanged.connect(
             self.checkImportActionsAvailability
         )
-        size_policy = self.trvResources.sizePolicy()
+        size_policy = self.resources_tree_view.sizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.Policy.Expanding)
-        self.trvResources.setSizePolicy(size_policy)
+        self.resources_tree_view.setSizePolicy(size_policy)
 
-        self.content.layout().addWidget(self.trvResources)
+        self.content.layout().addWidget(self.resources_tree_view)
 
         self.jobs_count = 0
         self.try_check_https = False
 
         # update state
-        self.reinit_tree(force=True)
+        QTimer.singleShot(0, lambda: self.reinit_tree(force=True))
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
@@ -427,19 +431,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
 
     def close(self):
-        self.trvResources.customContextMenuRequested.disconnect(
+        self.resources_tree_view.customContextMenuRequested.disconnect(
             self.slotCustomContextMenu
         )
-        self.trvResources.itemDoubleClicked.disconnect(
+        self.resources_tree_view.itemDoubleClicked.disconnect(
             self.trvDoubleClickProcess
         )
-        selection_model = self.trvResources.selectionModel()
+        selection_model = self.resources_tree_view.selectionModel()
         assert selection_model is not None
         selection_model.currentChanged.disconnect(
             self.checkImportActionsAvailability
         )
 
-        self.trvResources.deleteLater()
+        self.resources_tree_view.deleteLater()
 
         self.iface.currentLayerChanged.disconnect(
             self.checkImportActionsAvailability
@@ -449,25 +453,25 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project.layersAdded.disconnect(self.checkImportActionsAvailability)
         project.layersRemoved.disconnect(self.checkImportActionsAvailability)
 
-        self._resource_model.errorOccurred.disconnect(
+        self.resource_model.errorOccurred.disconnect(
             self.__model_error_process
         )
-        self._resource_model.warningOccurred.disconnect(
+        self.resource_model.warningOccurred.disconnect(
             self.__model_warning_process
         )
-        self._resource_model.jobStarted.disconnect(self.__modelJobStarted)
-        self._resource_model.jobStatusChanged.disconnect(
+        self.resource_model.jobStarted.disconnect(self.__modelJobStarted)
+        self.resource_model.jobStatusChanged.disconnect(
             self.__modelJobStatusChanged
         )
-        self._resource_model.jobFinished.disconnect(self.__modelJobFinished)
-        self._resource_model.indexesLocked.disconnect(
+        self.resource_model.jobFinished.disconnect(self.__modelJobFinished)
+        self.resource_model.indexesLocked.disconnect(
             self.__onModelBlockIndexes
         )
-        self._resource_model.indexesUnlocked.disconnect(
+        self.resource_model.indexesUnlocked.disconnect(
             self.__onModelReleaseIndexes
         )
 
-        self._resource_model.deleteLater()
+        self.resource_model.deleteLater()
 
         super().close()
 
@@ -485,7 +489,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # )
 
         # NGW resources
-        selected_ngw_indexes = self.trvResources.selectedIndexes()
+        selected_ngw_indexes = self.resources_tree_view.selectedIndexes()
         ngw_resources: List[NGWResource] = [
             index.data(QNGWResourceItem.NGWResourceRole)
             for index in selected_ngw_indexes
@@ -779,24 +783,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
             self.block_gui()
-            self.trvResources.addBlockedJob(self.blocked_jobs[job_id])
+            self.resources_tree_view.addBlockedJob(self.blocked_jobs[job_id])
 
     def __modelJobStatusChanged(self, job_id, status):
         if job_id in self.blocked_jobs:
-            self.trvResources.addJobStatus(self.blocked_jobs[job_id], status)
+            self.resources_tree_view.addJobStatus(
+                self.blocked_jobs[job_id], status
+            )
 
     def __modelJobFinished(self, job_id, job_uuid):
         self.jobs_count += 1  # note: __modelJobFinished will be triggered even if error/warning occured during job execution
-        logger.debug(
-            f"Jobs finished for current connection: {self.jobs_count}"
-        )
+        # logger.debug(
+        #     f"Jobs finished for current connection: {self.jobs_count}"
+        # )
 
         if job_id == "NGWRootResourcesLoader":
             self.unblock_gui()
 
         if job_id in self.blocked_jobs:
             self.unblock_gui()
-            self.trvResources.removeBlockedJob(self.blocked_jobs[job_id])
+            self.resources_tree_view.removeBlockedJob(
+                self.blocked_jobs[job_id]
+            )
 
         self.__add_layers_after_finish(job_uuid)
 
@@ -830,55 +838,63 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # clear tree and states
         self.disable_tools()
 
-        connections_manager = NgwConnectionsManager()
-        current_connection = connections_manager.current_connection
-        if current_connection is None:
-            self.jobs_count = 0
-            self._resource_model.resetModel(None)
-            if connections_manager.has_old_connections():
-                self.trvResources.migration_overlay.show()
-            else:
-                self.trvResources.showWelcomeMessage()
-            return
+        try:
+            connections_manager = NgwConnectionsManager()
+            current_connection = connections_manager.current_connection
+            if current_connection is None:
+                self.jobs_count = 0
+                self.resource_model.resetModel(None)
+                if connections_manager.has_old_connections():
+                    self.resources_tree_view.migration_overlay.show()
+                else:
+                    self.resources_tree_view.showWelcomeMessage()
+                return
 
-        if (
-            HAS_NGSTD
-            and current_connection.auth_config_id == "NextGIS"
-            and not NGAccess.instance().isUserAuthorized()
-        ):
-            self.jobs_count = 0
-            self._resource_model.resetModel(None)
-            self.trvResources.no_oauth_auth_overlay.show()
-            return
+            if (
+                HAS_NGSTD
+                and current_connection.auth_config_id == "NextGIS"
+                and not NGAccess.instance().isUserAuthorized()
+            ):
+                self.jobs_count = 0
+                self.resource_model.resetModel(None)
+                self.resources_tree_view.no_oauth_auth_overlay.show()
+                return
 
-        self.trvResources.hideWelcomeMessage()
-        self.trvResources.migration_overlay.hide()
-        self.trvResources.no_oauth_auth_overlay.hide()
+            self.resources_tree_view.hideWelcomeMessage()
+            self.resources_tree_view.migration_overlay.hide()
+            self.resources_tree_view.no_oauth_auth_overlay.hide()
 
-        if force:
-            if HAS_NGSTD and current_connection.auth_config_id == "NextGIS":
-                NGRequest.addAuthURL(
-                    NGAccess.instance().endPoint(), current_connection.url
-                )
+            if force:
+                if (
+                    HAS_NGSTD
+                    and current_connection.auth_config_id == "NextGIS"
+                ):
+                    NGRequest.addAuthURL(
+                        NGAccess.instance().endPoint(), current_connection.url
+                    )
 
-            # start working with connection at very first time
-            self.jobs_count = 0
+                # start working with connection at very first time
+                self.jobs_count = 0
 
-            self._first_gui_block_on_refresh = True
-            self.block_gui()  # block GUI to prevent extra clicks on toolbuttons
-            ngw_connection = QgsNgwConnection(current_connection.id)
-            self._resource_model.resetModel(ngw_connection)
-            if not self._resource_model.is_ngw_version_supported:
-                self.unblock_gui()
-                self.trvResources.unsupported_version_overlay.set_status(
-                    self._resource_model.support_status,
-                    qgis_utils.pluginMetadata("nextgis_connect", "version"),
-                    ngw_connection.get_version(),
-                )
-                self.trvResources.unsupported_version_overlay.show()
+                self._first_gui_block_on_refresh = True
+                self.block_gui()  # block GUI to prevent extra clicks on toolbuttons
+                ngw_connection = QgsNgwConnection(current_connection.id)
+                self.resource_model.resetModel(ngw_connection)
+                if not self.resource_model.is_ngw_version_supported:
+                    self.unblock_gui()
+                    self.resources_tree_view.unsupported_version_overlay.set_status(
+                        self.resource_model.support_status,
+                        qgis_utils.pluginMetadata(
+                            "nextgis_connect", "version"
+                        ),
+                        ngw_connection.get_version(),
+                    )
+                    self.resources_tree_view.unsupported_version_overlay.show()
 
-        # expand root item
-        # self.trvResources.setExpanded(self._resource_model.index(0, 0, QModelIndex()), True)
+            # expand root item
+            # self.resources_tree_view.setExpanded(self.resource_model.index(0, 0, QModelIndex()), True)
+        except Exception:
+            logger.exception("Model update error")
 
     def __action_refresh_tree(self):
         self.reinit_tree(force=True)
@@ -887,9 +903,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # TODO: fix duplicate with model.processJobResult
         if ngw_resource.common.parent is None:
             index = QModelIndex()
-            self._resource_model.addNGWResourceToTree(index, ngw_resource)
+            self.resource_model.addNGWResourceToTree(index, ngw_resource)
         else:
-            index = self._resource_model.getIndexByNGWResourceId(
+            index = self.resource_model.getIndexByNGWResourceId(
                 ngw_resource.common.parent.id,
             )
 
@@ -900,7 +916,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 if isinstance(item.child(i), QNGWResourceItem)
             ]
             if ngw_resource.common.id not in current_ids:
-                self._resource_model.addNGWResourceToTree(index, ngw_resource)
+                self.resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
         self.toolbuttonDownload.setEnabled(False)
@@ -925,11 +941,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.show_info(msg)
 
     def slotCustomContextMenu(self, qpoint: QPoint):
-        index = self.trvResources.indexAt(qpoint)
+        index = self.resources_tree_view.indexAt(qpoint)
         if not index.isValid() or index.internalPointer().locked:
             return
 
-        selected_indexes = self.trvResources.selectedIndexes()
+        selected_indexes = self.resources_tree_view.selectedIndexes()
         ngw_resources: List[NGWResource] = [
             index.data(QNGWResourceItem.NGWResourceRole)
             for index in selected_indexes
@@ -1030,7 +1046,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 menu.addAction(action)
             menu.addSeparator()
 
-        menu.exec_(self.trvResources.viewport().mapToGlobal(qpoint))
+        menu.exec_(self.resources_tree_view.viewport().mapToGlobal(qpoint))
 
     def trvDoubleClickProcess(self, index):
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1038,7 +1054,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__action_open_map()
 
     def open_ngw_resource_page(self):
-        sel_index = self.trvResources.selectionModel().currentIndex()
+        sel_index = self.resources_tree_view.selectionModel().currentIndex()
 
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
@@ -1046,14 +1062,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             QDesktopServices.openUrl(QUrl(url))
 
     def rename_ngw_resource(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         if not selected_index.isValid():
             return
 
-        self.trvResources.rename_resource(selected_index)
+        self.resources_tree_view.rename_resource(selected_index)
 
     def __action_open_map(self):
-        sel_index = self.trvResources.selectionModel().currentIndex()
+        sel_index = self.resources_tree_view.selectionModel().currentIndex()
 
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
@@ -1068,7 +1086,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if isinstance(child, NGWQGISStyle)
         ]
 
-        current_index = self.trvResources.selectionModel().currentIndex()
+        current_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         current_resource = current_index.data(QNGWResourceItem.NGWResourceRole)
         group_add = isinstance(current_resource, NGWGroupResource)
 
@@ -1078,7 +1098,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             dialog = NGWLayerStyleChooserDialog(
                 self.tr("Select style"),
                 current_index,
-                self._resource_model,
+                self.resource_model,
                 self,
             )
             result = dialog.exec()
@@ -1101,7 +1121,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
             return isinstance(ngw_resource, NGWGroupResource)
 
-        selection_model = self.trvResources.selectionModel()
+        selection_model = self.resources_tree_view.selectionModel()
         if selection_model is None:
             raise RuntimeError
 
@@ -1109,7 +1129,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__preprocess_indexes_list(selected_indexes)
 
         group_indexes = list(filter(is_folder, selected_indexes))
-        job = self._resource_model.fetch_group(group_indexes)
+        job = self.resource_model.fetch_group(group_indexes)
 
         if job is not None:
             insertion_point = self.iface.layerTreeInsertionPoint()
@@ -1120,7 +1140,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
             return
 
-        model = self._resource_model
+        model = self.resource_model
         download_job = model.download_vector_layers_if_needed(selected_indexes)
         if download_job is not None:
             insertion_point = self.iface.layerTreeInsertionPoint()
@@ -1150,6 +1170,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 insertion_point.position += 1
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
+
+        plugin = NgConnectInterface.instance()
+        plugin.update_layers()
 
     def __preprocess_indexes_list(
         self, ngw_indexes: List[QModelIndex]
@@ -1285,7 +1308,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
     ) -> None:
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-        model = self._resource_model
+        model = self.resource_model
         project = QgsProject.instance()
         assert project is not None
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
@@ -1324,9 +1347,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
 
     def create_group(self):
-        sel_index = self.trvResources.selectedIndex()
+        sel_index = self.resources_tree_view.selectedIndex()
         # if sel_index is None:
-        #     sel_index = self._resource_model.index(0, 0, QModelIndex())
+        #     sel_index = self.resource_model.index(0, 0, QModelIndex())
         if sel_index is None or not sel_index.isValid():
             self.show_info(
                 self.tr(
@@ -1346,10 +1369,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if not ok or new_group_name == "":
             return
 
-        self.create_group_resp = self._resource_model.tryCreateNGWGroup(
+        self.create_group_resp = self.resource_model.tryCreateNGWGroup(
             new_group_name, sel_index
         )
-        self.create_group_resp.done.connect(self.trvResources.setCurrentIndex)
+        self.create_group_resp.done.connect(
+            self.resources_tree_view.setCurrentIndex
+        )
 
     def upload_project_resources(self):
         """
@@ -1364,7 +1389,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 return current_project.baseName()
             return ""
 
-        ngw_current_index = self.trvResources.selectionModel().currentIndex()
+        ngw_current_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         dialog = QgsNewNameDialog(
             initial=get_project_name(),
@@ -1384,20 +1411,22 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project_name = dialog.name()
 
         self.qgis_proj_import_response = (
-            self._resource_model.uploadProjectResources(
+            self.resource_model.uploadProjectResources(
                 project_name,
                 ngw_current_index,
                 self.iface,
             )
         )
         self.qgis_proj_import_response.done.connect(
-            self.trvResources.setCurrentIndex
+            self.resources_tree_view.setCurrentIndex
         )
         self.qgis_proj_import_response.done.connect(self.open_create_web_map)
         self.qgis_proj_import_response.done.connect(self.processWarnings)
 
     def upload_selected_resources(self):
-        ngw_current_index = self.trvResources.selectionModel().currentIndex()
+        ngw_current_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         qgs_layer_tree_nodes = self.iface.layerTreeView().selectedNodes(
             skipInternal=True
@@ -1411,16 +1440,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ):  # just in case if checkImportActionsAvailability() works incorrectly
                 return
 
-        self.import_layer_response = self._resource_model.uploadResourcesList(
+        self.import_layer_response = self.resource_model.uploadResourcesList(
             qgs_layer_tree_nodes, ngw_current_index, self.iface
         )
         self.import_layer_response.done.connect(
-            self.trvResources.setCurrentIndex
+            self.resources_tree_view.setCurrentIndex
         )
         self.import_layer_response.done.connect(self.processWarnings)
 
     def overwrite_ngw_layer(self):
-        index = self.trvResources.selectionModel().currentIndex()
+        index = self.resources_tree_view.selectionModel().currentIndex()
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
 
         result = QMessageBox.question(
@@ -1439,28 +1468,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if isinstance(qgs_map_layer, QgsVectorLayer):
-            self._resource_model.updateNGWLayer(index, qgs_map_layer)
+            self.resource_model.updateNGWLayer(index, qgs_map_layer)
         else:
             pass
 
     def edit_metadata(self):
         """Edit metadata table"""
-        sel_index = self.trvResources.selectionModel().currentIndex()
+        sel_index = self.resources_tree_view.selectionModel().currentIndex()
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
 
             self.block_gui()
 
             try:
-                self.trvResources.ngw_job_block_overlay.show()
-                self.trvResources.ngw_job_block_overlay.text.setText(
+                self.resources_tree_view.ngw_job_block_overlay.show()
+                self.resources_tree_view.ngw_job_block_overlay.text.setText(
                     "<strong>{} {}</strong><br/>".format(
                         self.tr("Get resource metadata"),
                         ngw_resource.common.display_name,
                     )
                 )
                 ngw_resource.update()
-                self.trvResources.ngw_job_block_overlay.hide()
+                self.resources_tree_view.ngw_job_block_overlay.hide()
 
                 dlg = MetadataDialog(ngw_resource, self)
                 _ = dlg.exec_()
@@ -1474,7 +1503,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ),
                     level=Qgis.MessageLevel.Critical,
                 )
-                self.trvResources.ngw_job_block_overlay.hide()
+                self.resources_tree_view.ngw_job_block_overlay.hide()
                 logger.exception(error_mes)
 
             except Exception as ex:
@@ -1482,26 +1511,30 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.iface.messageBar().pushMessage(
                     self.tr("Error"), ex, level=Qgis.MessageLevel.Critical
                 )
-                self.trvResources.ngw_job_block_overlay.hide()
+                self.resources_tree_view.ngw_job_block_overlay.hide()
                 logger.exception(error_mes)
 
             self.unblock_gui()
 
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        ngw_layer_index = self.trvResources.selectionModel().currentIndex()
-        response = self._resource_model.updateQGISStyle(
+        ngw_layer_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        response = self.resource_model.updateQGISStyle(
             qgs_map_layer, ngw_layer_index
         )
-        response.done.connect(self.trvResources.setCurrentIndex)
+        response.done.connect(self.resources_tree_view.setCurrentIndex)
 
     def add_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        ngw_layer_index = self.trvResources.selectionModel().currentIndex()
-        response = self._resource_model.addQGISStyle(
+        ngw_layer_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        response = self.resource_model.addQGISStyle(
             qgs_map_layer, ngw_layer_index
         )
-        response.done.connect(self.trvResources.setCurrentIndex)
+        response.done.connect(self.resources_tree_view.setCurrentIndex)
 
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
@@ -1513,12 +1546,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         if res == QMessageBox.Yes:
-            selected_index = self.trvResources.selectionModel().currentIndex()
-            self.delete_resource_response = (
-                self._resource_model.deleteResource(selected_index)
+            selected_index = (
+                self.resources_tree_view.selectionModel().currentIndex()
+            )
+            self.delete_resource_response = self.resource_model.deleteResource(
+                selected_index
             )
             self.delete_resource_response.done.connect(
-                self.trvResources.setCurrentIndex
+                self.resources_tree_view.setCurrentIndex
             )
 
     def _downloadRasterSource(self, ngw_lyr, raster_file=None):
@@ -1657,7 +1692,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         Only GUI stuff here, main part
         in _copy_resource function
         """
-        sel_index = self.trvResources.selectionModel().currentIndex()
+        sel_index = self.resources_tree_view.selectionModel().currentIndex()
         if sel_index.isValid():
             # ckeckbox
             res = QMessageBox.question(
@@ -1673,9 +1708,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
 
             # block gui
-            self.trvResources.ngw_job_block_overlay.show()
+            self.resources_tree_view.ngw_job_block_overlay.show()
             self.block_gui()
-            self.trvResources.ngw_job_block_overlay.text.setText(
+            self.resources_tree_view.ngw_job_block_overlay.text.setText(
                 "<strong>{} {}</strong><br/>".format(
                     self.tr("Duplicating"), ngw_resource.common.display_name
                 )
@@ -1696,12 +1731,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 logger.exception(error_mes)
 
             # unblock gui
-            self.trvResources.ngw_job_block_overlay.hide()
+            self.resources_tree_view.ngw_job_block_overlay.hide()
             self.unblock_gui()
 
     def create_wfs_or_ogcf_service(self, service_type: str):
         assert service_type in ("WFS", "OGC API - Features")
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         if not selected_index.isValid():
             selected_index = self.index(0, 0, selected_index)
@@ -1732,10 +1769,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if res is False:
             return
 
-        response = self._resource_model.createWfsOrOgcfForVector(
+        response = self.resource_model.createWfsOrOgcfForVector(
             service_type, selected_index, max_features
         )
-        response.done.connect(self.trvResources.setCurrentIndex)
+        response.done.connect(self.resources_tree_view.setCurrentIndex)
         adder = (
             self.add_created_wfs_service
             if service_type == "WFS"
@@ -1758,12 +1795,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         add_ogcf_resource(ngw_resource)
 
     def create_wms_service(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         dlg = NGWLayerStyleChooserDialog(
             self.tr("Create WMS service for layer"),
             selected_index,
-            self._resource_model,
+            self.resource_model,
             self,
         )
         result = dlg.exec_()
@@ -1774,21 +1813,25 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if dlg.selectedStyleId():
             ngw_resource_style_id = dlg.selectedStyleId()
 
-        responce = self._resource_model.createWMSForVector(
+        responce = self.resource_model.createWMSForVector(
             selected_index, ngw_resource_style_id
         )
-        responce.done.connect(self.trvResources.setCurrentIndex)
+        responce.done.connect(self.resources_tree_view.setCurrentIndex)
 
     def create_web_map_for_style(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
-        self.create_map_response = self._resource_model.createMapForStyle(
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        self.create_map_response = self.resource_model.createMapForStyle(
             selected_index
         )
 
         self.create_map_response.done.connect(self.open_create_web_map)
 
     def create_web_map_for_layer(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         ngw_resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
         if ngw_resource.type_id in [
@@ -1804,7 +1847,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 dlg = NGWLayerStyleChooserDialog(
                     self.tr("Create web map for layer"),
                     selected_index,
-                    self._resource_model,
+                    self.resource_model,
                     self,
                 )
                 result = dlg.exec_()
@@ -1814,17 +1857,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 else:
                     return  # do nothing after closing the dialog
 
-            self.create_map_response = self._resource_model.createMapForLayer(
+            self.create_map_response = self.resource_model.createMapForLayer(
                 selected_index, ngw_resource_style_id
             )
 
         elif ngw_resource.type_id == NGWWmsLayer.type_id:
-            self.create_map_response = self._resource_model.createMapForLayer(
+            self.create_map_response = self.resource_model.createMapForLayer(
                 selected_index, None
             )
 
         self.create_map_response.done.connect(
-            self.trvResources.setCurrentIndex
+            self.resources_tree_view.setCurrentIndex
         )
         self.create_map_response.done.connect(self.open_create_web_map)
 
@@ -1898,7 +1941,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return result
 
     def downloadQML(self):
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
 
         settings = QgsSettings()
@@ -1927,7 +1972,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def copy_style(self):
         # Download style
-        selected_index = self.trvResources.selectionModel().currentIndex()
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
         self._downloadStyleAsQML(ngw_qgis_style, mes_bar=False)
 
@@ -1991,7 +2038,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
         assert tree_rigistry_bridge is not None
 
-        model = self._resource_model
+        model = self.resource_model
         command = self._queue_to_add[found_i]
 
         del self._queue_to_add[found_i]
@@ -2018,6 +2065,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 insertion_point.position += 1
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
+
+        plugin = NgConnectInterface.instance()
+        plugin.update_layers()
 
     def __on_ngstd_user_info_updated(self):
         connections_manager = NgwConnectionsManager()

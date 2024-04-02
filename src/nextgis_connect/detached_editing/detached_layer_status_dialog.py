@@ -1,45 +1,109 @@
-import os
-import sqlite3
-from contextlib import closing
-from typing import Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Optional
 
+from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDialog, QDialogButtonBox, QWidget
+from qgis.PyQt.QtCore import pyqtSlot
+from qgis.PyQt.QtWidgets import (
+    QAction,
+    QDialog,
+    QDialogButtonBox,
+    QMenu,
+    QWidget,
+)
 
-pluginPath = os.path.dirname(__file__)
+from .utils import DetachedLayerState
+
+if TYPE_CHECKING:
+    from .detached_container import DetachedContainer
+
+
 WIDGET, _ = uic.loadUiType(
-    os.path.join(pluginPath, "detached_layer_status_dialog_base.ui")
+    str(Path(__file__).parent / "detached_layer_status_dialog_base.ui")
 )
 
 
 class DetachedLayerStatusDialog(QDialog, WIDGET):
-    def __init__(self, path: str, parent: Optional[QWidget] = None) -> None:
+    __container: "DetachedContainer"
+
+    def __init__(
+        self, container: "DetachedContainer", parent: Optional[QWidget] = None
+    ) -> None:
         super().__init__(parent)
         self.setupUi(self)
 
-        Button = QDialogButtonBox.StandardButton
-        self.buttonBox.button(Button.Retry).hide()
-        # self.buttonBox.button(Button.Retry).setText(self.tr('Synchronization'))
-        # self.buttonBox.rejected.connect(self.reject)
+        Button = QDialogButtonBox.StandardButton  # noqa: N806
+        button_box_template = QDialogButtonBox(
+            QDialogButtonBox.StandardButtons() | Button.Reset | Button.Close
+        )
 
-        self.buttonBox.rejected.connect(self.reject)
+        reset_button = button_box_template.button(Button.Reset)
+        assert reset_button is not None
+        reset_button.setText(self.tr("Synchronization"))
+        close_button = button_box_template.button(Button.Close)
+        assert close_button is not None
 
-        self.__fill_changes(path)
+        sync_action = QAction(
+            icon=QgsApplication.getThemeIcon("mActionRefresh.svg"),
+            text=reset_button.text(),
+            parent=self,
+        )
+        sync_action.triggered.connect(self.__synchronize)
 
-    def __fill_changes(self, path) -> None:
-        with closing(sqlite3.connect(path)) as connection:
-            with closing(connection.cursor()) as cursor:
-                cursor.execute(
-                    """
-                    SELECT
-                      (SELECT COUNT(*) from ngw_added_features) added,
-                      (SELECT COUNT(*) from ngw_removed_features) removed,
-                      (SELECT COUNT(*) from ngw_updated_attributes) attributes,
-                      (SELECT COUNT(*) from ngw_updated_geometries) geometries
-                """
-                )
-                result = cursor.fetchone()
-        self.addedFeaturesLabel.setText(str(result[0]))
-        self.removedFeaturesLabel.setText(str(result[1]))
-        self.updatedAttributesLabel.setText(str(result[2]))
-        self.updatedGeometriesLabel.setText(str(result[3]))
+        forced_sync_action = QAction(
+            icon=reset_button.icon(),
+            text=self.tr("Forced synchronization"),
+            parent=self,
+        )
+        forced_sync_action.triggered.connect(self.__forced_synchronize)
+
+        sync_menu = QMenu(self)
+        sync_menu.addAction(forced_sync_action)
+        self.syncButton.setMenu(sync_menu)
+        self.syncButton.setDefaultAction(sync_action)
+        self.syncButton.setFixedHeight(reset_button.sizeHint().height())
+
+        self.closeButton.setIcon(close_button.icon())
+        self.closeButton.setFixedHeight(close_button.sizeHint().height())
+        self.closeButton.clicked.connect(self.reject)
+
+        self.__container = container
+        self.__container.state_changed.connect(self.__on_state_changed)
+        self.__on_state_changed(self.__container.state)
+
+    @pyqtSlot(DetachedLayerState, name="onStateChanged")
+    def __on_state_changed(self, state: DetachedLayerState) -> None:
+        is_sync_active = state == DetachedLayerState.Synchronization
+
+        self.progressBar.setVisible(is_sync_active)
+        self.syncButton.setEnabled(
+            self.__container.state != DetachedLayerState.Synchronization
+        )
+        self.changesPage.setEnabled(
+            self.__container.state != DetachedLayerState.Synchronization
+        )
+
+        self.__fill_status()
+        self.__fill_changes()
+
+    @pyqtSlot(name="synchronize")
+    def __synchronize(self) -> None:
+        self.__container.synchronize(is_manual=True)
+
+    @pyqtSlot(name="forceSynchronize")
+    def __forced_synchronize(self) -> None:
+        self.__container.force_synchronize()
+
+    def __fill_status(self) -> None:
+        sync_datetime = self.__container.metadata.sync_date
+        sync_datetime = (
+            sync_datetime.strftime("%c") if sync_datetime is not None else "—"
+        )
+        self.latestUpdateLabel.setText(sync_datetime)
+
+    def __fill_changes(self) -> None:
+        changes = self.__container.changes
+
+        self.addedFeaturesLabel.setText(str(changes.added_features))
+        self.removedFeaturesLabel.setText(str(changes.removed_features))
+        self.updatedFeaturesLabel.setText(str(changes.updated_features))

@@ -21,10 +21,16 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
-from qgis.gui import QgisInterface
+from typing import TYPE_CHECKING
+
+from qgis.core import QgsRuntimeProfiler
+
+if TYPE_CHECKING:
+    from qgis.gui import QgisInterface
 
 
-def classFactory(iface: QgisInterface):  # noqa: N802
-    from .ng_connect_plugin import NgConnectPlugin
+def classFactory(iface: "QgisInterface"):  # noqa: N802
+    with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
+        from .ng_connect_plugin import NgConnectPlugin
 
     return NgConnectPlugin(iface)

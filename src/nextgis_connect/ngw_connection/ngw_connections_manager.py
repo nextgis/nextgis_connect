@@ -81,8 +81,9 @@ class NgwConnectionsManager:
         connection = self.__read_connection(connection_id)
         if connection.auth_config_id is not None:
             auth_manager = QgsApplication.instance().authManager()
+            assert auth_manager is not None
             configs = auth_manager.availableAuthMethodConfigs()
-            if connection.auth_config_id not in configs.keys():
+            if connection.auth_config_id not in configs:
                 return False
 
         return True
