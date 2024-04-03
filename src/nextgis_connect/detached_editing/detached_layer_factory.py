@@ -133,6 +133,7 @@ class DetachedLayerFactory:
                 'version' INTEGER,
                 'description' TEXT
             );
+            CREATE INDEX idx_features_fid ON ngw_features_metadata (fid);
             CREATE TABLE ngw_features_attachments (
                 'fid' INTEGER,
                 'aid' INTEGER,
