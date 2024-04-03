@@ -64,19 +64,14 @@ class ActionSerializer:
         self,
         json_data: Union[str, Iterable[Dict[str, Any]]],
     ) -> List[VersioningAction]:
-        if not self.__layer_metadata.is_versioning_enabled:
-            raise NotImplementedError
-
-        actions_list = (
+        dicts_list = (
             json.loads(json_data) if isinstance(json_data, str) else json_data
         )
 
-        def json_to_action(action_dict: Dict[str, Any]) -> VersioningAction:
-            action_type = action_dict.pop("action")
-            action_class = ActionSerializer.action_classes[action_type]
-            return action_class(**action_dict)
+        if not self.__layer_metadata.is_versioning_enabled:
+            return self.__deserialize_extensions(dicts_list)
 
-        return [json_to_action(item.copy()) for item in actions_list]
+        return self.__deserialize_actions(dicts_list)
 
     def __convert_versioning_action(
         self, action: VersioningAction
@@ -118,3 +113,38 @@ class ActionSerializer:
                 result["geom"] = action.geom
 
         return result
+
+    def __deserialize_extensions(
+        self, features: Iterable[Dict[str, Any]]
+    ) -> List[VersioningAction]:
+        result = []
+
+        for feature in features:
+            ngw_fid = feature["id"]
+            extensions = feature.get("extensions")
+
+            if not extensions:
+                continue
+
+            description = extensions.get("description")
+            if description is not None:
+                result.append(DescriptionPutAction(ngw_fid, None, description))
+
+            attachments = extensions.get("attachment")
+            if attachments is None:
+                attachments = []
+
+            for attachment in attachments:
+                pass
+
+        return result
+
+    def __deserialize_actions(
+        self, actions: Iterable[Dict[str, Any]]
+    ) -> List[VersioningAction]:
+        def json_to_action(action_dict: Dict[str, Any]) -> VersioningAction:
+            action_type = action_dict.pop("action")
+            action_class = ActionSerializer.action_classes[action_type]
+            return action_class(**action_dict)
+
+        return [json_to_action(item.copy()) for item in actions]

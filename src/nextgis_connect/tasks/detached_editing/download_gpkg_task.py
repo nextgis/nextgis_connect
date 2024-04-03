@@ -1,12 +1,16 @@
 import shutil
 import tempfile
 import urllib.parse
+from contextlib import closing
 from pathlib import Path
 from typing import cast
 
 from qgis.core import QgsTask
 from qgis.PyQt.QtCore import pyqtSignal
+from qgis.utils import spatialite_connect
 
+from nextgis_connect.detached_editing.action_applier import ActionApplier
+from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
@@ -52,13 +56,37 @@ class DownloadGpkgTask(NgConnectTask):
         self.__temp_path = Path(tempfile.mktemp(suffix=".gpkg"))
 
     def run(self) -> bool:
-        connection_id = self.__metadata.connection_id
-        resource_id = self.__metadata.resource_id
-        srs_id = self.__metadata.srs_id
-
         logger.debug(
             f"<b>Start GPKG downloading</b> for layer {self.__metadata}"
         )
+
+        is_downloaded = self.__download_layer()
+        if not is_downloaded:
+            return False
+
+        is_downloaded = self.__download_extensions()
+        if not is_downloaded:
+            return False
+
+        logger.debug("Downloading GPKG completed")
+
+        return True
+
+    def finished(self, result: bool) -> None:  # noqa: FBT001
+        if result:
+            try:
+                shutil.move(self.__temp_path, self.__stub_path)
+            except Exception:
+                logger.exception("Can't replace stub file")
+                result = False
+
+        self.download_finished.emit(result)
+        return super().finished(result)
+
+    def __download_layer(self) -> bool:
+        connection_id = self.__metadata.connection_id
+        resource_id = self.__metadata.resource_id
+        srs_id = self.__metadata.srs_id
 
         connections_manager = NgwConnectionsManager()
         if not connections_manager.is_valid(connection_id):
@@ -81,27 +109,68 @@ class DownloadGpkgTask(NgConnectTask):
             resources_factory = NGWResourceFactory(ngw_connection)
             ngw_layer = resources_factory.get_resource(resource_id)
 
+            logger.debug("Downloading layer")
+
             ngw_connection.download(export_url, str(self.__temp_path))
 
+            logger.debug("Downloading completed")
+
             detached_factory = DetachedLayerFactory()
-            result = detached_factory.update_container(
+            is_updated = detached_factory.update_container(
                 cast(NGWVectorLayer, ngw_layer), self.__temp_path
             )
+            if not is_updated:
+                return False
+
         except Exception:
             logger.exception(
                 f"An error occured while downloading layer {self.__metadata}"
             )
             return False
 
-        return result
+        return True
 
-    def finished(self, result: bool) -> None:  # noqa: FBT001
-        if result:
-            try:
-                shutil.move(self.__temp_path, self.__stub_path)
-            except Exception:
-                logger.exception("Can't replace stub file")
-                result = False
+    def __download_extensions(self) -> bool:
+        connection_id = self.__metadata.connection_id
+        resource_id = self.__metadata.resource_id
 
-        self.download_finished.emit(result)
-        return super().finished(result)
+        extensions_params = {
+            "geom": "no",
+            "fields": "",
+        }
+        extensions_url = (
+            f"/api/resource/{resource_id}/feature/?"
+            + urllib.parse.urlencode(extensions_params)
+        )
+
+        try:
+            logger.debug("Adding extensions")
+
+            ngw_connection = QgsNgwConnection(connection_id)
+            features_extensions = ngw_connection.get(extensions_url)
+
+            with (
+                closing(
+                    spatialite_connect(str(self.__temp_path))
+                ) as connection,
+                closing(connection.cursor()) as cursor,
+            ):
+                metadata = container_metadata(cursor)
+
+                serializer = ActionSerializer(metadata)
+                actions = serializer.from_json(features_extensions)
+
+                applier = ActionApplier(metadata, cursor)
+                applier.apply(actions)
+
+                connection.commit()
+
+            logger.debug("Feature metadata updated")
+
+        except Exception:
+            logger.exception(
+                f"An error occured while downloading layer {self.__metadata}"
+            )
+            return False
+
+        return True

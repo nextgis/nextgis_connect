@@ -76,7 +76,7 @@ class ActionApplier:
         )
 
     def __update_feature(self, action: FeatureUpdateAction) -> None:
-        feature_metadata = self.__get_feature_metadata(action.fid)
+        feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
             logger.error(f"Feature with fid={action.fid} is not exist")
             return
@@ -101,7 +101,7 @@ class ActionApplier:
         )
 
     def __delete_feature(self, action: FeatureDeleteAction) -> None:
-        feature_metadata = self.__get_feature_metadata(action.fid)
+        feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
             logger.error(f"Feature with fid={action.fid} is not exist")
             return
@@ -115,7 +115,7 @@ class ActionApplier:
         )
 
     def __put_description(self, action: DescriptionPutAction) -> None:
-        feature_metadata = self.__get_feature_metadata(action.fid)
+        feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
             logger.error(f"Feature with fid={action.fid} is not exist")
             return
@@ -157,7 +157,7 @@ class ActionApplier:
         return fields_placeholder, values_placeholder, values_list
 
     def __get_feature_metadata(
-        self, ngw_fid: FeatureId
+        self, *, ngw_fid: FeatureId
     ) -> Optional[FeatureMetaData]:
         self.__cursor.execute(
             "SELECT * FROM ngw_features_metadata WHERE ngw_fid=?", (ngw_fid,)

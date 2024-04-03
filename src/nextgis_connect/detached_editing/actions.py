@@ -97,7 +97,7 @@ class FeatureDeleteAction(FeatureAction):
 class DescriptionPutAction(DataChangeAction):
     fid: FeatureId
 
-    def __init__(self, fid: FeatureId, vid: VersionId, value: str):
+    def __init__(self, fid: FeatureId, vid: Optional[VersionId], value: str):
         super().__init__(ActionType.DESCRIPTION_PUT, fid, vid)
         self.value = value
 
