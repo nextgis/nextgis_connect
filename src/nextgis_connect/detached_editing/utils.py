@@ -7,7 +7,13 @@ from functools import singledispatch
 from pathlib import Path
 from typing import List, Optional
 
-from qgis.core import QgsMapLayer, QgsVectorLayer
+from qgis.core import (
+    QgsExpressionContext,
+    QgsFeature,
+    QgsMapLayer,
+    QgsVectorLayer,
+    qgsfunction,
+)
 
 from nextgis_connect.logging import logger
 from nextgis_connect.resources.ngw_field import NgwField
@@ -240,3 +246,76 @@ def container_changes(path: Path) -> DetachedContainerChanges:
         result = cursor.fetchone()
 
         return DetachedContainerChanges(*result)
+
+
+@qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
+def ngw_feature_id(
+    feature: QgsFeature, context: QgsExpressionContext
+) -> Optional[int]:
+    """
+    Returns NextGIS Web feature id
+    <h2>Example usage:</h2>
+    <ul>
+      <li>ngw_feature_id()</li>
+    </ul>
+    """
+
+    fid = feature.id()
+    layer = context.variable("layer")
+    if layer is None or not is_ngw_container(layer):
+        return None
+
+    path = container_path(layer)
+    try:
+        with (
+            closing(sqlite3.connect(str(path))) as connection,
+            closing(connection.cursor()) as cursor,
+        ):
+            cursor.execute(
+                f"SELECT ngw_fid FROM ngw_features_metadata WHERE fid={fid}"
+            )
+            result = cursor.fetchone()
+            if result is not None:
+                return result[0]
+
+    except Exception:
+        logger.exception("Error occured while querying ngw_fid")
+
+    return None
+
+
+@qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
+def ngw_feature_description(
+    feature: QgsFeature, context: QgsExpressionContext
+) -> Optional[str]:
+    """
+    Returns NextGIS Web feature description
+    <h2>Example usage:</h2>
+    <ul>
+      <li>ngw_feature_description()</li>
+    </ul>
+    """
+
+    fid = feature.id()
+    layer = context.variable("layer")
+    if layer is None or not is_ngw_container(layer):
+        return None
+
+    path = container_path(layer)
+    try:
+        with (
+            closing(sqlite3.connect(str(path))) as connection,
+            closing(connection.cursor()) as cursor,
+        ):
+            cursor.execute(
+                "SELECT description FROM ngw_features_metadata"
+                f" WHERE fid={fid}"
+            )
+            result = cursor.fetchone()
+            if result is not None:
+                return result[0]
+
+    except Exception:
+        logger.exception("Error occured while querying ngw_fid")
+
+    return None
