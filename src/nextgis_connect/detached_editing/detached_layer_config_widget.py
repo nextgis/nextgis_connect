@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import Optional
 
 from qgis.core import QgsMapLayer
@@ -64,12 +65,8 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
 
 class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
-        icon = QIcon(
-            os.path.join(
-                os.path.dirname(__file__), os.pardir, "icons/", "logo.svg"
-            )
-        )
-        super().__init__("NextGIS", icon)
+        icons_path = Path(__file__).parents[1] / "icons"
+        super().__init__("NextGIS", QIcon(str(icons_path / "logo.svg")))
         self.setSupportLayerPropertiesDialog(True)
 
     def __del__(self) -> None:

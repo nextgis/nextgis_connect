@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from typing import ClassVar, List, Optional, cast
 
 from qgis.core import Qgis, QgsApplication, QgsMessageLogNotifyBlocker
@@ -374,15 +375,15 @@ class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
 
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        ICONS_PATH = os.path.join(os.path.dirname(__file__), "icons/")
+        icons_path = Path(__file__).parents[1] / "icons"
         super().__init__(
-            "NextGIS Connect", QIcon(os.path.join(ICONS_PATH, "logo.svg"))
+            "NextGIS Connect", QIcon(str(icons_path / "logo.svg"))
         )
 
     def path(self) -> List[str]:
         return ["NextGIS"]
 
-    def createWidget(
+    def createWidget(  # noqa: N802
         self, parent: Optional[QWidget] = None
     ) -> Optional[QgsOptionsPageWidget]:
         try:
