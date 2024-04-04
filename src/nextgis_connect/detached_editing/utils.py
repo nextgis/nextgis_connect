@@ -236,12 +236,12 @@ def container_changes(path: Path) -> DetachedContainerChanges:
     ):
         cursor.execute(
             """
-                SELECT
-                  (SELECT COUNT(*) from ngw_added_features) added,
-                  (SELECT COUNT(*) from ngw_removed_features) removed,
-                  (SELECT COUNT(*) from ngw_updated_attributes) attributes,
-                  (SELECT COUNT(*) from ngw_updated_geometries) geometries
-                """
+            SELECT
+              (SELECT COUNT(*) FROM ngw_added_features) added,
+              (SELECT COUNT(*) FROM ngw_removed_features) removed,
+              (SELECT COUNT(DISTINCT fid) FROM ngw_updated_attributes) attributes,
+              (SELECT COUNT(*) FROM ngw_updated_geometries) geometries
+            """  # noqa: E501
         )
         result = cursor.fetchone()
 
