@@ -1,6 +1,6 @@
 import logging
 from types import MethodType
-from typing import List, Protocol
+from typing import Protocol, cast
 
 from qgis.core import Qgis, QgsApplication
 
@@ -9,11 +9,7 @@ from nextgis_connect.settings import NgConnectSettings
 
 
 class QgisLoggerProtocol(Protocol):
-    handlers: List[logging.Handler]
-
     def setLevel(self, level: int) -> None: ...  # noqa: N802
-    def addHandler(self, handler: logging.Handler) -> None: ...  # noqa: N802
-    def removeHandler(self, handler: logging.Handler) -> None: ...  # noqa: N802
 
     def debug(self, message: str, *args, **kwargs) -> None: ...
     def info(self, message: str, *args, **kwargs) -> None: ...
@@ -58,10 +54,10 @@ class QgisLoggerHandler(logging.Handler):
 
 
 def init_logger() -> QgisLoggerProtocol:
-    logger: QgisLoggerProtocol = logging.getLogger(
-        NgConnectInterface.PLUGIN_NAME
-    )  # type: ignore
-    logger.success = MethodType(_log_success, logger)
+    logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+    logger.propagate = False
+
+    logger.success = MethodType(_log_success, logger)  # type: ignore
 
     handler = QgisLoggerHandler()
     logger.addHandler(handler)
@@ -71,7 +67,7 @@ def init_logger() -> QgisLoggerProtocol:
     if is_debug_enabled:
         logger.warning("Debug messages are enabled")
 
-    return logger
+    return cast(QgisLoggerProtocol, logger)
 
 
 def update_level() -> None:
@@ -80,12 +76,16 @@ def update_level() -> None:
 
 
 def unload_logger():
+    logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+
     handlers = logger.handlers.copy()
     for handler in handlers:
         logger.removeHandler(handler)
         handler.close()
 
-    del logger.success
+    logger.propagate = True
+
+    del logger.success  # type: ignore
 
     logger.setLevel(logging.NOTSET)
 
