@@ -1,17 +1,18 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 from qgis.core import (
     QgsApplication,
+    QgsEditorWidgetSetup,
     QgsLayerTreeLayer,
     QgsProject,
     QgsTask,
     QgsVectorLayer,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.utils import iface, spatialite_connect
 
 from nextgis_connect.logging import logger
@@ -24,9 +25,11 @@ from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
-from nextgis_connect.settings import NgConnectCacheManager
+from nextgis_connect.settings import NgConnectCacheManager, NgConnectSettings
 from nextgis_connect.tasks.detached_editing import (
     DownloadGpkgTask,
+    FetchAdditionalDataTask,
+    FetchDeltaTask,
     FillLayerWithVersioning,
     UploadChangesTask,
 )
@@ -59,6 +62,12 @@ class DetachedContainer(QObject):
     __indicator: Optional[DetachedLayerIndicator]
     __sync_task: Optional[QgsTask]
 
+    __additional_data_fetch_date: Optional[datetime]
+    __is_edit_allowed: bool
+
+    editing_started = pyqtSignal(name="editingStarted")
+    editing_finished = pyqtSignal(name="editingFinished")
+
     state_changed = pyqtSignal(DetachedLayerState, name="stateChanged")
 
     def __init__(
@@ -72,7 +81,8 @@ class DetachedContainer(QObject):
         self.__indicator = None
         self.__sync_task = None
 
-        # self.destroyed.connect(self.__clear_indicators)
+        self.__additional_data_fetch_date = None
+        self.__is_edit_allowed = False
 
         self.__update_state(is_full_update=True)
 
@@ -107,11 +117,7 @@ class DetachedContainer(QObject):
 
     @property
     def check_date(self) -> Optional[datetime]:
-        for detached_layer in self.__detached_layers.values():
-            check_date = detached_layer.layer.customProperty("ngw_check_date")
-            if check_date is not None:
-                return check_date
-        return None
+        return self.__property("ngw_check_date")
 
     @property
     def sync_date(self) -> Optional[datetime]:
@@ -122,14 +128,25 @@ class DetachedContainer(QObject):
         return len(self.__detached_layers) == 0
 
     @property
+    def is_edit_mode_enabled(self) -> bool:
+        return any(
+            layer.is_edit_mode_enabled
+            for layer in self.__detached_layers.values()
+        )
+
+    @property
     def changes(self) -> DetachedContainerChanges:
         return self.__changes
 
     def add_layer(self, layer: QgsVectorLayer) -> None:
         detached_layer = DetachedLayer(self, layer)
+        detached_layer.editing_started.connect(self.editing_started)
+        detached_layer.editing_finished.connect(self.editing_finished)
         detached_layer.layer_changed.connect(
             lambda: self.__update_state(is_full_update=True)
         )
+
+        layer.setReadOnly(not self.__is_edit_allowed)
 
         plugin = NgConnectInterface.instance()
         detached_layer.editing_finished.connect(plugin.update_layers)
@@ -191,42 +208,27 @@ class DetachedContainer(QObject):
         if self.state == DetachedLayerState.Synchronization:
             return False
 
-        if any(
-            detached_layer.layer.isEditable()
-            for detached_layer in self.__detached_layers.values()
-        ):
+        if not is_manual and self.state == DetachedLayerState.Error:
             return False
+
+        if self.is_edit_mode_enabled:
+            return False
+
+        if is_manual:
+            self.__additional_data_fetch_date = None
 
         if not is_manual and self.check_date is not None:
-            interval = 60
-            if (datetime.now() - self.check_date).total_seconds() < interval:
+            period = NgConnectSettings().synchronizatin_period
+            if datetime.now() - self.check_date < period:
                 return False
 
-        self.__lock_layers()
+        self.__init_sync_task()
 
-        container_path = self.__path
-        metadata = self.metadata
-        layer_name = self.__metadata.layer_name
-        resource_id = self.__metadata.resource_id
-
-        if self.is_stub:
-            if metadata.is_versioning_enabled:
-                self.__sync_task = FillLayerWithVersioning(container_path)
-            else:
-                self.__sync_task = DownloadGpkgTask(container_path)
-            self.__sync_task.download_finished.connect(self.__on_task_finished)
-        elif self.metadata.has_changes:
-            self.__sync_task = UploadChangesTask(container_path)
-            self.__sync_task.synchronization_finished.connect(
-                self.__on_task_finished
-            )
-        else:
-            logger.debug(
-                f'There are no changes to upload for layer "{layer_name}" '
-                f"(id={resource_id})"
-            )
-            self.__unlock_layers()
+        if self.__sync_task is None:
+            self.__set_property("ngw_check_date", datetime.now())
             return False
+
+        self.__lock_layers()
 
         self.__state = DetachedLayerState.Synchronization
         self.state_changed.emit(self.__state)
@@ -238,11 +240,8 @@ class DetachedContainer(QObject):
         return True
 
     def force_synchronize(self) -> None:
-        layer_name = self.__metadata.layer_name
-        resource_id = self.__metadata.resource_id
         logger.debug(
-            f'Started forced synchronization for layer "{layer_name}" '
-            f"(id={resource_id})"
+            f"Started forced synchronization for layer {self.metadata}"
         )
 
         connection_id = self.__metadata.connection_id
@@ -252,6 +251,7 @@ class DetachedContainer(QObject):
         ngw_connection = QgsNgwConnection(connection_id)
 
         resources_factory = NGWResourceFactory(ngw_connection)
+        resource_id = self.__metadata.resource_id
         ngw_layer = resources_factory.get_resource(resource_id)
         assert isinstance(ngw_layer, NGWVectorLayer)
 
@@ -308,6 +308,7 @@ class DetachedContainer(QObject):
             self.__state = (
                 DetachedLayerState.NotSynchronized
                 if self.__metadata.has_changes
+                or self.__additional_data_fetch_date is None
                 else DetachedLayerState.Synchronized
             )
 
@@ -317,23 +318,84 @@ class DetachedContainer(QObject):
 
         self.state_changed.emit(self.__state)
 
-    def __on_task_finished(self, result: bool) -> None:  # noqa: FBT001
+    def __init_sync_task(self) -> None:
+        if self.metadata.is_versioning_enabled:
+            self.__init_versioning_task()
+        else:
+            self.__init_ordinary_task()
+
+        if self.__sync_task is None and (
+            self.__additional_data_fetch_date is None
+            or datetime.now() - self.__additional_data_fetch_date
+            > timedelta(hours=1)
+        ):
+            self.__sync_task = FetchAdditionalDataTask(self.path)
+            self.__sync_task.download_finished.connect(
+                self.__on_additional_data_fetched
+            )
+
+    def __init_ordinary_task(self) -> None:
+        if self.is_stub:
+            self.__sync_task = DownloadGpkgTask(self.path)
+            self.__sync_task.download_finished.connect(
+                self.__on_synchronization_finished
+            )
+            return
+
+        if self.metadata.has_changes:
+            self.__sync_task = UploadChangesTask(self.path)
+            self.__sync_task.synchronization_finished.connect(
+                self.__on_synchronization_finished
+            )
+            return
+
+        logger.debug(
+            f"There are no changes to upload for layer {self.metadata}"
+        )
+
+    def __init_versioning_task(self) -> None:
+        if self.is_stub:
+            self.__sync_task = FillLayerWithVersioning(self.path)
+            self.__sync_task.download_finished.connect(
+                self.__on_synchronization_finished
+            )
+            return
+
+        State = VersioningSynchronizationState  # noqa: N806
+
+        if self.__versioning_state == State.Synchronized:
+            self.__sync_task = FetchDeltaTask(self.path)
+            self.__sync_task.download_finished.connect(
+                self.__on_synchronization_finished
+            )
+            self.__versioning_state = State.FetchingChanges
+
+    @pyqtSlot(bool)
+    def __on_synchronization_finished(self, result: bool) -> None:  # noqa: FBT001
         if result:
             self.__state = DetachedLayerState.Synchronized
             self.__versioning_state = (
                 VersioningSynchronizationState.Synchronized
             )
-            now = datetime.now()
-            for detached_layer in self.__detached_layers.values():
-                detached_layer.layer.setCustomProperty("ngw_check_date", now)
+
+            self.__set_property("ngw_check_date", datetime.now())
 
             first_layer = next(iter(self.__detached_layers.values()))
             first_layer.layer.reload()
-
         else:
             self.__state = DetachedLayerState.Error
 
         self.__sync_task = None
+
+        if self.__additional_data_fetch_date is None:
+            self.__sync_task = FetchAdditionalDataTask(self.path)
+            self.__sync_task.download_finished.connect(
+                self.__on_additional_data_fetched
+            )
+            task_manager = QgsApplication.taskManager()
+            assert task_manager is not None
+            task_manager.addTask(self.__sync_task)
+            return
 
         self.__unlock_layers()
 
@@ -348,7 +410,7 @@ class DetachedContainer(QObject):
 
     def __unlock_layers(self) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.layer.setReadOnly(False)
+            detached_layer.layer.setReadOnly(not self.__is_edit_allowed)
 
     def __clear_indicators(self) -> None:
         if self.__indicator is None:
@@ -365,3 +427,52 @@ class DetachedContainer(QObject):
             if node is None:
                 continue
             self.remove_indicator(node)
+
+    def __property(self, name: str) -> None:
+        for detached_layer in self.__detached_layers.values():
+            custom_property = detached_layer.layer.customProperty(name)
+            if custom_property is not None:
+                return custom_property
+        return None
+
+    def __set_property(self, name: str, value: Any) -> None:
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.layer.setCustomProperty(name, value)
+
+    def __on_additional_data_fetched(self, result: bool) -> None:  # noqa: FBT001
+        assert isinstance(self.__sync_task, FetchAdditionalDataTask)
+
+        if result:
+            self.__is_edit_allowed = self.__sync_task.is_edit_allowed
+            self.__apply_lookup_tables()
+
+            self.__additional_data_fetch_date = datetime.now()
+        else:
+            self.__is_edit_allowed = False
+            self.__additional_data_fetch_date = None
+
+        self.__sync_task = None
+
+        self.__unlock_layers()
+
+        self.__update_state()
+
+        # Start next layer update
+        NgConnectInterface.instance().update_layers()
+
+    def __apply_lookup_tables(self) -> None:
+        assert isinstance(self.__sync_task, FetchAdditionalDataTask)
+
+        for lookup_table_id, pairs in self.__sync_task.lookup_tables.items():
+            attributes_id = [
+                field.attribute
+                for field in self.metadata.fields
+                if field.lookup_table == lookup_table_id
+            ]
+
+            for detached_layer in self.__detached_layers.values():
+                for attribute_id in attributes_id:
+                    setup = QgsEditorWidgetSetup("ValueMap", {"map": pairs})
+                    detached_layer.layer.setEditorWidgetSetup(
+                        attribute_id, setup
+                    )

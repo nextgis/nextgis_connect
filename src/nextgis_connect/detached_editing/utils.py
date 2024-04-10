@@ -47,11 +47,18 @@ class DetachedLayerErrorType(IntEnum):
     NoError = auto()
 
     SynchronizationError = auto()
+    NetworkError = auto()
+    AuthError = auto()
     NotEnoughRights = auto()
 
     ContainerError = auto()
     CreationError = auto()
     DeletedContainer = auto()
+    NotCompletedFetch = auto()
+    ConnectionNotExist = auto()
+    EpochChanged = auto()
+    StructureChanged = auto()
+    NotVersionedContentChanged = auto()
 
     @property
     def is_sync_error(self) -> bool:
@@ -124,10 +131,9 @@ def is_ngw_container(layer: QgsMapLayer) -> bool:
 
     def has_metadata(layer: QgsMapLayer) -> bool:
         try:
-            with (
-                closing(sqlite3.connect(container_path(layer))) as connection,
-                closing(connection.cursor()) as cursor,
-            ):
+            with closing(
+                sqlite3.connect(container_path(layer))
+            ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
                     """
                     SELECT count(name)
@@ -156,10 +162,9 @@ def container_metadata(path_or_cursor) -> DetachedContainerMetaData:
 
 @container_metadata.register
 def _(path: Path) -> DetachedContainerMetaData:
-    with (
-        closing(sqlite3.connect(str(path))) as connection,
-        closing(connection.cursor()) as cursor,
-    ):
+    with closing(sqlite3.connect(str(path))) as connection, closing(
+        connection.cursor()
+    ) as cursor:
         return container_metadata(cursor)
 
 
@@ -230,10 +235,9 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
 
 
 def container_changes(path: Path) -> DetachedContainerChanges:
-    with (
-        closing(sqlite3.connect(str(path))) as connection,
-        closing(connection.cursor()) as cursor,
-    ):
+    with closing(sqlite3.connect(str(path))) as connection, closing(
+        connection.cursor()
+    ) as cursor:
         cursor.execute(
             """
             SELECT
@@ -267,10 +271,9 @@ def ngw_feature_id(
 
     path = container_path(layer)
     try:
-        with (
-            closing(sqlite3.connect(str(path))) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(sqlite3.connect(str(path))) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             cursor.execute(
                 f"SELECT ngw_fid FROM ngw_features_metadata WHERE fid={fid}"
             )
@@ -303,10 +306,9 @@ def ngw_feature_description(
 
     path = container_path(layer)
     try:
-        with (
-            closing(sqlite3.connect(str(path))) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(sqlite3.connect(str(path))) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             cursor.execute(
                 "SELECT description FROM ngw_features_metadata"
                 f" WHERE fid={fid}"

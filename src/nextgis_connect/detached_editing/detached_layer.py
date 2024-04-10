@@ -18,8 +18,10 @@ class DetachedLayer(QObject):
     __container: "DetachedContainer"
     __layer: QgsVectorLayer
 
-    layer_changed = pyqtSignal(name="layerChanged")
+    editing_started = pyqtSignal(name="editingStarted")
     editing_finished = pyqtSignal(name="editingFinished")
+
+    layer_changed = pyqtSignal(name="layerChanged")
 
     def __init__(
         self,
@@ -35,9 +37,16 @@ class DetachedLayer(QObject):
         self.__layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore
         self.__layer.editingStopped.connect(self.__stop_listen_changes)  # type: ignore
 
+        if layer.isEditable():
+            self.__start_listen_changes()
+
     @property
     def layer(self) -> QgsVectorLayer:
         return self.__layer
+
+    @property
+    def is_edit_mode_enabled(self) -> bool:
+        return self.__layer.isEditable()
 
     def fill_properties(self, metadata: DetachedContainerMetaData) -> None:
         properties = {
@@ -49,7 +58,7 @@ class DetachedLayer(QObject):
         for name, value in properties.items():
             self.__layer.setCustomProperty(name, value)
 
-    @pyqtSlot(name="startListenChanges")
+    @pyqtSlot()
     def __start_listen_changes(self) -> None:
         layer_name = self.__container.metadata.layer_name
         layer_id = self.__layer.id()
@@ -68,7 +77,9 @@ class DetachedLayer(QObject):
             self.__log_geometry_changes
         )
 
-    @pyqtSlot(name="stopListenChanges")
+        self.editing_started.emit()
+
+    @pyqtSlot()
     def __stop_listen_changes(self) -> None:
         self.__layer.committedFeaturesAdded.disconnect(
             self.__log_added_features
@@ -93,10 +104,9 @@ class DetachedLayer(QObject):
 
     @pyqtSlot(str, "QgsFeatureList")
     def __log_added_features(self, _: str, features: List[QgsFeature]) -> None:
-        with (
-            closing(self.__container.make_connection()) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(
+            self.__container.make_connection()
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.executemany(
                 "INSERT INTO ngw_added_features VALUES (?);",
                 ((feature.id(),) for feature in features),
@@ -122,10 +132,9 @@ class DetachedLayer(QObject):
 
     @pyqtSlot(str, "QgsFeatureIds")
     def __log_removed_features(self, _: str, feature_ids: List[int]) -> None:
-        with (
-            closing(self.__container.make_connection()) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(
+            self.__container.make_connection()
+        ) as connection, closing(connection.cursor()) as cursor:
             # Delete added feature fids
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(
@@ -178,10 +187,9 @@ class DetachedLayer(QObject):
     def __log_attribute_values_changes(
         self, _: str, changed_attributes: Dict[int, Dict[int, Any]]
     ) -> None:
-        with (
-            closing(self.__container.make_connection()) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(
+            self.__container.make_connection()
+        ) as connection, closing(connection.cursor()) as cursor:
             feature_ids = list(changed_attributes.keys())
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(
@@ -217,10 +225,9 @@ class DetachedLayer(QObject):
     def __log_geometry_changes(
         self, _: str, changed_geometries: Dict[int, QgsGeometry]
     ) -> None:
-        with (
-            closing(self.__container.make_connection()) as connection,
-            closing(connection.cursor()) as cursor,
-        ):
+        with closing(
+            self.__container.make_connection()
+        ) as connection, closing(connection.cursor()) as cursor:
             feature_ids = list(changed_geometries.keys())
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(

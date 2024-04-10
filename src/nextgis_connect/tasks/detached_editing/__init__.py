@@ -1,3 +1,5 @@
 from .download_gpkg_task import DownloadGpkgTask
+from .fetch_additional_data_task import FetchAdditionalDataTask
+from .fetch_delta_task import FetchDeltaTask
 from .fill_layer_with_versioning_task import FillLayerWithVersioning
 from .upload_changes_task import UploadChangesTask

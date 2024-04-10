@@ -68,6 +68,8 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         self.closeButton.clicked.connect(self.reject)
 
         self.__container = container
+        self.__container.editing_started.connect(self.__update_sync_button)
+        self.__container.editing_finished.connect(self.__update_sync_button)
         self.__container.state_changed.connect(self.__on_state_changed)
         self.__on_state_changed(self.__container.state)
 
@@ -76,11 +78,11 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         is_sync_active = state == DetachedLayerState.Synchronization
 
         self.progressBar.setVisible(is_sync_active)
-        self.syncButton.setEnabled(
-            self.__container.state != DetachedLayerState.Synchronization
-        )
+
+        self.__update_sync_button()
+
         self.changesPage.setEnabled(
-            self.__container.state != DetachedLayerState.Synchronization
+            state != DetachedLayerState.Synchronization
         )
 
         self.__fill_status()
@@ -93,6 +95,13 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
     @pyqtSlot(name="forceSynchronize")
     def __forced_synchronize(self) -> None:
         self.__container.force_synchronize()
+
+    @pyqtSlot(name="updateSyncButton")
+    def __update_sync_button(self) -> None:
+        self.syncButton.setEnabled(
+            self.__container.state != DetachedLayerState.Synchronization
+            and not self.__container.is_edit_mode_enabled
+        )
 
     def __fill_status(self) -> None:
         sync_datetime = self.__container.metadata.sync_date

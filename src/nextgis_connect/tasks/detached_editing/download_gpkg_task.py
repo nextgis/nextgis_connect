@@ -64,9 +64,10 @@ class DownloadGpkgTask(NgConnectTask):
         if not is_downloaded:
             return False
 
-        is_downloaded = self.__download_extensions()
-        if not is_downloaded:
-            return False
+        # It's too slow now
+        # is_downloaded = self.__download_extensions()
+        # if not is_downloaded:
+        #     return False
 
         logger.debug("Downloading GPKG completed")
 
@@ -149,12 +150,9 @@ class DownloadGpkgTask(NgConnectTask):
             ngw_connection = QgsNgwConnection(connection_id)
             features_extensions = ngw_connection.get(extensions_url)
 
-            with (
-                closing(
-                    spatialite_connect(str(self.__temp_path))
-                ) as connection,
-                closing(connection.cursor()) as cursor,
-            ):
+            with closing(
+                spatialite_connect(str(self.__temp_path))
+            ) as connection, closing(connection.cursor()) as cursor:
                 metadata = container_metadata(cursor)
 
                 serializer = ActionSerializer(metadata)

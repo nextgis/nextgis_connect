@@ -56,10 +56,9 @@ class UploadChangesTask(QgsTask):
         )
 
         try:
-            with (
-                closing(spatialite_connect(container_path)) as connection,
-                closing(connection.cursor()) as cursor,
-            ):
+            with closing(
+                spatialite_connect(container_path)
+            ) as connection, closing(connection.cursor()) as cursor:
                 self.__upload_changes(cursor)
                 connection.commit()
 

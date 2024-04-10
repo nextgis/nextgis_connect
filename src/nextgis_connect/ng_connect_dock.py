@@ -109,7 +109,6 @@ from .ngw_api.qgis.resource_to_map import (
     UnsupportedRasterTypeException,
     _add_aliases,
     _add_all_styles_to_layer,
-    _add_lookup_tables,
     add_ogcf_resource,
     add_resource_as_cog_raster,
     add_resource_as_wfs_layers,
@@ -2106,7 +2105,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         _add_all_styles_to_layer(qgs_gpkg_layer, children, default_style)
 
         _add_aliases(qgs_gpkg_layer, vector_layer)
-        _add_lookup_tables(qgs_gpkg_layer, vector_layer)
 
         project = QgsProject.instance()
         assert project is not None

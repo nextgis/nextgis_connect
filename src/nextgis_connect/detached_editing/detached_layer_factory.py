@@ -29,10 +29,9 @@ class DetachedLayerFactory:
             return False
 
         try:
-            with (
-                closing(spatialite_connect(str(container_path))) as connection,
-                closing(connection.cursor()) as cursor,
-            ):
+            with closing(
+                spatialite_connect(str(container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
                 self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)
                 self.__insert_metadata(ngw_layer, cursor)
@@ -49,10 +48,9 @@ class DetachedLayerFactory:
         self, ngw_layer: NGWVectorLayer, container_path: Path
     ) -> bool:
         try:
-            with (
-                closing(spatialite_connect(str(container_path))) as connection,
-                closing(connection.cursor()) as cursor,
-            ):
+            with closing(
+                spatialite_connect(str(container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
                 self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)
                 self.__insert_metadata(ngw_layer, cursor, is_update=True)

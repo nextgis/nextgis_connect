@@ -20,6 +20,7 @@
  ***************************************************************************/
 """
 
+from datetime import timedelta
 from typing import Optional
 
 from qgis.core import QgsSettings
@@ -131,6 +132,10 @@ class NgConnectSettings:
     @cache_max_size.setter
     def cache_max_size(self, value: int) -> None:
         self.__settings.setValue(self.__plugin_group + "/cache/size", value)
+
+    @property
+    def synchronizatin_period(self) -> timedelta:
+        return timedelta(seconds=60)
 
     @property
     def __plugin_group(self) -> str:

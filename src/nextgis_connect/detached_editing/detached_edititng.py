@@ -1,3 +1,4 @@
+from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
@@ -10,8 +11,8 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.gui import QgisInterface, QgsApplicationExitBlockerInterface
-from qgis.PyQt.QtCore import QObject, QTimer
-from qgis.utils import iface
+from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
+from qgis.utils import iface  # type: ignore
 
 from nextgis_connect.logging import logger
 
@@ -51,9 +52,9 @@ class DetachedEditing(QObject):
         self.__containers_by_layer_id = {}
         self.__sync_is_stopped = False
 
-        half_minute = 30000
+        layers_check_period = timedelta(seconds=15) / timedelta(milliseconds=1)
         self.__timer = QTimer(self)
-        self.__timer.setInterval(half_minute)
+        self.__timer.setInterval(int(layers_check_period))
         self.__timer.timeout.connect(self.update_layers)
         self.__timer.start()
 
@@ -104,6 +105,7 @@ class DetachedEditing(QObject):
     def stop_next_sync(self) -> None:
         self.__sync_is_stopped = True
 
+    @pyqtSlot(name="updateLayers")
     def update_layers(self) -> None:
         if self.is_sychronization_active or self.__sync_is_stopped:
             return
@@ -168,12 +170,15 @@ class DetachedEditing(QObject):
 
         return True
 
+    @pyqtSlot("QList<QgsMapLayer *>")
     def __on_layers_added(self, layers: List[QgsMapLayer]) -> None:
         for layer in layers:
             self.__setup_layer(layer)
 
         self.__update_actions()
+        self.update_layers()
 
+    @pyqtSlot("QStringList")
     def __on_layers_will_be_removed(self, layer_ids: List[str]) -> None:
         for layer_id in layer_ids:
             if layer_id not in self.__containers_by_layer_id:
@@ -188,6 +193,7 @@ class DetachedEditing(QObject):
 
         self.__update_actions()
 
+    @pyqtSlot(QgsLayerTreeNode, int, int)
     def __on_added_children(
         self, parent_node: QgsLayerTreeNode, index_from: int, index_to: int
     ) -> None:
@@ -204,6 +210,7 @@ class DetachedEditing(QObject):
             else:
                 node.layerLoaded.connect(self.__on_layer_loaded)
 
+    @pyqtSlot()
     def __on_layer_loaded(self) -> None:
         node = self.sender()
         if not isinstance(node, QgsLayerTreeLayer):
@@ -218,6 +225,7 @@ class DetachedEditing(QObject):
 
         self.__containers_by_layer_id[layer.id()].add_indicator(node)
 
+    @pyqtSlot(QgsLayerTreeNode, int, int)
     def __on_will_remove_children(
         self, parent_node: QgsLayerTreeNode, index_from: int, index_to: int
     ) -> None:
