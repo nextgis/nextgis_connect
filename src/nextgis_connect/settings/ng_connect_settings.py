@@ -41,10 +41,55 @@ class NgConnectSettings:
         return "4.7.0"
 
     @property
+    def rename_forbidden_fields(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/renameForbiddenFields", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @rename_forbidden_fields.setter
+    def rename_forbidden_fields(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/renameForbiddenFields", value)
+        self.__settings.endGroup()
+
+    @property
+    def fix_incorrect_geometries(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/fixIncorrectGeometries", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @fix_incorrect_geometries.setter
+    def fix_incorrect_geometries(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/fixIncorrectGeometries", value)
+        self.__settings.endGroup()
+
+    @property
+    def upload_raster_as_cog(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/rasterAsCog", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @upload_raster_as_cog.setter
+    def upload_raster_as_cog(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/rasterAsCog", value)
+        self.__settings.endGroup()
+
+    @property
     def open_web_map_after_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
-            "openWebMapAfterCreation", defaultValue=True, type=bool
+            "uploading/openWebMapAfterCreation", defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -52,15 +97,16 @@ class NgConnectSettings:
     @open_web_map_after_creation.setter
     def open_web_map_after_creation(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue("openWebMapAfterCreation", value)
+        self.__settings.setValue("uploading/openWebMapAfterCreation", value)
         self.__settings.endGroup()
 
     @property
     def add_layer_after_service_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
-        # TODO: remove "wfs" from key
         result = self.__settings.value(
-            "addWfsLayerAfterServiceCreation", defaultValue=True, type=bool
+            "resources/addLayerAfterServiceCreation",
+            defaultValue=True,
+            type=bool,
         )
         self.__settings.endGroup()
         return result
@@ -68,14 +114,16 @@ class NgConnectSettings:
     @add_layer_after_service_creation.setter
     def add_layer_after_service_creation(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue("addWfsLayerAfterServiceCreation", value)
+        self.__settings.setValue(
+            "resources/addLayerAfterServiceCreation", value
+        )
         self.__settings.endGroup()
 
     @property
     def is_debug_enabled(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
-            "debugEnabled", defaultValue=False, type=bool
+            "other/debugEnabled", defaultValue=False, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -83,7 +131,7 @@ class NgConnectSettings:
     @is_debug_enabled.setter
     def is_debug_enabled(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue("debugEnabled", value)
+        self.__settings.setValue("other/debugEnabled", value)
         self.__settings.endGroup()
 
     @property
@@ -135,7 +183,19 @@ class NgConnectSettings:
 
     @property
     def synchronizatin_period(self) -> timedelta:
-        return timedelta(seconds=60)
+        value = self.__settings.value(
+            self.__plugin_group + "/synchronization/period",
+            defaultValue=60,
+            type=int,
+        )
+        return timedelta(seconds=value)
+
+    @synchronizatin_period.setter
+    def synchronizatin_period(self, value: timedelta) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + "/synchronization/period",
+            value.total_seconds(),
+        )
 
     @property
     def __plugin_group(self) -> str:
@@ -144,6 +204,8 @@ class NgConnectSettings:
     def __migrate(self) -> None:
         self.__migrate_from_qsettings()
         self.__migrate_to_more_beautiful_path()
+        self.__migrate_ngw_api_settings()
+        self.__migrate_keys_names()
 
         self.__settings.sync()
 
@@ -187,4 +249,46 @@ class NgConnectSettings:
         self.__settings.beginGroup("NextGIS/NGConnect")
         for key in keys:
             self.__settings.remove(key)
+        self.__settings.endGroup()
+
+    def __migrate_keys_names(self) -> None:
+        mapping = {
+            "addWfsLayerAfterServiceCreation": "resources/addLayerAfterServiceCreation",
+            "openWebMapAfterCreation": "uploading/openWebMapAfterCreation",
+            "debugEnabled": "other/debugEnabled",
+        }
+        if any(
+            self.__settings.value(key) is not None for key in mapping.values()
+        ):
+            return
+
+        self.__settings.beginGroup(self.__plugin_group)
+        for old_name, new_name in mapping.items():
+            value = self.__settings.value(old_name)
+            if value is None:
+                continue
+            self.__settings.setValue(new_name, value)
+            self.__settings.remove(old_name)
+        self.__settings.endGroup()
+
+    def __migrate_ngw_api_settings(self) -> None:
+        mapping = {
+            "sanitize_rename_fields": "uploading/renameForbiddenFields",
+            "sanitize_fix_geometry": "uploading/fixIncorrectGeometries",
+            "upload_cog_rasters": "uploading/rasterAsCog",
+        }
+
+        if any(
+            self.__settings.value(key) is not None for key in mapping.values()
+        ):
+            return
+
+        settings = QSettings("NextGIS", "NextGIS WEB API")
+        self.__settings.beginGroup(self.__plugin_group)
+        for old_key, new_key in mapping.items():
+            value = settings.value(old_key)
+            if value is None:
+                continue
+            self.__settings.setValue(new_key, value)
+            settings.remove(old_key)
         self.__settings.endGroup()

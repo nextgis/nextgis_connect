@@ -1,4 +1,4 @@
-import os
+from datetime import timedelta
 from pathlib import Path
 from typing import ClassVar, List, Optional, cast
 
@@ -16,6 +16,7 @@ from qgis.PyQt.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -23,7 +24,6 @@ from qgis.utils import iface
 
 from nextgis_connect.logging import logger, update_level
 from nextgis_connect.ng_connect_dock import NgConnectDock
-from nextgis_connect.ngw_api.qgis.ngw_plugin_settings import NgwPluginSettings
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
@@ -57,12 +57,10 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        plugin_path = os.path.dirname(__file__)
+        plugin_path = Path(__file__).parent
         widget: Optional[QWidget] = None
         try:
-            widget = uic.loadUi(
-                os.path.join(plugin_path, "settings_dialog_base.ui")
-            )  # type: ignore
+            widget = uic.loadUi(str(plugin_path / "settings_dialog_base.ui"))  # type: ignore
         except FileNotFoundError as error:
             message = self.tr("Can't load settings UI")
             logger.exception(message)
@@ -95,60 +93,22 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         self.__init_settings()
 
+    def __del__(self):
+        # Workaround
+        if not self.__is_accepted and not self.__is_cancelled:
+            self.cancel()
+
     def apply(self) -> None:
         self.__is_accepted = True
 
         settings = NgConnectSettings()
 
-        # Connections settings
         self.__save_current_connection()
-
-        # Cache settings
-        cache_manager = NgConnectCacheManager()
-        cache_directory = self.__widget.cacheDirectoryLineEdit.text()
-        cache_manager.cache_directory = (
-            cache_directory if len(cache_directory) > 0 else None
-        )
-        cache_duration_combobox = cast(
-            QComboBox, self.__widget.autoRemoveCacheComboBox
-        )
-        cache_manager.cache_duration = cache_duration_combobox.currentData()
-        cache_size_index = self.__widget.cacheSizeSlider.value()
-        cache_manager.cache_max_size = self.CACHE_SIZE_VALUES[cache_size_index]
-
-        # Sanitize settings
-        NgwPluginSettings.set_sanitize_rename_fields(
-            self.__widget.renameFieldsCheckBox.isChecked()
-        )
-        NgwPluginSettings.set_sanitize_fix_geometry(
-            self.__widget.fixGeometryCheckBox.isChecked()
-        )
-
-        # Creation settings
-        settings.open_web_map_after_creation = (
-            self.__widget.openWebMapAfterCreationCheckBox.isChecked()
-        )
-        settings.add_layer_after_service_creation = (
-            self.__widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
-        )
-
-        # Other settings
-        NgwPluginSettings.set_upload_cog_rasters(
-            self.__widget.cogCheckBox.isChecked()
-        )
-
-        old_debug_enabled = settings.is_debug_enabled
-        new_debug_enabled = self.__widget.debugEnabledCheckBox.isChecked()
-        settings.is_debug_enabled = new_debug_enabled
-        if old_debug_enabled != new_debug_enabled:
-            debug_state = "enabled" if new_debug_enabled else "disabled"
-            update_level()
-            logger.info(f"Debug messages are now {debug_state}")
-
-    def __del__(self):
-        # Workaround
-        if not self.__is_accepted and not self.__is_cancelled:
-            self.cancel()
+        self.__save_uploading_settings(settings)
+        self.__save_resources_settings(settings)
+        self.__save_sync_settings(settings)
+        self.__save_cache_settings()
+        self.__save_other_settings(settings)
 
     def cancel(self) -> None:
         self.__is_cancelled = True
@@ -168,35 +128,76 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         settings = NgConnectSettings()
         self.__is_accepted = False
         self.__is_cancelled = False
-        self.__init_connections(settings)
-        self.__init_cache_settings(settings)
-        self.__init_sanitize_settings(settings)
-        self.__init_creation_settings(settings)
+        self.__init_connections()
+        self.__init_uploading_settings(settings)
+        self.__init_resources_settings(settings)
+        self.__init_sync_settings(settings)
+        self.__init_cache_settings()
         self.__init_other_settings(settings)
 
-    def __init_connections(self, settings: NgConnectSettings) -> None:
+    def __init_connections(self) -> None:
         connections_manager = NgwConnectionsManager()
         self.__current_connection = connections_manager.current_connection
         self.__connections = connections_manager.connections()
 
-    def __init_sanitize_settings(self, settings: NgConnectSettings) -> None:
+    def __init_uploading_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.renameFieldsCheckBox.setChecked(
-            NgwPluginSettings.get_sanitize_rename_fields()
+            settings.rename_forbidden_fields
         )
+
         self.__widget.fixGeometryCheckBox.setChecked(
-            NgwPluginSettings.get_sanitize_fix_geometry()
+            settings.fix_incorrect_geometries
         )
         self.__widget.fixGeometryCheckBox.hide()  # Rely on NGW
 
-    def __init_creation_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.openWebMapAfterCreationCheckBox.setChecked(
             settings.open_web_map_after_creation
         )
+        self.__widget.cogCheckBox.setChecked(settings.upload_raster_as_cog)
+
+    def __init_resources_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
             settings.add_layer_after_service_creation
         )
 
-    def __init_cache_settings(self, settings: NgConnectSettings) -> None:
+    def __init_sync_settings(self, settings: NgConnectSettings) -> None:
+        period = settings.synchronizatin_period
+
+        if period // timedelta(minutes=1) < 59:  # noqa: PLR2004
+            value = period // timedelta(minutes=1)
+            index = 0
+        else:
+            value = period // timedelta(hours=1)
+            index = 1
+
+        self.__widget.syncPeriodSpinBox.setValue(value)
+        self.__widget.syncPeriodSpinBox.valueChanged.connect(
+            self.__update_sync_combobox
+        )
+
+        period_combobox = cast(QComboBox, self.__widget.syncPeriodComboBox)
+        period_combobox.addItem("", "minutes")
+        period_combobox.addItem("", "hours")
+        self.__update_sync_combobox(value)
+
+        period_combobox.setCurrentIndex(index)
+
+    def __update_sync_combobox(self, value: int) -> None:
+        period_combobox = cast(QComboBox, self.__widget.syncPeriodComboBox)
+
+        minute_string = self.tr("%n$minute", None, value)
+        if minute_string == f"{value}$minute" and value != 1:
+            minute_string += "s"
+        minute_string = minute_string[minute_string.find("$") + 1 :]
+        period_combobox.setItemText(0, minute_string)
+
+        hour_string = self.tr("%n$hour", None, value)
+        if hour_string == f"{value}$hour" and value != 1:
+            hour_string += "s"
+        hour_string = hour_string[hour_string.find("$") + 1 :]
+        period_combobox.setItemText(1, hour_string)
+
+    def __init_cache_settings(self) -> None:
         cache_manager = NgConnectCacheManager()
         is_cache_directory_default = (
             cache_manager.cache_directory
@@ -270,9 +271,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.__widget.clearCacheButton.setEnabled(True)
 
     def __init_other_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.cogCheckBox.setChecked(
-            NgwPluginSettings.get_upload_cog_rasters()
-        )
         self.__widget.debugEnabledCheckBox.setChecked(
             settings.is_debug_enabled
         )
@@ -284,11 +282,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         need_reinint = False
 
-        if (
-            old_connection is not None
-            and new_connection_id is None
-            or old_connection is None
-            and new_connection_id is not None
+        if (old_connection is not None and new_connection_id is None) or (
+            old_connection is None and new_connection_id is not None
         ):
             need_reinint = True
             connections_manager.current_connection_id = new_connection_id
@@ -299,7 +294,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
                 connections_manager.current_connection_id = new_connection_id
 
         if need_reinint:
-            dock = iface.mainWindow().findChild(NgConnectDock, "NGConnectDock")
+            # TODO (ivanbarsukov): refactoring
+            dock = iface.mainWindow().findChild(NgConnectDock, "NGConnectDock") # type: ignore
             dock.reinit_tree(force=True)
 
     def __choose_cache_directory(self) -> None:
@@ -321,6 +317,55 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
     def __reset_cache_directory(self) -> None:
         self.__widget.cacheDirectoryLineEdit.setText("")
+
+    def __save_uploading_settings(self, settings: NgConnectSettings) -> None:
+        settings.rename_forbidden_fields = (
+            self.__widget.renameFieldsCheckBox.isChecked()
+        )
+
+        settings.fix_incorrect_geometries = (
+            self.__widget.fixGeometryCheckBox.isChecked()
+        )
+
+        settings.upload_raster_as_cog = self.__widget.cogCheckBox.isChecked()
+
+        settings.open_web_map_after_creation = (
+            self.__widget.openWebMapAfterCreationCheckBox.isChecked()
+        )
+
+    def __save_resources_settings(self, settings: NgConnectSettings) -> None:
+        settings.add_layer_after_service_creation = (
+            self.__widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
+        )
+
+    def __save_sync_settings(self, settings: NgConnectSettings) -> None:
+        period_spinbox = cast(QSpinBox, self.__widget.syncPeriodSpinBox)
+        period_combobox = cast(QComboBox, self.__widget.syncPeriodComboBox)
+
+        param = {period_combobox.currentData(): period_spinbox.value()}
+        settings.synchronizatin_period = timedelta(**param)
+
+    def __save_cache_settings(self) -> None:
+        cache_manager = NgConnectCacheManager()
+        cache_directory = self.__widget.cacheDirectoryLineEdit.text()
+        cache_manager.cache_directory = (
+            cache_directory if len(cache_directory) > 0 else None
+        )
+        cache_duration_combobox = cast(
+            QComboBox, self.__widget.autoRemoveCacheComboBox
+        )
+        cache_manager.cache_duration = cache_duration_combobox.currentData()
+        cache_size_index = self.__widget.cacheSizeSlider.value()
+        cache_manager.cache_max_size = self.CACHE_SIZE_VALUES[cache_size_index]
+
+    def __save_other_settings(self, settings: NgConnectSettings) -> None:
+        old_debug_enabled = settings.is_debug_enabled
+        new_debug_enabled = self.__widget.debugEnabledCheckBox.isChecked()
+        settings.is_debug_enabled = new_debug_enabled
+        if old_debug_enabled != new_debug_enabled:
+            debug_state = "enabled" if new_debug_enabled else "disabled"
+            update_level()
+            logger.info(f"Debug messages are now {debug_state}")
 
     def __clear_cache(self) -> None:
         log_blocker = QgsMessageLogNotifyBlocker()
@@ -347,10 +392,10 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         ]
         size = size_in_kb
         unit_index = 0
-        while size > 1024 and unit_index < len(units) - 1:
+        while size > 1024 and unit_index < len(units) - 1:  # noqa: PLR2004
             size /= 1024
             unit_index += 1
-        precision = 2 if size < 10 else 1
+        precision = 2 if size < 10 else 1  # noqa: PLR2004
         return f"{size:.{precision}f} {units[unit_index]}"
 
 
