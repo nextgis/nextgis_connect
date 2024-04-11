@@ -1,4 +1,5 @@
 import urllib.parse
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -26,7 +27,9 @@ class FetchDeltaTask(NgConnectTask):
     download_finished = pyqtSignal(bool, name="downloadFinished")
 
     __metadata: DetachedContainerMetaData
-    __result: List[VersioningAction]
+    __target: int
+    __timestamp: datetime
+    __delta: List[VersioningAction]
 
     def __init__(self, stub_path: Path) -> None:
         flags = QgsTask.Flags()
@@ -43,11 +46,21 @@ class FetchDeltaTask(NgConnectTask):
         ).format(layer_name=self.__metadata.layer_name)
         self.setDescription(description)
 
-        self.__result = []
+        self.__target = -1
+        self.__timestamp = datetime.now()
+        self.__delta = []
 
     @property
-    def result(self) -> List[VersioningAction]:
-        return self.__result
+    def target(self) -> int:
+        return self.__target
+
+    @property
+    def timestamp(self) -> datetime:
+        return self.__timestamp
+
+    @property
+    def delta(self) -> List[VersioningAction]:
+        return self.__delta
 
     def run(self) -> bool:
         connection_id = self.__metadata.connection_id
@@ -69,13 +82,16 @@ class FetchDeltaTask(NgConnectTask):
             check_result = ngw_connection.get(
                 f"/api/resource/{resource_id}/feature/changes/check?{check_params}"
             )
+
+            self.__target = check_result["target"]
+            self.__timestamp = datetime.fromisoformat(check_result["tstamp"])
             fetch_url = check_result["fetch"]
 
             serializer = ActionSerializer(self.__metadata)
             actions = serializer.from_json(ngw_connection.get(fetch_url))
 
             while len(actions) > 0:
-                self.__result.extend(actions)
+                self.__delta.extend(actions)
 
                 continue_action = actions[-1]
                 assert isinstance(continue_action, ContinueAction)

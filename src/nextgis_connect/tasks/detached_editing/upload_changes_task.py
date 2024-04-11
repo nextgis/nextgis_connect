@@ -3,7 +3,6 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
-from qgis.core import QgsTask
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.utils import spatialite_connect
 
@@ -18,18 +17,19 @@ from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
+from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 
 
-class UploadChangesTask(QgsTask):
+class UploadChangesTask(NgConnectTask):
     synchronization_finished = pyqtSignal(bool, name="synchronizationFinished")
 
     __metadata: DetachedContainerMetaData
     __container_path: Path
 
     def __init__(self, container_path: Path) -> None:
-        flags = QgsTask.Flags()
-        if hasattr(QgsTask.Flag, "Silent"):
-            flags |= QgsTask.Flag.Silent
+        flags = NgConnectTask.Flags()
+        if hasattr(NgConnectTask.Flag, "Silent"):
+            flags |= NgConnectTask.Flag.Silent
         super().__init__(flags=flags)
 
         try:

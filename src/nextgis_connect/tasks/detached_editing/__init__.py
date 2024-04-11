@@ -1,3 +1,4 @@
+from .apply_delta_task import ApplyDeltaTask
 from .download_gpkg_task import DownloadGpkgTask
 from .fetch_additional_data_task import FetchAdditionalDataTask
 from .fetch_delta_task import FetchDeltaTask

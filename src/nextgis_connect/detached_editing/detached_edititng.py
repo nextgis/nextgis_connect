@@ -10,30 +10,15 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
-from qgis.gui import QgisInterface, QgsApplicationExitBlockerInterface
+from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
-
-from nextgis_connect.logging import logger
 
 from . import utils
 from .detached_container import DetachedContainer
 from .detached_layer_config_widget import DetachedLayerConfigWidgetFactory
 
 iface: QgisInterface
-
-
-class ExitBlocker(QgsApplicationExitBlockerInterface):
-    def __init__(self, detached_editing: "DetachedEditing") -> None:
-        super().__init__()
-        self.__detached_editing = detached_editing
-
-    def __del__(self) -> None:
-        logger.debug("Delete exit blocker")
-
-    def allowExit(self) -> bool:  # noqa: N802
-        self.__detached_editing.stop_next_sync()
-        return not self.__detached_editing.is_sychronization_active
 
 
 class DetachedEditing(QObject):
@@ -43,7 +28,6 @@ class DetachedEditing(QObject):
 
     __timer: QTimer
     __properties_factory: DetachedLayerConfigWidgetFactory
-    __exit_blocker: ExitBlocker
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -57,9 +41,6 @@ class DetachedEditing(QObject):
         self.__timer.setInterval(int(layers_check_period))
         self.__timer.timeout.connect(self.update_layers)
         self.__timer.start()
-
-        self.__exit_blocker = ExitBlocker(self)
-        iface.registerApplicationExitBlocker(self.__exit_blocker)
 
         self.__properties_factory = DetachedLayerConfigWidgetFactory()
         iface.registerMapLayerConfigWidgetFactory(self.__properties_factory)
@@ -92,9 +73,6 @@ class DetachedEditing(QObject):
         iface.unregisterMapLayerConfigWidgetFactory(self.__properties_factory)
         del self.__properties_factory
 
-        iface.unregisterApplicationExitBlocker(self.__exit_blocker)
-        del self.__exit_blocker
-
     @property
     def is_sychronization_active(self) -> bool:
         return any(
@@ -107,6 +85,8 @@ class DetachedEditing(QObject):
 
     @pyqtSlot(name="updateLayers")
     def update_layers(self) -> None:
+        self.__remove_empty_containers()
+
         if self.is_sychronization_active or self.__sync_is_stopped:
             return
 
@@ -187,7 +167,10 @@ class DetachedEditing(QObject):
             container = self.__containers_by_layer_id.pop(layer_id)
             container.delete_layer(layer_id)
 
-            if container.is_empty:
+            if (
+                container.is_empty
+                and container.state != utils.DetachedLayerState.Synchronization
+            ):
                 self.__containers.pop(container.path)
                 container.deleteLater()
 
@@ -240,7 +223,22 @@ class DetachedEditing(QObject):
             if layer.id() not in self.__containers_by_layer_id:
                 continue
 
-            self.__containers_by_layer_id[layer.id()].remove_indicator(node)
+            container = self.__containers_by_layer_id[layer.id()]
+            container.remove_indicator(node)
+
+    def __remove_empty_containers(self) -> None:
+        paths_for_remove = []
+        for path, container in self.__containers.items():
+            if (
+                container.is_empty
+                and container.state != utils.DetachedLayerState.Synchronization
+            ):
+                paths_for_remove.append(path)
+
+        for path in paths_for_remove:
+            container = self.__containers.pop(path, None)
+            if container is not None:
+                container.deleteLater()
 
     def __update_actions(self) -> None:
         pass

@@ -212,9 +212,9 @@ class DetachedLayerFactory:
             (
                 field.attribute + 1,
                 field.ngw_id,
+                field.datatype_name,
                 field.keyname,
                 field.display_name,
-                field.datatype_name,
                 field.is_label,
                 field.lookup_table,
             )

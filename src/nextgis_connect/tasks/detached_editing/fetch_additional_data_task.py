@@ -116,7 +116,11 @@ class FetchAdditionalDataTask(NgConnectTask):
         )
 
         if not is_fields_compatible(self.__metadata.fields, ngw_layer.fields):
-            message = "Fields is not compatible"
+            message = f"""Fields is not compatible
+                Current: {self.__metadata.fields}
+                Remote: {ngw_layer.fields}
+            """
+
             raise RuntimeError(message)
 
         self.__attributes_with_removed_lookup_table = set(

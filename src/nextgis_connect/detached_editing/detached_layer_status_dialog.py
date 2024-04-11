@@ -111,7 +111,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         self.latestUpdateLabel.setText(sync_datetime)
 
     def __fill_changes(self) -> None:
-        changes = self.__container.changes
+        changes = self.__container.changes_info
 
         self.addedFeaturesLabel.setText(str(changes.added_features))
         self.removedFeaturesLabel.setText(str(changes.removed_features))

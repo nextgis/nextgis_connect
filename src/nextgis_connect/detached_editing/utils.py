@@ -19,39 +19,35 @@ from nextgis_connect.logging import logger
 from nextgis_connect.resources.ngw_field import NgwField
 
 
-class DetachedLayerState(str, Enum):
-    NotInitialized = "NotInitialized"
-    Error = "Error"
-    NotSynchronized = "NotSynchronized"
-    Synchronization = "Synchronization"
-    Synchronized = "Synchronized"
-
-    def __str__(self):
-        return str(self.value)
+class DetachedLayerState(Enum):
+    NotInitialized = auto()
+    Error = auto()
+    NotSynchronized = auto()
+    Synchronization = auto()
+    Synchronized = auto()
 
 
-class VersioningSynchronizationState(str, Enum):
-    NotVersionedLayer = "NotVersionedLayer"
-    NotInitialized = "NotInitialized"
-    FetchingChanges = "FetchingChanges"
-    ConflictSolving = "ConflictSolving"
-    UploadingChanges = "UploadingChanges"
-    FetchingUploaded = "FetchingUploaded"
-    Synchronized = "Synchronized"
-
-    def __str__(self):
-        return str(self.value)
+class VersioningSynchronizationState(Enum):
+    NotVersionedLayer = auto()
+    NotInitialized = auto()
+    NotSynchronized = auto()
+    FetchingChanges = auto()
+    ConflictSolving = auto()
+    ChangesApplying = auto()
+    UploadingChanges = auto()
+    FetchingUploaded = auto()
+    Synchronized = auto()
 
 
 class DetachedLayerErrorType(IntEnum):
-    NoError = auto()
+    NoError = 200
 
-    SynchronizationError = auto()
+    SynchronizationError = 300
     NetworkError = auto()
     AuthError = auto()
     NotEnoughRights = auto()
 
-    ContainerError = auto()
+    ContainerError = 400
     CreationError = auto()
     DeletedContainer = auto()
     NotCompletedFetch = auto()
@@ -60,13 +56,24 @@ class DetachedLayerErrorType(IntEnum):
     StructureChanged = auto()
     NotVersionedContentChanged = auto()
 
+    ResourceError = 500
+    ResourceWasDeleted = auto()
+
     @property
     def is_sync_error(self) -> bool:
         return self.SynchronizationError <= self < self.ContainerError
 
     @property
     def is_container_error(self) -> bool:
-        return self >= self.ContainerError
+        return self.ContainerError <= self < self.ResourceError
+
+    @property
+    def is_resource_error(self) -> bool:
+        return self >= self.ResourceError
+
+    @property
+    def is_sync_allowed(self) -> bool:
+        return self == self.NoError
 
 
 @dataclass
@@ -102,7 +109,7 @@ class DetachedContainerMetaData:
 
 
 @dataclass
-class DetachedContainerChanges:
+class DetachedContainerChangesInfo:
     added_features: int = 0
     removed_features: int = 0
     updated_attributes: int = 0
@@ -243,7 +250,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     )
 
 
-def container_changes(path: Path) -> DetachedContainerChanges:
+def container_changes(path: Path) -> DetachedContainerChangesInfo:
     with closing(sqlite3.connect(str(path))) as connection, closing(
         connection.cursor()
     ) as cursor:
@@ -258,7 +265,7 @@ def container_changes(path: Path) -> DetachedContainerChanges:
         )
         result = cursor.fetchone()
 
-        return DetachedContainerChanges(*result)
+        return DetachedContainerChangesInfo(*result)
 
 
 def is_fields_compatible(lhs: List[NgwField], rhs: List[NgwField]) -> bool:
