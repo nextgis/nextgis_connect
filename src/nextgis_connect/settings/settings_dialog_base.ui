@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>750</width>
-    <height>620</height>
+    <height>625</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -50,6 +50,127 @@
       <property name="rightMargin">
        <number>0</number>
       </property>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="uploadGroupBox">
+     <property name="title">
+      <string>Uploading</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_4">
+      <item>
+       <widget class="QCheckBox" name="renameFieldsCheckBox">
+        <property name="text">
+         <string>Rename forbidden fields</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="fixGeometryCheckBox">
+        <property name="text">
+         <string>Fix incorrect geometries</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cogCheckBox">
+        <property name="text">
+         <string>Upload rasters as Cloud Optimized GeoTIFF (COG)</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string>Resources</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QCheckBox" name="addWfsLayerAfterServiceCreationCheckBox">
+        <property name="text">
+         <string>Add layers to QGIS on service creation</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="openWebMapAfterCreationCheckBox">
+        <property name="text">
+         <string>Open web map automatically on creation</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="title">
+      <string>Synchronization</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout">
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Update check frequency</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QSpinBox" name="syncPeriodSpinBox">
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>59</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="syncPeriodComboBox">
+          <property name="minimumSize">
+           <size>
+            <width>90</width>
+            <height>0</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>40</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
      </layout>
     </widget>
    </item>
@@ -165,78 +286,22 @@
     </widget>
    </item>
    <item>
-    <widget class="QGroupBox" name="uploadGroupBox">
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
+    <widget class="QGroupBox" name="groupBox_3">
      <property name="title">
-      <string>Sanitize on upload</string>
+      <string>Other</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QCheckBox" name="renameFieldsCheckBox">
+     <layout class="QVBoxLayout" name="verticalLayout_6">
+      <item>
+       <widget class="QCheckBox" name="debugEnabledCheckBox">
         <property name="text">
-         <string>Rename forbidden fields</string>
+         <string>Enable log messages</string>
         </property>
         <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QCheckBox" name="fixGeometryCheckBox">
-        <property name="text">
-         <string>Fix incorrect geometries</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
        </widget>
       </item>
      </layout>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="openWebMapAfterCreationCheckBox">
-     <property name="text">
-      <string>Open web map automatically on creation</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="addWfsLayerAfterServiceCreationCheckBox">
-     <property name="text">
-      <string>Add WFS layer to QGIS on WFS service creation</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="cogCheckBox">
-     <property name="text">
-      <string>Upload rasters as Cloud Optimized GeoTIFF (COG)</string>
-     </property>
-     <property name="checked">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <widget class="QCheckBox" name="debugEnabledCheckBox">
-     <property name="text">
-      <string>Enable log messages</string>
-     </property>
-     <property name="checked">
-      <bool>false</bool>
-     </property>
     </widget>
    </item>
    <item>

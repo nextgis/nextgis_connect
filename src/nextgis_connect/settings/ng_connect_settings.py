@@ -89,7 +89,7 @@ class NgConnectSettings:
     def open_web_map_after_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
-            "uploading/openWebMapAfterCreation", defaultValue=True, type=bool
+            "resources/openWebMapAfterCreation", defaultValue=True, type=bool
         )
         self.__settings.endGroup()
         return result
@@ -97,7 +97,7 @@ class NgConnectSettings:
     @open_web_map_after_creation.setter
     def open_web_map_after_creation(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue("uploading/openWebMapAfterCreation", value)
+        self.__settings.setValue("resources/openWebMapAfterCreation", value)
         self.__settings.endGroup()
 
     @property
@@ -216,9 +216,9 @@ class NgConnectSettings:
             return
 
         mapping = {
-            "ui/autoOpenWebMapByDefault": "openWebMapAfterCreation",
-            "ui/autoAddWFSByDefault": "addWfsLayerAfterServiceCreation",
-            "debugMode": "debugEnabled",
+            "ui/autoOpenWebMapByDefault": "resources/openWebMapAfterCreation",
+            "ui/autoAddWFSByDefault": "resources/addLayerAfterServiceCreation",
+            "debugMode": "other/debugEnabled",
         }
         self.__settings.beginGroup(self.__plugin_group)
         for old_key, new_key in mapping.items():
@@ -254,7 +254,7 @@ class NgConnectSettings:
     def __migrate_keys_names(self) -> None:
         mapping = {
             "addWfsLayerAfterServiceCreation": "resources/addLayerAfterServiceCreation",
-            "openWebMapAfterCreation": "uploading/openWebMapAfterCreation",
+            "openWebMapAfterCreation": "resources/openWebMapAfterCreation",
             "debugEnabled": "other/debugEnabled",
         }
         if any(
