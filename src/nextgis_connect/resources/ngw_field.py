@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
 from qgis.core import QgsField
 from qgis.PyQt.QtCore import QVariant
@@ -11,9 +11,10 @@ FieldId = int
 class NgwField:
     attribute: int
     ngw_id: FieldId
+    datatype_name: str
     keyname: str
     display_name: str
-    datatype_name: str
+    is_label: bool
     lookup_table: Optional[int] = None
 
     @property
@@ -31,3 +32,24 @@ class NgwField:
 
     def to_qgsfield(self) -> QgsField:
         return QgsField(self.keyname, self.datatype)
+
+    @staticmethod
+    def list_from_json(json: List[Dict[str, Any]]) -> List["NgwField"]:
+        def get_lookup_table(field):
+            table = field.get("lookup_table")
+            if table is None:
+                return None
+            return table.get("id")
+
+        return [
+            NgwField(
+                attribute,
+                field["id"],
+                field["datatype"],
+                field["keyname"],
+                field["display_name"],
+                field["label_field"],
+                get_lookup_table(field),
+            )
+            for attribute, field in enumerate(json)
+        ]

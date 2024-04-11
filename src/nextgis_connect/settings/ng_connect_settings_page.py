@@ -295,7 +295,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         if need_reinint:
             # TODO (ivanbarsukov): refactoring
-            dock = iface.mainWindow().findChild(NgConnectDock, "NGConnectDock") # type: ignore
+            dock = iface.mainWindow().findChild(NgConnectDock, "NGConnectDock")  # type: ignore
             dock.reinit_tree(force=True)
 
     def __choose_cache_directory(self) -> None:

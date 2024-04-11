@@ -144,9 +144,10 @@ class DetachedLayerFactory:
             CREATE TABLE ngw_fields_metadata (
                 'attribute' INTEGER,
                 'ngw_id' INTEGER,
+                'datatype_name' TEXT,
                 'keyname' TEXT,
                 'display_name' TEXT,
-                'datatype_name' TEXT,
+                'is_label' BOOLEAN,
                 'lookup_table' INTEGER
             );
 
@@ -207,27 +208,32 @@ class DetachedLayerFactory:
             f"INSERT INTO ngw_metadata ({fields_name}) VALUES ({values})"
         )
 
-        # raise RuntimeError
-
-        def get_lookup_table(field):
-            table = field.get("lookup_table")
-            if table is None:
-                return None
-            return table.get("id")
-
-        fields = [
+        fields_tuple_generator = (
             (
-                field.get("id"),
-                field.get("keyname"),
-                field.get("display_name"),
-                field.get("datatype_name"),
-                get_lookup_table(field),
+                field.attribute + 1,
+                field.ngw_id,
+                field.keyname,
+                field.display_name,
+                field.datatype_name,
+                field.is_label,
+                field.lookup_table,
             )
-            for field in ngw_layer.field_defs.values()
-        ]
+            for field in ngw_layer.fields
+        )
         cursor.executemany(
-            "INSERT INTO ngw_fields_metadata VALUES (?, ?, ?, ?, ?, ?)",
-            ((i, *field) for i, field in enumerate(fields, start=1)),
+            """
+            INSERT INTO ngw_fields_metadata (
+                attribute,
+                ngw_id,
+                datatype_name,
+                keyname,
+                display_name,
+                is_label,
+                lookup_table
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            fields_tuple_generator,
         )
 
     def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:

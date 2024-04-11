@@ -329,7 +329,9 @@ class DetachedContainer(QObject):
             or datetime.now() - self.__additional_data_fetch_date
             > timedelta(hours=1)
         ):
-            self.__sync_task = FetchAdditionalDataTask(self.path)
+            self.__sync_task = FetchAdditionalDataTask(
+                self.path, need_update_structure=True
+            )
             self.__sync_task.download_finished.connect(
                 self.__on_additional_data_fetched
             )
@@ -388,7 +390,9 @@ class DetachedContainer(QObject):
         self.__sync_task = None
 
         if self.__additional_data_fetch_date is None:
-            self.__sync_task = FetchAdditionalDataTask(self.path)
+            self.__sync_task = FetchAdditionalDataTask(
+                self.path, need_update_structure=False
+            )
             self.__sync_task.download_finished.connect(
                 self.__on_additional_data_fetched
             )
@@ -443,7 +447,9 @@ class DetachedContainer(QObject):
         assert isinstance(self.__sync_task, FetchAdditionalDataTask)
 
         if result:
+            self.__metadata = utils.container_metadata(self.path)
             self.__is_edit_allowed = self.__sync_task.is_edit_allowed
+            self.__apply_aliases()
             self.__apply_lookup_tables()
 
             self.__additional_data_fetch_date = datetime.now()
@@ -459,6 +465,13 @@ class DetachedContainer(QObject):
 
         # Start next layer update
         NgConnectInterface.instance().update_layers()
+
+    def __apply_aliases(self) -> None:
+        for detached_layer in self.__detached_layers.values():
+            for field in self.metadata.fields:
+                detached_layer.layer.setFieldAlias(
+                    field.attribute, field.display_name
+                )
 
     def __apply_lookup_tables(self) -> None:
         assert isinstance(self.__sync_task, FetchAdditionalDataTask)
@@ -476,3 +489,11 @@ class DetachedContainer(QObject):
                     detached_layer.layer.setEditorWidgetSetup(
                         attribute_id, setup
                     )
+
+        attributes_with_removed_lookup_table = (
+            self.__sync_task.attributes_with_removed_lookup_table
+        )
+        for detached_layer in self.__detached_layers.values():
+            for attribute_id in attributes_with_removed_lookup_table:
+                setup = QgsEditorWidgetSetup("TextEdit", {})
+                detached_layer.layer.setEditorWidgetSetup(attribute_id, setup)

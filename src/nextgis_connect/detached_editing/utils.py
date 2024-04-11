@@ -87,7 +87,7 @@ class DetachedContainerMetaData:
     is_auto_sync_enabled: bool
     fields: List[NgwField]
     has_changes: bool
-    srs_id: int = 3857
+    srs_id: int
 
     @property
     def is_stub(self) -> bool:
@@ -192,16 +192,24 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
 
     cursor.execute(
         """
-        SELECT table_name FROM gpkg_contents
+        SELECT table_name, srs_id FROM gpkg_contents
         WHERE data_type='features'
         """
     )
-    table_name = cursor.fetchone()[0]
+    table_name, srs_id = cursor.fetchone()
 
-    fields = [
-        NgwField(*row)
-        for row in cursor.execute("SELECT * FROM ngw_fields_metadata")
-    ]
+    fields_query = """
+        SELECT
+            attribute,
+            ngw_id,
+            datatype_name,
+            keyname,
+            display_name,
+            is_label,
+            lookup_table
+        FROM ngw_fields_metadata
+    """
+    fields = [NgwField(*row) for row in cursor.execute(fields_query)]
 
     cursor.execute(
         """
@@ -231,6 +239,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         is_auto_sync_enabled,
         fields,
         has_changes,
+        srs_id,
     )
 
 
@@ -250,6 +259,21 @@ def container_changes(path: Path) -> DetachedContainerChanges:
         result = cursor.fetchone()
 
         return DetachedContainerChanges(*result)
+
+
+def is_fields_compatible(lhs: List[NgwField], rhs: List[NgwField]) -> bool:
+    if len(lhs) != len(rhs):
+        return False
+
+    for lhs_field, rhs_field in zip(lhs, rhs):
+        if (
+            lhs_field.ngw_id != rhs_field.ngw_id
+            or lhs_field.datatype_name != rhs_field.datatype_name
+            or lhs_field.keyname != rhs_field.keyname
+        ):
+            return False
+
+    return True
 
 
 @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
