@@ -14,6 +14,8 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
+from nextgis_connect.logging import logger
+
 from . import utils
 from .detached_container import DetachedContainer
 from .detached_layer_config_widget import DetachedLayerConfigWidgetFactory
@@ -95,8 +97,9 @@ class DetachedEditing(QObject):
                 lambda container: container.is_stub, self.__containers.values()
             )
         )
-
-        containers = stubs if len(stubs) > 0 else self.__containers.values()
+        containers = (
+            stubs if len(stubs) > 0 else list(self.__containers.values())
+        )
         for container in containers:
             is_started = container.synchronize()
             if is_started:
@@ -132,7 +135,12 @@ class DetachedEditing(QObject):
         container_path = utils.container_path(layer)
         container = self.__containers.get(container_path)
         if container is None:
-            container = DetachedContainer(container_path, self)
+            try:
+                container = DetachedContainer(container_path, self)
+            except Exception:
+                logger.exception("Container is corrupted")
+                return False
+
             self.__containers[container_path] = container
 
         self.__containers_by_layer_id[layer.id()] = container

@@ -46,7 +46,7 @@ class FeatureAction(DataChangeAction):
     geom: Optional[str]
     fields: List[Tuple[FieldId, Any]]
 
-    def __init__(  # noqa: PLR0913
+    def __init__(
         self,
         action: ActionType,
         fid: FeatureId,

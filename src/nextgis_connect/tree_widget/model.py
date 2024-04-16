@@ -47,6 +47,7 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
+from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.settings import NgConnectCacheManager
 
 from .item import QModelItem, QNGWResourceItem
@@ -63,13 +64,10 @@ class NGWResourceModelResponse(QObject):
         self.job_id = None
         self.job_uuid = None
         self.__errors = {}
-        self._warnings = []
+        self.warnings = []
 
     def errors(self):
         return self.__errors
-
-    def warnings(self):
-        return self._warnings
 
 
 class NGWResourcesModelJob(QObject):
@@ -129,7 +127,7 @@ class NGWResourcesModelJob(QObject):
 
     def processJobWarnings(self, job_error):
         if self.model_response:
-            self.model_response._warnings.append(job_error)
+            self.model_response.warnings.append(job_error)
         # self.warningOccurred.emit(job_error)
 
     def start(self):
@@ -170,6 +168,8 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
             self.result.main_resource_id = ngw_resources.common.id
 
     def _do(self):
+        connections_manager = NgwConnectionsManager()
+
         cache_manager = NgConnectCacheManager()
         cache_directory = Path(cache_manager.cache_directory)
 
@@ -177,13 +177,19 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
 
         total = str(len(self.ngw_resources))
         for i, ngw_resource in enumerate(self.ngw_resources):
-            # TODO set instance id
             name = ngw_resource.common.display_name
             progress = "" if total == "1" else f" ({i + 1}/{total})"
             self.statusChanged.emit(
                 self.tr('Adding layer "{name}"').format(name=name) + progress
             )
-            instance_cache_path = cache_directory / ngw_resource.connection_id
+
+            connection = connections_manager.connection(
+                ngw_resource.connection_id
+            )
+            assert connection is not None
+            instance_subdir = connection.domain_uuid
+
+            instance_cache_path = cache_directory / instance_subdir
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
             detached_factory.create_container(ngw_resource, gpkg_path)
@@ -192,8 +198,8 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
 class QNGWResourceTreeModelBase(QAbstractItemModel):
     jobStarted = pyqtSignal(str)
     jobStatusChanged = pyqtSignal(str, str)
-    errorOccurred = pyqtSignal(str, object)
-    warningOccurred = pyqtSignal(str, object)
+    errorOccurred = pyqtSignal(str, str, object)
+    warningOccurred = pyqtSignal(str, str, object)
     jobFinished = pyqtSignal(str, str)
     indexesLocked = pyqtSignal()
     indexesUnlocked = pyqtSignal()
@@ -224,13 +230,23 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.root_item = QModelItem()
 
+        request_error = None
         # Get NGW version.
         if ngw_connection is not None:
-            self._get_ngw_version()
-        else:
-            self.ngw_version = None
+            try:
+                self.ngw_version = self._ngw_connection.get_version()
+                self.support_status = utils.is_version_supported(
+                    self.ngw_version
+                )
+            except Exception as error:
+                request_error = error
+                self.ngw_version = None
+                self.support_status = None
 
         self.endResetModel()
+
+        if request_error is not None:
+            self.errorOccurred.emit(None, None, request_error)
 
     def cleanModel(self):
         self.__cleanModel()
@@ -383,11 +399,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
     def __jobErrorOccurredProcess(self, error):
         job = cast(NGWResourcesModelJob, self.sender())
-        self.errorOccurred.emit(job.getJobId(), error)
+        self.errorOccurred.emit(job.getJobId(), job.getJobUuid(), error)
 
     def __jobWarningOccurredProcess(self, error):
         job = cast(NGWResourcesModelJob, self.sender())
-        self.warningOccurred.emit(job.getJobId(), error)
+        self.warningOccurred.emit(job.getJobId(), job.getJobUuid(), error)
 
     def addNGWResourceToTree(self, parent: QModelIndex, ngw_resource):
         parent_item = self.item(parent)
@@ -462,9 +478,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             parent = self.index(0, 0, QModelIndex())
         item = parent.internalPointer()
 
-        if isinstance(item, QNGWResourceItem):
-            if item.ngw_resource_id() == ngw_resource_id:
-                return parent
+        if (
+            isinstance(item, QNGWResourceItem)
+            and item.ngw_resource_id() == ngw_resource_id
+        ):
+            return parent
 
         for i in range(item.childCount()):
             index = self.getIndexByNGWResourceId(
@@ -473,6 +491,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
             if index is not None:
                 return index
+
+        return None
 
     def processJobResult(self, job: NGWResourcesModelJob):
         job_result = job.getResult()
@@ -484,7 +504,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         if (
             job_result.is_empty()
             and job.model_response is not None
-            and len(job.model_response.warnings()) > 0
+            and len(job.model_response.warnings) > 0
         ):
             job.model_response.done.emit(QModelIndex())
             return
@@ -579,14 +599,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
             if job.model_response is not None:
                 job.model_response.done.emit(index)
-
-    def _get_ngw_version(self):
-        try:
-            self.ngw_version = self._ngw_connection.get_version()
-            self.support_status = utils.is_version_supported(self.ngw_version)
-        except Exception:
-            self.ngw_version = None
-            self.support_status = None
 
     @property
     def is_ngw_version_supported(self) -> bool:
@@ -832,15 +844,22 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         self, indexes: Union[QModelIndex, List[QModelIndex]]
     ):
         cache_manager = NgConnectCacheManager()
+        connections_manager = NgwConnectionsManager()
 
         def collect_indexes(
             index: QModelIndex,
         ) -> Tuple[List[QModelIndex], List[QModelIndex]]:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            connection = connections_manager.connection(
+                ngw_resource.connection_id
+            )
+            assert connection is not None
+            instance_subdir = connection.domain_uuid
+
             if isinstance(ngw_resource, NGWVectorLayer):
                 # TODO set instance id
                 if cache_manager.exists(
-                    f"{ngw_resource.connection_id}/{ngw_resource.common.id}.gpkg"
+                    f"{instance_subdir}/{ngw_resource.common.id}.gpkg"
                 ):
                     return [index], []
                 return [index], [index]
@@ -850,7 +869,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                 parent = index.parent()
                 parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
                 if cache_manager.exists(
-                    f"{ngw_resource.connection_id}/{parent_resource.common.id}.gpkg"
+                    f"{instance_subdir}/{parent_resource.common.id}.gpkg"
                 ):
                     return [parent, index], []
                 return [parent, index], [parent]

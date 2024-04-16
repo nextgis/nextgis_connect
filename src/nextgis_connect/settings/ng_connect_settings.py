@@ -41,6 +41,10 @@ class NgConnectSettings:
         return "4.7.0"
 
     @property
+    def supported_container_version(self) -> str:
+        return "1.0.0"
+
+    @property
     def rename_forbidden_fields(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
@@ -132,6 +136,21 @@ class NgConnectSettings:
     def is_debug_enabled(self, value: bool) -> None:
         self.__settings.beginGroup(self.__plugin_group)
         self.__settings.setValue("other/debugEnabled", value)
+        self.__settings.endGroup()
+
+    @property
+    def is_network_debug_enabled(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "other/debugNetworkEnabled", defaultValue=False, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @is_network_debug_enabled.setter
+    def is_network_debug_enabled(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("other/debugNetworkEnabled", value)
         self.__settings.endGroup()
 
     @property

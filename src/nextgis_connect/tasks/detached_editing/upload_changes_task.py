@@ -8,53 +8,33 @@ from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
-from nextgis_connect.detached_editing.utils import (
-    DetachedContainerMetaData,
-    container_metadata,
-)
+from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-from nextgis_connect.ngw_connection.ngw_connections_manager import (
-    NgwConnectionsManager,
+from nextgis_connect.tasks.detached_editing.detached_editing_task import (
+    DetachedEditingTask,
 )
-from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 
 
-class UploadChangesTask(NgConnectTask):
+class UploadChangesTask(DetachedEditingTask):
     synchronization_finished = pyqtSignal(bool, name="synchronizationFinished")
 
-    __metadata: DetachedContainerMetaData
-    __container_path: Path
-
     def __init__(self, container_path: Path) -> None:
-        flags = NgConnectTask.Flags()
-        if hasattr(NgConnectTask.Flag, "Silent"):
-            flags |= NgConnectTask.Flag.Silent
-        super().__init__(flags=flags)
-
-        try:
-            self.__metadata = container_metadata(container_path)
-        except Exception:
-            logger.exception("An error occured while layer synchronization")
-            raise
-
+        super().__init__(container_path)
         description = self.tr('"{layer_name}" layer synchronization').format(
-            layer_name=self.__metadata.layer_name
+            layer_name=self._metadata.layer_name
         )
         self.setDescription(description)
 
-        self.__container_path = container_path
-
     def run(self) -> bool:
-        container_path = str(self.__container_path)
-        layer_name = self.__metadata.layer_name
-        resource_id = self.__metadata.resource_id
+        if not super().run():
+            return False
 
         logger.debug(
-            f'Started changes uploading for layer "{layer_name}" '
-            f"(id={resource_id})"
+            f"<b>Started changes uploading</b> for layer {self._metadata}"
         )
 
+        container_path = str(self._container_path)
         try:
             with closing(
                 spatialite_connect(container_path)
@@ -62,31 +42,32 @@ class UploadChangesTask(NgConnectTask):
                 self.__upload_changes(cursor)
                 connection.commit()
 
-        except Exception:
-            logger.exception("Uploading changes error")
+        except SynchronizationError as error:
+            self._error = error
             return False
 
-        logger.debug("Changes were successfully uploaded")
+        except Exception as error:
+            message = f"An error occured while uploading changes for {self._metadata}"
+            self._error = SynchronizationError(message)
+            self._error.__cause__ = error
+            return False
 
         return True
 
-    def finished(self, result: bool) -> None:  # noqa: FBT001
+    def finished(self, result: bool) -> None:
         self.synchronization_finished.emit(result)
-
         return super().finished(result)
 
     def __upload_changes(self, cursor: sqlite3.Cursor) -> None:
-        connection_id = self.__metadata.connection_id
+        ngw_connection = QgsNgwConnection(self._metadata.connection_id)
 
-        connections_manager = NgwConnectionsManager()
-        connection = connections_manager.connection(connection_id)
-        assert connection is not None
-
-        ngw_connection = QgsNgwConnection(connection_id)
-
-        if self.__metadata.is_versioning_enabled:
+        if self._metadata.is_versioning_enabled:
             self.__upload_versioned_changes(ngw_connection, cursor)
         else:
+            # Check structure etc
+            self._get_layer(ngw_connection)
+
+            # Uploading
             self.__upload_added(ngw_connection, cursor)
             self.__upload_deleted(ngw_connection, cursor)
             self.__upload_updated(ngw_connection, cursor)
@@ -97,7 +78,7 @@ class UploadChangesTask(NgConnectTask):
         connection: QgsNgwConnection,
         cursor: sqlite3.Cursor,
     ) -> None:
-        layer_metadata = self.__metadata
+        layer_metadata = self._metadata
 
         extractor = ActionExtractor(layer_metadata, cursor)
         create_actions = extractor.extract_added_features()
@@ -108,6 +89,8 @@ class UploadChangesTask(NgConnectTask):
 
         serializer = ActionSerializer(layer_metadata)
         body = serializer.to_json(create_actions)
+
+        logger.debug(f"Send {len(create_actions)} create actions")
 
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
         assigned_fids = connection.patch(url, body)
@@ -126,7 +109,7 @@ class UploadChangesTask(NgConnectTask):
         connection: QgsNgwConnection,
         cursor: sqlite3.Cursor,
     ) -> None:
-        layer_metadata = self.__metadata
+        layer_metadata = self._metadata
 
         extractor = ActionExtractor(layer_metadata, cursor)
         deleted_actions = extractor.extract_deleted_features()
@@ -138,6 +121,8 @@ class UploadChangesTask(NgConnectTask):
         serializer = ActionSerializer(layer_metadata)
         body = serializer.to_json(deleted_actions)
 
+        logger.debug(f"Send {len(deleted_actions)} delete actions")
+
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
         connection.delete(url, body)
 
@@ -148,7 +133,7 @@ class UploadChangesTask(NgConnectTask):
         connection: QgsNgwConnection,
         cursor: sqlite3.Cursor,
     ) -> None:
-        layer_metadata = self.__metadata
+        layer_metadata = self._metadata
 
         extractor = ActionExtractor(layer_metadata, cursor)
         updated_actions = extractor.extract_updated_features()
@@ -159,6 +144,8 @@ class UploadChangesTask(NgConnectTask):
 
         serializer = ActionSerializer(layer_metadata)
         body = serializer.to_json(updated_actions)
+
+        logger.debug(f"Send {len(updated_actions)} update actions")
 
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
         connection.patch(url, body)
@@ -175,7 +162,7 @@ class UploadChangesTask(NgConnectTask):
         connection: QgsNgwConnection,
         cursor: sqlite3.Cursor,
     ) -> None:
-        layer_metadata = self.__metadata
+        layer_metadata = self._metadata
         resource_id = layer_metadata.resource_id
         resource_url = f"/api/resource/{resource_id}"
 
@@ -183,6 +170,7 @@ class UploadChangesTask(NgConnectTask):
         actions = extractor.extract_all()
 
         if len(actions) == 0:
+            logger.debug("There are no changes for uploading")
             return
 
         serializer = ActionSerializer(layer_metadata)
@@ -200,9 +188,8 @@ class UploadChangesTask(NgConnectTask):
             f"Transaction {transaction_id} started at {transaction_start_time}"
         )
 
-        logger.debug(f"Put {len(actions)} actions")
+        logger.debug(f"Send {len(actions)} actions")
 
-        # TODO try
         connection.put(
             f"{resource_url}/feature/transaction/{transaction_id}",
             body,
@@ -223,8 +210,10 @@ class UploadChangesTask(NgConnectTask):
             raise
 
         if result["status"] != "committed":
-            logger.error(f"Errors: {result}")
-            raise RuntimeError
+            error = SynchronizationError("Transaction is not committed")
+            error.add_note(f"Synchronization id: {transaction_id}")
+            error.add_note(f"Status: {result['status']}")
+            raise error
 
     def __clear_added(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute("DELETE FROM ngw_added_features")

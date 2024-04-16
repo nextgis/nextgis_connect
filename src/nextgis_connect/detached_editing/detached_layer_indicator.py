@@ -78,9 +78,9 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
             tooltip = self.tr("Layer is syncing")
         elif state == DetachedLayerState.Error:
             self.setIcon(QIcon(str(icons_path / "error.svg")))
-            if self.__container.error_type.is_sync_error:
+            if self.__container.error_code.is_synchronization_error:
                 status_tooltip = self.tr("Synchronization error!")
-            elif self.__container.error_type.is_container_error:
+            elif self.__container.error_code.is_container_error:
                 status_tooltip = self.tr("Layer error!")
             else:
                 status_tooltip = self.tr("Unknown error!")

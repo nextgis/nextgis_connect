@@ -3,7 +3,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from qgis.core import QgsTask
 from qgis.PyQt.QtCore import pyqtSignal
 from qgis.utils import spatialite_connect
 
@@ -13,17 +12,19 @@ from nextgis_connect.detached_editing.actions import (
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
-    container_metadata,
 )
+from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
-from nextgis_connect.tasks.ng_connect_task import NgConnectTask
+from nextgis_connect.tasks.detached_editing.detached_editing_task import (
+    DetachedEditingTask,
+)
 
 
-class ApplyDeltaTask(NgConnectTask):
+class ApplyDeltaTask(DetachedEditingTask):
     apply_finished = pyqtSignal(bool, name="applyFinished")
 
-    __container_path: Path
-    __metadata: DetachedContainerMetaData
+    _container_path: Path
+    _metadata: DetachedContainerMetaData
 
     __target: int
     __timestamp: datetime
@@ -36,31 +37,29 @@ class ApplyDeltaTask(NgConnectTask):
         timestamp: datetime,
         delta: List[VersioningAction],
     ) -> None:
-        flags = QgsTask.Flags()
-        super().__init__(flags=flags)
+        super().__init__(container_path)
+        description = self.tr(
+            'Applying changes for layer "{layer_name}"'
+        ).format(layer_name=self._metadata.layer_name)
+        self.setDescription(description)
 
-        self.__container_path = container_path
         self.__target = target
         self.__timestamp = timestamp
         self.__delta = delta
 
-        try:
-            self.__metadata = container_metadata(container_path)
-        except Exception:
-            logger.exception("An error occured while applying changes")
-            raise
-
-        description = self.tr(
-            'Applying changes for layer "{layer_name}"'
-        ).format(layer_name=self.__metadata.layer_name)
-        self.setDescription(description)
-
     def run(self) -> bool:
+        if not super().run():
+            return False
+
+        logger.debug(
+            f"<b>Start changes applying</b> for layer {self._metadata}"
+        )
+
         try:
             with closing(
-                spatialite_connect(str(self.__container_path))
+                spatialite_connect(str(self._container_path))
             ) as connection, closing(connection.cursor()) as cursor:
-                applier = ActionApplier(self.__metadata, cursor)
+                applier = ActionApplier(self._metadata, cursor)
                 applier.apply(self.__delta)
 
                 cursor.execute(
@@ -71,16 +70,22 @@ class ApplyDeltaTask(NgConnectTask):
                 )
                 connection.commit()
 
-        except Exception:
-            logger.exception(
-                f"An error occured while applying layer {self.__metadata}"
+        except SynchronizationError as error:
+            self._error = error
+            return False
+
+        except Exception as error:
+            message = (
+                f"An error occured while applying layer {self._metadata}"
                 " changes"
             )
+            self._error = SynchronizationError(message)
+            self._error.__cause__ = error
             return False
 
         return True
 
-    def finished(self, result: bool) -> None:  # noqa: FBT001
+    def finished(self, result: bool) -> None:
         self.apply_finished.emit(result)
 
         return super().finished(result)

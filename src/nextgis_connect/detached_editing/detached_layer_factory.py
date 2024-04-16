@@ -9,14 +9,20 @@ from qgis.utils import spatialite_connect
 # isort: on
 
 from nextgis_connect.compat import WkbType
+from nextgis_connect.exceptions import (
+    ContainerError,
+    ErrorCode,
+    NgConnectError,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from nextgis_connect.ngw_connection import NgwConnectionsManager
 
 
 class DetachedLayerFactory:
     def create_container(
         self, ngw_layer: NGWVectorLayer, container_path: Path
-    ) -> bool:
+    ) -> None:
         container_type = (
             "initial" if ngw_layer.is_versioning_enabled else "stub"
         )
@@ -24,11 +30,9 @@ class DetachedLayerFactory:
             f"<b>Start creating {container_type} container</b> for layer "
             f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
         )
-        is_created = self.__create_container(ngw_layer, container_path)
-        if not is_created:
-            return False
-
         try:
+            self.__create_container(ngw_layer, container_path)
+
             with closing(
                 spatialite_connect(str(container_path))
             ) as connection, closing(connection.cursor()) as cursor:
@@ -37,16 +41,27 @@ class DetachedLayerFactory:
                 self.__insert_metadata(ngw_layer, cursor)
 
                 connection.commit()
-        except Exception:
-            logger.exception("Failed to update container")
-            return False
+
+        except NgConnectError:
+            raise
+
+        except Exception as error:
+            container_path.unlink(missing_ok=True)
+            message = "Failed to create container"
+            code = ErrorCode.ContainerCreationError
+            raise ContainerError(message, code=code) from error
+
         else:
-            logger.debug("Container metadata successfuly updated")
-            return True
+            logger.debug("Container successfuly created")
 
     def update_container(
         self, ngw_layer: NGWVectorLayer, container_path: Path
-    ) -> bool:
+    ) -> None:
+        logger.debug(
+            f"<b>Start updating container</b> for layer "
+            f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
+        )
+
         try:
             with closing(
                 spatialite_connect(str(container_path))
@@ -57,18 +72,20 @@ class DetachedLayerFactory:
                 self.__insert_ngw_ids(cursor)
 
                 connection.commit()
-        except Exception:
-            logger.exception(
-                "Failed to update NGW container for layer "
-                f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
-            )
-            return False
+
+        except NgConnectError:
+            raise
+
+        except Exception as error:
+            message = "Failed to update container"
+            code = ErrorCode.ContainerCreationError
+            raise ContainerError(message, code=code) from error
+
         else:
             logger.debug(
                 f'Container for layer "{ngw_layer.display_name}" successfuly '
                 "updated"
             )
-            return True
 
     def __create_container(
         self, ngw_layer: NGWVectorLayer, container_path: Path
@@ -122,7 +139,7 @@ class DetachedLayerFactory:
                 'epoch' INTEGER,
                 'version' INTEGER,
                 'sync_date' DATETIME,
-                'is_broken' BOOLEAN,
+                'error_code' INTEGER,
                 'is_auto_sync_enabled' BOOLEAN
             );
             CREATE TABLE ngw_features_metadata (
@@ -136,10 +153,12 @@ class DetachedLayerFactory:
                 'fid' INTEGER,
                 'aid' INTEGER,
                 'ngw_aid' INTEGER,
-                'data' BLOB,
-                'mime_type' TEXT,
                 'name' TEXT,
-                'description' TEXT
+                'keyname' TEXT,
+                'description' TEXT,
+                'file_meta' TEXT,
+                'mime_type' TEXT,
+                'size' INTEGER
             );
             CREATE TABLE ngw_fields_metadata (
                 'attribute' INTEGER,
@@ -185,14 +204,23 @@ class DetachedLayerFactory:
         *,
         is_update: bool = False,
     ) -> None:
+        if ngw_layer.geom_name is None:
+            pass
+
+        connection = NgwConnectionsManager().connection(
+            ngw_layer.connection_id
+        )
+        assert connection is not None
+
         metadata = {
             "container_version": "'1.0.0'",
+            "instance_id": f"'{connection.domain_uuid}'",
             "connection_id": f"'{ngw_layer.connection_id}'",
             "resource_id": str(ngw_layer.resource_id),
             "display_name": f"'{ngw_layer.display_name}'",
             "description": f"'{ngw_layer.common.description}'",
             "geometry_type": f"'{ngw_layer.geom_name}'",
-            "is_broken": "false",
+            "error_code": "NULL",
             "is_auto_sync_enabled": "true",
         }
 

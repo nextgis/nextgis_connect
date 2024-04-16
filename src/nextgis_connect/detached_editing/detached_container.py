@@ -12,9 +12,14 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface, spatialite_connect
 
+from nextgis_connect.exceptions import (
+    ContainerError,
+    ErrorCode,
+    NgConnectError,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import NGWVectorLayer
@@ -28,13 +33,13 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
 from nextgis_connect.settings import NgConnectCacheManager, NgConnectSettings
 from nextgis_connect.tasks.detached_editing import (
     ApplyDeltaTask,
+    DetachedEditingTask,
     DownloadGpkgTask,
     FetchAdditionalDataTask,
     FetchDeltaTask,
     FillLayerWithVersioning,
     UploadChangesTask,
 )
-from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 
 from . import utils
 from .detached_layer import DetachedLayer
@@ -43,7 +48,6 @@ from .detached_layer_indicator import DetachedLayerIndicator
 from .utils import (
     DetachedContainerChangesInfo,
     DetachedContainerMetaData,
-    DetachedLayerErrorType,
     DetachedLayerState,
     VersioningSynchronizationState,
 )
@@ -59,10 +63,11 @@ class DetachedContainer(QObject):
     __state: DetachedLayerState
     __versioning_state: VersioningSynchronizationState
     __changes: DetachedContainerChangesInfo
-    __error_type: DetachedLayerErrorType
+
+    __error: Optional[NgConnectError]
 
     __indicator: Optional[DetachedLayerIndicator]
-    __sync_task: Optional[QgsTask]
+    __sync_task: Optional[DetachedEditingTask]
 
     __check_date: Optional[datetime]
     __additional_data_fetch_date: Optional[datetime]
@@ -80,6 +85,13 @@ class DetachedContainer(QObject):
 
         self.__path = container_path
         self.__detached_layers = {}
+
+        self.__metadata = None
+        self.__state = DetachedLayerState.NotInitialized
+        self.__versioning_state = VersioningSynchronizationState.NotInitialized
+        self.__changes = DetachedContainerChangesInfo()
+
+        self.__error = None
 
         self.__indicator = None
         self.__sync_task = None
@@ -116,8 +128,14 @@ class DetachedContainer(QObject):
         return self.__state == DetachedLayerState.NotInitialized
 
     @property
-    def error_type(self) -> DetachedLayerErrorType:
-        return self.__error_type
+    def error(self) -> Optional[NgConnectError]:
+        return self.__error
+
+    @property
+    def error_code(self) -> ErrorCode:
+        if self.__error is None:
+            return ErrorCode.NoError
+        return self.__error.code
 
     @property
     def check_date(self) -> Optional[datetime]:
@@ -125,7 +143,7 @@ class DetachedContainer(QObject):
 
     @property
     def sync_date(self) -> Optional[datetime]:
-        return self.__metadata.sync_date
+        return self.__metadata.sync_date if self.__metadata else None
 
     @property
     def layers_count(self) -> int:
@@ -145,7 +163,7 @@ class DetachedContainer(QObject):
         ):
             return True
 
-        State = VersioningSynchronizationState  # noqa: N806
+        State = VersioningSynchronizationState
         if self.metadata.is_versioning_enabled and self.__versioning_state in (
             State.FetchingChanges,
             State.ConflictSolving,
@@ -172,11 +190,14 @@ class DetachedContainer(QObject):
         detached_layer.layer_changed.connect(
             lambda: self.__update_state(is_full_update=True)
         )
+        detached_layer.settings_changed.connect(
+            self.__on_settings_changed, type=Qt.ConnectionType.QueuedConnection
+        )
 
         layer.setReadOnly(not self.__is_edit_allowed)
 
         plugin = NgConnectInterface.instance()
-        detached_layer.editing_finished.connect(plugin.update_layers)
+        detached_layer.editing_finished.connect(plugin.update_layers)  # type: ignore
 
         self.__detached_layers[layer.id()] = detached_layer
 
@@ -236,13 +257,17 @@ class DetachedContainer(QObject):
         ):
             return False
 
+        self.__update_state()
+        if self.metadata is None:
+            return False
+
         if is_manual:
             self.__additional_data_fetch_date = None
         else:
             if self.state == DetachedLayerState.Error:
                 return False
 
-            if self.check_date is not None:
+            if self.check_date is not None and not self.metadata.has_changes:
                 period = NgConnectSettings().synchronizatin_period
                 if datetime.now() - self.check_date < period:
                     return False
@@ -287,7 +312,7 @@ class DetachedContainer(QObject):
         cache_manager = NgConnectCacheManager()
         cache_directory = Path(cache_manager.cache_directory)
 
-        instance_cache_path = cache_directory / ngw_layer.connection_id
+        instance_cache_path = cache_directory / connection.domain_uuid
         instance_cache_path.mkdir(parents=True, exist_ok=True)
         gpkg_path = instance_cache_path / f"{ngw_layer.common.id}.gpkg"
 
@@ -296,7 +321,14 @@ class DetachedContainer(QObject):
         # Create stub
 
         detached_factory = DetachedLayerFactory()
-        detached_factory.create_container(ngw_layer, gpkg_path)
+        try:
+            detached_factory.create_container(ngw_layer, gpkg_path)
+        except ContainerError as error:
+            logger.exception("Failed to force synchronization")
+            self.__error = error
+            self.__state = DetachedLayerState.Error
+            self.__versioning_state = VersioningSynchronizationState.Error
+            self.__additional_data_fetch_date = None
 
         self.__update_state(is_full_update=True)
 
@@ -304,27 +336,53 @@ class DetachedContainer(QObject):
 
         self.synchronize(is_manual=True)
 
-    def __update_state(self, is_full_update: bool = False) -> None:  # noqa
+    def __update_state(self, is_full_update: bool = False) -> None:
         try:
             self.__metadata = utils.container_metadata(self.path)
+            if not self.metadata.is_versioning_enabled:
+                self.__versioning_state = (
+                    VersioningSynchronizationState.NotVersionedLayer
+                )
+
+        except NgConnectError as error:
+            self.__state = DetachedLayerState.Error
+            self.__versioning_state = VersioningSynchronizationState.Error
+            self.__error = error
+            self.__changes = DetachedContainerChangesInfo()
+            self.__additional_data_fetch_date = None
+            self.__is_edit_allowed = False
+
+            self.state_changed.emit(self.__state)
+            return
+
         except Exception:
             self.__state = DetachedLayerState.Error
-            self.__error_type = DetachedLayerErrorType.CreationError
-            self.__versioning_state = (
-                VersioningSynchronizationState.NotVersionedLayer
-            )
+            self.__versioning_state = VersioningSynchronizationState.Error
+            self.__error = ContainerError()
             self.__changes = DetachedContainerChangesInfo()
+            self.__additional_data_fetch_date = None
+            self.__is_edit_allowed = False
+
+            self.state_changed.emit(self.__state)
+            return
+
+        if self.state == DetachedLayerState.Error:
+            if is_full_update:
+                self.__changes = utils.container_changes(self.path)
+            self.__additional_data_fetch_date = None
             self.state_changed.emit(self.__state)
             return
 
         if self.__metadata.is_stub:
             self.__state = DetachedLayerState.NotInitialized
-            self.__versioning_state = (
-                VersioningSynchronizationState.NotInitialized
-                if self.__metadata.is_versioning_enabled
-                else VersioningSynchronizationState.NotVersionedLayer
-            )
+            if self.metadata.is_versioning_enabled:
+                self.__versioning_state = (
+                    VersioningSynchronizationState.NotInitialized
+                )
             self.__changes = DetachedContainerChangesInfo()
+            self.__check_date = None
+            self.__additional_data_fetch_date = None
+            self.__is_edit_allowed = False
             self.state_changed.emit(self.__state)
             return
 
@@ -351,7 +409,8 @@ class DetachedContainer(QObject):
 
         if is_full_update:
             self.__changes = utils.container_changes(self.path)
-        self.__error_type = DetachedLayerErrorType.NoError
+
+        self.__error = None
 
         self.state_changed.emit(self.__state)
 
@@ -401,7 +460,7 @@ class DetachedContainer(QObject):
             )
             return
 
-        State = VersioningSynchronizationState  # noqa: N806
+        State = VersioningSynchronizationState
         if self.__versioning_state == State.Synchronized:
             self.__sync_task = FetchDeltaTask(self.path)
             self.__sync_task.download_finished.connect(
@@ -410,10 +469,11 @@ class DetachedContainer(QObject):
             self.__versioning_state = State.FetchingChanges
 
     @pyqtSlot(bool)
-    def __on_synchronization_finished(self, result: bool) -> None:  # noqa: FBT001
+    def __on_synchronization_finished(self, result: bool) -> None:
+        assert self.__sync_task is not None
         if not result:
-            self.__state = DetachedLayerState.Error
-            self.__error_type = DetachedLayerErrorType.SynchronizationError
+            assert self.__sync_task.error is not None
+            self.__process_sync_error(self.__sync_task.error)
             self.__finish_sync()
             return
 
@@ -439,59 +499,74 @@ class DetachedContainer(QObject):
         self.__start_sync(self.__sync_task)
 
     @pyqtSlot(bool)
-    def __on_additional_data_fetched(self, result: bool) -> None:  # noqa: FBT001
+    def __on_additional_data_fetched(self, result: bool) -> None:
         assert isinstance(self.__sync_task, FetchAdditionalDataTask)
-
         if result:
             self.__additional_data_fetch_date = datetime.now()
             self.__is_edit_allowed = self.__sync_task.is_edit_allowed
             self.__apply_aliases()
             self.__apply_lookup_tables()
+            self.__state = DetachedLayerState.Synchronized
+            self.__versioning_state = (
+                VersioningSynchronizationState.Synchronized
+            )
         else:
+            assert self.__sync_task.error is not None
+            self.__process_sync_error(self.__sync_task.error)
+
             self.__is_edit_allowed = False
             self.__additional_data_fetch_date = None
 
         self.__finish_sync()
 
     @pyqtSlot(bool)
-    def __on_fetch_finished(self, result: bool) -> None:  # noqa: FBT001
+    def __on_fetch_finished(self, result: bool) -> None:
         assert isinstance(self.__sync_task, FetchDeltaTask)
-        if result:
-            self.__versioning_state = (
-                VersioningSynchronizationState.ChangesApplying
-            )
-            self.__sync_task = ApplyDeltaTask(
-                self.path,
-                self.__sync_task.target,
-                self.__sync_task.timestamp,
-                self.__sync_task.delta,
-            )
-            self.__sync_task.apply_finished.connect(self.__on_apply_finished)
-
-            self.__start_sync(self.__sync_task)
+        if not result:
+            assert self.__sync_task.error is not None
+            self.__process_sync_error(self.__sync_task.error)
+            self.__finish_sync()
             return
 
-        self.__finish_sync()
+        self.__versioning_state = (
+            VersioningSynchronizationState.ChangesApplying
+        )
+        self.__sync_task = ApplyDeltaTask(
+            self.path,
+            self.__sync_task.target,
+            self.__sync_task.timestamp,
+            self.__sync_task.delta,
+        )
+        self.__sync_task.apply_finished.connect(self.__on_apply_finished)
+
+        self.__start_sync(self.__sync_task)
 
     @pyqtSlot(bool)
-    def __on_apply_finished(self, result: bool) -> None:  # noqa: FBT001
-        # TODO (ivanbarsukov): Conflicts
-        if result:
-            if self.metadata.has_changes:
-                task = UploadChangesTask(self.path)
-                task.synchronization_finished.connect(
-                    self.__on_synchronization_finished
-                )
-                self.__start_sync(task)
-                return
+    def __on_apply_finished(self, result: bool) -> None:
+        assert isinstance(self.__sync_task, ApplyDeltaTask)
+        if not result:
+            assert self.__sync_task.error is not None
+            self.__process_sync_error(self.__sync_task.error)
+            self.__finish_sync()
+            return
 
-            logger.debug(
-                f"There are no changes to upload for layer {self.metadata}"
+        # TODO (ivanbarsukov): Conflicts
+
+        if self.metadata.has_changes:
+            task = UploadChangesTask(self.path)
+            task.synchronization_finished.connect(
+                self.__on_synchronization_finished
             )
+            self.__start_sync(task)
+            return
+
+        logger.debug(
+            f"There are no changes to upload for layer {self.metadata}"
+        )
 
         self.__finish_sync()
 
-    def __start_sync(self, task: NgConnectTask) -> None:
+    def __start_sync(self, task: DetachedEditingTask) -> None:
         self.__sync_task = task
 
         task_manager = QgsApplication.taskManager()
@@ -503,6 +578,8 @@ class DetachedContainer(QObject):
 
         self.__update_state()
         self.__unlock_layers()
+
+        logger.debug("<b>Synchronization finished</b>")
 
         # Start next layer update
         NgConnectInterface.instance().update_layers()
@@ -573,3 +650,26 @@ class DetachedContainer(QObject):
             for attribute_id in attributes_with_removed_lookup_table:
                 setup = QgsEditorWidgetSetup("TextEdit", {})
                 detached_layer.layer.setEditorWidgetSetup(attribute_id, setup)
+
+    def __update_layers_properties(self) -> None:
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.fill_properties(self.__metadata)
+
+    def __process_sync_error(self, error: NgConnectError) -> None:
+        self.__state = DetachedLayerState.Error
+        self.__versioning_state = VersioningSynchronizationState.Error
+        self.__error = error
+
+        message_bar = iface.messageBar()
+        assert message_bar is not None
+        message_bar.pushCritical(
+            NgConnectInterface.PLUGIN_NAME, error.user_message
+        )
+
+        logger.exception(error.log_message, exc_info=error)
+
+    @pyqtSlot()
+    def __on_settings_changed(self) -> None:
+        self.__update_state(is_full_update=True)
+        self.__update_layers_properties()
+        self.synchronize(is_manual=True)

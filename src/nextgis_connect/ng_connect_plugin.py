@@ -20,10 +20,12 @@
  ***************************************************************************/
 """
 
+import sys
 from pathlib import Path
 from typing import Optional
 
 from qgis.core import (
+    Qgis,
     QgsApplication,
     QgsRuntimeProfiler,
     QgsTaskManager,
@@ -33,6 +35,7 @@ from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QCoreApplication,
     QItemSelectionModel,
+    QMetaObject,
     Qt,
     QTranslator,
 )
@@ -42,6 +45,7 @@ from qgis.PyQt.QtWidgets import QAction, QToolBar
 from nextgis_connect import utils
 from nextgis_connect.compat import LayerType
 from nextgis_connect.detached_editing import DetachedEditing
+from nextgis_connect.exceptions import NgConnectError
 from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -68,8 +72,11 @@ class NgConnectPlugin(NgConnectInterface):
         self.__init_translator()
 
         logger.debug("<b>Plugin object created</b>")
+        logger.debug(f"<b>QGIS version:</b> {Qgis.version()}")
+        logger.debug(f"<b>Python version:</b> {sys.version}")
+        logger.debug(f"<b>Plugin version:</b> {self.version}")
 
-    def initGui(self) -> None:  # noqa: N802
+    def initGui(self) -> None:
         with QgsRuntimeProfiler.profile("Interface initialization"):  # type: ignore
             logger.debug("<b>Start interface initialization</b>")
 
@@ -124,7 +131,11 @@ class NgConnectPlugin(NgConnectInterface):
 
     def update_layers(self) -> None:
         assert self.__detached_editing is not None
-        self.__detached_editing.update_layers()
+        QMetaObject.invokeMethod(
+            self.__detached_editing,
+            "updateLayers",
+            Qt.ConnectionType.QueuedConnection,
+        )
 
     def tr(
         self,
@@ -194,7 +205,7 @@ class NgConnectPlugin(NgConnectInterface):
 
         if self.__detached_editing is None:
             message = "Detached layers mechanism isn't created"
-            raise RuntimeError(message)
+            raise NgConnectError(message)
 
     def __unload_ng_connect_dock(self) -> None:
         self.__ng_resources_tree_dock.setVisible(False)
@@ -268,6 +279,8 @@ class NgConnectPlugin(NgConnectInterface):
     def __init_ng_layer_actions(self) -> None:
         # Tools for NGW communicate
         layer_actions = [
+            self.__ng_resources_tree_dock.actionOpenInNGWFromLayer,
+            self.__ng_resources_tree_dock.layer_menu_separator,
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,
             self.__ng_resources_tree_dock.actionAddStyle,
@@ -284,6 +297,8 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __unload_ng_layer_actions(self) -> None:
         layer_actions = [
+            self.__ng_resources_tree_dock.actionOpenInNGWFromLayer,
+            self.__ng_resources_tree_dock.layer_menu_separator,
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,
             self.__ng_resources_tree_dock.actionAddStyle,

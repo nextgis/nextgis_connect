@@ -1,5 +1,5 @@
 import configparser
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
 from qgis import utils
 from qgis.core import QgsTaskManager
@@ -24,18 +24,27 @@ class NgConnectInterface(ABC):
         assert metadata is not None, "Using a plugin before it was created"
         return metadata
 
-    @abstractproperty
+    @property
+    def version(self) -> str:
+        return self.metadata.get("general", "version")
+
+    @property
+    @abstractmethod
     def toolbar(self) -> QToolBar: ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def model(self) -> QAbstractItemModel: ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def selection_model(self) -> QItemSelectionModel: ...
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def task_manager(self) -> QgsTaskManager: ...
 
+    @property
     @abstractmethod
     def update_layers(self) -> None: ...
 

@@ -2,6 +2,7 @@ import json
 from typing import Any, ClassVar, Dict, Iterable, List, Type, Union
 
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
+from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
@@ -79,7 +80,8 @@ class ActionSerializer:
         if not isinstance(action, DataChangeAction):
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
-            raise TypeError(message)
+            code = ErrorCode.SynchronizationError
+            raise DetachedEditingError(message, code=code)
 
         result = {
             key: value for key, value in action.__dict__.items() if value
@@ -95,7 +97,8 @@ class ActionSerializer:
         if not isinstance(action, FeatureAction):
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
-            raise TypeError(message)
+            code = ErrorCode.SynchronizationError
+            raise DetachedEditingError(message, code=code)
 
         result: Dict[str, Any] = {}
 
@@ -134,8 +137,8 @@ class ActionSerializer:
             if attachments is None:
                 attachments = []
 
-            for attachment in attachments:
-                pass
+            # for attachment in attachments:
+            #     pass
 
         return result
 

@@ -163,7 +163,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     def __init_sync_settings(self, settings: NgConnectSettings) -> None:
         period = settings.synchronizatin_period
 
-        if period // timedelta(minutes=1) < 59:  # noqa: PLR2004
+        if period // timedelta(minutes=1) < 59:
             value = period // timedelta(minutes=1)
             index = 0
         else:
@@ -274,6 +274,16 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__widget.debugEnabledCheckBox.setChecked(
             settings.is_debug_enabled
         )
+        self.__widget.debugEnabledCheckBox.toggled.connect(
+            self.__on_debug_state_changed
+        )
+
+        self.__widget.debugNetworkCheckBox.setChecked(
+            settings.is_network_debug_enabled
+        )
+        self.__widget.debugNetworkCheckBox.setEnabled(
+            settings.is_debug_enabled
+        )
 
     def __save_current_connection(self):
         connections_manager = NgwConnectionsManager()
@@ -366,6 +376,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             debug_state = "enabled" if new_debug_enabled else "disabled"
             update_level()
             logger.info(f"Debug messages are now {debug_state}")
+        settings.is_network_debug_enabled = (
+            self.__widget.debugNetworkCheckBox.isChecked()
+        )
 
     def __clear_cache(self) -> None:
         log_blocker = QgsMessageLogNotifyBlocker()
@@ -383,6 +396,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         del log_blocker
 
+    def __on_debug_state_changed(self, state: bool) -> None:
+        self.__widget.debugNetworkCheckBox.setEnabled(state)
+
     def format_size(self, size_in_kb):
         units = [
             self.tr("KiB"),
@@ -392,10 +408,10 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         ]
         size = size_in_kb
         unit_index = 0
-        while size > 1024 and unit_index < len(units) - 1:  # noqa: PLR2004
+        while size > 1024 and unit_index < len(units) - 1:
             size /= 1024
             unit_index += 1
-        precision = 2 if size < 10 else 1  # noqa: PLR2004
+        precision = 2 if size < 10 else 1
         return f"{size:.{precision}f} {units[unit_index]}"
 
 
@@ -428,7 +444,7 @@ class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def path(self) -> List[str]:
         return ["NextGIS"]
 
-    def createWidget(  # noqa: N802
+    def createWidget(
         self, parent: Optional[QWidget] = None
     ) -> Optional[QgsOptionsPageWidget]:
         try:

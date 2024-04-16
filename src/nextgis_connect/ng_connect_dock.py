@@ -23,7 +23,7 @@
 import html
 import json
 import os
-import traceback
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, cast
@@ -57,6 +57,7 @@ from qgis.PyQt.QtCore import (
     QTemporaryFile,
     QTimer,
     QUrl,
+    pyqtSlot,
 )
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtNetwork import QNetworkRequest
@@ -75,6 +76,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
+from nextgis_connect.exceptions import ErrorCode, NgConnectError, NgwError
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
@@ -114,9 +116,7 @@ from .ngw_api.qgis.resource_to_map import (
     add_resource_as_wfs_layers,
 )
 from .ngw_api.qt.qt_ngw_resource_model_job_error import (
-    JobAuthorizationError,
     JobError,
-    JobInternalError,
     JobNGWError,
     JobServerRequestError,
     JobWarning,
@@ -170,6 +170,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.actionOpenInNGW = QAction(self.tr("Open in Web GIS"), self)
         self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
+
+        self.actionOpenInNGWFromLayer = QAction(
+            self.tr("Open in Web GIS"), self
+        )
+        self.actionOpenInNGWFromLayer.triggered.connect(
+            self.open_ngw_resource_page_from_layer
+        )
+        self.layer_menu_separator = QAction()
+        self.layer_menu_separator.setSeparator(True)
 
         self.actionRename = QAction(self.tr("Rename"), self)
         self.actionRename.triggered.connect(self.rename_ngw_resource)
@@ -396,11 +405,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.itemDoubleClicked.connect(
             self.trvDoubleClickProcess
         )
-        selection_model = self.resources_tree_view.selectionModel()
-        assert selection_model is not None
-        selection_model.selectionChanged.connect(
-            self.checkImportActionsAvailability
-        )
+
         size_policy = self.resources_tree_view.sizePolicy()
         size_policy.setVerticalPolicy(QSizePolicy.Policy.Expanding)
         self.resources_tree_view.setSizePolicy(size_policy)
@@ -415,19 +420,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
-        self.checkImportActionsAvailability()
-        self.iface.currentLayerChanged.connect(
-            self.checkImportActionsAvailability
-        )
-        project = QgsProject.instance()
-        assert project is not None
-        project.layersAdded.connect(self.checkImportActionsAvailability)
-        project.layersRemoved.connect(self.checkImportActionsAvailability)
-
         if HAS_NGSTD:
             NGAccess.instance().userInfoUpdated.connect(
                 self.__on_ngstd_user_info_updated
             )
+
+        layer_tree_view = self.iface.layerTreeView()
+        assert layer_tree_view is not None
+        layer_tree_view.selectionModel().selectionChanged.connect(
+            self.checkImportActionsAvailability
+        )
+
+        selection_model = self.resources_tree_view.selectionModel()
+        assert selection_model is not None
+        selection_model.selectionChanged.connect(
+            self.checkImportActionsAvailability
+        )
+
+        self.checkImportActionsAvailability()
 
     def close(self):
         self.resources_tree_view.customContextMenuRequested.disconnect(
@@ -436,6 +446,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.itemDoubleClicked.disconnect(
             self.trvDoubleClickProcess
         )
+
+        layer_tree_view = self.iface.layerTreeView()
+        assert layer_tree_view is not None
+        layer_tree_view.selectionModel().selectionChanged.disconnect(
+            self.checkImportActionsAvailability
+        )
+
         selection_model = self.resources_tree_view.selectionModel()
         assert selection_model is not None
         selection_model.currentChanged.disconnect(
@@ -443,14 +460,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         self.resources_tree_view.deleteLater()
-
-        self.iface.currentLayerChanged.disconnect(
-            self.checkImportActionsAvailability
-        )
-        project = QgsProject.instance()
-        assert project is not None
-        project.layersAdded.disconnect(self.checkImportActionsAvailability)
-        project.layersRemoved.disconnect(self.checkImportActionsAvailability)
 
         self.resource_model.errorOccurred.disconnect(
             self.__model_error_process
@@ -474,6 +483,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         super().close()
 
+    @pyqtSlot()
     def checkImportActionsAvailability(self):
         # QGIS layers
         layer_tree_view = self.iface.layerTreeView()
@@ -599,22 +609,36 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionRename.setEnabled(is_one_ngw_selected)
         self.actionEditMetadata.setEnabled(is_one_ngw_selected)
 
-    def __model_warning_process(self, job, exception):
-        self.__model_exception_process(
-            job, exception, Qgis.MessageLevel.Warning
+        layer = (
+            cast(QgsLayerTreeLayer, qgis_nodes[0]).layer()
+            if is_layer
+            else None
         )
 
-    def __model_error_process(self, job, exception):
+        open_in_ngw_visible = (
+            is_layer
+            and layer.customProperty("ngw_connection_id") is not None
+            and layer.customProperty("ngw_resource_id") is not None
+        )
+        self.actionOpenInNGWFromLayer.setVisible(open_in_ngw_visible)
+        self.layer_menu_separator.setVisible(open_in_ngw_visible)
+
+    def __model_warning_process(self, job_name, job_uuid, exception):
         self.__model_exception_process(
-            job, exception, Qgis.MessageLevel.Critical
+            job_name, job_uuid, exception, Qgis.MessageLevel.Warning
         )
 
-    def __model_exception_process(self, job, exception, level, trace=None):
+    def __model_error_process(self, job_name, job_uuid, exception):
+        self.__model_exception_process(
+            job_name, job_uuid, exception, Qgis.MessageLevel.Critical
+        )
+
+    def __model_exception_process(self, job_name, job_uuid, exception, level):
         # always unblock in case of any error so to allow to fix it
         self.unblock_gui()
 
         msg, msg_ext, icon = self.__get_model_exception_description(
-            job, exception
+            job_name, exception
         )
 
         connections_manager = NgwConnectionsManager()
@@ -623,9 +647,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_connection = connections_manager.current_connection
         assert current_connection
 
-        logger.debug("Exception name: " + exception.__class__.__name__)
+        if job_name == "NgwCreateVectorLayersStubs":
+            found_i = -1
+            for i in range(len(self._queue_to_add)):
+                if self._queue_to_add[i].job_uuid == job_uuid:
+                    found_i = i
+                    break
+            if found_i != -1:
+                del self._queue_to_add[found_i]
 
-        if exception is JobAuthorizationError:
+        if (
+            isinstance(exception, NgwError)
+            and exception.code == ErrorCode.AuthorizationError
+        ):
             self.try_check_https = False
             dialog = NgwConnectionEditDialog(
                 self.iface.mainWindow(), current_connection_id
@@ -669,25 +703,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     return
 
                 # Show connect dialog again.
+                self.try_check_https = False
+                dialog = NgwConnectionEditDialog(
+                    self.iface.mainWindow(), current_connection_id
+                )
+                dialog.set_message(
+                    self.tr(
+                        "Failed to connect. Please check your connection details"
+                    ),
+                    Qgis.MessageLevel.Critical,
+                    duration=0,
+                )
+                result = dialog.exec_()
+                if result == QDialog.DialogCode.Accepted:
+                    self.reinit_tree(force=True)
                 else:
-                    self.try_check_https = False
-                    dialog = NgwConnectionEditDialog(
-                        self.iface.mainWindow(), current_connection_id
-                    )
-                    dialog.set_message(
-                        self.tr(
-                            "Failed to connect. Please check your connection details"
-                        ),
-                        Qgis.MessageLevel.Critical,
-                        duration=0,
-                    )
-                    result = dialog.exec_()
-                    if result == QDialog.DialogCode.Accepted:
-                        self.reinit_tree(force=True)
-                    else:
-                        self.block_tools()
-                    del dialog
-                    return
+                    self.block_tools()
+                del dialog
 
         # The second time return back http if there was an error: this might be some
         # other error, not related to http/https changing.
@@ -713,7 +745,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__msg_in_qgis_mes_bar(msg, msg_ext is not None, level=level)
 
         if msg is not None and msg_ext is not None:
-            logger.info(msg + "\n" + msg_ext)
+            logger.debug(msg + "\n" + msg_ext)
 
     def __get_model_exception_description(self, job, exception):
         msg = None
@@ -729,7 +761,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             msg = str(exception)
             msg_ext = "URL: " + exception.url
 
-        elif exception.__class__ == JobAuthorizationError:
+        if (
+            isinstance(exception, NgwError)
+            and exception.code == ErrorCode.AuthorizationError
+        ):
             msg = " %s." % self.tr("Access denied. Enter your login.")
 
         elif exception.__class__ == JobError:
@@ -751,9 +786,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             msg = str(exception)
             icon = os.path.join(ICONS_PATH, "Warning.svg")
 
-        elif exception.__class__ == JobInternalError:
-            msg = self.tr("Internal plugin error occurred!")
-            msg_ext = "".join(exception.trace)
+        elif isinstance(exception, NgConnectError):
+            msg = exception.user_message
+            msg_ext = ""
+
+        else:
+            msg = self.tr("Internal plugin error occurred.")
+            msg_ext = ""
 
         return msg, msg_ext, icon
 
@@ -1060,6 +1099,32 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             url = ngw_resource.get_absolute_url()
             QDesktopServices.openUrl(QUrl(url))
 
+    def open_ngw_resource_page_from_layer(self):
+        layer_tree_view = self.iface.layerTreeView()
+        assert layer_tree_view is not None
+        qgis_nodes = layer_tree_view.selectedNodes()
+        is_one_qgis_selected = len(qgis_nodes) == 1
+        is_layer = is_one_qgis_selected and QgsLayerTree.isLayer(qgis_nodes[0])
+
+        layer = (
+            cast(QgsLayerTreeLayer, qgis_nodes[0]).layer()
+            if is_layer
+            else None
+        )
+        assert layer is not None
+
+        connection_id = layer.customProperty("ngw_connection_id")
+        resource_id = layer.customProperty("ngw_resource_id")
+
+        connection_manager = NgwConnectionsManager()
+        connection = connection_manager.connection(connection_id)
+        assert connection is not None
+
+        url = QUrl(connection.url)
+        url.setPath(f"/resource/{resource_id}")
+
+        QDesktopServices.openUrl(url)
+
     def rename_ngw_resource(self):
         selected_index = (
             self.resources_tree_view.selectionModel().currentIndex()
@@ -1121,9 +1186,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return isinstance(ngw_resource, NGWGroupResource)
 
         selection_model = self.resources_tree_view.selectionModel()
-        if selection_model is None:
-            raise RuntimeError
-
+        assert selection_model is not None
         selected_indexes = selection_model.selectedIndexes()
         self.__preprocess_indexes_list(selected_indexes)
 
@@ -1384,7 +1447,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             current_project = QgsProject.instance()
             if current_project.title() != "":
                 return current_project.title()
-            elif current_project.fileName() != "":
+            if current_project.fileName() != "":
                 return current_project.baseName()
             return ""
 
@@ -1494,7 +1557,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 _ = dlg.exec_()
 
             except NGWError:
-                error_mes = str(traceback.format_exc())
                 self.iface.messageBar().pushMessage(
                     self.tr("Error"),
                     self.tr(
@@ -1503,15 +1565,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     level=Qgis.MessageLevel.Critical,
                 )
                 self.resources_tree_view.ngw_job_block_overlay.hide()
-                logger.exception(error_mes)
+                logger.exception("An error occured")
 
             except Exception as ex:
-                error_mes = str(traceback.format_exc())
                 self.iface.messageBar().pushMessage(
-                    self.tr("Error"), ex, level=Qgis.MessageLevel.Critical
+                    self.tr("Error"), str(ex), level=Qgis.MessageLevel.Critical
                 )
                 self.resources_tree_view.ngw_job_block_overlay.hide()
-                logger.exception(error_mes)
+                logger.exception("An error occured")
 
             self.unblock_gui()
 
@@ -1606,8 +1667,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             reply.deleteLater()
 
             return raster_file
-        else:
-            raise Exception(self.tr("Can't open file to write raster!"))
+
+        raise Exception(self.tr("Can't open file to write raster!"))
 
     def _copy_resource(self, ngw_src):
         """Create a copy of a ngw raster or vector layer
@@ -1881,11 +1942,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def processWarnings(self, index):
         ngw_model_job_resp = self.sender()
         job_id = ngw_model_job_resp.job_id
-        if len(ngw_model_job_resp.warnings()) > 0:
+        if len(ngw_model_job_resp.warnings) > 0:
             dlg = ExceptionsListDialog(
                 self.tr("NextGIS Connect operation errors"), self
             )
-            for w in ngw_model_job_resp.warnings():
+            for w in ngw_model_job_resp.warnings:
                 (
                     w_msg,
                     w_msg_ext,
@@ -1894,49 +1955,34 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 dlg.addException(w_msg, w_msg_ext, icon)
                 dlg.show()
 
-    def _downloadStyleAsQML(self, ngw_style, qml_file=None, mes_bar=True):
-        if not qml_file:
-            self.dwn_qml_file = QTemporaryFile()
-        else:
-            self.dwn_qml_file = QFile(qml_file)
+    def _downloadStyleAsQML(
+        self, ngw_style: NGWQGISStyle, path=None, mes_bar=True
+    ):
+        if not path:
+            path = tempfile.mktemp(suffix=".qml")
 
         url = ngw_style.download_qml_url()
-
-        req = QNetworkRequest(QUrl(url))
-
-        connections_manager = NgwConnectionsManager()
-        connection = connections_manager.connection(ngw_style.connection_id)
-        assert connection is not None
-        connection.update_network_request(req)
-
-        ev_loop = QEventLoop()
-        dwn_qml_manager = QgsNetworkAccessManager()
-        dwn_qml_manager.finished.connect(ev_loop.quit)
-        reply = dwn_qml_manager.get(req)
-        ev_loop.exec_()
-
-        if reply.error():
-            logger.debug(f"Failed to download QML: {reply.errorString()}")
-
         result = False
-        if self.dwn_qml_file.open(QIODevice.OpenModeFlag.WriteOnly):
-            logger.debug(f"dwn_qml_file: {self.dwn_qml_file.fileName()}")
-            self.dwn_qml_file.write(reply.readAll())
-            self.dwn_qml_file.close()
-            if mes_bar:
+        try:
+            ngw_style.connection.download(url, path)
+            logger.debug(f"Downloaded QML file path: {path}")
+            result = True
+        except Exception:
+            logger.exception("Failed to download QML")
+
+        if mes_bar:
+            if result:
                 self.__msg_in_qgis_mes_bar(
                     self.tr("QML file downloaded"), False, duration=2
                 )
-            result = True
-        elif mes_bar:
-            self.__msg_in_qgis_mes_bar(
-                self.tr("QML file could not be downloaded"),
-                True,
-                Qgis.MessageLevel.Critical,
-            )
+            else:
+                self.__msg_in_qgis_mes_bar(
+                    self.tr("QML file could not be downloaded"),
+                    True,
+                    Qgis.MessageLevel.Critical,
+                )
 
-        reply.deleteLater()
-
+        self.dwn_qml_file = QFile(path)
         return result
 
     def downloadQML(self):
@@ -1961,9 +2007,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         filepath = QgsFileUtils.ensureFileNameHasExtension(filepath, ["qml"])
 
-        is_success = self._downloadStyleAsQML(
-            ngw_qgis_style, qml_file=filepath
-        )
+        is_success = self._downloadStyleAsQML(ngw_qgis_style, path=filepath)
         if is_success:
             settings.setValue(
                 "style/lastStyleDir", QFileInfo(filepath).absolutePath()
@@ -2085,10 +2129,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         children: List[NGWQGISStyle],
         default_style: Optional[NGWQGISVectorStyle] = None,
     ) -> None:
+        connections_manager = NgwConnectionsManager()
+        connection = connections_manager.connection(vector_layer.connection_id)
+        assert connection is not None
+
         cache_manager = NgConnectCacheManager()
-        # TODO: set instance id
         connection_path = (
-            Path(cache_manager.cache_directory) / vector_layer.connection_id
+            Path(cache_manager.cache_directory) / connection.domain_uuid
         )
 
         qgs_gpkg_layer = QgsVectorLayer(

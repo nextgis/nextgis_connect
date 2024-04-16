@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from qgis.gui import QgisInterface
 
 
-def classFactory(iface: "QgisInterface"):  # noqa: N802
+def classFactory(iface: "QgisInterface"):
     with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
         from .ng_connect_plugin import NgConnectPlugin
 

@@ -21,9 +21,10 @@ class NgwConnectionsManager:
         self.__settings.beginGroup(self.__key)
         connection_ids = self.__settings.childGroups()
         self.__settings.endGroup()
-        connections = []
-        for connection_id in connection_ids:
-            connections.append(self.__read_connection(connection_id))
+        connections = [
+            self.__read_connection(connection_id)
+            for connection_id in connection_ids
+        ]
         connections.sort(key=lambda connection: connection.name)
         return connections
 

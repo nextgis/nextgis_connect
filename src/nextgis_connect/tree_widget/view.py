@@ -16,10 +16,11 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
+)
+from nextgis_connect.tree_widget.item import QNGWResourceItem
 from nextgis_connect.utils import SupportStatus
-
-from ..ngw_connection.ngw_connections_manager import NgwConnectionsManager
-from ..tree_widget.item import QNGWResourceItem
 
 __all__ = ["QNGWResourceTreeView"]
 
@@ -277,7 +278,7 @@ class QNGWResourceTreeView(QTreeView):
     def selectedIndex(self):
         return self.selectionModel().currentIndex()
 
-    def __insertRowsProcess(self, parent, start, end):
+    def __insertRowsProcess(self, parent):
         if not parent.isValid():
             self.expandAll()
         # else:

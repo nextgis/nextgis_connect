@@ -97,8 +97,7 @@ class NGWLayerStyleChooserDialog(QDialog):
         selected_index = self.selectedStyleIndex()
         if selected_index is None or not selected_index.isValid():
             return None
-        item = selected_index.internalPointer()
-        return item
+        return selected_index.internalPointer()
 
     def selectedStyleId(self):
         item = self.selectedStyle()

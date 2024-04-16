@@ -20,8 +20,9 @@ class DetachedLayer(QObject):
 
     editing_started = pyqtSignal(name="editingStarted")
     editing_finished = pyqtSignal(name="editingFinished")
-
     layer_changed = pyqtSignal(name="layerChanged")
+
+    settings_changed = pyqtSignal(name="settingsChanged")
 
     def __init__(
         self,
@@ -33,9 +34,14 @@ class DetachedLayer(QObject):
         self.__container = container
         self.__layer = layer
 
+        self.fill_properties(self.__container.metadata)
+
         # TODO (PyQt6): remove type ignore
         self.__layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore
         self.__layer.editingStopped.connect(self.__stop_listen_changes)  # type: ignore
+        self.__layer.customPropertyChanged.connect(
+            self.__on_custom_property_changed
+        )
 
         if layer.isEditable():
             self.__start_listen_changes()
@@ -49,14 +55,19 @@ class DetachedLayer(QObject):
         return self.__layer.isEditable()
 
     def fill_properties(self, metadata: DetachedContainerMetaData) -> None:
+        if metadata is None:
+            return
+
         properties = {
             "ngw_is_detached_layer": True,
             "ngw_connection_id": metadata.connection_id,
             "ngw_resource_id": metadata.resource_id,
-            "ngw_sync_date": metadata.sync_date,
         }
+
+        custom_properties = self.__layer.customProperties()
         for name, value in properties.items():
-            self.__layer.setCustomProperty(name, value)
+            custom_properties.setValue(name, value)
+        self.__layer.setCustomProperties(custom_properties)
 
     @pyqtSlot()
     def __start_listen_changes(self) -> None:
@@ -264,3 +275,14 @@ class DetachedLayer(QObject):
         """.format(placeholders=",".join(["?"] * len(feature_ids)))
         cursor.execute(fetch_added_query, feature_ids)
         return [row[0] for row in cursor.fetchall()]
+
+    @pyqtSlot(str)
+    def __on_custom_property_changed(self, name: str) -> None:
+        update_state_name = "ngw_need_update_state"
+        if name != update_state_name or not self.layer.customProperty(
+            update_state_name
+        ):
+            return
+
+        self.layer.setCustomProperty("ngw_need_update_state", False)
+        self.settings_changed.emit()

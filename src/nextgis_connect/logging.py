@@ -1,6 +1,6 @@
 import logging
 from types import MethodType
-from typing import Protocol, cast
+from typing import Optional, Protocol, cast
 
 from qgis.core import Qgis, QgsApplication
 
@@ -9,14 +9,20 @@ from nextgis_connect.settings import NgConnectSettings
 
 
 class QgisLoggerProtocol(Protocol):
-    def setLevel(self, level: int) -> None: ...  # noqa: N802
+    def setLevel(self, level: int) -> None: ...
 
     def debug(self, message: str, *args, **kwargs) -> None: ...
     def info(self, message: str, *args, **kwargs) -> None: ...
     def success(self, message: str, *args, **kwargs) -> None: ...
     def warning(self, message: str, *args, **kwargs) -> None: ...
     def error(self, message: str, *args, **kwargs) -> None: ...
-    def exception(self, message: str, *args, **kwargs) -> None: ...
+    def exception(
+        self,
+        message: str,
+        *args,
+        exc_info: Optional[Exception] = None,
+        **kwargs,
+    ) -> None: ...
     def critical(self, message: str, *args, **kwargs) -> None: ...
     def fatal(self, message: str, *args, **kwargs) -> None: ...
 
@@ -85,7 +91,8 @@ def unload_logger():
 
     logger.propagate = True
 
-    del logger.success  # type: ignore
+    if hasattr(logger, "success"):
+        del logger.success  # type: ignore
 
     logger.setLevel(logging.NOTSET)
 

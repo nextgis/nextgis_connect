@@ -11,6 +11,8 @@ from qgis.PyQt.QtCore import QStringListModel, QTimer, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import QCompleter, QDialog, QDialogButtonBox, QWidget
 
+from nextgis_connect.logging import logger
+
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
 
@@ -221,7 +223,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     def __test_connection(self):
         self.__send_test_request()
 
-    def __send_test_request(self, is_add: bool = False):
+    def __send_test_request(self):
         self.__lock_gui()
 
         test_connection = NgwConnection(
@@ -297,7 +299,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 json_content = json.loads(content)
                 message = json_content.get("title", None)
             except Exception:
-                pass
+                logger.exception("An error occured while testing connection")
 
         arguments = (
             (message_title,) if message is None else (message_title, message)

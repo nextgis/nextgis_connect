@@ -301,6 +301,16 @@
         </property>
        </widget>
       </item>
+      <item>
+       <widget class="QCheckBox" name="debugNetworkCheckBox">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="text">
+         <string>Log network requests</string>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>

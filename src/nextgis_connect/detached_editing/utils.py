@@ -2,7 +2,7 @@ import sqlite3
 from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum, IntEnum, auto
+from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +15,11 @@ from qgis.core import (
     qgsfunction,
 )
 
+from nextgis_connect.exceptions import (
+    ContainerError,
+    ErrorCode,
+    NgConnectError,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.resources.ngw_field import NgwField
 
@@ -30,6 +35,7 @@ class DetachedLayerState(Enum):
 class VersioningSynchronizationState(Enum):
     NotVersionedLayer = auto()
     NotInitialized = auto()
+    Error = auto()
     NotSynchronized = auto()
     FetchingChanges = auto()
     ConflictSolving = auto()
@@ -37,43 +43,6 @@ class VersioningSynchronizationState(Enum):
     UploadingChanges = auto()
     FetchingUploaded = auto()
     Synchronized = auto()
-
-
-class DetachedLayerErrorType(IntEnum):
-    NoError = 200
-
-    SynchronizationError = 300
-    NetworkError = auto()
-    AuthError = auto()
-    NotEnoughRights = auto()
-
-    ContainerError = 400
-    CreationError = auto()
-    DeletedContainer = auto()
-    NotCompletedFetch = auto()
-    ConnectionNotExist = auto()
-    EpochChanged = auto()
-    StructureChanged = auto()
-    NotVersionedContentChanged = auto()
-
-    ResourceError = 500
-    ResourceWasDeleted = auto()
-
-    @property
-    def is_sync_error(self) -> bool:
-        return self.SynchronizationError <= self < self.ContainerError
-
-    @property
-    def is_container_error(self) -> bool:
-        return self.ContainerError <= self < self.ResourceError
-
-    @property
-    def is_resource_error(self) -> bool:
-        return self >= self.ResourceError
-
-    @property
-    def is_sync_allowed(self) -> bool:
-        return self == self.NoError
 
 
 @dataclass
@@ -90,9 +59,9 @@ class DetachedContainerMetaData:
     epoch: Optional[int]
     version: Optional[int]
     sync_date: Optional[datetime]
-    is_broken: bool
     is_auto_sync_enabled: bool
     fields: List[NgwField]
+    features_count: int
     has_changes: bool
     srs_id: int
 
@@ -108,7 +77,7 @@ class DetachedContainerMetaData:
         return f'"{self.layer_name}" (id={self.resource_id})'
 
 
-@dataclass
+@dataclass(frozen=True)
 class DetachedContainerChangesInfo:
     added_features: int = 0
     removed_features: int = 0
@@ -163,12 +132,17 @@ def is_ngw_container(layer: QgsMapLayer) -> bool:
 
 @singledispatch
 def container_metadata(path_or_cursor) -> DetachedContainerMetaData:
-    message = f"Unsupported type: {type(path_or_cursor)}"
-    raise TypeError(message)
+    message = f"Can't fetch metatadata from {type(path_or_cursor)}"
+    raise NgConnectError(message)
 
 
 @container_metadata.register
 def _(path: Path) -> DetachedContainerMetaData:
+    if not path.exists():
+        error = ContainerError(code=ErrorCode.DeletedContainer)
+        error.add_note(f"Path: {path}")
+        raise error
+
     with closing(sqlite3.connect(str(path))) as connection, closing(
         connection.cursor()
     ) as cursor:
@@ -190,7 +164,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         epoch,
         version,
         sync_date,
-        is_broken,
+        error_code,
         is_auto_sync_enabled,
     ) = cursor.fetchone()
 
@@ -218,6 +192,9 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     """
     fields = [NgwField(*row) for row in cursor.execute(fields_query)]
 
+    cursor.execute('SELECT "feature_count" FROM gpkg_ogr_contents')
+    features_count = cursor.fetchone()[0]
+
     cursor.execute(
         """
         SELECT
@@ -242,9 +219,9 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         epoch,
         version,
         sync_date,
-        is_broken,
         is_auto_sync_enabled,
         fields,
+        features_count,
         has_changes,
         srs_id,
     )
@@ -261,26 +238,11 @@ def container_changes(path: Path) -> DetachedContainerChangesInfo:
               (SELECT COUNT(*) FROM ngw_removed_features) removed,
               (SELECT COUNT(DISTINCT fid) FROM ngw_updated_attributes) attributes,
               (SELECT COUNT(*) FROM ngw_updated_geometries) geometries
-            """  # noqa: E501
+            """
         )
         result = cursor.fetchone()
 
         return DetachedContainerChangesInfo(*result)
-
-
-def is_fields_compatible(lhs: List[NgwField], rhs: List[NgwField]) -> bool:
-    if len(lhs) != len(rhs):
-        return False
-
-    for lhs_field, rhs_field in zip(lhs, rhs):
-        if (
-            lhs_field.ngw_id != rhs_field.ngw_id
-            or lhs_field.datatype_name != rhs_field.datatype_name
-            or lhs_field.keyname != rhs_field.keyname
-        ):
-            return False
-
-    return True
 
 
 @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])

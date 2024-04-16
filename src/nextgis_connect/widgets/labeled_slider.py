@@ -31,7 +31,7 @@ class LabeledSlider(QSlider):
     def index(self) -> int:
         return self.value()
 
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+    def paintEvent(self, event: QPaintEvent) -> None:
         super().paintEvent(event)
 
         painter = QStylePainter(self)
@@ -59,7 +59,7 @@ class LabeledSlider(QSlider):
             y = self.height()
             painter.drawText(align_x, y, text)
 
-    def sizeHint(self) -> QSize:  # noqa: N802
+    def sizeHint(self) -> QSize:
         size = super().sizeHint()
         font_metrics = QFontMetrics(self.font())
         size.setHeight(size.height() + font_metrics.height())

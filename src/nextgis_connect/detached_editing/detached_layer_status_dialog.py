@@ -32,7 +32,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         super().__init__(parent)
         self.setupUi(self)
 
-        Button = QDialogButtonBox.StandardButton  # noqa: N806
+        Button = QDialogButtonBox.StandardButton
         button_box_template = QDialogButtonBox(
             QDialogButtonBox.StandardButtons() | Button.Reset | Button.Close
         )
@@ -81,7 +81,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
 
         self.__update_sync_button()
 
-        self.changesPage.setEnabled(
+        self.changesGroupBox.setEnabled(
             state != DetachedLayerState.Synchronization
         )
 
@@ -99,16 +99,33 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
     @pyqtSlot(name="updateSyncButton")
     def __update_sync_button(self) -> None:
         self.syncButton.setEnabled(
-            self.__container.state != DetachedLayerState.Synchronization
+            self.__container.metadata is not None
+            and self.__container.state != DetachedLayerState.Synchronization
             and not self.__container.is_edit_mode_enabled
         )
 
     def __fill_status(self) -> None:
-        sync_datetime = self.__container.metadata.sync_date
+        sync_datetime = self.__container.sync_date
         sync_datetime = (
             sync_datetime.strftime("%c") if sync_datetime is not None else "—"
         )
         self.latestUpdateLabel.setText(sync_datetime)
+
+        states = {
+            DetachedLayerState.NotInitialized: self.tr("Not initialized"),
+            DetachedLayerState.Error: self.tr("Error"),
+            DetachedLayerState.NotSynchronized: self.tr("Not synchronized"),
+            DetachedLayerState.Synchronization: self.tr("Synchronization"),
+            DetachedLayerState.Synchronized: self.tr("Synchronized"),
+        }
+
+        state = self.__container.state
+        self.stateLabel.setText(states[state])
+        is_error = state == DetachedLayerState.Error
+        self.line.setVisible(is_error)
+        self.errorLabel.setVisible(is_error)
+        if is_error:
+            self.errorLabel.setText(self.__container.error.user_message)
 
     def __fill_changes(self) -> None:
         changes = self.__container.changes_info

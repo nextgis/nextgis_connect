@@ -1,24 +1,33 @@
-import os
+import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import Optional
 
-from qgis.core import QgsMapLayer
+from qgis.core import QgsMapLayer, QgsVectorLayer
 from qgis.gui import (
     QgsMapCanvas,
     QgsMapLayerConfigWidget,
     QgsMapLayerConfigWidgetFactory,
 )
 from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QHBoxLayout, QWidget
+from qgis.PyQt.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
+from nextgis_connect.exceptions import NgConnectError
 from nextgis_connect.logging import logger
+from nextgis_connect.ngw_connection.ngw_connections_widget import (
+    NgwConnectionsWidget,
+)
 
-# from ..ngw_connection.ngw_connections_widget import NgwConnectionsWidget
 from . import utils
 
 
-class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
+class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
+    __path: Path
+    __metadata: utils.DetachedContainerMetaData
+    __layer: QgsVectorLayer
+
     def __init__(
         self,
         layer: Optional[QgsMapLayer],
@@ -28,39 +37,108 @@ class DetachedLayerConfigWidget(QgsMapLayerConfigWidget):
         super().__init__(layer, canvas, parent)
         self.setPanelTitle(self.tr("NextGIS"))
 
-        # TODO try-catch
-        plugin_path = os.path.dirname(__file__)
-        self.widget = uic.loadUi(
-            os.path.join(plugin_path, "detached_layer_config_widget_base.ui")
-        )  # type: ignore
-        if self.widget is None:
-            # TODO log
-            return
+        directory = Path(__file__).parent
+        widget: Optional[QWidget] = None
+        try:
+            widget = uic.loadUi(
+                str(directory / "detached_layer_config_widget_base.ui")
+            )  # type: ignore
+        except FileNotFoundError as error:
+            message = self.tr("Can't load settings UI")
+            logger.exception(message)
+            raise RuntimeError(message) from error
+        if widget is None:
+            message = self.tr("Errors in settings UI")
+            logger.error(message)
+            raise RuntimeError(message)
 
-        # connections_widget = NgwConnectionsWidget(self.widget)
-        # self.widget.connectionGroupBox.layout().addWidget(
-        #     connections_widget
-        # )
+        self.__widget = widget
+        self.__widget.setParent(self)
 
-        self.widget.setParent(self)
+        assert isinstance(layer, QgsVectorLayer)
+        self.__path = utils.container_path(layer)
+        try:
+            self.__metadata = utils.container_metadata(self.__path)
+        except Exception:
+            logger.exception(
+                "An error occured while layer metadata extracting"
+            )
+            raise
+
+        self.__layer = layer
+
+        self.__connections_widget = NgwConnectionsWidget(self.__widget)
+        self.__connections_widget.set_connection_id(
+            self.__metadata.connection_id
+        )
+        self.__widget.connectionGroupBox.layout().addWidget(
+            self.__connections_widget
+        )
+
+        self.__widget.synchronizationGroupBox.hide()
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setMargin(0)  # type: ignore
         self.setLayout(layout)
-        layout.addWidget(self.widget)
+        layout.addWidget(self.__widget)
 
     def apply(self) -> None:
         """Called when changes to the layer need to be made"""
+        new_connection_id = self.__connections_widget.connection_id()
+        if new_connection_id == self.__metadata.connection_id:
+            return
 
-    def focusDefaultWidget(self) -> None:
-        return self.synchronizeButton.setFocus()
+        with closing(sqlite3.connect(self.__path)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            cursor.execute(
+                f'UPDATE ngw_metadata SET connection_id="{new_connection_id}"'
+            )
+
+            connection.commit()
+
+        self.__metadata = utils.container_metadata(self.__path)
+
+        self.__layer.setCustomProperty("ngw_need_update_state", True)
 
     def shouldTriggerLayerRepaint(self) -> bool:
         return super().shouldTriggerLayerRepaint()
 
     def syncToLayer(self, layer: Optional[QgsMapLayer]) -> None:
-        return super().syncToLayer(layer)
+        super().syncToLayer(layer)
+        self.__connections_widget.set_connection_id(
+            self.__metadata.connection_id
+        )
+
+
+class DetachedLayerConfigErrorPage(QgsMapLayerConfigWidget):
+    widget: QWidget
+
+    def __init__(
+        self,
+        layer: Optional[QgsMapLayer],
+        canvas: Optional[QgsMapCanvas],
+        parent: Optional[QWidget],
+        message: Optional[str] = None,
+    ) -> None:
+        super().__init__(layer, canvas, parent)
+        self.setPanelTitle(self.tr("NextGIS"))
+
+        self.widget = QLabel(
+            self.tr("Layer options widget was crashed")
+            if message is None
+            else message,
+            self,
+        )
+        self.widget.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        layout = QVBoxLayout()
+        self.setLayout(layout)
+        layout.addWidget(self.widget)
+
+    def apply(self) -> None:
+        pass
 
 
 class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
@@ -78,8 +156,7 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
         return utils.is_ngw_container(layer)
 
     def supportLayerPropertiesDialog(self) -> bool:
-        # TODO
-        return False
+        return True
 
     def createWidget(
         self,
@@ -88,4 +165,14 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
         dockWidget: bool = True,
         parent: Optional[QWidget] = None,
     ) -> QgsMapLayerConfigWidget:
-        return DetachedLayerConfigWidget(layer, canvas, parent)
+        try:
+            return DetachedLayerConfigPage(layer, canvas, parent)
+
+        except NgConnectError as error:
+            return DetachedLayerConfigErrorPage(
+                layer, canvas, parent, error.user_message
+            )
+
+        except Exception:
+            logger.exception("Layer settings dialog was crashed")
+            return DetachedLayerConfigErrorPage(layer, canvas, parent)
