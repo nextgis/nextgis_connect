@@ -29,7 +29,7 @@ clean:
 release: compile_ts
 	mkdir -p $(BUILD_DIR)/$(PLUGIN_NAME)
 
-	cp -r src/* LICENSE $(BUILD_DIR)/$(PLUGIN_NAME)
+	cp -r README.md LICENSE src/nextgis_connect/* $(BUILD_DIR)/$(PLUGIN_NAME)
 	rm -rf `find $(BUILD_DIR)/$(PLUGIN_NAME) -name '__pycache__'`
 	rm -rf `find $(BUILD_DIR)/$(PLUGIN_NAME) -name '.git' -o -name '.gitignore'`
 	cd $(BUILD_DIR) && zip -9r $(PLUGIN_NAME).zip $(PLUGIN_NAME)
