@@ -13,7 +13,7 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
-from qgis.utils import iface, spatialite_connect
+from qgis.utils import iface
 
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -248,7 +248,7 @@ class DetachedContainer(QObject):
         view.removeIndicator(node, self.__indicator)
 
     def make_connection(self) -> sqlite3.Connection:
-        return spatialite_connect(str(self.__path))
+        return sqlite3.connect(str(self.__path))
 
     def synchronize(self, *, is_manual: bool = False) -> bool:
         if (

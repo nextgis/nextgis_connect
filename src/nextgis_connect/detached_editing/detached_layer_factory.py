@@ -5,7 +5,6 @@ from pathlib import Path
 
 # isort: off
 from qgis.core import QgsVectorFileWriter, QgsProject
-from qgis.utils import spatialite_connect
 # isort: on
 
 from nextgis_connect.compat import WkbType
@@ -34,7 +33,7 @@ class DetachedLayerFactory:
             self.__create_container(ngw_layer, container_path)
 
             with closing(
-                spatialite_connect(str(container_path))
+                sqlite3.connect(str(container_path))
             ) as connection, closing(connection.cursor()) as cursor:
                 self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)
@@ -64,7 +63,7 @@ class DetachedLayerFactory:
 
         try:
             with closing(
-                spatialite_connect(str(container_path))
+                sqlite3.connect(str(container_path))
             ) as connection, closing(connection.cursor()) as cursor:
                 self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)

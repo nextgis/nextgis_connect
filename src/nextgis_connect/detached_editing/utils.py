@@ -89,7 +89,7 @@ class DetachedContainerChangesInfo:
         return self.updated_attributes + self.updated_geometries
 
 
-@dataclass
+@dataclass(frozen=True)
 class FeatureMetaData:
     fid: int
     ngw_fid: Optional[int] = None

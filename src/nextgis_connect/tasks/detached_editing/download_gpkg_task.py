@@ -1,4 +1,5 @@
 import shutil
+import sqlite3
 import tempfile
 import urllib.parse
 from contextlib import closing
@@ -6,7 +7,6 @@ from pathlib import Path
 from typing import cast
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
@@ -128,7 +128,7 @@ class DownloadGpkgTask(DetachedEditingTask):
         features_extensions = ngw_connection.get(extensions_url)
 
         with closing(
-            spatialite_connect(str(self.__temp_path))
+            sqlite3.connect(str(self.__temp_path))
         ) as connection, closing(connection.cursor()) as cursor:
             metadata = container_metadata(cursor)
 

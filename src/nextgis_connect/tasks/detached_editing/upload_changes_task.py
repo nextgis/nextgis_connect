@@ -4,7 +4,6 @@ from datetime import datetime
 from pathlib import Path
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
@@ -34,13 +33,8 @@ class UploadChangesTask(DetachedEditingTask):
             f"<b>Started changes uploading</b> for layer {self._metadata}"
         )
 
-        container_path = str(self._container_path)
         try:
-            with closing(
-                spatialite_connect(container_path)
-            ) as connection, closing(connection.cursor()) as cursor:
-                self.__upload_changes(cursor)
-                connection.commit()
+            self.__upload_changes()
 
         except SynchronizationError as error:
             self._error = error
@@ -58,29 +52,28 @@ class UploadChangesTask(DetachedEditingTask):
         self.synchronization_finished.emit(result)
         return super().finished(result)
 
-    def __upload_changes(self, cursor: sqlite3.Cursor) -> None:
+    def __upload_changes(self) -> None:
         ngw_connection = QgsNgwConnection(self._metadata.connection_id)
 
         if self._metadata.is_versioning_enabled:
-            self.__upload_versioned_changes(ngw_connection, cursor)
+            self.__upload_versioned_changes(ngw_connection)
         else:
             # Check structure etc
             self._get_layer(ngw_connection)
 
             # Uploading
-            self.__upload_added(ngw_connection, cursor)
-            self.__upload_deleted(ngw_connection, cursor)
-            self.__upload_updated(ngw_connection, cursor)
-            self.__update_sync_date(cursor)
+            self.__upload_added(ngw_connection)
+            self.__upload_deleted(ngw_connection)
+            self.__upload_updated(ngw_connection)
+            self.__update_sync_date()
 
     def __upload_added(
         self,
-        connection: QgsNgwConnection,
-        cursor: sqlite3.Cursor,
+        ngw_connection: QgsNgwConnection,
     ) -> None:
         layer_metadata = self._metadata
 
-        extractor = ActionExtractor(layer_metadata, cursor)
+        extractor = ActionExtractor(self._container_path, layer_metadata)
         create_actions = extractor.extract_added_features()
 
         if len(create_actions) == 0:
@@ -93,25 +86,30 @@ class UploadChangesTask(DetachedEditingTask):
         logger.debug(f"Send {len(create_actions)} create actions")
 
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
-        assigned_fids = connection.patch(url, body)
+        assigned_fids = ngw_connection.patch(url, body)
 
         values = (
             (assigned_fids[i]["id"], action.fid)
             for i, action in enumerate(create_actions)
         )
-        cursor.executemany(
-            "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?", values
-        )
-        self.__clear_added(cursor)
+
+        with closing(self._make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            cursor.executemany(
+                "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?",
+                values,
+            )
+            self.__clear_added(cursor)
+            connection.commit()
 
     def __upload_deleted(
         self,
-        connection: QgsNgwConnection,
-        cursor: sqlite3.Cursor,
+        ngw_connection: QgsNgwConnection,
     ) -> None:
         layer_metadata = self._metadata
 
-        extractor = ActionExtractor(layer_metadata, cursor)
+        extractor = ActionExtractor(self._container_path, layer_metadata)
         deleted_actions = extractor.extract_deleted_features()
 
         if len(deleted_actions) == 0:
@@ -124,18 +122,21 @@ class UploadChangesTask(DetachedEditingTask):
         logger.debug(f"Send {len(deleted_actions)} delete actions")
 
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
-        connection.delete(url, body)
+        ngw_connection.delete(url, body)
 
-        self.__clear_deleted(cursor)
+        with closing(self._make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            self.__clear_deleted(cursor)
+            connection.commit()
 
     def __upload_updated(
         self,
-        connection: QgsNgwConnection,
-        cursor: sqlite3.Cursor,
+        ngw_connection: QgsNgwConnection,
     ) -> None:
         layer_metadata = self._metadata
 
-        extractor = ActionExtractor(layer_metadata, cursor)
+        extractor = ActionExtractor(self._container_path, layer_metadata)
         updated_actions = extractor.extract_updated_features()
 
         if len(updated_actions) == 0:
@@ -148,25 +149,33 @@ class UploadChangesTask(DetachedEditingTask):
         logger.debug(f"Send {len(updated_actions)} update actions")
 
         url = f"/api/resource/{layer_metadata.resource_id}/feature/"
-        connection.patch(url, body)
+        ngw_connection.patch(url, body)
 
-        self.__clear_updated(cursor)
+        with closing(self._make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            self.__clear_updated(cursor)
+            connection.commit()
 
-    def __update_sync_date(self, cursor: sqlite3.Cursor) -> None:
+    def __update_sync_date(self) -> None:
         now = datetime.now()
         sync_date = now.isoformat()
-        cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")
+
+        with closing(self._make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")
+            connection.commit()
 
     def __upload_versioned_changes(
         self,
         connection: QgsNgwConnection,
-        cursor: sqlite3.Cursor,
     ) -> None:
         layer_metadata = self._metadata
         resource_id = layer_metadata.resource_id
         resource_url = f"/api/resource/{resource_id}"
 
-        extractor = ActionExtractor(layer_metadata, cursor)
+        extractor = ActionExtractor(self._container_path, layer_metadata)
         actions = extractor.extract_all()
 
         if len(actions) == 0:

@@ -1,11 +1,22 @@
 import itertools
 import sqlite3
 from base64 import b64encode
+from contextlib import closing
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
+
+from qgis.core import (
+    QgsFeatureRequest,
+    QgsGeometry,
+    QgsVectorLayer,
+)
+from qgis.PyQt.QtCore import QVariant
 
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
+    FeatureMetaData,
 )
+from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
@@ -18,22 +29,24 @@ from .actions import (
 
 
 class ActionExtractor:
-    __layer_metadata: DetachedContainerMetaData
+    __container_path: Path
+    __metadata: DetachedContainerMetaData
+    __layer: QgsVectorLayer
     __fields: Dict[FieldId, NgwField]
     __attributes: Dict[int, NgwField]
-    __cursor: sqlite3.Cursor
 
     def __init__(
-        self, layer_metadata: DetachedContainerMetaData, cursor: sqlite3.Cursor
+        self, container_path: Path, metadata: DetachedContainerMetaData
     ) -> None:
-        self.__layer_metadata = layer_metadata
-        self.__fields = {
-            field.ngw_id: field for field in layer_metadata.fields
-        }
+        self.__container_path = container_path
+        self.__metadata = metadata
+        layer_path = f"{container_path}|layername={metadata.table_name}"
+        self.__layer = QgsVectorLayer(layer_path)
+
+        self.__fields = {field.ngw_id: field for field in metadata.fields}
         self.__attributes = {
-            field.attribute: field for field in self.__layer_metadata.fields
+            field.attribute: field for field in self.__metadata.fields
         }
-        self.__cursor = cursor
 
     def extract_all(self) -> List[VersioningAction]:
         added_features = self.extract_added_features()
@@ -46,113 +59,108 @@ class ActionExtractor:
         return list(actions)
 
     def extract_added_features(self) -> List[FeatureCreateAction]:
-        is_versioning_enabled = self.__layer_metadata.is_versioning_enabled
-        columns = ", ".join(
-            f"features.{field.keyname}" for field in self.__fields.values()
-        )
-        geom_function = (
-            "ST_AsBinary(geom)" if is_versioning_enabled else "ST_AsText(geom)"
-        )
-        query = f"""
-            SELECT features.fid, {columns}, {geom_function}
-            FROM '{self.__layer_metadata.table_name}' features
-            RIGHT JOIN ngw_added_features added_features
-                ON features.fid = added_features.fid
-            """
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                added_features_id = [
+                    row[0]
+                    for row in cursor.execute(
+                        "SELECT fid from ngw_added_features"
+                    )
+                ]
+        except Exception as error:
+            raise SynchronizationError from error
 
         create_actions = []
-        for row in self.__cursor.execute(query):
-            fid = row[0]
-            geom = row[-1]
-            if is_versioning_enabled and geom is not None:
-                geom = b64encode(geom).decode("ascii")
-            fields = [
-                [field_id, value]
-                for field_id, value in zip(self.__fields.keys(), row[1:-1])
-                if value is not None
-            ]
+        request = QgsFeatureRequest(added_features_id)
+        for feature in self.__layer.getFeatures(request):  # type: ignore
+            fid = feature.id()
+            geom = self.__serialize_geometry(feature.geometry())
+            fields = []
+            for field_id, field in self.__fields.items():
+                value = self.__serialize_value(
+                    feature.attribute(field.attribute)
+                )
+                if value is None:
+                    continue
+                fields.append([field_id, value])
+
             create_actions.append(FeatureCreateAction(fid, None, geom, fields))
 
         return create_actions
 
     def extract_updated_features(self) -> List[FeatureUpdateAction]:
         # Collect information about updated features
-        updated_attributes_for_all_features = set()
-        updated_feature_attributes: Dict[FeatureId, Set[int]] = {}
 
         attributes_query = "SELECT fid, attribute from ngw_updated_attributes"
-        for fid, attribute in self.__cursor.execute(attributes_query):
-            if fid not in updated_feature_attributes:
-                updated_feature_attributes[fid] = set()
-
-            updated_attributes_for_all_features.add(attribute)
-            updated_feature_attributes[fid].add(attribute)
-
         geoms_query = "SELECT fid from ngw_updated_geometries"
-        updated_feature_geoms: Set[FeatureId] = set(
-            row[0] for row in self.__cursor.execute(geoms_query)
-        )
 
-        all_updated_fids = (
-            set(updated_feature_attributes.keys()) | updated_feature_geoms
-        )
-        if len(all_updated_fids) == 0:
-            return []
+        updated_feature_attributes: Dict[FeatureId, Set[int]] = {}
+        updated_feature_geoms: Set[FeatureId] = set()
 
-        # Combine params for query
-        updated_attributes_for_all_features = list(
-            updated_attributes_for_all_features
-        )
-        all_updated_fids_joined = ", ".join(
-            str(fid) for fid in all_updated_fids
-        )
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                for fid, attribute in cursor.execute(attributes_query):
+                    if fid not in updated_feature_attributes:
+                        updated_feature_attributes[fid] = set()
+                    updated_feature_attributes[fid].add(attribute)
 
-        is_versioning_enabled = self.__layer_metadata.is_versioning_enabled
-        columns_name = (
-            f"features.{self.__attributes[attribute].keyname}"
-            for attribute in updated_attributes_for_all_features
-        )
-        geom_function = (
-            "ST_AsBinary(geom)" if is_versioning_enabled else "ST_AsText(geom)"
-        )
-        geom_column = (
-            ["NULL"] if len(updated_feature_geoms) == 0 else [geom_function]
-        )
-        columns = ", ".join(itertools.chain(columns_name, geom_column))
+                updated_feature_geoms = set(
+                    row[0] for row in cursor.execute(geoms_query)
+                )
 
-        select_updated_features_query = f"""
-            SELECT
-                feature_metadata.fid,
-                feature_metadata.ngw_fid,
-                feature_metadata.version,
-                {columns}
-            FROM '{self.__layer_metadata.table_name}' features
-            LEFT JOIN ngw_features_metadata feature_metadata
-                ON features.fid = feature_metadata.fid
-            WHERE features.fid IN ({all_updated_fids_joined})
-        """
+                all_updated_fids = list(
+                    set(updated_feature_attributes.keys())
+                    | updated_feature_geoms
+                )
+                if len(all_updated_fids) == 0:
+                    return []
+
+                all_updated_fids_joined = ", ".join(
+                    str(fid) for fid in all_updated_fids
+                )
+
+                features_metadata = {
+                    row[0]: FeatureMetaData(
+                        fid=row[0], ngw_fid=row[1], version=row[2]
+                    )
+                    for row in cursor.execute(
+                        f"""
+                            SELECT fid, ngw_fid, version
+                            FROM ngw_features_metadata
+                            WHERE fid IN ({all_updated_fids_joined})
+                        """
+                    )
+                }
+
+        except Exception as error:
+            raise SynchronizationError from error
 
         updated_actions: List[FeatureUpdateAction] = []
-        for row in self.__cursor.execute(select_updated_features_query):
-            fid = row[0]
-            ngw_fid = row[1]
-            vid = row[2]
 
-            geom = None
-            if fid in updated_feature_geoms:
-                geom = row[-1]
-                if is_versioning_enabled and geom is not None:
-                    geom = b64encode(geom).decode("ascii")
+        request = QgsFeatureRequest(all_updated_fids)
+        for feature in self.__layer.getFeatures(request):  # type: ignore
+            feature_metadata = features_metadata[feature.id()]
+            ngw_fid = feature_metadata.ngw_fid
+            assert ngw_fid is not None
+            vid = feature_metadata.version
+            geom = self.__serialize_geometry(feature.geometry())
 
-            fields: Optional[List[List[Any]]] = None
-            if fid in updated_feature_attributes:
-                fields = []
-                for attribute_id, value in zip(
-                    updated_attributes_for_all_features, row[3:-1]
-                ):
-                    fields.append(
-                        [self.__attributes[attribute_id].ngw_id, value]
-                    )
+            fields = []
+            for attribute_id in updated_feature_attributes.get(
+                feature.id(), set()
+            ):
+                fields.append(
+                    [
+                        self.__attributes[attribute_id].ngw_id,
+                        self.__serialize_value(
+                            feature.attribute(attribute_id)
+                        ),
+                    ]
+                )
 
             updated_actions.append(
                 FeatureUpdateAction(ngw_fid, vid, geom, fields)
@@ -166,6 +174,32 @@ class ActionExtractor:
             RIGHT JOIN ngw_removed_features removed
                 ON feature_metadata.fid = removed.fid
             """
-        return [
-            FeatureDeleteAction(row[0]) for row in self.__cursor.execute(query)
-        ]
+
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                return [
+                    FeatureDeleteAction(row[0])
+                    for row in cursor.execute(query)
+                ]
+
+        except Exception as error:
+            raise SynchronizationError from error
+
+    def __serialize_geometry(
+        self, geometry: Optional[QgsGeometry]
+    ) -> Optional[str]:
+        geom = None
+        if geometry is not None and not geometry.isNull():
+            geom = (
+                b64encode(geometry.asWkb().data()).decode("ascii")
+                if self.__metadata.is_versioning_enabled
+                else geometry.asWkt()
+            )
+        return geom
+
+    def __serialize_value(self, value: Any) -> Any:
+        if isinstance(value, QVariant) and value.isNull():
+            return None
+        return value

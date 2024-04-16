@@ -1,10 +1,10 @@
+import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 from typing import List
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.actions import (
@@ -57,7 +57,7 @@ class ApplyDeltaTask(DetachedEditingTask):
 
         try:
             with closing(
-                spatialite_connect(str(self._container_path))
+                sqlite3.connect(str(self._container_path))
             ) as connection, closing(connection.cursor()) as cursor:
                 applier = ActionApplier(self._metadata, cursor)
                 applier.apply(self.__delta)

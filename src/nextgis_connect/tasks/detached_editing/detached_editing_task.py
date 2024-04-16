@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from typing import List, Optional, cast
 
@@ -94,6 +95,9 @@ class DetachedEditingTask(NgConnectTask):
         self.__check_compatibility(ngw_layer)
 
         return ngw_layer
+
+    def _make_connection(self) -> sqlite3.Connection:
+        return sqlite3.connect(str(self._container_path))
 
     def __check_container(self) -> None:
         container_version = parse_version(self._metadata.container_version)

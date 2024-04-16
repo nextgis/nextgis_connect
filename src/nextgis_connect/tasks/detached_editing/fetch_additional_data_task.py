@@ -1,9 +1,9 @@
+import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Dict, List, Set
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
@@ -102,7 +102,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         )
 
         with closing(
-            spatialite_connect(str(self._container_path))
+            sqlite3.connect(str(self._container_path))
         ) as connection, closing(connection.cursor()) as cursor:
             cursor.executemany(
                 """

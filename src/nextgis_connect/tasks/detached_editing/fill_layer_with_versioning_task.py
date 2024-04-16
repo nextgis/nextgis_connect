@@ -1,8 +1,8 @@
+import sqlite3
 from contextlib import closing
 from pathlib import Path
 
 from qgis.PyQt.QtCore import pyqtSignal
-from qgis.utils import spatialite_connect
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
@@ -49,7 +49,7 @@ class FillLayerWithVersioning(DetachedEditingTask):
             actions = serializer.from_json(ngw_connection.get(fetch_url))
             while len(actions) > 0:
                 with closing(
-                    spatialite_connect(str(self._container_path))
+                    sqlite3.connect(str(self._container_path))
                 ) as connection, closing(connection.cursor()) as cursor:
                     applier = ActionApplier(self._metadata, cursor)
                     applier.apply(actions)
@@ -63,7 +63,7 @@ class FillLayerWithVersioning(DetachedEditingTask):
 
             sync_date = check_result["tstamp"]
             with closing(
-                spatialite_connect(str(self._container_path))
+                sqlite3.connect(str(self._container_path))
             ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
                     f"UPDATE ngw_metadata SET sync_date='{sync_date}'"
