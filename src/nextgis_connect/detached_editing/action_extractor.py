@@ -170,8 +170,9 @@ class ActionExtractor:
 
     def extract_deleted_features(self) -> List[FeatureDeleteAction]:
         query = """
-            SELECT ngw_fid FROM ngw_features_metadata feature_metadata
-            RIGHT JOIN ngw_removed_features removed
+            SELECT feature_metadata.ngw_fid
+            FROM ngw_removed_features removed
+            LEFT JOIN ngw_features_metadata feature_metadata
                 ON feature_metadata.fid = removed.fid
             """
 
