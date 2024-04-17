@@ -244,7 +244,7 @@ class SynchronizationError(DetachedEditingError):
         )
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def _default_log_message(code: ErrorCode) -> str:
     messages = {
         ErrorCode.PluginError: "Internal plugin error",
@@ -283,7 +283,7 @@ def _default_log_message(code: ErrorCode) -> str:
     return messages[ErrorCode.PluginError]
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def default_user_message(code: ErrorCode) -> str:
     messages = {
         ErrorCode.PluginError: QgsApplication.translate(

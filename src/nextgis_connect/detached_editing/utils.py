@@ -207,6 +207,8 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
 
     cursor.execute('SELECT "feature_count" FROM gpkg_ogr_contents')
     features_count = cursor.fetchone()[0]
+    if features_count is None:
+        features_count = 0
 
     cursor.execute(
         """

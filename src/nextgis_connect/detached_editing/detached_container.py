@@ -32,7 +32,7 @@ from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
-from nextgis_connect.settings import NgConnectCacheManager, NgConnectSettings
+from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.tasks.detached_editing import (
     ApplyDeltaTask,
     DetachedEditingTask,

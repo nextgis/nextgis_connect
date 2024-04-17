@@ -12,14 +12,21 @@ if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
 else:
     WkbType = QgsWkbTypes.Type  # type: ignore
 
-    class LayerType(QgsMapLayerType):
-        Vector = QgsMapLayerType.VectorLayer  # type: ignore
-        Raster = QgsMapLayerType.RasterLayer  # type: ignore
-        Plugin = QgsMapLayerType.PluginLayer  # type: ignore
-        Mesh = QgsMapLayerType.MeshLayer  # type: ignore
-        VectorTile = QgsMapLayerType.VectorTileLayer  # type: ignore
-        Annotation = QgsMapLayerType.AnnotationLayer  # type: ignore
-        PointCloud = QgsMapLayerType.PointCloudLayer  # type: ignore
+    LayerType = QgsMapLayerType
+    LayerType.Vector = QgsMapLayerType.VectorLayer  # type: ignore
+    LayerType.Vector.is_monkey_patched = True
+    LayerType.Raster = QgsMapLayerType.RasterLayer  # type: ignore
+    LayerType.Raster.is_monkey_patched = True
+    LayerType.Plugin = QgsMapLayerType.PluginLayer  # type: ignore
+    LayerType.Plugin.is_monkey_patched = True
+    LayerType.Mesh = QgsMapLayerType.MeshLayer  # type: ignore
+    LayerType.Mesh.is_monkey_patched = True
+    LayerType.VectorTile = QgsMapLayerType.VectorTileLayer  # type: ignore
+    LayerType.VectorTile.is_monkey_patched = True
+    LayerType.Annotation = QgsMapLayerType.AnnotationLayer  # type: ignore
+    LayerType.Annotation.is_monkey_patched = True
+    LayerType.PointCloud = QgsMapLayerType.PointCloudLayer  # type: ignore
+    LayerType.PointCloud.is_monkey_patched = True
 
     GeometryType = QgsWkbTypes.GeometryType  # type: ignore
 

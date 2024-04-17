@@ -294,12 +294,16 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         message = None
         if is_timeout:
             message = self.tr("Request timeout")
-        elif len(content := bytes(self.__reply.readAll())) > 0:
-            try:
-                json_content = json.loads(content)
-                message = json_content.get("title", None)
-            except Exception:
-                logger.exception("An error occured while testing connection")
+        else:
+            content = bytes(self.__reply.readAll())
+            if len(content) > 0:
+                try:
+                    json_content = json.loads(content)
+                    message = json_content.get("title", None)
+                except Exception:
+                    logger.exception(
+                        "An error occured while testing connection"
+                    )
 
         arguments = (
             (message_title,) if message is None else (message_title, message)

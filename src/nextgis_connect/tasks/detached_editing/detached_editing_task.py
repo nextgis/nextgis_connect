@@ -111,7 +111,7 @@ class DetachedEditingTask(NgConnectTask):
         if self._metadata.geometry_name != ngw_layer.geom_name:
             message = "Geometry is not compatible"
             code = ErrorCode.StructureChanged
-            error = ContainerError(message, code=code)
+            error = SynchronizationError(message, code=code)
             error.add_note(f"Local: {self._metadata.geometry_name}")
             error.add_note(f"Remote: {ngw_layer.geom_name}")
             raise error
@@ -121,7 +121,7 @@ class DetachedEditingTask(NgConnectTask):
         ):
             message = "Fields is not compatible"
             code = ErrorCode.StructureChanged
-            error = ContainerError(message, code=code)
+            error = SynchronizationError(message, code=code)
             error.add_note(f"Local: {self._metadata.fields}")
             error.add_note(f"Remote: {ngw_layer.fields}")
             raise error
@@ -136,7 +136,7 @@ class DetachedEditingTask(NgConnectTask):
                 if self._metadata.is_versioning_enabled
                 else ErrorCode.VersioningEnabled
             )
-            error = ContainerError(message, code=code)
+            error = SynchronizationError(message, code=code)
             error.add_note(f"Local: {self._metadata.is_versioning_enabled}")
             error.add_note(f"Remote: {ngw_layer.is_versioning_enabled}")
             raise error
@@ -145,7 +145,7 @@ class DetachedEditingTask(NgConnectTask):
             if self._metadata.epoch != ngw_layer.epoch:
                 message = "Epoch changed"
                 code = ErrorCode.EpochChanged
-                error = ContainerError(message, code=code)
+                error = SynchronizationError(message, code=code)
                 error.add_note(f"Local: {self._metadata.epoch}")
                 error.add_note(f"Remote: {ngw_layer.epoch}")
         else:
@@ -161,7 +161,7 @@ class DetachedEditingTask(NgConnectTask):
             if last_sync_features_count != remote_features_count:
                 message = "Not versioned layer content changed in NGW"
                 code = ErrorCode.NotVersionedContentChanged
-                error = ContainerError(message, code=code)
+                error = SynchronizationError(message, code=code)
                 error.add_note(f"Last sync count: {last_sync_features_count}")
                 error.add_note(f"Count: {remote_features_count}")
                 raise error

@@ -1,11 +1,17 @@
 import logging
+import sys
 from types import MethodType
-from typing import Optional, Protocol, cast
+from typing import Optional, cast
 
 from qgis.core import Qgis, QgsApplication
 
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    Protocol = object
 
 
 class QgisLoggerProtocol(Protocol):

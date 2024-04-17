@@ -4,12 +4,12 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=1.99.0
+version=1.99.1
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
-	1.99.0
+	1.99.*
 		* Добавлена возможность синхронизации и редактирования слоев
 		* Добавлена поддержка Keycloak, Blitz авторизации в NextGIS QGIS
 		* Добавлен переход к веб-ресурсу из дерва слоев

@@ -194,7 +194,8 @@ class DetachedEditing(QObject):
             if not QgsLayerTree.isLayer(node):
                 continue
             node = cast(QgsLayerTreeLayer, node)
-            if (layer := node.layer()) is not None:
+            layer = node.layer()
+            if layer is not None:
                 if layer.id() not in self.__containers_by_layer_id:
                     continue
                 self.__containers_by_layer_id[layer.id()].add_indicator(node)
@@ -225,10 +226,13 @@ class DetachedEditing(QObject):
             node = children[index]
             if not QgsLayerTree.isLayer(node):
                 continue
+
             node = cast(QgsLayerTreeLayer, node)
-            if (layer := node.layer()) is None:
-                continue
-            if layer.id() not in self.__containers_by_layer_id:
+            layer = node.layer()
+            if (
+                layer is None
+                or layer.id() not in self.__containers_by_layer_id
+            ):
                 continue
 
             container = self.__containers_by_layer_id[layer.id()]
