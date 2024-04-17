@@ -87,12 +87,13 @@ class NgConnectError(Exception):
         code: ErrorCode = ErrorCode.PluginError,
     ) -> None:
         self.__code = code
-
-        super().__init__(
+        log_message = (
             log_message
             if log_message is not None
             else _default_log_message(self.code)
         )
+
+        super().__init__(f"<b>{log_message}</b>")
 
         self.__user_message = (
             user_message
@@ -167,9 +168,14 @@ class NgwError(NgConnectError):
 
         server_error_prefix = 5
         try_reconnect = status_code // 100 == server_error_prefix
+
+        user_message = json.get("title")
+        if user_message is not None:
+            user_message += "."
+
         error = NgwError(
             log_message=json.get("message"),
-            user_message=json.get("title"),
+            user_message=user_message,
             detail=json.get("detail"),
             try_reconnect=try_reconnect,
             code=code,
@@ -180,6 +186,20 @@ class NgwError(NgConnectError):
         error.add_note(f"Guru meditation: {json.get('guru_meditation')}")
 
         return error
+
+
+class NgwConnectionError(NgConnectError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        code: ErrorCode = ErrorCode.NgwConnectionError,
+    ) -> None:
+        super().__init__(
+            log_message, user_message=user_message, detail=detail, code=code
+        )
 
 
 class DetachedEditingError(NgConnectError):
