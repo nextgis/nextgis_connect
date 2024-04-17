@@ -134,7 +134,7 @@ def set_clipboard_data(
     clipboard.setMimeData(mime_data, QClipboard.Mode.Clipboard)
 
 
-@lru_cache
+@lru_cache(maxsize=128)
 def is_version_supported(current_version_string: str) -> SupportStatus:
     def version_to_tuple(version: str) -> Tuple[int, int]:
         minor, major = islice(map(int, version.split(".")), 2)
