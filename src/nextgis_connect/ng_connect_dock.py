@@ -1339,8 +1339,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
+
+        except NgConnectError as error:
+            NgConnectInterface.instance().show_error(error)
+
         except Exception as error:
-            user_message = self.tr("Resource can't be added to QGIS")
+            user_message = (
+                self.tr('Resource "{}" can\'t be added to the map').format(
+                    ngw_resource.display_name
+                )
+            )
             ng_error = NgConnectError(user_message=user_message)
             ng_error.__cause__ = error
 

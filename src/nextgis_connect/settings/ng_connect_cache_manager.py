@@ -1,8 +1,10 @@
+import logging
 import shutil
 from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Union
 
+from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 
@@ -76,12 +78,22 @@ class NgConnectCacheManager:
 
         return str(path_to_file.absolute())
 
-    def clear_cache(self) -> None:
+    def clear_cache(self) -> bool:
         cache_path = Path(self.cache_directory)
-        shutil.rmtree(cache_path)
+
+        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+
+        try:
+            shutil.rmtree(cache_path)
+        except Exception:
+            logger.debug("Cache clearing error")
+            return False
+
         cache_path.mkdir()
 
-    def purge_cache(self) -> None:
+        return True
+
+    def purge_cache(self) -> bool:
         cache_path = Path(self.cache_directory)
 
         cache_size = 0
@@ -105,14 +117,24 @@ class NgConnectCacheManager:
         check_size = cache_max_size != -1
         check_date = cache_duration != -1
 
+        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+
+        has_errors = False
+
         for file_path, mtime, file_size in files_with_time:
             if (check_size and cache_size > cache_max_size) or (
                 check_date and current_time - mtime > cache_duration
             ):
                 cache_size -= file_size
-                file_path.unlink()
+                try:
+                    file_path.unlink()
+                except Exception:
+                    logger.debug("Cache clearing error")
+                    has_errors = True
 
         self.__remove_empty_dirs(self.cache_directory)
+
+        return not has_errors
 
     def __remove_empty_dirs(self, path: Union[str, Path]):
         path = Path(path)

@@ -258,7 +258,11 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
         self.__widget.clearCacheButton.clicked.connect(self.__clear_cache)
 
-        if (cache_size := cache_manager.cache_size) == 0:
+        self.__update_cache_button(cache_manager)
+
+    def __update_cache_button(self, cache_manager: NgConnectCacheManager) -> None:
+        cache_size = cache_manager.cache_size
+        if cache_size == 0:
             self.__widget.clearCacheButton.setText(self.tr("Clear Cache"))
             self.__widget.clearCacheButton.setToolTip(
                 self.tr("Cache is empty")
@@ -384,15 +388,24 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         log_blocker = QgsMessageLogNotifyBlocker()
 
         cache_manager = NgConnectCacheManager()
-        cache_manager.clear_cache()
-        message = self.tr("Cache has been successfully cleared")
-        cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
-            message,
-            Qgis.MessageLevel.Success,
-        )
-        logger.success(message)
-        self.__widget.clearCacheButton.setText(self.tr("Clear Cache"))
-        self.__widget.clearCacheButton.setEnabled(False)
+        is_success = cache_manager.clear_cache()
+
+        if is_success:
+            message = self.tr("Cache has been successfully cleared")
+            cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
+                message,
+                Qgis.MessageLevel.Success,
+            )
+            logger.success(message)
+        else:
+            message = self.tr("Some files were not cleared. Perhaps they are in use.")
+            cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
+                message,
+                Qgis.MessageLevel.Warning,
+            )
+            logger.warning(message)
+
+        self.__update_cache_button(cache_manager)
 
         del log_blocker
 
