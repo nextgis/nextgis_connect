@@ -101,6 +101,19 @@ def container_path(layer: QgsMapLayer) -> Path:
     return Path(layer.source().split("|")[0])
 
 
+def detached_layer_uri(path: Path) -> str:
+    with closing(sqlite3.connect(str(path))) as connection, closing(
+        connection.cursor()
+    ) as cursor:
+        cursor.execute(
+            """
+            SELECT table_name FROM gpkg_contents
+            WHERE data_type='features'
+            """
+        )
+        return f"{path}|layername={cursor.fetchone()[0]}"
+
+
 def is_ngw_container(layer: QgsMapLayer) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
         return "ngw_connection_id" in layer.customPropertyKeys()
@@ -314,3 +327,27 @@ def ngw_feature_description(
         logger.exception("Error occured while querying ngw_fid")
 
     return None
+
+
+def create_memory_layer_from_existing(layer: QgsVectorLayer) -> QgsVectorLayer:
+    geom_type = layer.geometryType()
+    fields = layer.fields()
+
+    geom_type_str = {
+        0: "Point",
+        1: "Line",
+        2: "Polygon",
+        3: "MultiPoint",
+        4: "MultiLine",
+        5: "MultiPolygon",
+    }.get(geom_type, "Unknown")
+
+    uri = f"{geom_type_str}?crs=epsg:4326"
+    for field in fields:
+        uri += f"&field={field.name()}:{field.typeName()}"
+
+    memory_layer = QgsVectorLayer(uri, layer.name(), "memory")
+    if not memory_layer.isValid():
+        raise ContainerError("Can't create memory layer")
+
+    return memory_layer

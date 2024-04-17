@@ -151,6 +151,8 @@ class NgConnectPlugin(NgConnectInterface):
             )
 
         message = error.user_message
+        if not message.endswith("."):
+            message += "."
         if message.endswith(".."):
             message = message[:-1]
         if error.detail is None:

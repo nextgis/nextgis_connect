@@ -1,4 +1,3 @@
-import shutil
 import sqlite3
 import tempfile
 import urllib.parse
@@ -17,8 +16,6 @@ from nextgis_connect.detached_editing.utils import (
     container_metadata,
 )
 from nextgis_connect.exceptions import (
-    ContainerError,
-    ErrorCode,
     SynchronizationError,
 )
 from nextgis_connect.logging import logger
@@ -35,12 +32,18 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 class DownloadGpkgTask(DetachedEditingTask):
     download_finished = pyqtSignal(bool, name="downloadFinished")
 
+    __temp_path: Path
+
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
         description = self.tr('Downloading layer "{layer_name}"').format(
             layer_name=self._metadata.layer_name
         )
         self.setDescription(description)
+
+    @property
+    def temp_path(self) -> Path:
+        return self.__temp_path
 
     def run(self) -> bool:
         if not super().run():
@@ -55,10 +58,10 @@ class DownloadGpkgTask(DetachedEditingTask):
         try:
             self.__download_layer()
             self.__download_extensions()
-            self.__replace_container()
 
         except SynchronizationError as error:
             self._error = error
+            self.__temp_path.unlink(missing_ok=True)
             return False
 
         except Exception as error:
@@ -67,6 +70,7 @@ class DownloadGpkgTask(DetachedEditingTask):
             )
             self._error = SynchronizationError(message)
             self._error.__cause__ = error
+            self.__temp_path.unlink(missing_ok=True)
             return False
 
         logger.debug("Downloading GPKG completed")
@@ -141,12 +145,3 @@ class DownloadGpkgTask(DetachedEditingTask):
             connection.commit()
 
         logger.debug("Features extensions added")
-
-    def __replace_container(self) -> None:
-        try:
-            shutil.move(str(self.__temp_path), str(self._container_path))
-        except Exception as error:
-            message = "Can't replace stub file"
-            raise ContainerError(
-                message, code=ErrorCode.ContainerCreationError
-            ) from error

@@ -75,7 +75,13 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
-from nextgis_connect.exceptions import ErrorCode, NgConnectError, NgwError
+from nextgis_connect.detached_editing.utils import detached_layer_uri
+from nextgis_connect.exceptions import (
+    ContainerError,
+    ErrorCode,
+    NgConnectError,
+    NgwError,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
@@ -1344,11 +1350,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             NgConnectInterface.instance().show_error(error)
 
         except Exception as error:
-            user_message = (
-                self.tr('Resource "{}" can\'t be added to the map').format(
-                    ngw_resource.display_name
-                )
-            )
+            user_message = self.tr(
+                'Resource "{}" can\'t be added to the map'
+            ).format(ngw_resource.display_name)
             ng_error = NgConnectError(user_message=user_message)
             ng_error.__cause__ = error
 
@@ -2128,15 +2132,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             Path(cache_manager.cache_directory) / connection.domain_uuid
         )
 
+        uri = detached_layer_uri(
+            connection_path / f"{vector_layer.common.id}.gpkg"
+        )
         qgs_gpkg_layer = QgsVectorLayer(
-            str(connection_path / f"{vector_layer.common.id}.gpkg"),
-            vector_layer.common.display_name,
-            "ogr",
+            uri, vector_layer.common.display_name, "ogr"
         )
         if not qgs_gpkg_layer.isValid():
-            raise Exception(
+            error = ContainerError(
                 f'Layer "{vector_layer.common.display_name}" can\'t be added to the map!'
             )
+            error.add_note(f"Uri: {uri}")
+            raise error
+
         qgs_gpkg_layer.dataProvider().setEncoding("UTF-8")  # type: ignore
 
         _add_all_styles_to_layer(qgs_gpkg_layer, children, default_style)

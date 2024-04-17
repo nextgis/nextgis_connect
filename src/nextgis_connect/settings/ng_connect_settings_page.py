@@ -260,7 +260,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         self.__update_cache_button(cache_manager)
 
-    def __update_cache_button(self, cache_manager: NgConnectCacheManager) -> None:
+    def __update_cache_button(
+        self, cache_manager: NgConnectCacheManager
+    ) -> None:
         cache_size = cache_manager.cache_size
         if cache_size == 0:
             self.__widget.clearCacheButton.setText(self.tr("Clear Cache"))
@@ -398,7 +400,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             )
             logger.success(message)
         else:
-            message = self.tr("Some files were not cleared. Perhaps they are in use.")
+            message = self.tr(
+                "Some files were not cleared. Perhaps they are in use."
+            )
             cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
                 message,
                 Qgis.MessageLevel.Warning,

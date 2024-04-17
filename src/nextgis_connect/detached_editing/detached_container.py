@@ -1,3 +1,4 @@
+import shutil
 import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -191,7 +192,8 @@ class DetachedContainer(QObject):
             lambda: self.__update_state(is_full_update=True)
         )
         detached_layer.settings_changed.connect(
-            self.__on_settings_changed, type=Qt.ConnectionType.QueuedConnection
+            self.__on_settings_changed,
+            type=Qt.ConnectionType.QueuedConnection,  # type: ignore
         )
 
         layer.setReadOnly(not self.__is_edit_allowed)
@@ -316,6 +318,17 @@ class DetachedContainer(QObject):
         instance_cache_path.mkdir(parents=True, exist_ok=True)
         gpkg_path = instance_cache_path / f"{ngw_layer.common.id}.gpkg"
 
+        any_layer = next(iter(self.__detached_layers.values())).layer
+        source = any_layer.source()
+        memory_layer = utils.create_memory_layer_from_existing(any_layer)
+
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.layer.setDataSource(
+                memory_layer.source(),
+                detached_layer.layer.name(),
+                memory_layer.dataProvider().name(),
+            )
+
         gpkg_path.unlink()
 
         # Create stub
@@ -329,6 +342,11 @@ class DetachedContainer(QObject):
             self.__state = DetachedLayerState.Error
             self.__versioning_state = VersioningSynchronizationState.Error
             self.__additional_data_fetch_date = None
+
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.layer.setDataSource(
+                source, detached_layer.layer.name(), "ogr"
+            )
 
         self.__update_state(is_full_update=True)
 
@@ -476,6 +494,9 @@ class DetachedContainer(QObject):
             self.__process_sync_error(self.__sync_task.error)
             self.__finish_sync()
             return
+
+        if isinstance(self.__sync_task, DownloadGpkgTask):
+            self.__replace_container()
 
         self.__check_date = datetime.now()
         self.__state = DetachedLayerState.Synchronized
@@ -661,6 +682,36 @@ class DetachedContainer(QObject):
         self.__error = error
 
         NgConnectInterface.instance().show_error(error)
+
+    def __replace_container(self) -> None:
+        assert isinstance(self.__sync_task, DownloadGpkgTask)
+
+        any_layer = next(iter(self.__detached_layers.values())).layer
+        source = any_layer.source()
+        memory_layer = utils.create_memory_layer_from_existing(any_layer)
+
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.layer.setDataSource(
+                memory_layer.source(),
+                detached_layer.layer.name(),
+                memory_layer.dataProvider().name(),
+            )
+
+        try:
+            shutil.move(str(self.__sync_task.temp_path), str(self.path))
+        except Exception as os_error:
+            message = "Can't replace stub file"
+            error = ContainerError(
+                message, code=ErrorCode.ContainerCreationError
+            )
+            error.__cause__ = os_error
+
+            NgConnectInterface.instance().show_error(error)
+
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.layer.setDataSource(
+                source, detached_layer.layer.name(), "ogr"
+            )
 
     @pyqtSlot()
     def __on_settings_changed(self) -> None:
