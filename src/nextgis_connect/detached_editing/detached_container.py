@@ -585,7 +585,7 @@ class DetachedContainer(QObject):
     def __finish_sync(self) -> None:
         self.__sync_task = None
 
-        self.__update_state()
+        self.__update_state(is_full_update=True)
         self.__unlock_layers()
 
         logger.debug("<b>Synchronization finished</b>")

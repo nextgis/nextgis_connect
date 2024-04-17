@@ -71,7 +71,8 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         self.__container.editing_started.connect(self.__update_sync_button)
         self.__container.editing_finished.connect(self.__update_sync_button)
         self.__container.state_changed.connect(self.__on_state_changed)
-        self.__on_state_changed(self.__container.state)
+
+        self.__on_state_changed(container.state)
 
     @pyqtSlot(DetachedLayerState, name="onStateChanged")
     def __on_state_changed(self, state: DetachedLayerState) -> None:
