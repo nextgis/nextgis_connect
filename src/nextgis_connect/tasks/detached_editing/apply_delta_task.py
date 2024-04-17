@@ -56,12 +56,12 @@ class ApplyDeltaTask(DetachedEditingTask):
         )
 
         try:
+            applier = ActionApplier(self._container_path, self._metadata)
+            applier.apply(self.__delta)
+
             with closing(
                 sqlite3.connect(str(self._container_path))
             ) as connection, closing(connection.cursor()) as cursor:
-                applier = ActionApplier(self._metadata, cursor)
-                applier.apply(self.__delta)
-
                 cursor.execute(
                     f"""
                     UPDATE ngw_metadata

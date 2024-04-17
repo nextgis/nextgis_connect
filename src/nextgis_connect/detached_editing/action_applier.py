@@ -1,12 +1,16 @@
 import sqlite3
 from base64 import b64decode
-from typing import Any, Dict, List, Optional, Tuple, Union
+from contextlib import closing
+from pathlib import Path
+from typing import Dict, List, Optional
+
+from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
 
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
 )
-from nextgis_connect.logging import logger
+from nextgis_connect.exceptions import ContainerError, SynchronizationError
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
@@ -25,20 +29,22 @@ from .actions import (
 
 
 class ActionApplier:
-    __layer_metadata: DetachedContainerMetaData
-    __cursor: sqlite3.Cursor
+    __container_path: Path
+    __layer: QgsVectorLayer
+    __metadata: DetachedContainerMetaData
     __fields: Dict[FieldId, NgwField]
 
     def __init__(
-        self, layer_metadata: DetachedContainerMetaData, cursor: sqlite3.Cursor
+        self, container_path: Path, metadata: DetachedContainerMetaData
     ) -> None:
-        self.__layer_metadata = layer_metadata
-        self.__cursor = cursor
-        self.__fields = {
-            field.ngw_id: field for field in layer_metadata.fields
-        }
+        self.__container_path = container_path
+        self.__metadata = metadata
+        layer_path = f"{container_path}|layername={metadata.table_name}"
+        self.__layer = QgsVectorLayer(layer_path)
 
-    def apply(self, actions: List[VersioningAction]) -> bool:
+        self.__fields = {field.ngw_id: field for field in metadata.fields}
+
+    def apply(self, actions: List[VersioningAction]) -> None:
         applier_for_action = {
             ActionType.FEATURE_CREATE: self.__create_feature,
             ActionType.FEATURE_UPDATE: self.__update_feature,
@@ -51,79 +57,117 @@ class ActionApplier:
         }
 
         for action in actions:
-            applier_for_action[action.action](action)  # type: ignore
-
-        return True
+            applier_for_action[action.action](action)
 
     def __create_feature(self, action: FeatureCreateAction) -> None:
-        table_name = self.__layer_metadata.table_name
+        new_feature = QgsFeature(self.__layer.fields())
 
-        fields_placeholder, values_placeholder, values_list = (
-            self.__feature_placeholders(action)
-        )
+        for field_id, value in action.fields:
+            attribute = self.__fields[field_id].attribute
+            new_feature.setAttribute(attribute, value)
 
-        self.__cursor.execute(
-            f"""
-            INSERT INTO '{table_name}' ({fields_placeholder})
-            VALUES ({values_placeholder})
-            """,
-            (*values_list,),
+        new_feature.setGeometry(self.__deserialize_geometry(action.geom))
+
+        is_success, result = self.__layer.dataProvider().addFeatures(
+            [new_feature]
         )
-        fid = self.__cursor.lastrowid
-        self.__cursor.execute(
-            "INSERT INTO ngw_features_metadata VALUES (?, ?, ?, NULL)",
-            (fid, action.fid, action.vid),
-        )
+        if not is_success:
+            raise SynchronizationError("Can't add feature")
+
+        fid = result[0].id()
+
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    "INSERT INTO ngw_features_metadata VALUES (?, ?, ?, NULL)",
+                    (fid, action.fid, action.vid),
+                )
+                connection.commit()
+
+        except Exception as error:
+            raise ContainerError from error
 
     def __update_feature(self, action: FeatureUpdateAction) -> None:
         feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
-            logger.error(f"Feature with fid={action.fid} is not exist")
-            return
+            message = f"Feature with fid={action.fid} is not exist"
+            raise SynchronizationError(message)
 
-        table_name = self.__layer_metadata.table_name
-        fields_placeholder, values_placeholder, values_list = (
-            self.__feature_placeholders(action)
-        )
+        fields = {
+            self.__fields[field_id].attribute: value
+            for field_id, value in action.fields
+        }
+        if len(fields) > 0:
+            is_success = self.__layer.dataProvider().changeAttributeValues(
+                {feature_metadata.fid: fields}
+            )
+            if not is_success:
+                raise SynchronizationError("Can't update fields")
 
-        placeholder = ", ".join(
-            f"{key}={value}"
-            for key, value in zip(fields_placeholder, values_placeholder)
-        )
+        if action.geom is not None:
+            geom = self.__deserialize_geometry(action.geom)
+            is_success = self.__layer.dataProvider().changeGeometryValues(
+                {feature_metadata.fid: geom}
+            )
+            if not is_success:
+                raise SynchronizationError("Can't update geometry")
 
-        self.__cursor.execute(
-            f"UPDATE '{table_name}' SET {placeholder} WHERE fid=?",
-            (*values_list, feature_metadata.fid),
-        )
-        self.__cursor.execute(
-            "UPDATE ngw_features_metadata SET version=? WHERE ngw_fid=?",
-            (action.vid, feature_metadata.ngw_fid),
-        )
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                cursor.execute(
+                    "UPDATE ngw_features_metadata SET version=? WHERE ngw_fid=?",
+                    (action.vid, feature_metadata.ngw_fid),
+                )
+                connection.commit()
+
+        except Exception as error:
+            raise ContainerError from error
 
     def __delete_feature(self, action: FeatureDeleteAction) -> None:
         feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
-            logger.error(f"Feature with fid={action.fid} is not exist")
-            return
+            message = f"Feature with fid={action.fid} is not exist"
+            raise SynchronizationError(message)
 
-        table_name = self.__layer_metadata.table_name
-        self.__cursor.execute(
-            f"""
-            DELETE FROM '{table_name}' WHERE fid={feature_metadata.fid}
-            DELETE FROM ngw_features_metadata WHERE fid={feature_metadata.fid}
-            """
-        )
+        self.__layer.dataProvider().deleteFeatures([feature_metadata.fid])
+
+        query = f"""
+            DELETE FROM ngw_features_metadata
+            WHERE fid={feature_metadata.fid}
+        """
+
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                cursor.execute(query)
+                connection.commit()
+
+        except Exception as error:
+            raise ContainerError from error
 
     def __put_description(self, action: DescriptionPutAction) -> None:
         feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
-            logger.error(f"Feature with fid={action.fid} is not exist")
-            return
+            message = f"Feature with fid={action.fid} is not exist"
+            raise SynchronizationError(message)
 
-        self.__cursor.execute(
-            "UPDATE ngw_features_metadata SET description=? WHERE ngw_fid=?",
-            (action.value, feature_metadata.ngw_fid),
+        query = (
+            "UPDATE ngw_features_metadata SET description=? WHERE ngw_fid=?"
         )
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                cursor.execute(query, (action.value, action.fid))
+                connection.commit()
+
+        except Exception as error:
+            raise ContainerError from error
 
     def __create_attachment(self, action: AttachmentCreateAction) -> None:
         pass
@@ -137,31 +181,36 @@ class ActionApplier:
     def __continue(self, action: ContinueAction) -> None:
         pass
 
-    def __feature_placeholders(
-        self, action: Union[FeatureCreateAction, FeatureUpdateAction]
-    ) -> Tuple[str, str, List[Any]]:
-        fields_list: List[str] = [
-            self.__fields[field[0]].keyname for field in action.fields
-        ]
-        values_list: List[Any] = [field[1] for field in action.fields]
-        if action.geom is not None:
-            fields_list.append("geom")
-            values_list.append(b64decode(action.geom))
+    def __deserialize_geometry(
+        self, geom: Optional[str]
+    ) -> Optional[QgsGeometry]:
+        if geom is None:
+            return None
 
-        fields_placeholder = ", ".join(fields_list)
-        values_placeholder = ", ".join("?" for _ in values_list)
+        geometry = None
+        if self.__metadata.is_versioning_enabled:
+            geometry = QgsGeometry()
+            geometry.fromWkb(b64decode(geom))
+        else:
+            geometry = QgsGeometry.fromWkt(geom)
 
-        if action.geom is not None:
-            values_placeholder = values_placeholder[:-1] + "GeomFromWKB(?)"
-
-        return fields_placeholder, values_placeholder, values_list
+        return geometry
 
     def __get_feature_metadata(
         self, *, ngw_fid: FeatureId
     ) -> Optional[FeatureMetaData]:
-        self.__cursor.execute(
-            "SELECT * FROM ngw_features_metadata WHERE ngw_fid=?", (ngw_fid,)
-        )
-        result = [FeatureMetaData(*row) for row in self.__cursor.fetchall()]
-        assert len(result) <= 1
+        query = f"SELECT * FROM ngw_features_metadata WHERE ngw_fid={ngw_fid}"
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                result = [
+                    FeatureMetaData(*row) for row in cursor.execute(query)
+                ]
+
+        except Exception as error:
+            raise ContainerError from error
+
+        assert len(result) <= 1, "More than one feature with one ngw_fid"
+
         return result[0] if len(result) == 1 else None

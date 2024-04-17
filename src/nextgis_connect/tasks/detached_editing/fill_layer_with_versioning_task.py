@@ -48,12 +48,8 @@ class FillLayerWithVersioning(DetachedEditingTask):
             serializer = ActionSerializer(self._metadata)
             actions = serializer.from_json(ngw_connection.get(fetch_url))
             while len(actions) > 0:
-                with closing(
-                    sqlite3.connect(str(self._container_path))
-                ) as connection, closing(connection.cursor()) as cursor:
-                    applier = ActionApplier(self._metadata, cursor)
-                    applier.apply(actions)
-                    connection.commit()
+                applier = ActionApplier(self._container_path, self._metadata)
+                applier.apply(actions)
 
                 continue_action = actions[-1]
                 assert isinstance(continue_action, ContinueAction)

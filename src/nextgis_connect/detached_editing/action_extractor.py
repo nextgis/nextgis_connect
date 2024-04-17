@@ -16,7 +16,7 @@ from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
 )
-from nextgis_connect.exceptions import SynchronizationError
+from nextgis_connect.exceptions import ContainerError
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
@@ -70,7 +70,7 @@ class ActionExtractor:
                     )
                 ]
         except Exception as error:
-            raise SynchronizationError from error
+            raise ContainerError from error
 
         create_actions = []
         request = QgsFeatureRequest(added_features_id)
@@ -137,7 +137,7 @@ class ActionExtractor:
                 }
 
         except Exception as error:
-            raise SynchronizationError from error
+            raise ContainerError from error
 
         updated_actions: List[FeatureUpdateAction] = []
 
@@ -186,7 +186,7 @@ class ActionExtractor:
                 ]
 
         except Exception as error:
-            raise SynchronizationError from error
+            raise ContainerError from error
 
     def __serialize_geometry(
         self, geometry: Optional[QgsGeometry]
