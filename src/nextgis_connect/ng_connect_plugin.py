@@ -40,7 +40,7 @@ from qgis.PyQt.QtCore import (
     QTranslator,
 )
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QToolBar
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 
 from nextgis_connect import utils
 from nextgis_connect.compat import LayerType
@@ -136,6 +136,45 @@ class NgConnectPlugin(NgConnectInterface):
             "updateLayers",
             Qt.ConnectionType.QueuedConnection,
         )
+
+    def show_error(self, error: Exception) -> None:
+        if not isinstance(error, NgConnectError):
+            old_error = error
+            error = NgConnectError()
+            error.__cause__ = old_error
+            del old_error
+
+        def show_details():
+            user_message = error.user_message.rstrip(".")
+            QMessageBox.information(
+                self.iface.mainWindow(), user_message, error.detail
+            )
+
+        message = error.user_message
+        if message.endswith(".."):
+            message = message[:-1]
+        if error.detail is None:
+            message += " " + self.tr("See logs for details.")
+
+        message_bar = self.iface.messageBar()
+        assert message_bar is not None
+
+        widget = message_bar.createMessage(
+            NgConnectInterface.PLUGIN_NAME, message
+        )
+
+        if error.detail is None:
+            button = QPushButton(self.tr("Open logs"))
+            button.pressed.connect(self.iface.openMessageLog)
+        else:
+            button = QPushButton(self.tr("Open details"))
+            button.pressed.connect(show_details)
+
+        widget.layout().addWidget(button)
+
+        message_bar.pushWidget(widget, Qgis.MessageLevel.Critical)
+
+        logger.exception(error.log_message, exc_info=error)
 
     def tr(
         self,

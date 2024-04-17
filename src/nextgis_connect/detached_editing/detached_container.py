@@ -660,13 +660,7 @@ class DetachedContainer(QObject):
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__error = error
 
-        message_bar = iface.messageBar()
-        assert message_bar is not None
-        message_bar.pushCritical(
-            NgConnectInterface.PLUGIN_NAME, error.user_message
-        )
-
-        logger.exception(error.log_message, exc_info=error)
+        NgConnectInterface.instance().show_error(error)
 
     @pyqtSlot()
     def __on_settings_changed(self) -> None:

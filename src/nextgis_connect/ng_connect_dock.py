@@ -69,7 +69,6 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QMenu,
     QMessageBox,
-    QPushButton,
     QSizePolicy,
     QToolBar,
     QToolButton,
@@ -740,12 +739,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             and exception.user_msg is not None
         ):
             self.show_error(exception.user_msg)
+            return
 
-        elif msg is not None:
-            self.__msg_in_qgis_mes_bar(msg, msg_ext is not None, level=level)
-
-        if msg is not None and msg_ext is not None:
-            logger.debug(msg + "\n" + msg_ext)
+        NgConnectInterface.instance().show_error(exception)
 
     def __get_model_exception_description(self, job, exception):
         msg = None
@@ -797,26 +793,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return msg, msg_ext, icon
 
     def __msg_in_qgis_mes_bar(
-        self, message, need_show_log, level=Qgis.MessageLevel.Info, duration=0
+        self, message, level=Qgis.MessageLevel.Info, duration=0
     ):
-        if need_show_log:
-            if message.endswith(".."):
-                message = message[:-1]
-            message += " " + self.tr("See logs for details.")
+        if message.endswith(".."):
+            message = message[:-1]
+
         widget = self.iface.messageBar().createMessage(
-            "NextGIS Connect", message
+            NgConnectInterface.PLUGIN_NAME, message
         )
-        # widget.setProperty("Error", message)
-        if need_show_log:
-            button = QPushButton(self.tr("Open logs"))
-            button.pressed.connect(self.__show_message_log)
-            widget.layout().addWidget(button)
-
         self.iface.messageBar().pushWidget(widget, level, duration)
-
-    def __show_message_log(self):
-        self.iface.messageBar().popWidget()
-        self.iface.openMessageLog()
 
     def __modelJobStarted(self, job_id):
         if job_id in self.blocked_jobs:
@@ -1354,12 +1339,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
-        except Exception as ex:
-            error_mes = str(ex)
-            self.iface.messageBar().pushMessage(
-                self.tr("Error"), error_mes, level=Qgis.MessageLevel.Critical
-            )
-            logger.exception(error_mes)
+        except Exception as error:
+            user_message = self.tr("Resource can't be added to QGIS")
+            ng_error = NgConnectError(user_message=user_message)
+            ng_error.__cause__ = error
+
+            NgConnectInterface.instance().show_error(ng_error)
+
             return False
 
         return True
@@ -1556,23 +1542,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 dlg = MetadataDialog(ngw_resource, self)
                 _ = dlg.exec_()
 
-            except NGWError:
-                self.iface.messageBar().pushMessage(
-                    self.tr("Error"),
-                    self.tr(
-                        "Error occurred while communicating with Web GIS."
-                    ),
-                    level=Qgis.MessageLevel.Critical,
-                )
+            except NGWError as error:
+                ng_error = NgwError()
+                ng_error.__cause__ = error
+                NgConnectInterface.instance().show_error(ng_error)
                 self.resources_tree_view.ngw_job_block_overlay.hide()
-                logger.exception("An error occured")
 
-            except Exception as ex:
-                self.iface.messageBar().pushMessage(
-                    self.tr("Error"), str(ex), level=Qgis.MessageLevel.Critical
-                )
+            except NgConnectError as error:
+                NgConnectInterface.instance().show_error(error)
                 self.resources_tree_view.ngw_job_block_overlay.hide()
-                logger.exception("An error occured")
+
+            except Exception as error:
+                ng_error = NgConnectError()
+                ng_error.__cause__ = error
+                NgConnectInterface.instance().show_error(ng_error)
+                self.resources_tree_view.ngw_job_block_overlay.hide()
 
             self.unblock_gui()
 
@@ -1973,14 +1957,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if mes_bar:
             if result:
                 self.__msg_in_qgis_mes_bar(
-                    self.tr("QML file downloaded"), False, duration=2
+                    self.tr("QML file downloaded"), duration=2
                 )
             else:
-                self.__msg_in_qgis_mes_bar(
-                    self.tr("QML file could not be downloaded"),
-                    True,
-                    Qgis.MessageLevel.Critical,
+                error = NgConnectError(
+                    user_message=self.tr("QML file could not be downloaded")
                 )
+                NgConnectInterface.instance().show_error(error)
 
         self.dwn_qml_file = QFile(path)
         return result
@@ -2036,11 +2019,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
 
         if len(error_message) != 0:
-            self.iface.messageBar().pushMessage(
-                self.tr("Cannot copy style"),
-                error_message,
-                Qgis.MessageLevel.Critical,
-            )
+            user_message = self.tr("An error occured when copying the style")
+            error = NgConnectError(user_message=user_message)
+            error.add_note(error_message)
+            NgConnectInterface.instance().show_error(error)
             return
 
         # Copy style

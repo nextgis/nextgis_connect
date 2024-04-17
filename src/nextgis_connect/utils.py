@@ -5,7 +5,6 @@ from itertools import islice
 from typing import Tuple, Union, cast
 
 from qgis.core import (
-    Qgis,
     QgsApplication,
     QgsProject,
     QgsProviderRegistry,
@@ -23,6 +22,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.exceptions import NgConnectError
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
 
@@ -33,12 +33,6 @@ class SupportStatus(Enum):
     OLD_NGW = auto()
     OLD_CONNECT = auto()
     SUPPORTED = auto()
-
-
-def show_error_message(msg):
-    iface.messageBar().pushMessage(
-        NgConnectInterface.PLUGIN_NAME, msg, level=Qgis.MessageLevel.Critical
-    )
 
 
 def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
@@ -65,7 +59,14 @@ def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
 
     rlayer = QgsRasterLayer(uri, name, "wms")
     if not rlayer.isValid():
-        show_error_message(f'Invalid wms url "{uri}"')
+        message = QgsApplication.translate(
+            "Utils", 'Invalid wms url for layer "{name}"'
+        ).format(uri=uri, name=name)
+
+        error = NgConnectError("WMS error", user_message=message)
+        error.add_note(f"Url: {uri}")
+
+        NgConnectInterface.instance().show_error(error)
         return
 
     project = QgsProject.instance()

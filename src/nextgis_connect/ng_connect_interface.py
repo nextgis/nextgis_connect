@@ -44,9 +44,11 @@ class NgConnectInterface(ABC):
     @abstractmethod
     def task_manager(self) -> QgsTaskManager: ...
 
-    @property
     @abstractmethod
     def update_layers(self) -> None: ...
+
+    @abstractmethod
+    def show_error(self, error: Exception) -> None: ...
 
     # TODO(ibarsukov): add import adction
     # TODO(ibarsukov): add export adction
