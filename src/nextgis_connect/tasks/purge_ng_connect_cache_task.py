@@ -9,6 +9,9 @@ class PurgeNgConnectCacheTask(NgConnectTask):
         self.setDescription(self.tr("Clearing NextGIS Connect cache"))
 
     def run(self) -> bool:
+        if not super().run():
+            return False
+
         logger.debug("<b>Purging cache</b>")
 
         try:

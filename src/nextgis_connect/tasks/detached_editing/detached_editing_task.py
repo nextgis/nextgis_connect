@@ -61,6 +61,9 @@ class DetachedEditingTask(NgConnectTask):
         self.setDescription(description)
 
     def run(self) -> bool:
+        if not super().run():
+            return False
+
         self.__check_connection()
 
         if self._error is not None:

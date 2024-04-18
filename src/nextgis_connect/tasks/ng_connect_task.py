@@ -15,3 +15,6 @@ class NgConnectTask(QgsTask):
     @property
     def error(self) -> Optional[NgConnectError]:
         return self._error
+
+    def run(self) -> bool:
+        return True

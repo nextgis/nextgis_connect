@@ -51,6 +51,9 @@ class ApplyDeltaTask(DetachedEditingTask):
         if not super().run():
             return False
 
+        if len(self.__delta) == 0:
+            return True
+
         logger.debug(
             f"<b>Start changes applying</b> for layer {self._metadata}"
         )
@@ -63,10 +66,8 @@ class ApplyDeltaTask(DetachedEditingTask):
                 sqlite3.connect(str(self._container_path))
             ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
-                    f"""
-                    UPDATE ngw_metadata
-                    SET version={self.__target}, sync_date={self.__timestamp}
-                    """
+                    "UPDATE ngw_metadata SET version=?, sync_date=?",
+                    (self.__target, self.__timestamp),
                 )
                 connection.commit()
 

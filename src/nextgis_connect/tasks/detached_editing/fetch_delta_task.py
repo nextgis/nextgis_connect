@@ -74,6 +74,9 @@ class FetchDeltaTask(DetachedEditingTask):
             check_result = ngw_connection.get(
                 f"/api/resource/{resource_id}/feature/changes/check?{check_params}"
             )
+            if check_result is None:
+                self.__delta = []
+                return True
 
             self.__target = check_result["target"]
             self.__timestamp = datetime.fromisoformat(check_result["tstamp"])

@@ -530,38 +530,51 @@ class DetachedContainer(QObject):
 
     @pyqtSlot(bool)
     def __on_fetch_finished(self, result: bool) -> None:
-        assert isinstance(self.__sync_task, FetchDeltaTask)
         if not result:
-            assert self.__sync_task.error is not None
-            self.__process_sync_error(self.__sync_task.error)
-            self.__finish_sync()
+            self.__on_synchronization_finished(False)
             return
 
-        self.__versioning_state = (
-            VersioningSynchronizationState.ChangesApplying
-        )
-        self.__sync_task = ApplyDeltaTask(
-            self.path,
-            self.__sync_task.target,
-            self.__sync_task.timestamp,
-            self.__sync_task.delta,
-        )
-        self.__sync_task.apply_finished.connect(self.__on_apply_finished)
+        assert isinstance(self.__sync_task, FetchDeltaTask)
 
-        self.__start_sync(self.__sync_task)
+        if len(self.__sync_task.delta) > 0:
+            self.__versioning_state = (
+                VersioningSynchronizationState.ChangesApplying
+            )
+            self.__sync_task = ApplyDeltaTask(
+                self.path,
+                self.__sync_task.target,
+                self.__sync_task.timestamp,
+                self.__sync_task.delta,
+            )
+            self.__sync_task.apply_finished.connect(self.__on_apply_finished)
+            self.__start_sync(self.__sync_task)
+
+        if self.metadata.has_changes:
+            self.__versioning_state = (
+                VersioningSynchronizationState.UploadingChanges
+            )
+            task = UploadChangesTask(self.path)
+            task.synchronization_finished.connect(
+                self.__on_synchronization_finished
+            )
+            self.__start_sync(task)
+            return
+
+        self.__on_synchronization_finished(True)
 
     @pyqtSlot(bool)
     def __on_apply_finished(self, result: bool) -> None:
         assert isinstance(self.__sync_task, ApplyDeltaTask)
         if not result:
-            assert self.__sync_task.error is not None
-            self.__process_sync_error(self.__sync_task.error)
-            self.__finish_sync()
+            self.__on_synchronization_finished(False)
             return
 
         # TODO (ivanbarsukov): Conflicts
 
         if self.metadata.has_changes:
+            self.__versioning_state = (
+                VersioningSynchronizationState.UploadingChanges
+            )
             task = UploadChangesTask(self.path)
             task.synchronization_finished.connect(
                 self.__on_synchronization_finished
@@ -573,7 +586,7 @@ class DetachedContainer(QObject):
             f"There are no changes to upload for layer {self.metadata}"
         )
 
-        self.__finish_sync()
+        self.__on_synchronization_finished(True)
 
     def __start_sync(self, task: DetachedEditingTask) -> None:
         self.__sync_task = task
