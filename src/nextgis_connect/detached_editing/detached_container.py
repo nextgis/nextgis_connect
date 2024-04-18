@@ -548,6 +548,7 @@ class DetachedContainer(QObject):
             )
             self.__sync_task.apply_finished.connect(self.__on_apply_finished)
             self.__start_sync(self.__sync_task)
+            return
 
         if self.metadata.has_changes:
             self.__versioning_state = (
@@ -564,10 +565,11 @@ class DetachedContainer(QObject):
 
     @pyqtSlot(bool)
     def __on_apply_finished(self, result: bool) -> None:
-        assert isinstance(self.__sync_task, ApplyDeltaTask)
         if not result:
             self.__on_synchronization_finished(False)
             return
+
+        assert isinstance(self.__sync_task, ApplyDeltaTask)
 
         # TODO (ivanbarsukov): Conflicts
 
