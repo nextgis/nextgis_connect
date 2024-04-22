@@ -1,60 +1,29 @@
-from qgis.core import QgsRasterLayer, QgsVectorLayer, QgsWkbTypes
+from qgis.core import QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtWidgets import QAction
 
-from .ngw_api.core.ngw_raster_layer import NGWRasterLayer
-from .ngw_api.core.ngw_vector_layer import NGWVectorLayer
+from nextgis_connect.ngw_api.core.ngw_raster_layer import NGWRasterLayer
+from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 
 
 class ActionStyleImportUpdate(QAction):
     def __init__(self, text, parent=None):
         super().__init__(parent)
-        super().setText(text)
-        super().setEnabled(False)
+        self.setText(text)
+        self.setEnabled(False)
 
     def setEnabledByType(self, qgis_layer, ngw_vector_layer):
+        enabled = False
+
         if isinstance(qgis_layer, QgsRasterLayer) and isinstance(
             ngw_vector_layer, NGWRasterLayer
         ):
             enabled = True
+
         elif isinstance(qgis_layer, QgsVectorLayer) and isinstance(
             ngw_vector_layer, NGWVectorLayer
         ):
-            qgis_vector_layer_geom = qgis_layer.geometryType()
-            ngw_vector_layer_geom = ngw_vector_layer.geom_type()
-
             enabled = (
-                (
-                    qgis_vector_layer_geom == QgsWkbTypes.PointGeometry
-                    and ngw_vector_layer_geom
-                    in (
-                        NGWVectorLayer.POINT,
-                        NGWVectorLayer.MULTIPOINT,
-                        NGWVectorLayer.POINTZ,
-                        NGWVectorLayer.MULTIPOINTZ,
-                    )
-                )
-                or (
-                    qgis_vector_layer_geom == QgsWkbTypes.LineGeometry
-                    and ngw_vector_layer_geom
-                    in (
-                        NGWVectorLayer.LINESTRING,
-                        NGWVectorLayer.MULTILINESTRING,
-                        NGWVectorLayer.LINESTRINGZ,
-                        NGWVectorLayer.MULTILINESTRINGZ,
-                    )
-                )
-                or (
-                    qgis_vector_layer_geom == QgsWkbTypes.PolygonGeometry
-                    and ngw_vector_layer_geom
-                    in (
-                        NGWVectorLayer.POLYGON,
-                        NGWVectorLayer.MULTIPOLYGON,
-                        NGWVectorLayer.POLYGONZ,
-                        NGWVectorLayer.MULTIPOLYGONZ,
-                    )
-                )
+                qgis_layer.geometryType() == ngw_vector_layer.geometry_type
             )
-        else:
-            enabled = False
 
-        super().setEnabled(enabled)
+        self.setEnabled(enabled)

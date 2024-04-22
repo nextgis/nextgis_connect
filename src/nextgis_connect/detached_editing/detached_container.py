@@ -200,7 +200,7 @@ class DetachedContainer(QObject):
         layer.setReadOnly(not self.__is_edit_allowed)
 
         plugin = NgConnectInterface.instance()
-        detached_layer.editing_finished.connect(plugin.update_layers)  # type: ignore
+        detached_layer.editing_finished.connect(plugin.synchronize_layers)  # type: ignore
 
         self.__detached_layers[layer.id()] = detached_layer
 
@@ -606,7 +606,7 @@ class DetachedContainer(QObject):
         logger.debug("<b>Synchronization finished</b>")
 
         # Start next layer update
-        NgConnectInterface.instance().update_layers()
+        NgConnectInterface.instance().synchronize_layers()
 
     def __lock_layers(self) -> None:
         for detached_layer in self.__detached_layers.values():

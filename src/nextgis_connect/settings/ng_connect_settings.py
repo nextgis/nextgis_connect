@@ -124,6 +124,21 @@ class NgConnectSettings:
         self.__settings.endGroup()
 
     @property
+    def is_developer_mode(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "other/developerMode", defaultValue=False, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @is_developer_mode.setter
+    def is_developer_mode(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("other/developerMode", value)
+        self.__settings.endGroup()
+
+    @property
     def is_debug_enabled(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(

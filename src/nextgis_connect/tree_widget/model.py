@@ -16,7 +16,9 @@ from nextgis_connect import utils
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
+from nextgis_connect.exceptions import ErrorCode, NgwConnectionError, NgwError
 from nextgis_connect.logging import logger
+from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import (
     NGWGroupResource,
     NGWResource,
@@ -131,6 +133,8 @@ class NGWResourcesModelJob(QObject):
         # self.warningOccurred.emit(job_error)
 
     def start(self):
+        NgConnectInterface.instance().disable_synchronization()
+
         self.__thread = QThread(self)
         self.__worker.moveToThread(self.__thread)
         self.__worker.finished.connect(self.finishProcess)
@@ -153,6 +157,8 @@ class NGWResourcesModelJob(QObject):
         self.__thread.wait()
 
         self.finished.emit()
+
+        NgConnectInterface.instance().enable_synchronization()
 
 
 class NgwCreateVectorLayersStubs(NGWResourceModelJob):
@@ -238,6 +244,17 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 self.support_status = utils.is_version_supported(
                     self.ngw_version
                 )
+            except NgwError as error:
+                if error.code == ErrorCode.NotFound:
+                    request_error = NgwConnectionError(
+                        code=ErrorCode.InvalidConnection
+                    )
+                    request_error.__cause__ = error
+                else:
+                    request_error = error
+
+                self.ngw_version = None
+                self.support_status = None
             except Exception as error:
                 request_error = error
                 self.ngw_version = None

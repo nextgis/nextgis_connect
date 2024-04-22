@@ -33,7 +33,6 @@ from qgis.core import (
     Qgis,
     QgsApplication,
     QgsFileUtils,
-    QgsLayerTree,
     QgsLayerTreeLayer,
     QgsLayerTreeRegistryBridge,
     QgsNetworkAccessManager,
@@ -497,7 +496,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         has_no_qgis_selection = len(qgis_nodes) == 0
         is_one_qgis_selected = len(qgis_nodes) == 1
         # is_multiple_qgis_selection = len(qgis_nodes) > 1
-        is_layer = is_one_qgis_selected and QgsLayerTree.isLayer(qgis_nodes[0])
+        is_layer = is_one_qgis_selected and isinstance(
+            qgis_nodes[0], QgsLayerTreeLayer
+        )
         # is_group = (
         #     is_one_qgis_selected and QgsLayerTree.isGroup(qgis_nodes[0])
         # )
@@ -909,14 +910,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.block_gui()  # block GUI to prevent extra clicks on toolbuttons
                 ngw_connection = QgsNgwConnection(current_connection.id)
                 self.resource_model.resetModel(ngw_connection)
-                if not self.resource_model.is_ngw_version_supported:
+                if (
+                    self.resource_model.ngw_version is not None
+                    and not self.resource_model.is_ngw_version_supported
+                ):
                     self.unblock_gui()
                     self.resources_tree_view.unsupported_version_overlay.set_status(
                         self.resource_model.support_status,
                         qgis_utils.pluginMetadata(
                             "nextgis_connect", "version"
                         ),
-                        ngw_connection.get_version(),
+                        self.resource_model.ngw_version,
                     )
                     self.resources_tree_view.unsupported_version_overlay.show()
 
@@ -924,6 +928,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             # self.resources_tree_view.setExpanded(self.resource_model.index(0, 0, QModelIndex()), True)
         except Exception:
             logger.exception("Model update error")
+            self.disable_tools()
 
     def __action_refresh_tree(self):
         self.reinit_tree(force=True)
@@ -949,6 +954,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def disable_tools(self):
         self.toolbuttonDownload.setEnabled(False)
+        self.toolbuttonUpload.setEnabled(False)
         self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
@@ -1095,7 +1101,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         assert layer_tree_view is not None
         qgis_nodes = layer_tree_view.selectedNodes()
         is_one_qgis_selected = len(qgis_nodes) == 1
-        is_layer = is_one_qgis_selected and QgsLayerTree.isLayer(qgis_nodes[0])
+        is_layer = is_one_qgis_selected and isinstance(
+            qgis_nodes[0], QgsLayerTreeLayer
+        )
 
         layer = (
             cast(QgsLayerTreeLayer, qgis_nodes[0]).layer()
@@ -1204,6 +1212,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
             return
 
+        plugin = NgConnectInterface.instance()
+        plugin.disable_synchronization()
+
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
         project = QgsProject.instance()
@@ -1224,8 +1235,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
 
-        plugin = NgConnectInterface.instance()
-        plugin.update_layers()
+        plugin.enable_synchronization()
 
     def __preprocess_indexes_list(
         self, ngw_indexes: List[QModelIndex]
@@ -2104,7 +2114,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
 
         plugin = NgConnectInterface.instance()
-        plugin.update_layers()
+        plugin.synchronize_layers()
 
     def __on_ngstd_user_info_updated(self):
         connections_manager = NgwConnectionsManager()

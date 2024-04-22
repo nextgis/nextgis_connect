@@ -7,7 +7,6 @@ from pathlib import Path
 from qgis.core import QgsVectorFileWriter, QgsProject
 # isort: on
 
-from nextgis_connect.compat import WkbType
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
@@ -100,7 +99,7 @@ class DetachedLayerFactory:
         writer = QgsVectorFileWriter.create(
             fileName=str(container_path),
             fields=ngw_layer.qgs_fields,
-            geometryType=WkbType(ngw_layer.wkb_geom_type),
+            geometryType=ngw_layer.wkb_geom_type,
             transformContext=project.transformContext(),
             srs=ngw_layer.qgs_srs,
             options=options,

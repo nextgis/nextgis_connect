@@ -7,10 +7,13 @@ QGIS_3_30 = 33000
 
 if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
     WkbType = Qgis.WkbType  # type: ignore
-    LayerType = Qgis.LayerType  # type: ignore
     GeometryType = Qgis.GeometryType  # type: ignore
+
+    LayerType = Qgis.LayerType  # type: ignore
+
 else:
     WkbType = QgsWkbTypes.Type  # type: ignore
+    GeometryType = QgsWkbTypes.GeometryType  # type: ignore
 
     LayerType = QgsMapLayerType
     LayerType.Vector = QgsMapLayerType.VectorLayer  # type: ignore
@@ -28,12 +31,11 @@ else:
     LayerType.PointCloud = QgsMapLayerType.PointCloudLayer  # type: ignore
     LayerType.PointCloud.is_monkey_patched = True
 
-    GeometryType = QgsWkbTypes.GeometryType  # type: ignore
-
 try:
     from packaging import version
 
     parse_version = version.parse
+
 except Exception:
     import pkg_resources
 

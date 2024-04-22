@@ -129,13 +129,22 @@ class NgConnectPlugin(NgConnectInterface):
         assert self.__task_manager is not None
         return self.__task_manager
 
-    def update_layers(self) -> None:
+    def synchronize_layers(self) -> None:
         assert self.__detached_editing is not None
         QMetaObject.invokeMethod(
             self.__detached_editing,
-            "updateLayers",
+            "synchronizeLayers",
             Qt.ConnectionType.QueuedConnection,
         )
+
+    def enable_synchronization(self) -> None:
+        assert self.__detached_editing is not None
+        self.__detached_editing.enable_synchronization()
+        self.synchronize_layers()
+
+    def disable_synchronization(self) -> None:
+        assert self.__detached_editing is not None
+        self.__detached_editing.disable_synchronization()
 
     def show_error(self, error: Exception) -> None:
         if not isinstance(error, NgConnectError):
@@ -165,14 +174,23 @@ class NgConnectPlugin(NgConnectInterface):
             NgConnectInterface.PLUGIN_NAME, message
         )
 
-        if error.detail is None:
-            button = QPushButton(self.tr("Open logs"))
-            button.pressed.connect(self.iface.openMessageLog)
-        else:
+        if error.detail is not None:
             button = QPushButton(self.tr("Open details"))
             button.pressed.connect(show_details)
+            widget.layout().addWidget(button)
+        else:
+            button = QPushButton(self.tr("Open logs"))
+            button.pressed.connect(self.iface.openMessageLog)
+            widget.layout().addWidget(button)
 
-        widget.layout().addWidget(button)
+        if error.code.is_connection_error:
+            button = QPushButton(self.tr("Open settings"))
+            button.pressed.connect(
+                lambda: self.iface.showOptionsDialog(
+                    self.iface.mainWindow(), "NextGIS Connect"
+                )
+            )
+            widget.layout().addWidget(button)
 
         message_bar.pushWidget(widget, Qgis.MessageLevel.Critical)
 

@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, cast
 
 from qgis.core import (
-    QgsLayerTree,
     QgsLayerTreeLayer,
     QgsLayerTreeNode,
     QgsMapLayer,
@@ -41,7 +40,7 @@ class DetachedEditing(QObject):
         layers_check_period = timedelta(seconds=15) / timedelta(milliseconds=1)
         self.__timer = QTimer(self)
         self.__timer.setInterval(int(layers_check_period))
-        self.__timer.timeout.connect(self.update_layers)
+        self.__timer.timeout.connect(self.synchronize_layers)
         self.__timer.start()
 
         self.__properties_factory = DetachedLayerConfigWidgetFactory()
@@ -82,11 +81,8 @@ class DetachedEditing(QObject):
             for layer in self.__containers.values()
         )
 
-    def stop_next_sync(self) -> None:
-        self.__sync_is_stopped = True
-
-    @pyqtSlot(name="updateLayers")
-    def update_layers(self) -> None:
+    @pyqtSlot(name="synchronizeLayers")
+    def synchronize_layers(self) -> None:
         self.__remove_empty_containers()
 
         if self.is_sychronization_active or self.__sync_is_stopped:
@@ -104,6 +100,14 @@ class DetachedEditing(QObject):
             is_started = container.synchronize()
             if is_started:
                 return
+
+    @pyqtSlot(name="enableSynchronization")
+    def enable_synchronization(self) -> None:
+        self.__sync_is_stopped = False
+
+    @pyqtSlot(name="disableSynchronization")
+    def disable_synchronization(self) -> None:
+        self.__sync_is_stopped = True
 
     def __setup_layers(self) -> None:
         project = QgsProject.instance()
@@ -123,7 +127,7 @@ class DetachedEditing(QObject):
             self.__containers_by_layer_id[layer.id()].add_indicator(node)
 
         # Run after returning to event loop
-        QTimer.singleShot(0, self.update_layers)
+        QTimer.singleShot(0, self.synchronize_layers)
 
     def __setup_layer(self, layer: QgsMapLayer) -> bool:
         if (
@@ -164,7 +168,7 @@ class DetachedEditing(QObject):
             self.__setup_layer(layer)
 
         self.__update_actions()
-        self.update_layers()
+        self.synchronize_layers()
 
     @pyqtSlot("QStringList")
     def __on_layers_will_be_removed(self, layer_ids: List[str]) -> None:
@@ -191,9 +195,8 @@ class DetachedEditing(QObject):
         children = parent_node.children()
         for index in range(index_from, index_to + 1):
             node = children[index]
-            if not QgsLayerTree.isLayer(node):
+            if not isinstance(node, QgsLayerTreeLayer):
                 continue
-            node = cast(QgsLayerTreeLayer, node)
             layer = node.layer()
             if layer is not None:
                 if layer.id() not in self.__containers_by_layer_id:
@@ -224,10 +227,9 @@ class DetachedEditing(QObject):
         children = parent_node.children()
         for index in range(index_from, index_to + 1):
             node = children[index]
-            if not QgsLayerTree.isLayer(node):
+            if not isinstance(node, QgsLayerTreeLayer):
                 continue
 
-            node = cast(QgsLayerTreeLayer, node)
             layer = node.layer()
             if (
                 layer is None
