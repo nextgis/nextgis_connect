@@ -2,6 +2,7 @@ import functools
 import uuid
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union, cast
+from dataclasses import dataclass
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
@@ -24,6 +25,13 @@ from nextgis_connect.ngw_api.core import (
     NGWResource,
     NGWVectorLayer,
 )
+
+from nextgis_connect.ngw_api.core.ngw_webmap import (
+    NGWWebMap,
+    NGWWebMapGroup,
+    NGWWebMapItem
+)
+
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
@@ -49,6 +57,10 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
+
+from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
+from nextgis_connect.ngw_api.core.ngw_resource_factory import NGWResourceFactory
+
 from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.settings import NgConnectCacheManager
 
@@ -56,6 +68,20 @@ from .item import QModelItem, QNGWResourceItem
 
 __all__ = ["QNGWResourceTreeModel"]
 
+class WebmapStruct:
+    class BaseMapInfo:
+        id: int = -1
+        name: str = ''
+        url: str = ''
+        authcfg = None
+        enabled: bool = False
+
+    resource: Union[NGWVectorLayer, NGWWebMapGroup] = None
+    style: NGWQGISVectorStyle = None
+    children: List['WebmapStruct'] = []
+    job: NGWResourceModelJob = None
+
+    list_basemap: List[BaseMapInfo] = []
 
 class NGWResourceModelResponse(QObject):
     done = pyqtSignal(QModelIndex)
@@ -641,6 +667,9 @@ def modelRequest(
 
 
 class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
+
+    webmap_struct : WebmapStruct = None
+
     def _nearest_ngw_group_resource_parent(self, index):
         checking_index = index
 
@@ -927,3 +956,90 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         worker = NgwCreateVectorLayersStubs(vector_layers)
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))
+
+    @modelRequest
+    def download_webmap(self, index: Union[QModelIndex, List[QModelIndex]]):
+        def parse_structure(node, resources_factory, conn):
+            _node = WebmapStruct()
+            vector_layers : List[NGWVectorLayer] = []
+
+            if node['item_type'] == NGWWebMapItem.ITEM_TYPE_ROOT:
+                _node.resource = NGWWebMapGroup('root', True)
+
+            children = node['children']
+            for child in children:
+                if child['item_type'] == NGWWebMapItem.ITEM_TYPE_LAYER:
+                    struct_node = WebmapStruct()
+
+                    _id = child['style_parent_id']
+                    resource_js = NGWResource.receive_resource_obj(conn, _id)
+                    ngw_vl = NGWVectorLayer(resources_factory, resource_js)
+                    vector_layers.append(ngw_vl)
+                    
+                    struct_node.resource = ngw_vl
+                    _node.children.append(struct_node)
+
+                    style_id = child['layer_style_id']
+                    res_js = NGWResource.receive_resource_obj(conn, style_id)
+                    struct_node.style = NGWQGISVectorStyle(
+                        resources_factory, res_js
+                    )
+
+                elif child['item_type'] == NGWWebMapItem.ITEM_TYPE_GROUP:
+                    v_node = WebmapStruct()
+                    v_node.resource = NGWWebMapGroup(
+                        child['display_name'], child['group_expanded']
+                    )
+
+                    n, vl = parse_structure(child, resources_factory, conn)
+                    _node.children.extend(n.children)
+
+                    vector_layers.extend(vl)
+                    
+                elif child['item_type'] == NGWWebMapItem.ITEM_TYPE_ROOT:
+                    continue
+
+            
+            
+            return _node, vector_layers
+        
+        resource = index.data(QNGWResourceItem.NGWResourceRole)
+        if not isinstance(resource, NGWWebMap):
+            return None
+
+        ngw_connection = QgsNgwConnection(resource.connection_id)
+        resources_factory = NGWResourceFactory(ngw_connection)
+
+        json = resource._json
+        webmap_js = json['webmap']
+        root_item = webmap_js['root_item']
+
+        self.webmap_struct, vector_layers = \
+            parse_structure(root_item, resources_factory, ngw_connection)
+        
+        base_maps_webmap = json['basemap_webmap']
+        for map in base_maps_webmap['basemaps']:
+            info = WebmapStruct.BaseMapInfo()
+            info.id = map['resource_id']
+            info.name = map['display_name']
+            info.enabled = map['enabled']
+
+            obj_layer = NGWResource.receive_resource_obj(
+                ngw_connection, info.id
+            )
+
+            info.url = obj_layer['basemap_layer']['url']
+
+            connection_manager = NgwConnectionsManager()
+            connection = connection_manager.connection(
+                resource.connection_id
+            )
+            info.authcfg = connection.auth_config_id
+
+            self.webmap_struct.list_basemap.append(info)
+
+
+        worker = NgwCreateVectorLayersStubs(vector_layers)
+        job = self._startJob(worker, lock_indexes=list())
+        return job
+

@@ -1,5 +1,5 @@
 from .item import QModelItem, QNGWResourceItem
-from .model import QNGWResourceTreeModel
+from .model import QNGWResourceTreeModel, WebmapStruct
 from .view import QNGWResourceTreeView
 
 __all__ = [
@@ -7,4 +7,5 @@ __all__ = [
     "QNGWResourceItem",
     "QNGWResourceTreeModel",
     "QNGWResourceTreeView",
+    "WebmapStruct"
 ]

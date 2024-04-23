@@ -26,7 +26,7 @@ import os
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import List, Optional, cast, Union
 
 from qgis import utils as qgis_utils
 from qgis.core import (
@@ -40,6 +40,7 @@ from qgis.core import (
     QgsRasterLayer,
     QgsSettings,
     QgsVectorLayer,
+    QgsProviderRegistry
 )
 from qgis.gui import QgisInterface, QgsDockWidget, QgsNewNameDialog
 from qgis.PyQt import uic
@@ -132,6 +133,12 @@ from .tree_widget import (
     QNGWResourceItem,
     QNGWResourceTreeModel,
     QNGWResourceTreeView,
+    WebmapStruct
+)
+
+from nextgis_connect.ngw_api.core.ngw_webmap import (
+    NGWWebMap,
+    NGWWebMapGroup,
 )
 
 HAS_NGSTD = True
@@ -155,7 +162,6 @@ class AddLayersCommand:
     job_uuid: str
     insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
     ngw_indexes: List[QModelIndex]
-
 
 class NgConnectDock(QgsDockWidget, FORM_CLASS):
     iface: QgisInterface
@@ -569,13 +575,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         # TODO: NEED REFACTORING! Make isCompatible methods!
-        is_download_enabled = (
-            not has_no_ngw_selection
-            and all(
+
+        is_valid_index = all(
                 ngw_index.parent().isValid()
                 for ngw_index in selected_ngw_indexes
             )
-            and all(
+
+        is_valid_type = all(
                 isinstance(
                     ngw_resource,
                     (
@@ -589,11 +595,20 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         NGWRasterLayer,
                         NGWQGISVectorStyle,
                         NGWQGISRasterStyle,
+                        NGWWebMap
                     ),
                 )
                 for ngw_resource in ngw_resources
             )
+
+
+        if len(ngw_resources):
+            str = type(ngw_resources[0])
+
+        is_download_enabled = (
+            not has_no_ngw_selection and is_valid_index and is_valid_type
         )
+
         self.actionExport.setEnabled(is_download_enabled)
         self.toolbuttonDownload.setEnabled(is_download_enabled)
 
@@ -1009,6 +1024,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWWmsConnection,
                     NGWQGISVectorStyle,
                     NGWQGISRasterStyle,
+                    NGWWebMap
                 ),
             )
             for ngw_resource in ngw_resources
@@ -1200,8 +1216,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             )
             return
+        
 
         model = self.resource_model
+        download_job = model.download_webmap(selected_indexes[0])
+        if download_job is not None:
+            insertion_point = self.iface.layerTreeInsertionPoint()
+            self._queue_to_add.append(
+                AddLayersCommand(
+                    download_job.job_uuid, insertion_point, selected_indexes
+                )
+            )
+
+            self.__add_basemap_to_qgis(model.webmap_struct.list_basemap)
+
+            self.__add_webmap_to_qgis(model.webmap_struct, insertion_point)
+            return
+
         download_job = model.download_vector_layers_if_needed(selected_indexes)
         if download_job is not None:
             insertion_point = self.iface.layerTreeInsertionPoint()
@@ -1415,6 +1446,60 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Restore insertion point
         tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
+
+    def __add_webmap_to_qgis(self, 
+        node: WebmapStruct, 
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
+    ):
+        for child in node.children:
+            if isinstance(child.resource, NGWVectorLayer):
+                self.__add_gpkg_layer(child.resource, [child.style])
+            
+            # insertion_point_backup = insertion_point
+
+            if isinstance(child.resource, NGWWebMapGroup):
+                # g = insertion_point.group.add_group(child.resource.display_name)
+                # insertion_point.group = g
+
+                self.__add_webmap_to_qgis(child.resource, insertion_point)
+
+                # project = QgsProject.instance()
+                # tree_rigistry_bridge = project.layerTreeRegistryBridge()
+                # tree_rigistry_bridge.setLayerInsertionPoin(
+                #     insertion_point_backup
+                # )
+        
+    def __add_basemap_to_qgis(self, infos: List[WebmapStruct.BaseMapInfo]):
+        provider_regstry = QgsProviderRegistry.instance()
+        assert provider_regstry is not None
+        wms_metadata = provider_regstry.providerMetadata("wms")
+
+        for info in infos:
+            uri_params = {
+                "url": info.url,
+                "format": "image/png",
+                "crs": "EPSG:3857",
+                # "layers": ",".join(layer_keys),
+                "styles": "",
+                "authcfg": info.authcfg,
+            }
+            uri = wms_metadata.encodeUri(uri_params)
+
+            rlayer = QgsRasterLayer(uri, info.name, "wms")
+            if not rlayer.isValid():
+                message = QgsApplication.translate(
+                    "Utils", 'Invalid wms url for layer "{name}"'
+                ).format(uri=uri, name=info.name)
+
+                error = NgConnectError("WMS error", user_message=message)
+                error.add_note(f"Url: {uri}")
+
+                NgConnectInterface.instance().show_error(error)
+
+            project = QgsProject.instance()
+            assert project is not None
+            project.addMapLayer(rlayer)
+
 
     def create_group(self):
         sel_index = self.resources_tree_view.selectedIndex()
