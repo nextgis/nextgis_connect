@@ -104,14 +104,16 @@ class DetachedContainer(QObject):
 
         self.__update_state(is_full_update=True)
 
-        logger.debug(
-            f'Detached container "{self.__path.name}" added to project'
-        )
+        if parent is not None:
+            logger.debug(
+                f'Detached container "{self.__path.name}" added to project'
+            )
 
     def __del__(self) -> None:
-        logger.debug(
-            f'Detached container "{self.__path.name}" deleted from project'
-        )
+        if self.parent() is not None:
+            logger.debug(
+                f'Detached container "{self.__path.name}" deleted from project'
+            )
 
     @property
     def path(self) -> Path:
@@ -441,10 +443,10 @@ class DetachedContainer(QObject):
                 self.__on_additional_data_fetched
             )
 
-        if self.__sync_task is None:
-            logger.debug(
-                f"There are no changes to upload for layer {self.metadata}"
-            )
+        # if self.__sync_task is None:
+        #     logger.debug(
+        #         f"There are no changes to upload for layer {self.metadata}"
+        #     )
 
     def __init_ordinary_task(self) -> None:
         if self.is_stub:
@@ -584,9 +586,9 @@ class DetachedContainer(QObject):
             self.__start_sync(task)
             return
 
-        logger.debug(
-            f"There are no changes to upload for layer {self.metadata}"
-        )
+        # logger.debug(
+        #     f"There are no changes to upload for layer {self.metadata}"
+        # )
 
         self.__on_synchronization_finished(True)
 

@@ -1,6 +1,7 @@
 import sqlite3
 from contextlib import closing
 from datetime import datetime
+from itertools import islice
 from pathlib import Path
 
 from qgis.PyQt.QtCore import pyqtSignal
@@ -16,6 +17,8 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 
 
 class UploadChangesTask(DetachedEditingTask):
+    BATCH_SIZE = 1000
+
     synchronization_finished = pyqtSignal(bool, name="synchronizationFinished")
 
     def __init__(self, container_path: Path) -> None:
@@ -62,8 +65,8 @@ class UploadChangesTask(DetachedEditingTask):
             self._get_layer(ngw_connection)
 
             # Uploading
-            self.__upload_added(ngw_connection)
             self.__upload_deleted(ngw_connection)
+            self.__upload_added(ngw_connection)
             self.__upload_updated(ngw_connection)
             self.__update_sync_date()
 
@@ -80,28 +83,39 @@ class UploadChangesTask(DetachedEditingTask):
             logger.debug("There are no creation actions")
             return
 
+        logger.debug(f"Found {len(create_actions)} create actions")
+
         serializer = ActionSerializer(layer_metadata)
-        body = serializer.to_json(create_actions)
 
-        logger.debug(f"Send {len(create_actions)} create actions")
+        iterator = iter(create_actions)
+        batch = tuple(islice(iterator, self.BATCH_SIZE))
+        while batch:
+            body = serializer.to_json(batch)
 
-        url = f"/api/resource/{layer_metadata.resource_id}/feature/"
-        assigned_fids = ngw_connection.patch(url, body)
+            logger.debug(f"Send {len(batch)} create actions")
 
-        values = (
-            (assigned_fids[i]["id"], action.fid)
-            for i, action in enumerate(create_actions)
-        )
+            url = f"/api/resource/{layer_metadata.resource_id}/feature/"
+            assigned_fids = ngw_connection.patch(url, body)
 
-        with closing(self._make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
-            cursor.executemany(
-                "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?",
-                values,
+            values = (
+                (assigned_fids[i]["id"], action.fid)
+                for i, action in enumerate(batch)
             )
-            self.__clear_added(cursor)
-            connection.commit()
+            batch_fids = ",".join(str(action.fid) for action in batch)
+
+            with closing(self._make_connection()) as connection, closing(
+                connection.cursor()
+            ) as cursor:
+                cursor.executemany(
+                    "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?",
+                    values,
+                )
+                cursor.execute(
+                    f"DELETE FROM ngw_added_features WHERE fid in ({batch_fids})"
+                )
+                connection.commit()
+
+            batch = tuple(islice(iterator, self.BATCH_SIZE))
 
     def __upload_deleted(
         self,
@@ -110,25 +124,46 @@ class UploadChangesTask(DetachedEditingTask):
         layer_metadata = self._metadata
 
         extractor = ActionExtractor(self._container_path, layer_metadata)
-        deleted_actions = extractor.extract_deleted_features()
+        delete_actions = extractor.extract_deleted_features()
 
-        if len(deleted_actions) == 0:
+        if len(delete_actions) == 0:
             logger.debug("There are no deletion actions")
             return
 
+        logger.debug(f"Found {len(delete_actions)} delete actions")
+
         serializer = ActionSerializer(layer_metadata)
-        body = serializer.to_json(deleted_actions)
 
-        logger.debug(f"Send {len(deleted_actions)} delete actions")
+        iterator = iter(delete_actions)
+        batch = tuple(islice(iterator, self.BATCH_SIZE))
+        while batch:
+            body = serializer.to_json(batch)
 
-        url = f"/api/resource/{layer_metadata.resource_id}/feature/"
-        ngw_connection.delete(url, body)
+            logger.debug(f"Send {len(batch)} delete actions")
 
-        with closing(self._make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
-            self.__clear_deleted(cursor)
-            connection.commit()
+            url = f"/api/resource/{layer_metadata.resource_id}/feature/"
+            ngw_connection.delete(url, body)
+
+            batch_ngw_fids = ",".join(str(action.fid) for action in batch)
+
+            with closing(self._make_connection()) as connection, closing(
+                connection.cursor()
+            ) as cursor:
+                cursor.executescript(
+                    f"""
+                    WITH batch_fids AS (
+                        SELECT fid FROM ngw_features_metadata
+                            WHERE ngw_fid IN ({batch_ngw_fids})
+                    )
+                    DELETE FROM ngw_removed_features
+                        WHERE fid IN batch_fids;
+                    DELETE FROM ngw_features_metadata
+                        WHERE ngw_fid IN ({batch_ngw_fids});
+                    """
+                )
+                connection.commit()
+
+            batch = tuple(islice(iterator, self.BATCH_SIZE))
 
     def __upload_updated(
         self,
@@ -223,18 +258,6 @@ class UploadChangesTask(DetachedEditingTask):
             error.add_note(f"Synchronization id: {transaction_id}")
             error.add_note(f"Status: {result['status']}")
             raise error
-
-    def __clear_added(self, cursor: sqlite3.Cursor) -> None:
-        cursor.execute("DELETE FROM ngw_added_features")
-
-    def __clear_deleted(self, cursor: sqlite3.Cursor) -> None:
-        cursor.executescript(
-            """
-            DELETE FROM ngw_features_metadata
-                WHERE fid in (SELECT fid FROM ngw_removed_features);
-            DELETE FROM ngw_removed_features;
-            """
-        )
 
     def __clear_updated(self, cursor: sqlite3.Cursor) -> None:
         cursor.executescript(

@@ -25,11 +25,13 @@ from typing import TYPE_CHECKING
 
 from qgis.core import QgsRuntimeProfiler
 
+from nextgis_connect.ng_connect_interface import NgConnectInterface
+
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface
 
 
-def classFactory(iface: "QgisInterface"):
+def classFactory(iface: "QgisInterface") -> NgConnectInterface:
     with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
         from .ng_connect_plugin import NgConnectPlugin
 

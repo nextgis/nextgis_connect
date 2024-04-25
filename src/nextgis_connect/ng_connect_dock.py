@@ -623,6 +623,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         open_in_ngw_visible = (
             is_layer
+            and layer is not None
             and layer.customProperty("ngw_connection_id") is not None
             and layer.customProperty("ngw_resource_id") is not None
         )

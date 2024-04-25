@@ -205,7 +205,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     """
     fields = [NgwField(*row) for row in cursor.execute(fields_query)]
 
-    cursor.execute('SELECT "feature_count" FROM gpkg_ogr_contents')
+    cursor.execute(f"SELECT COUNT(*) FROM '{table_name}'")
     features_count = cursor.fetchone()[0]
     if features_count is None:
         features_count = 0

@@ -1,6 +1,8 @@
 import json
 from typing import Any, ClassVar, Dict, Iterable, List, Type, Union
 
+from qgis.PyQt.QtCore import QDate, QDateTime, QTime
+
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
 from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
@@ -74,10 +76,11 @@ class ActionSerializer:
 
         return self.__deserialize_actions(dicts_list)
 
-    def __convert_versioning_action(
-        self, action: VersioningAction
-    ) -> Dict[str, Any]:
+    def __convert_versioning_action(self, action: VersioningAction) -> Any:
         if not isinstance(action, DataChangeAction):
+            if isinstance(action, (QDate, QTime, QDateTime)):
+                return self.__serialize_date_and_time(action)
+
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
             code = ErrorCode.SynchronizationError
@@ -93,8 +96,11 @@ class ActionSerializer:
 
         return result
 
-    def __convert_action(self, action: VersioningAction) -> Dict[str, Any]:
+    def __convert_action(self, action: VersioningAction) -> Any:
         if not isinstance(action, FeatureAction):
+            if isinstance(action, (QDate, QTime, QDateTime)):
+                return self.__serialize_date_and_time(action)
+
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
             code = ErrorCode.SynchronizationError
@@ -151,3 +157,31 @@ class ActionSerializer:
             return action_class(**action_dict)
 
         return [json_to_action(item.copy()) for item in actions]
+
+    def __serialize_date_and_time(
+        self, date_object: Union[QDateTime, QDate, QTime]
+    ) -> Any:
+        date = None
+        time = None
+        if isinstance(date_object, QDateTime):
+            date = date_object.date()
+            time = date_object.time()
+        elif isinstance(date_object, QDate):
+            date = date_object
+        elif isinstance(date_object, QTime):
+            time = date_object
+
+        result = {}
+        if date is not None:
+            result["year"] = date.year()
+            result["month"] = date.month()
+            result["day"] = date.day()
+
+        if time is not None:
+            result["hour"] = time.hour()
+            result["minute"] = time.minute()
+            result["second"] = time.second()
+
+        # return date_object.toString(Qt.DateFormat.ISODate)
+
+        return result

@@ -25,7 +25,7 @@ iface: QgisInterface
 class DetachedEditing(QObject):
     __containers: Dict[Path, DetachedContainer]
     __containers_by_layer_id: Dict[str, DetachedContainer]
-    __sync_is_stopped: bool
+    __is_synchronization_enabled: bool
 
     __timer: QTimer
     __properties_factory: DetachedLayerConfigWidgetFactory
@@ -35,7 +35,7 @@ class DetachedEditing(QObject):
 
         self.__containers = {}
         self.__containers_by_layer_id = {}
-        self.__sync_is_stopped = False
+        self.__is_synchronization_enabled = True
 
         layers_check_period = timedelta(seconds=15) / timedelta(milliseconds=1)
         self.__timer = QTimer(self)
@@ -85,7 +85,10 @@ class DetachedEditing(QObject):
     def synchronize_layers(self) -> None:
         self.__remove_empty_containers()
 
-        if self.is_sychronization_active or self.__sync_is_stopped:
+        if (
+            self.is_sychronization_active
+            or not self.__is_synchronization_enabled
+        ):
             return
 
         stubs = list(
@@ -103,11 +106,11 @@ class DetachedEditing(QObject):
 
     @pyqtSlot(name="enableSynchronization")
     def enable_synchronization(self) -> None:
-        self.__sync_is_stopped = False
+        self.__is_synchronization_enabled = True
 
     @pyqtSlot(name="disableSynchronization")
     def disable_synchronization(self) -> None:
-        self.__sync_is_stopped = True
+        self.__is_synchronization_enabled = False
 
     def __setup_layers(self) -> None:
         project = QgsProject.instance()

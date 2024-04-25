@@ -192,7 +192,7 @@ class ActionExtractor:
         self, geometry: Optional[QgsGeometry]
     ) -> Optional[str]:
         geom = None
-        if geometry is not None and not geometry.isNull():
+        if geometry is not None and not geometry.isEmpty():
             geom = (
                 b64encode(geometry.asWkb().data()).decode("ascii")
                 if self.__metadata.is_versioning_enabled
