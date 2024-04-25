@@ -4,25 +4,25 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=1.99.3
+version=1.99.4
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
 	1.99.*
-		* Добавлена возможность синхронизации и редактирования слоев
-		* Добавлена поддержка Keycloak, Blitz авторизации в NextGIS QGIS
-		* Добавлен переход к веб-ресурсу из дерва слоев
-		* Добавлены механизмы для создания плагинов, использующих NG Connect
-		* Добавлена возможность создания lookup table при загрузке слоев
-		* Добавлена возможоность добавлять демо-проекты в QGIS
-		* Переход на хранилище QGIS для хранения паролей
-		* Обновлена страница настроек
-		* Обновлен механизм сообщений об ошибках
-		* Обновлен механизм сообщений логов
-		* Ускорена загрузка плагина
-		* Исправления ошибок
-		! Supported NGW versions: 4.5.0 - 4.8.0
+		* Added the ability to synchronize and edit layers
+		* Added support for Keycloak, Blitz authentication in NextGIS QGIS
+		* Added navigation to the NGW resource from the QGIS layer tree
+		* Added mechanisms for creating plugins that use NG Connect
+		* Added the ability to create a lookup table when loading layers
+		* Added the ability to add demo projects to QGIS
+		* Switched to QGIS authentication manager as credentials store
+		* Updated the settings page
+		* Updated the error message mechanism
+		* Updated the log message mechanism
+		* Accelerated plugin loading
+		* Bug fixes
+		! Supported NGW versions: 4.6.0 - 4.9.0
 	1.5.5
 		* Bug fix
 		! Supported NGW versions: 4.5.0 - 4.8.0

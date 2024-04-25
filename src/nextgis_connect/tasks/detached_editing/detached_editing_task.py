@@ -55,7 +55,7 @@ class DetachedEditingTask(NgConnectTask):
             self._error = ContainerError(message)
             self._error.__cause__ = error
 
-        description = self.tr('"{layer_name} layer synchronization"').format(
+        description = self.tr('"{layer_name}" layer synchronization').format(
             layer_name=self._metadata.layer_name
         )
         self.setDescription(description)
