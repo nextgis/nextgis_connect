@@ -94,6 +94,8 @@ class FetchDeltaTask(DetachedEditingTask):
                     ngw_connection.get(continue_action.url)
                 )
 
+            logger.debug(f"Fetched {len(self.__delta)} actions")
+
         except SynchronizationError as error:
             self._error = error
             return False

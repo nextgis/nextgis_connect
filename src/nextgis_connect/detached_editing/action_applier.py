@@ -2,7 +2,7 @@ import sqlite3
 from base64 import b64decode
 from contextlib import closing
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set, Tuple
 
 from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
 
@@ -56,10 +56,96 @@ class ActionApplier:
             ActionType.CONTINUE: self.__continue,
         }
 
+        previously_added, previously_deleted = (
+            self.__extract_previously_uploaded(actions)
+        )
+
         for action in actions:
+            if action.action == ActionType.FEATURE_CREATE:
+                applier_for_action[action.action](action, previously_added)
+                continue
+            if action.action == ActionType.FEATURE_DELETE:
+                applier_for_action[action.action](action, previously_deleted)
+                continue
+
             applier_for_action[action.action](action)
 
-    def __create_feature(self, action: FeatureCreateAction) -> None:
+    def __extract_previously_uploaded(
+        self, actions: List[VersioningAction]
+    ) -> Tuple[Set[FeatureId], Set[FeatureId]]:
+        if not self.__metadata.is_versioning_enabled:
+            return (set(), set())
+
+        added_ngw_fids = set()
+        deleted_ngw_fids = set()
+
+        for action in actions:
+            if isinstance(action, FeatureCreateAction):
+                added_ngw_fids.add(action.fid)
+            if isinstance(action, FeatureDeleteAction):
+                deleted_ngw_fids.add(action.fid)
+
+        if len(added_ngw_fids) == 0 and len(deleted_ngw_fids) == 0:
+            return (set(), set())
+
+        already_added = set()
+        already_deleted = set()
+
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                if len(added_ngw_fids) > 0:
+                    added_fids = ",".join(str(fid) for fid in added_ngw_fids)
+                    already_added = set(
+                        row[0]
+                        for row in cursor.execute(
+                            f"""
+                            SELECT ngw_fid FROM ngw_features_metadata
+                                WHERE ngw_fid IN ({added_fids})
+                            """
+                        )
+                    )
+
+                if len(deleted_ngw_fids) > 0:
+                    deleted_fids = ",".join(
+                        str(fid) for fid in deleted_ngw_fids
+                    )
+                    still_existed = set(
+                        row[0]
+                        for row in cursor.execute(
+                            f"""
+                            SELECT ngw_fid FROM ngw_features_metadata
+                                WHERE ngw_fid IN ({deleted_fids})
+                            """
+                        )
+                    )
+                    already_deleted = deleted_ngw_fids - still_existed
+
+        except Exception as error:
+            raise ContainerError from error
+
+        return (already_added, already_deleted)
+
+    def __create_feature(
+        self, action: FeatureCreateAction, previously_added: Set[FeatureId]
+    ) -> None:
+        if action.fid in previously_added:
+            try:
+                with closing(
+                    sqlite3.connect(str(self.__container_path))
+                ) as connection, closing(connection.cursor()) as cursor:
+                    cursor.execute(
+                        "UPDATE ngw_features_metadata SET version=? WHERE ngw_fid=?",
+                        (action.vid, action.fid),
+                    )
+                    connection.commit()
+
+            except Exception as error:
+                raise ContainerError from error
+
+            return
+
         new_feature = QgsFeature(self.__layer.fields())
 
         for field_id, value in action.fields:
@@ -127,7 +213,12 @@ class ActionApplier:
         except Exception as error:
             raise ContainerError from error
 
-    def __delete_feature(self, action: FeatureDeleteAction) -> None:
+    def __delete_feature(
+        self, action: FeatureDeleteAction, previously_deleted: Set[FeatureId]
+    ) -> None:
+        if action.fid in previously_deleted:
+            return
+
         feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
         if feature_metadata is None:
             message = f"Feature with fid={action.fid} is not exist"

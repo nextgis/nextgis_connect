@@ -41,7 +41,6 @@ class VersioningSynchronizationState(Enum):
     ConflictSolving = auto()
     ChangesApplying = auto()
     UploadingChanges = auto()
-    FetchingUploaded = auto()
     Synchronized = auto()
 
 
@@ -91,7 +90,7 @@ class DetachedContainerChangesInfo:
 
 @dataclass(frozen=True)
 class FeatureMetaData:
-    fid: int
+    fid: Optional[int] = None
     ngw_fid: Optional[int] = None
     version: Optional[int] = None
     description: Optional[str] = None

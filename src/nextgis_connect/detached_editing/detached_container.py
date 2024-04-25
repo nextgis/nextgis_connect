@@ -75,6 +75,8 @@ class DetachedContainer(QObject):
     __additional_data_fetch_date: Optional[datetime]
     __is_edit_allowed: bool
 
+    __is_project_container: bool
+
     editing_started = pyqtSignal(name="editingStarted")
     editing_finished = pyqtSignal(name="editingFinished")
 
@@ -100,17 +102,19 @@ class DetachedContainer(QObject):
 
         self.__check_date = None
         self.__additional_data_fetch_date = None
-        self.__is_edit_allowed = False
+        self.__is_edit_allowed = True
+        self.__is_project_container = parent is not None
 
         self.__update_state(is_full_update=True)
 
-        if parent is not None:
+        if self.__is_project_container:
+            self.__is_edit_allowed = False
             logger.debug(
                 f'Detached container "{self.__path.name}" added to project'
             )
 
     def __del__(self) -> None:
-        if self.parent() is not None:
+        if self.__is_project_container:
             logger.debug(
                 f'Detached container "{self.__path.name}" deleted from project'
             )
@@ -443,11 +447,6 @@ class DetachedContainer(QObject):
                 self.__on_additional_data_fetched
             )
 
-        # if self.__sync_task is None:
-        #     logger.debug(
-        #         f"There are no changes to upload for layer {self.metadata}"
-        #     )
-
     def __init_ordinary_task(self) -> None:
         if self.is_stub:
             self.__sync_task = DownloadGpkgTask(self.path)
@@ -458,26 +457,28 @@ class DetachedContainer(QObject):
 
         if self.metadata.has_changes:
             self.__sync_task = UploadChangesTask(self.path)
-            self.__sync_task.synchronization_finished.connect(
-                self.__on_synchronization_finished
+            self.__sync_task.taskCompleted.connect(
+                lambda: self.__on_synchronization_finished(True)
+            )
+            self.__sync_task.taskTerminated.connect(
+                lambda: self.__on_synchronization_finished(False)
             )
             return
 
     def __init_versioning_task(self) -> None:
+        State = VersioningSynchronizationState
+
         if self.is_stub:
             self.__sync_task = FillLayerWithVersioning(self.path)
             self.__sync_task.download_finished.connect(
                 self.__on_synchronization_finished
             )
+            self.__versioning_state = State.FetchingChanges
             return
 
-        State = VersioningSynchronizationState
-        if self.__versioning_state == State.Synchronized:
-            self.__sync_task = FetchDeltaTask(self.path)
-            self.__sync_task.download_finished.connect(
-                self.__on_fetch_finished
-            )
-            self.__versioning_state = State.FetchingChanges
+        self.__sync_task = FetchDeltaTask(self.path)
+        self.__sync_task.download_finished.connect(self.__on_fetch_finished)
+        self.__versioning_state = State.FetchingChanges
 
     @pyqtSlot(bool)
     def __on_synchronization_finished(self, result: bool) -> None:
@@ -496,7 +497,11 @@ class DetachedContainer(QObject):
             first_layer = next(iter(self.__detached_layers.values()))
             first_layer.layer.reload()
 
-        if self.__additional_data_fetch_date is not None:
+        if (
+            self.__additional_data_fetch_date is not None
+            and datetime.now() - self.__additional_data_fetch_date
+            <= timedelta(hours=1)
+        ):
             self.__finish_sync()
             return
 
@@ -538,18 +543,20 @@ class DetachedContainer(QObject):
 
         assert isinstance(self.__sync_task, FetchDeltaTask)
 
+        # TODO (ivanbarsukov): Conflicts
+
         if len(self.__sync_task.delta) > 0:
             self.__versioning_state = (
                 VersioningSynchronizationState.ChangesApplying
             )
-            self.__sync_task = ApplyDeltaTask(
+            sync_task = ApplyDeltaTask(
                 self.path,
                 self.__sync_task.target,
                 self.__sync_task.timestamp,
                 self.__sync_task.delta,
             )
-            self.__sync_task.apply_finished.connect(self.__on_apply_finished)
-            self.__start_sync(self.__sync_task)
+            sync_task.apply_finished.connect(self.__on_apply_finished)
+            self.__start_sync(sync_task)
             return
 
         if self.metadata.has_changes:
@@ -557,8 +564,11 @@ class DetachedContainer(QObject):
                 VersioningSynchronizationState.UploadingChanges
             )
             task = UploadChangesTask(self.path)
-            task.synchronization_finished.connect(
-                self.__on_synchronization_finished
+            task.taskCompleted.connect(
+                lambda: self.__on_versioned_uploading_finished(True)
+            )
+            task.taskTerminated.connect(
+                lambda: self.__on_versioned_uploading_finished(False)
             )
             self.__start_sync(task)
             return
@@ -573,24 +583,36 @@ class DetachedContainer(QObject):
 
         assert isinstance(self.__sync_task, ApplyDeltaTask)
 
-        # TODO (ivanbarsukov): Conflicts
+        self.__update_state()
 
         if self.metadata.has_changes:
             self.__versioning_state = (
                 VersioningSynchronizationState.UploadingChanges
             )
             task = UploadChangesTask(self.path)
-            task.synchronization_finished.connect(
-                self.__on_synchronization_finished
+            task.taskCompleted.connect(
+                lambda: self.__on_versioned_uploading_finished(True)
+            )
+            task.taskTerminated.connect(
+                lambda: self.__on_versioned_uploading_finished(False)
             )
             self.__start_sync(task)
             return
 
-        # logger.debug(
-        #     f"There are no changes to upload for layer {self.metadata}"
-        # )
-
         self.__on_synchronization_finished(True)
+
+    @pyqtSlot(bool)
+    def __on_versioned_uploading_finished(self, result: bool) -> None:
+        if not result:
+            self.__on_synchronization_finished(False)
+            return
+
+        task = FetchDeltaTask(self.path)
+        task.download_finished.connect(self.__on_fetch_finished)
+        self.__versioning_state = (
+            VersioningSynchronizationState.FetchingChanges
+        )
+        self.__start_sync(task)
 
     def __start_sync(self, task: DetachedEditingTask) -> None:
         self.__sync_task = task
