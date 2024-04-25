@@ -83,6 +83,7 @@ from nextgis_connect.exceptions import (
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
+from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
 from nextgis_connect.settings import NgConnectSettings
 
 from . import utils
@@ -589,6 +590,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         NGWRasterLayer,
                         NGWQGISVectorStyle,
                         NGWQGISRasterStyle,
+                        NGWBaseMap,
                     ),
                 )
                 for ngw_resource in ngw_resources
@@ -1010,6 +1012,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWWmsConnection,
                     NGWQGISVectorStyle,
                     NGWQGISRasterStyle,
+                    NGWBaseMap,
                 ),
             )
             for ngw_resource in ngw_resources
@@ -1354,6 +1357,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.ngw_wms_layers,
                     connection.auth_config_id,
                 )
+            elif isinstance(ngw_resource, NGWBaseMap):
+                self.__add_basemap(ngw_resource)
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
 
@@ -2165,6 +2170,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project = QgsProject.instance()
         assert project is not None
         project.addMapLayer(qgs_gpkg_layer)
+
+    def __add_basemap(self, basemap: NGWBaseMap) -> None:
+        project = QgsProject.instance()
+        assert project is not None
+        layer = QgsRasterLayer(*basemap.layer_params)
+        layer.setCustomProperty("ngw_connection_id", basemap.connection_id)
+        layer.setCustomProperty("ngw_resource_id", basemap.resource_id)
+        project.addMapLayer(layer)
 
 
 class NGWPanelToolBar(QToolBar):
