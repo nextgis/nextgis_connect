@@ -56,15 +56,17 @@ def add_wms_layer(
     wms_metadata = provider_regstry.providerMetadata("wms")
     assert wms_metadata is not None
     uri_params = {
-        "url": url,
         "format": "image/png",
         "crs": "EPSG:3857",
-        "layers": ",".join(layer_keys),
-        "styles": "",
+        "url": url,
     }
     if url.startswith(connection.url):
         uri_params["authcfg"] = connection.auth_config_id
+
     uri = wms_metadata.encodeUri(uri_params)
+
+    for layer in layer_keys:
+        uri += f"&layers={layer}&styles="
 
     rlayer = QgsRasterLayer(uri, name, "wms")
     if not rlayer.isValid():
