@@ -24,6 +24,7 @@ from qgis.utils import iface
 
 from nextgis_connect.exceptions import NgConnectError
 from nextgis_connect.ng_connect_interface import NgConnectInterface
+from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
@@ -35,7 +36,14 @@ class SupportStatus(Enum):
     SUPPORTED = auto()
 
 
-def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
+def add_wms_layer(
+    name,
+    url,
+    layer_keys,
+    connection: NgwConnection,
+    *,
+    ask_choose_layers=False,
+):
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
         result = layersChooser.exec_()
@@ -53,8 +61,9 @@ def add_wms_layer(name, url, layer_keys, auth_cfg, *, ask_choose_layers=False):
         "crs": "EPSG:3857",
         "layers": ",".join(layer_keys),
         "styles": "",
-        "authcfg": auth_cfg,
     }
+    if url.startswith(connection.url):
+        uri_params["authcfg"] = connection.auth_config_id
     uri = wms_metadata.encodeUri(uri_params)
 
     rlayer = QgsRasterLayer(uri, name, "wms")

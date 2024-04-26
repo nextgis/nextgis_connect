@@ -1339,7 +1339,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.common.display_name,
                     ngw_resource.get_url(),
                     ngw_resource.get_layer_keys(),
-                    connection.auth_config_id,
+                    connection,
                     ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
                 )
             elif isinstance(ngw_resource, NGWWmsConnection):
@@ -1347,7 +1347,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.common.display_name,
                     ngw_resource.get_connection_url(),
                     ngw_resource.layers(),
-                    connection.auth_config_id,
+                    connection,
                     ask_choose_layers=len(ngw_resource.layers()) > 1,
                 )
             elif isinstance(ngw_resource, NGWWmsLayer):
@@ -1355,7 +1355,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.common.display_name,
                     ngw_resource.ngw_wms_connection_url,
                     ngw_resource.ngw_wms_layers,
-                    connection.auth_config_id,
+                    connection,
                 )
             elif isinstance(ngw_resource, NGWBaseMap):
                 self.__add_basemap(ngw_resource)
