@@ -7,13 +7,25 @@ QGIS_3_30 = 33000
 
 if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
     WkbType = Qgis.WkbType  # type: ignore
+
     GeometryType = Qgis.GeometryType  # type: ignore
 
     LayerType = Qgis.LayerType  # type: ignore
 
 else:
     WkbType = QgsWkbTypes.Type  # type: ignore
+
     GeometryType = QgsWkbTypes.GeometryType  # type: ignore
+    GeometryType.Point = GeometryType.PointGeometry  # type: ignore
+    GeometryType.Point.is_monkey_patched = True
+    GeometryType.Line = GeometryType.LineGeometry  # type: ignore
+    GeometryType.Line.is_monkey_patched = True
+    GeometryType.Polygon = GeometryType.PolygonGeometry  # type: ignore
+    GeometryType.Polygon.is_monkey_patched = True
+    GeometryType.Unknown = GeometryType.UnknownGeometry  # type: ignore
+    GeometryType.Unknown.is_monkey_patched = True
+    GeometryType.Null = GeometryType.NullGeometry  # type: ignore
+    GeometryType.Null.is_monkey_patched = True
 
     LayerType = QgsMapLayerType
     LayerType.Vector = QgsMapLayerType.VectorLayer  # type: ignore
