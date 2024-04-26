@@ -1943,8 +1943,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.create_map_response.done.connect(self.open_create_web_map)
 
-    def open_create_web_map(self, index):
-        if not NgConnectSettings().open_web_map_after_creation:
+    def open_create_web_map(self, index: QModelIndex):
+        if (
+            not index.isValid()
+            or not NgConnectSettings().open_web_map_after_creation
+        ):
             return
 
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
