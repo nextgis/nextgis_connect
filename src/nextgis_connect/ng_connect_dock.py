@@ -2331,12 +2331,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             webmap_layer.style_parent_id
         )
 
+        connections_manager = NgwConnectionsManager()
+        connection = connections_manager.connection(
+            layer_resource.connection_id
+        )
+        assert connection is not None
+
         if isinstance(layer_resource, NGWRasterLayer):
-            connections_manager = NgwConnectionsManager()
-            connection = connections_manager.connection(
-                layer_resource.connection_id
-            )
-            assert connection is not None
             if connection.auth_config_id is not None:
                 auth_manager = QgsApplication.instance().authManager()
                 auth_method = auth_manager.configAuthMethodKey(
@@ -2351,14 +2352,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if style_resource is None:
             return False
 
-        assert isinstance(style_resource, NGWQGISStyle)
-
         if isinstance(layer_resource, NGWVectorLayer):
+            assert isinstance(style_resource, NGWQGISStyle)
             qgs_layer = self.__add_gpkg_layer(layer_resource, [style_resource])
+
         elif isinstance(layer_resource, NGWRasterLayer):
+            assert isinstance(style_resource, NGWQGISStyle)
             qgs_layer = add_resource_as_cog_raster(
                 layer_resource, [style_resource]
             )
+
+        elif isinstance(style_resource, NGWWmsLayer):
+            qgs_layer = utils.add_wms_layer(
+                style_resource.common.display_name,
+                style_resource.ngw_wms_connection_url,
+                style_resource.ngw_wms_layers,
+                connection,
+            )
+
         else:
             logger.error("Wrong layer resource")
             return False
@@ -2375,7 +2386,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         node.setItemVisibilityChecked(webmap_layer.is_visible)
 
-        node.setExpanded(webmap_layer.legend if webmap_layer.legend else False)
+        node.setExpanded(webmap_layer.legend)  # type: ignore
 
         return True
 

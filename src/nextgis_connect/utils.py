@@ -2,7 +2,7 @@ import platform
 from enum import Enum, auto
 from functools import lru_cache
 from itertools import islice
-from typing import Tuple, Union, cast
+from typing import Optional, Tuple, Union, cast
 
 from qgis.core import (
     QgsApplication,
@@ -43,7 +43,7 @@ def add_wms_layer(
     connection: NgwConnection,
     *,
     ask_choose_layers=False,
-):
+) -> Optional[QgsRasterLayer]:
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
         result = layersChooser.exec_()
@@ -78,11 +78,13 @@ def add_wms_layer(
         error.add_note(f"Url: {uri}")
 
         NgConnectInterface.instance().show_error(error)
-        return
+        return None
 
     project = QgsProject.instance()
     assert project is not None
     project.addMapLayer(rlayer)
+
+    return rlayer
 
 
 class ChooserDialog(QDialog):
