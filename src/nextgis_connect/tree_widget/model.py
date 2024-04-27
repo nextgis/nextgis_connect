@@ -25,6 +25,7 @@ from nextgis_connect.ngw_api.core import (
     NGWVectorLayer,
 )
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
+from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
     NGWCreateWMSForVector,
@@ -33,6 +34,7 @@ from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISResourcesUploader,
     QGISStyleAdder,
     QGISStyleUpdater,
+    ResourcesDownloader,
 )
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle,
@@ -220,6 +222,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.ngw_version = None
         self.support_status = None
 
+        self.__dangling_resources = {}
+
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
 
@@ -235,6 +239,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.beginResetModel()
 
         self.root_item = QModelItem()
+        self.__dangling_resources = {}
 
         request_error = None
         # Get NGW version.
@@ -511,6 +516,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         return None
 
+    def getResourceByNGWId(self, ngw_resource_id) -> Optional[NGWResource]:
+        index = self.getIndexByNGWResourceId(ngw_resource_id)
+        if index is not None and index.isValid():
+            return index.data(QNGWResourceItem.NGWResourceRole)
+
+        return self.__dangling_resources.get(ngw_resource_id)
+
     def processJobResult(self, job: NGWResourcesModelJob):
         job_result = job.getResult()
 
@@ -616,6 +628,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
             if job.model_response is not None:
                 job.model_response.done.emit(index)
+
+        for ngw_resource in job_result.dangling_resources:
+            self.__dangling_resources[ngw_resource.resource_id] = ngw_resource
 
     @property
     def is_ngw_version_supported(self) -> bool:
@@ -857,6 +872,33 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(worker, lock_indexes=indexes_for_fetch)
 
     @modelRequest
+    def fetch_webmap_resources(
+        self, webmap_indexes: Union[QModelIndex, List[QModelIndex]]
+    ) -> Optional[NGWResourcesModelJob]:
+        if isinstance(webmap_indexes, QModelIndex):
+            webmap_indexes = [webmap_indexes]
+
+        def is_not_downloaded(resource_id: int) -> bool:
+            resource = self.getResourceByNGWId(resource_id)
+            return resource is None
+
+        not_donloaded_resources_id = set(
+            resource_id
+            for index in webmap_indexes
+            for resource_id in index.data(
+                QNGWResourceItem.NGWResourceRole
+            ).all_resources_id
+            if is_not_downloaded(resource_id)
+        )
+        if len(not_donloaded_resources_id) == 0:
+            return None
+
+        worker = ResourcesDownloader(
+            self._ngw_connection.connection_id, not_donloaded_resources_id
+        )
+        return self._startJob(worker)
+
+    @modelRequest
     def download_vector_layers_if_needed(
         self, indexes: Union[QModelIndex, List[QModelIndex]]
     ):
@@ -874,7 +916,6 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             instance_subdir = connection.domain_uuid
 
             if isinstance(ngw_resource, NGWVectorLayer):
-                # TODO set instance id
                 if cache_manager.exists(
                     f"{instance_subdir}/{ngw_resource.common.id}.gpkg"
                 ):
@@ -882,7 +923,6 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                 return [index], [index]
 
             if isinstance(ngw_resource, NGWQGISVectorStyle):
-                # TODO set instance id
                 parent = index.parent()
                 parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
                 if cache_manager.exists(
@@ -907,6 +947,28 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
             return indexes_for_lock, indexes_for_fetch
 
+        def collect_not_downloaded_webmap_layers(webmap: NGWWebMap):
+            result = []
+            for resource_id in webmap.all_resources_id:
+                ngw_resource = self.getResourceByNGWId(resource_id)
+                if not isinstance(ngw_resource, NGWVectorLayer):
+                    continue
+
+                connection = connections_manager.connection(
+                    ngw_resource.connection_id
+                )
+                assert connection is not None
+                instance_subdir = connection.domain_uuid
+
+                if cache_manager.exists(
+                    f"{instance_subdir}/{ngw_resource.resource_id}.gpkg"
+                ):
+                    continue
+
+                result.append(ngw_resource)
+
+            return result
+
         if isinstance(indexes, QModelIndex):
             indexes = [indexes]
 
@@ -917,13 +979,19 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             indexes_for_lock.extend(lock_indexes)
             indexes_for_fetch.extend(fetch_indexes)
 
-        if len(indexes_for_fetch) == 0:
-            return None
-
         vector_layers: List[NGWVectorLayer] = [
             index.data(QNGWResourceItem.NGWResourceRole)
             for index in set(indexes_for_fetch)
         ]
+
+        for index in indexes:
+            webmap = index.data(QNGWResourceItem.NGWResourceRole)
+            if not isinstance(webmap, NGWWebMap):
+                continue
+            vector_layers.extend(collect_not_downloaded_webmap_layers(webmap))
+
+        if len(vector_layers) == 0:
+            return None
 
         worker = NgwCreateVectorLayersStubs(vector_layers)
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))

@@ -4,7 +4,7 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=1.99.6
+version=1.99.7
 author=NextGIS
 email=info@nextgis.com
 
@@ -15,6 +15,7 @@ changelog=
 		* Added navigation to the NGW resource from the QGIS layer tree
 		* Added mechanisms for creating plugins that use NG Connect
 		* Added the ability to create a lookup table when loading layers
+		* Added the ability to add webmaps
 		* Added the ability to add basemaps
 		* Added the ability to add demo projects to QGIS
 		* Switched to QGIS authentication manager as credentials store
@@ -23,7 +24,7 @@ changelog=
 		* Updated the log message mechanism
 		* Accelerated plugin loading
 		* Bug fixes
-		! Supported NGW versions: 4.6.0 - 4.9.0
+		! Supported NGW versions: 4.5.0 - 4.8.0
 	1.5.5
 		* Bug fix
 		! Supported NGW versions: 4.5.0 - 4.8.0

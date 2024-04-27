@@ -74,24 +74,23 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument
 
+from nextgis_connect import utils
+from nextgis_connect.action_style_import_or_update import (
+    ActionStyleImportUpdate,
+)
 from nextgis_connect.detached_editing.utils import detached_layer_uri
+from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
+from nextgis_connect.dialog_metadata import MetadataDialog
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
     NgConnectError,
     NgwError,
 )
+from nextgis_connect.exceptions_list_dialog import ExceptionsListDialog
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
-from nextgis_connect.settings import NgConnectSettings
-
-from . import utils
-from .action_style_import_or_update import ActionStyleImportUpdate
-from .dialog_choose_style import NGWLayerStyleChooserDialog
-from .dialog_metadata import MetadataDialog
-from .exceptions_list_dialog import ExceptionsListDialog
-from .ngw_api.core import (
+from nextgis_connect.ngw_api.core import (
     NGWError,
     NGWGroupResource,
     NGWMapServerStyle,
@@ -104,15 +103,22 @@ from .ngw_api.core import (
     NGWRasterStyle,
     NGWResource,
     NGWVectorLayer,
-    NGWWebMap,
     NGWWfsService,
     NGWWmsConnection,
     NGWWmsLayer,
     NGWWmsService,
 )
-from .ngw_api.qgis.ngw_resource_model_4qgis import QGISResourceJob
-from .ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-from .ngw_api.qgis.resource_to_map import (
+from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
+from nextgis_connect.ngw_api.core.ngw_webmap import (
+    NGWWebMap,
+    NGWWebMapGroup,
+    NGWWebMapLayer,
+)
+from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
+    QGISResourceJob,
+)
+from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
+from nextgis_connect.ngw_api.qgis.resource_to_map import (
     UnsupportedRasterTypeException,
     _add_aliases,
     _add_all_styles_to_layer,
@@ -120,16 +126,23 @@ from .ngw_api.qgis.resource_to_map import (
     add_resource_as_cog_raster,
     add_resource_as_wfs_layers,
 )
-from .ngw_api.qt.qt_ngw_resource_model_job_error import (
+from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobError,
     JobNGWError,
     JobServerRequestError,
     JobWarning,
 )
-from .ngw_connection.ngw_connection_edit_dialog import NgwConnectionEditDialog
-from .ngw_connection.ngw_connections_manager import NgwConnectionsManager
-from .settings.ng_connect_cache_manager import NgConnectCacheManager
-from .tree_widget import (
+from nextgis_connect.ngw_connection.ngw_connection_edit_dialog import (
+    NgwConnectionEditDialog,
+)
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
+)
+from nextgis_connect.settings import NgConnectSettings
+from nextgis_connect.settings.ng_connect_cache_manager import (
+    NgConnectCacheManager,
+)
+from nextgis_connect.tree_widget import (
     QNGWResourceItem,
     QNGWResourceTreeModel,
     QNGWResourceTreeView,
@@ -137,8 +150,8 @@ from .tree_widget import (
 
 HAS_NGSTD = True
 try:
-    from ngstd.core import NGRequest
-    from ngstd.framework import NGAccess
+    from ngstd.core import NGRequest  # type: ignore
+    from ngstd.framework import NGAccess  # type: ignore
 except ImportError:
     HAS_NGSTD = False
 
@@ -397,7 +410,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "QGISStyleAdder": self.tr("Style for layer is being created"),
             "NGWRenameResource": self.tr("Resource is being renamed"),
             "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
-            "NgwCacheVectorLayers": self.tr("Resources is being cached"),
+            "NgwCreateVectorLayersStubs": self.tr(
+                "Vector layers is being downloaded"
+            ),
+            "ResourcesDownloader": self.tr(
+                "WebMap resources is being downloaded"
+            ),
         }
 
         # ngw resources view
@@ -591,6 +609,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         NGWQGISVectorStyle,
                         NGWQGISRasterStyle,
                         NGWBaseMap,
+                        NGWWebMap,
                     ),
                 )
                 for ngw_resource in ngw_resources
@@ -1013,6 +1032,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWQGISVectorStyle,
                     NGWQGISRasterStyle,
                     NGWBaseMap,
+                    NGWWebMap,
                 ),
             )
             for ngw_resource in ngw_resources
@@ -1188,32 +1208,42 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
             return isinstance(ngw_resource, NGWGroupResource)
 
+        def is_webmap(index: QModelIndex) -> bool:
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            return isinstance(ngw_resource, NGWWebMap)
+
         selection_model = self.resources_tree_view.selectionModel()
         assert selection_model is not None
         selected_indexes = selection_model.selectedIndexes()
         self.__preprocess_indexes_list(selected_indexes)
 
-        group_indexes = list(filter(is_folder, selected_indexes))
-        job = self.resource_model.fetch_group(group_indexes)
-
-        if job is not None:
+        def save_command(job) -> None:
             insertion_point = self.iface.layerTreeInsertionPoint()
             self._queue_to_add.append(
                 AddLayersCommand(
                     job.job_uuid, insertion_point, selected_indexes
                 )
             )
+
+        # Fetch group tree if group resource is selected
+        group_indexes = list(filter(is_folder, selected_indexes))
+        job = self.resource_model.fetch_group(group_indexes)
+        if job is not None:
+            save_command(job)
             return
 
+        # Fetch group tree if group resource is selected
+        webmap_indexes = list(filter(is_webmap, selected_indexes))
+        job = self.resource_model.fetch_webmap_resources(webmap_indexes)
+        if job is not None:
+            save_command(job)
+            return
+
+        # Make stubs for vector layers
         model = self.resource_model
         download_job = model.download_vector_layers_if_needed(selected_indexes)
         if download_job is not None:
-            insertion_point = self.iface.layerTreeInsertionPoint()
-            self._queue_to_add.append(
-                AddLayersCommand(
-                    download_job.job_uuid, insertion_point, selected_indexes
-                )
-            )
+            save_command(download_job)
             return
 
         plugin = NgConnectInterface.instance()
@@ -1222,9 +1252,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
         project = QgsProject.instance()
-        assert project is not None
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
-        assert tree_rigistry_bridge is not None
 
         insertion_point = self.iface.layerTreeInsertionPoint()
         backup_point = InsertionPoint(insertion_point)
@@ -1359,6 +1387,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             elif isinstance(ngw_resource, NGWBaseMap):
                 self.__add_basemap(ngw_resource)
+            elif isinstance(ngw_resource, NGWWebMap):
+                self.__add_webmap(ngw_resource, insertion_point)
             elif isinstance(ngw_resource, NGWGroupResource):
                 self.__add_group_to_qgis(index, insertion_point)
 
@@ -1384,11 +1414,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
     ) -> None:
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-        model = self.resource_model
         project = QgsProject.instance()
-        assert project is not None
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
-        assert tree_rigistry_bridge is not None
 
         # Save current insertion point
         insertion_point_backup = InsertionPoint(insertion_point)
@@ -1404,6 +1431,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
 
         # Add content
+        model = self.resource_model
         for row in range(model.rowCount(group_index)):
             child_index = model.index(row, 0, group_index)
             child_resource = child_index.data(QNGWResourceItem.NGWResourceRole)
@@ -2099,6 +2127,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         del self._queue_to_add[found_i]
 
+        def is_webmap(index: QModelIndex) -> bool:
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            return isinstance(ngw_resource, NGWWebMap)
+
+        # Fetch group tree if group resource is selected
+        webmap_indexes = list(filter(is_webmap, command.ngw_indexes))
+        job = self.resource_model.fetch_webmap_resources(webmap_indexes)
+        if job is not None:
+            command.job_uuid = job.job_uuid
+            self._queue_to_add.append(command)
+            return
+
         download_job = model.download_vector_layers_if_needed(
             command.ngw_indexes
         )
@@ -2141,7 +2181,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         vector_layer: NGWVectorLayer,
         children: List[NGWQGISStyle],
         default_style: Optional[NGWQGISVectorStyle] = None,
-    ) -> None:
+    ) -> Optional[QgsVectorLayer]:
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(vector_layer.connection_id)
         assert connection is not None
@@ -2174,13 +2214,211 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         assert project is not None
         project.addMapLayer(qgs_gpkg_layer)
 
-    def __add_basemap(self, basemap: NGWBaseMap) -> None:
+        return qgs_gpkg_layer
+
+    def __add_basemap(
+        self, basemap: NGWBaseMap, display_name: Optional[str] = None
+    ) -> QgsRasterLayer:
         project = QgsProject.instance()
         assert project is not None
-        layer = QgsRasterLayer(*basemap.layer_params)
+
+        if display_name is None:
+            uri, display_name, provider = basemap.layer_params
+        else:
+            uri, _, provider = basemap.layer_params
+
+        layer = QgsRasterLayer(uri, display_name, provider)
         layer.setCustomProperty("ngw_connection_id", basemap.connection_id)
         layer.setCustomProperty("ngw_resource_id", basemap.resource_id)
         project.addMapLayer(layer)
+
+        return layer
+
+    def __add_webmap(
+        self,
+        webmap: NGWWebMap,
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
+    ) -> None:
+        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+
+        project = QgsProject.instance()
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+
+        insertion_point_backup = InsertionPoint(insertion_point)
+
+        webmap_group = insertion_point.group.addGroup(webmap.display_name)
+        assert webmap_group is not None
+        insertion_point.group = webmap_group
+        insertion_point.position = 0
+        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+
+        self.__add_webmap_tree(webmap, insertion_point)
+        self.__add_webmap_basemaps(webmap, insertion_point)
+        self.__set_webmap_extent(webmap)
+
+        # Restore insertion point
+        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
+
+    def __add_webmap_tree(
+        self,
+        webmap: NGWWebMap,
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
+    ) -> None:
+        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+
+        project = QgsProject.instance()
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+
+        for child in webmap.root.children:
+            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+
+            is_added = False
+
+            if isinstance(child, NGWWebMapGroup):
+                is_added = self.__add_webmap_group(
+                    child, InsertionPoint(insertion_point)
+                )
+            elif isinstance(child, NGWWebMapLayer):
+                is_added = self.__add_webmap_layer(child)
+
+            if is_added:
+                insertion_point.position += 1
+
+    def __add_webmap_group(
+        self,
+        webmap_group: NGWWebMapGroup,
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
+    ) -> bool:
+        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+        project = QgsProject.instance()
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+
+        # Save current insertion point
+        insertion_point_backup = InsertionPoint(insertion_point)
+
+        # Create group
+        group = insertion_point.group.addGroup(webmap_group.display_name)
+        group.setExpanded(webmap_group.expanded)
+        assert group is not None
+        insertion_point.group = group
+        insertion_point.position = 0
+
+        for child in webmap_group.children:
+            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+
+            is_added = False
+
+            if isinstance(child, NGWWebMapGroup):
+                is_added = self.__add_webmap_group(
+                    child, InsertionPoint(insertion_point)
+                )
+            elif isinstance(child, NGWWebMapLayer):
+                is_added = self.__add_webmap_layer(child)
+
+            if is_added:
+                insertion_point.position += 1
+
+        # Restore insertion point
+        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
+
+        return True
+
+    def __add_webmap_layer(
+        self,
+        webmap_layer: NGWWebMapLayer,
+    ) -> bool:
+        layer_resource = self.resource_model.getResourceByNGWId(
+            webmap_layer.style_parent_id
+        )
+
+        if isinstance(layer_resource, NGWRasterLayer):
+            connections_manager = NgwConnectionsManager()
+            connection = connections_manager.connection(
+                layer_resource.connection_id
+            )
+            assert connection is not None
+            if connection.auth_config_id is not None:
+                auth_manager = QgsApplication.instance().authManager()
+                auth_method = auth_manager.configAuthMethodKey(
+                    connection.auth_config_id
+                )
+                if auth_method != "Basic":
+                    return False
+
+        style_resource = self.resource_model.getResourceByNGWId(
+            webmap_layer.layer_style_id
+        )
+        if style_resource is None:
+            return False
+
+        assert isinstance(style_resource, NGWQGISStyle)
+
+        if isinstance(layer_resource, NGWVectorLayer):
+            qgs_layer = self.__add_gpkg_layer(layer_resource, [style_resource])
+        elif isinstance(layer_resource, NGWRasterLayer):
+            qgs_layer = add_resource_as_cog_raster(
+                layer_resource, [style_resource]
+            )
+        else:
+            logger.error("Wrong layer resource")
+            return False
+
+        qgs_layer.setName(webmap_layer.display_name)
+
+        if qgs_layer is None:
+            logger.error("Layer wasn't created")
+            return False
+
+        node = QgsProject.instance().layerTreeRoot().findLayer(qgs_layer.id())
+        if node is None:
+            return False
+
+        node.setItemVisibilityChecked(webmap_layer.is_visible)
+
+        node.setExpanded(webmap_layer.legend if webmap_layer.legend else False)
+
+        return True
+
+    def __add_webmap_basemaps(
+        self,
+        webmap: NGWWebMap,
+        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
+    ) -> None:
+        if len(webmap.basemaps) == 0:
+            return
+
+        basemaps_group = insertion_point.group.addGroup(self.tr("Basemaps"))
+        assert basemaps_group is not None
+        insertion_point.group = basemaps_group
+        insertion_point.position = 0
+
+        project = QgsProject.instance()
+        tree_rigistry_bridge = project.layerTreeRegistryBridge()
+        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
+
+        for basemap in webmap.basemaps:
+            basemap_resource = self.resource_model.getResourceByNGWId(
+                basemap.resource_id
+            )
+            if basemap_resource is None:
+                logger.warning("Can't find basemap")
+                continue
+
+            assert isinstance(basemap_resource, NGWBaseMap)
+            basemap_layer = self.__add_basemap(
+                basemap_resource, basemap.display_name
+            )
+
+            if basemap.opacity is not None:
+                basemap_layer.setOpacity(basemap.opacity)
+
+    def __set_webmap_extent(self, webmap: NGWWebMap) -> None:
+        extent = webmap.extent
+        if extent is None:
+            return
+
+        self.iface.mapCanvas().setReferencedExtent(extent)
+        self.iface.mapCanvas().refresh()
 
 
 class NGWPanelToolBar(QToolBar):
