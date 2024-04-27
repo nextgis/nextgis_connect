@@ -266,7 +266,7 @@ class DetachedContainer(QObject):
         ):
             return False
 
-        self.__update_state()
+        self.__update_state(is_full_update=is_manual)
         if self.metadata is None:
             return False
 
@@ -304,15 +304,23 @@ class DetachedContainer(QObject):
         )
 
         # Get resource
+        if self.__metadata is not None:
+            connection_id = self.__metadata.connection_id
+            resource_id = self.__metadata.resource_id
+        else:
+            connection_id = self.__property("ngw_connection_id")
+            resource_id = self.__property("ngw_resource_id")
 
-        connection_id = self.__metadata.connection_id
+        if connection_id is None or resource_id is None:
+            logger.error("Can't force synchronization")
+            return
+
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(connection_id)
         assert connection is not None
         ngw_connection = QgsNgwConnection(connection_id)
 
         resources_factory = NGWResourceFactory(ngw_connection)
-        resource_id = self.__metadata.resource_id
         ngw_layer = resources_factory.get_resource(resource_id)
         assert isinstance(ngw_layer, NGWVectorLayer)
 
@@ -334,6 +342,9 @@ class DetachedContainer(QObject):
 
         try:
             shutil.move(str(temp_file_path), str(self.path))
+            for service_file in self.path.parent.glob(f"{self.path.name}-*"):
+                service_file.unlink(missing_ok=True)
+
         except Exception as os_error:
             message = "Can't replace stub file"
             error = ContainerError(
@@ -342,6 +353,10 @@ class DetachedContainer(QObject):
             error.__cause__ = os_error
 
             NgConnectInterface.instance().show_error(error)
+
+        self.__state = DetachedLayerState.NotInitialized
+        self.__versioning_state = VersioningSynchronizationState.NotInitialized
+        self.__error = None
 
         # Update state and notify listeners
 

@@ -48,12 +48,14 @@ class DetachedEditingTask(NgConnectTask):
 
         except ContainerError as error:
             self._error = error
+            return
 
         except Exception as error:
             message = "An error occured while layer metadata extracting"
             logger.exception(message)
             self._error = ContainerError(message)
             self._error.__cause__ = error
+            return
 
         description = self.tr('"{layer_name}" layer synchronization').format(
             layer_name=self._metadata.layer_name

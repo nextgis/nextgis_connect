@@ -30,13 +30,13 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         self, container_path: Path, *, need_update_structure: bool = False
     ) -> None:
         super().__init__(container_path)
+        if self._error is not None:
+            return
+
         description = self.tr(
             'Downloading layer "{layer_name}" metadata'
         ).format(layer_name=self._metadata.layer_name)
         self.setDescription(description)
-
-        if self._error is not None:
-            return
 
         self.__need_update_structure = need_update_structure
         self.__is_edit_allowed = False

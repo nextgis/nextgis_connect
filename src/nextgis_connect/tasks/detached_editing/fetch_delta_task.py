@@ -27,6 +27,9 @@ class FetchDeltaTask(DetachedEditingTask):
 
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
+        if self._error is not None:
+            return
+
         description = self.tr(
             'Downloading changes for layer "{layer_name}"'
         ).format(layer_name=self._metadata.layer_name)

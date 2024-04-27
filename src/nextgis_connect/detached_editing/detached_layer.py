@@ -119,14 +119,11 @@ class DetachedLayer(QObject):
             self.__container.make_connection()
         ) as connection, closing(connection.cursor()) as cursor:
             cursor.executemany(
-                "INSERT INTO ngw_added_features VALUES (?);",
+                "INSERT INTO ngw_added_features (fid) VALUES (?);",
                 ((feature.id(),) for feature in features),
             )
             cursor.executemany(
-                """
-                INSERT INTO ngw_features_metadata
-                VALUES (?, NULL, NULL, NULL);
-                """,
+                "INSERT INTO ngw_features_metadata (fid) VALUES (?)",
                 ((feature.id(),) for feature in features),
             )
 
@@ -152,28 +149,29 @@ class DetachedLayer(QObject):
                     cursor, feature_ids
                 )
             )
-            delete_added_query = """
-                DELETE
-                FROM ngw_added_features
-                WHERE fid in ({fids})
-            """.format(fids=",".join(["?"] * len(added_fids_intersection)))
-            cursor.execute(delete_added_query, added_fids_intersection)
+
+            joined_added_fids = ",".join(map(str, added_fids_intersection))
+            delete_added_query = f"""
+                DELETE FROM ngw_added_features
+                    WHERE fid in ({joined_added_fids})
+            """
+            cursor.execute(delete_added_query)
 
             # Synchronized features
             removed_fids = set(feature_ids) - set(added_fids_intersection)
             if len(removed_fids) == 0:
+                connection.commit()
+                self.layer_changed.emit()
                 return
 
             # Delete other logs
-            fids_placeholder = ", ".join(str(fid) for fid in removed_fids)
+            joined_removed_fids = ",".join(map(str, removed_fids))
             delete_updated_log_query = f"""
-                DELETE
-                FROM ngw_updated_attributes
-                WHERE fid in ({fids_placeholder});
+                DELETE FROM ngw_updated_attributes
+                    WHERE fid in ({joined_removed_fids});
 
-                DELETE
-                FROM ngw_updated_geometries
-                WHERE fid in ({fids_placeholder});
+                DELETE FROM ngw_updated_geometries
+                    WHERE fid in ({joined_removed_fids});
             """
             cursor.executescript(delete_updated_log_query)
 
@@ -209,6 +207,7 @@ class DetachedLayer(QObject):
             )
             changed_fids = set(feature_ids) - set(added_fids_intersection)
             if len(changed_fids) == 0:
+                self.layer_changed.emit()
                 return
 
             attributes = [
@@ -247,6 +246,7 @@ class DetachedLayer(QObject):
             )
             changed_fids = set(feature_ids) - set(added_fids_intersection)
             if len(changed_fids) == 0:
+                self.layer_changed.emit()
                 return
 
             cursor.executemany(

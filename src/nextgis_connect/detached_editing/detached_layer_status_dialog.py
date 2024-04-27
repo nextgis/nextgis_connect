@@ -43,24 +43,24 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         close_button = button_box_template.button(Button.Close)
         assert close_button is not None
 
-        sync_action = QAction(
+        self.__sync_action = QAction(
             icon=QgsApplication.getThemeIcon("mActionRefresh.svg"),
             text=reset_button.text(),
             parent=self,
         )
-        sync_action.triggered.connect(self.__synchronize)
+        self.__sync_action.triggered.connect(self.__synchronize)
 
-        forced_sync_action = QAction(
+        self.__forced_sync_action = QAction(
             icon=reset_button.icon(),
             text=self.tr("Forced synchronization"),
             parent=self,
         )
-        forced_sync_action.triggered.connect(self.__forced_synchronize)
+        self.__forced_sync_action.triggered.connect(self.__forced_synchronize)
 
         sync_menu = QMenu(self)
-        sync_menu.addAction(forced_sync_action)
+        sync_menu.addAction(self.__forced_sync_action)
         self.syncButton.setMenu(sync_menu)
-        self.syncButton.setDefaultAction(sync_action)
+        self.syncButton.setDefaultAction(self.__sync_action)
         self.syncButton.setFixedHeight(reset_button.sizeHint().height())
 
         self.closeButton.setIcon(close_button.icon())
@@ -99,9 +99,13 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
 
     @pyqtSlot(name="updateSyncButton")
     def __update_sync_button(self) -> None:
+        self.syncButton.setDefaultAction(
+            self.__sync_action
+            if self.__container.metadata is not None
+            else self.__forced_sync_action
+        )
         self.syncButton.setEnabled(
-            self.__container.metadata is not None
-            and self.__container.state != DetachedLayerState.Synchronization
+            self.__container.state != DetachedLayerState.Synchronization
             and not self.__container.is_edit_mode_enabled
         )
 

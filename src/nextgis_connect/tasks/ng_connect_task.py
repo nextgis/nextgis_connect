@@ -24,4 +24,7 @@ class NgConnectTask(QgsTask):
             if debugpy.is_client_connected():
                 debugpy.debug_this_thread()
 
+        if self._error is not None:
+            return False
+
         return True

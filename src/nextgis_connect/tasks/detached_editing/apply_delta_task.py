@@ -38,6 +38,9 @@ class ApplyDeltaTask(DetachedEditingTask):
         delta: List[VersioningAction],
     ) -> None:
         super().__init__(container_path)
+        if self._error is not None:
+            return
+
         description = self.tr(
             'Applying changes for layer "{layer_name}"'
         ).format(layer_name=self._metadata.layer_name)

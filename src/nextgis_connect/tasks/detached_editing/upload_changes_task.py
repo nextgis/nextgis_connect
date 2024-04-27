@@ -22,6 +22,9 @@ class UploadChangesTask(DetachedEditingTask):
 
     def __init__(self, container_path: Path) -> None:
         super().__init__(container_path)
+        if self._error is not None:
+            return
+
         description = self.tr('"{layer_name}" layer synchronization').format(
             layer_name=self._metadata.layer_name
         )
