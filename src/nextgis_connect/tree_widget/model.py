@@ -24,7 +24,9 @@ from nextgis_connect.ngw_api.core import (
     NGWResource,
     NGWVectorLayer,
 )
+from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisLayer
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
+from nextgis_connect.ngw_api.core.ngw_tms_resources import NGWTmsLayer
 from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
@@ -995,3 +997,51 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         worker = NgwCreateVectorLayersStubs(vector_layers)
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))
+
+    @modelRequest
+    def fetch_services_if_needed(
+        self, indexes: Union[QModelIndex, List[QModelIndex]]
+    ):
+        if isinstance(indexes, QModelIndex):
+            indexes = [indexes]
+
+        def is_downloaded(resource_id: int) -> bool:
+            resource = self.getResourceByNGWId(resource_id)
+            return resource is not None
+
+        def collect_not_fetched_webmap_services(webmap: NGWWebMap):
+            result = []
+            for resource_id in webmap.all_resources_id:
+                ngw_resource = self.getResourceByNGWId(resource_id)
+                if not isinstance(
+                    ngw_resource, (NGWTmsLayer, NGWPostgisLayer)
+                ):
+                    continue
+
+                if is_downloaded(ngw_resource.service_resource_id):
+                    continue
+
+                result.append(ngw_resource.service_resource_id)
+
+            return result
+
+        not_donloaded_resources_id = set()
+        for index in indexes:
+            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+            if isinstance(ngw_resource, NGWTmsLayer):
+                if not is_downloaded(ngw_resource.service_resource_id):
+                    not_donloaded_resources_id.add(
+                        ngw_resource.service_resource_id
+                    )
+            elif isinstance(ngw_resource, NGWWebMap):
+                not_donloaded_resources_id.update(
+                    collect_not_fetched_webmap_services(ngw_resource)
+                )
+
+        if len(not_donloaded_resources_id) == 0:
+            return None
+
+        worker = ResourcesDownloader(
+            self._ngw_connection.connection_id, not_donloaded_resources_id
+        )
+        return self._startJob(worker)

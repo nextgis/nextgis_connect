@@ -194,9 +194,9 @@ class QProcessOverlay(QOverlay):
     def write(self, jobs):
         text = ""
         for job_name, job_status in list(jobs.items()):
-            text += "<strong>%s</strong><br/>" % job_name
+            text += f"<strong>{job_name}</strong><br/>"
             if job_status != "":
-                text += "%s<br/>" % job_status
+                text += f"{job_status}<br/>"
 
         self.text.setText(text)
 

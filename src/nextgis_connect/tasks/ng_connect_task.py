@@ -3,6 +3,7 @@ from typing import Optional, Union
 from qgis.core import QgsTask
 
 from nextgis_connect.exceptions import NgConnectError
+from nextgis_connect.logging import logger
 from nextgis_connect.settings import NgConnectSettings
 
 
@@ -19,10 +20,15 @@ class NgConnectTask(QgsTask):
 
     def run(self) -> bool:
         if NgConnectSettings().is_developer_mode:
-            import debugpy  # noqa: T100
-
-            if debugpy.is_client_connected():
-                debugpy.debug_this_thread()
+            try:
+                import debugpy  # noqa: T100
+            except ImportError:
+                logger.warning(
+                    "To support threads debugging you need to install debugpy"
+                )
+            else:
+                if debugpy.is_client_connected():
+                    debugpy.debug_this_thread()
 
         if self._error is not None:
             return False

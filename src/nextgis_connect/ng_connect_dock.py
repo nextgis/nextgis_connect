@@ -109,6 +109,11 @@ from nextgis_connect.ngw_api.core import (
     NGWWmsService,
 )
 from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
+from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisConnection
+from nextgis_connect.ngw_api.core.ngw_tms_resources import (
+    NGWTmsConnection,
+    NGWTmsLayer,
+)
 from nextgis_connect.ngw_api.core.ngw_webmap import (
     NGWWebMap,
     NGWWebMapGroup,
@@ -122,6 +127,7 @@ from nextgis_connect.ngw_api.qgis.resource_to_map import (
     UnsupportedRasterTypeException,
     _add_aliases,
     _add_all_styles_to_layer,
+    _add_lookup_tables,
     add_ogcf_resource,
     add_resource_as_cog_raster,
     add_resource_as_wfs_layers,
@@ -414,7 +420,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 "Vector layers is being downloaded"
             ),
             "ResourcesDownloader": self.tr(
-                "WebMap resources is being downloaded"
+                "Linked resources is being downloaded"
             ),
         }
 
@@ -609,6 +615,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         NGWQGISVectorStyle,
                         NGWQGISRasterStyle,
                         NGWBaseMap,
+                        NGWTmsLayer,
+                        NGWPostgisLayer,
                         NGWWebMap,
                     ),
                 )
@@ -777,10 +785,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         msg_ext = None
         icon = os.path.join(ICONS_PATH, "Error.svg")
 
-        if exception.__class__ == JobServerRequestError:
+        if isinstance(exception, JobServerRequestError):
             msg = self.tr("Error occurred while communicating with Web GIS")
-            msg_ext = "URL: %s" % str(exception)
-            msg_ext += "\nMSG: %s" % exception
+            msg_ext = f"URL: {exception.url}"
+            msg_ext += f"\nMSG: {exception}"
 
         elif exception.__class__ == JobNGWError:
             msg = str(exception)
@@ -790,7 +798,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             isinstance(exception, NgwError)
             and exception.code == ErrorCode.AuthorizationError
         ):
-            msg = " %s." % self.tr("Access denied. Enter your login.")
+            msg = " " + self.tr("Access denied. Enter your login.")
 
         elif exception.__class__ == JobError:
             msg = str(exception)
@@ -1032,6 +1040,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWQGISVectorStyle,
                     NGWQGISRasterStyle,
                     NGWBaseMap,
+                    NGWTmsLayer,
+                    NGWPostgisLayer,
                     NGWWebMap,
                 ),
             )
@@ -1202,6 +1212,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             add_resource_as_cog_raster(
                 resource, style_resources, default_style
             )
+        elif resource.type_id == NGWPostgisLayer.type_id:
+            self.__add_postgis_layer(resource, style_resources, default_style)
 
     def __export_to_qgis(self):
         def is_folder(index: QModelIndex) -> bool:
@@ -1235,6 +1247,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # Fetch group tree if group resource is selected
         webmap_indexes = list(filter(is_webmap, selected_indexes))
         job = self.resource_model.fetch_webmap_resources(webmap_indexes)
+        if job is not None:
+            save_command(job)
+            return
+
+        job = self.resource_model.fetch_services_if_needed(selected_indexes)
         if job is not None:
             save_command(job)
             return
@@ -1315,12 +1332,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 siblings = cast(
                     List[NGWQGISStyle], parent_resource.get_children()
                 )
-                self.__add_gpkg_layer(parent_resource, siblings, ngw_resource)
+                if isinstance(parent_resource, NGWPostgisLayer):
+                    self.__add_postgis_layer(
+                        parent_resource, siblings, ngw_resource
+                    )
+                elif isinstance(parent_resource, NGWVectorLayer):
+                    self.__add_gpkg_layer(
+                        parent_resource, siblings, ngw_resource
+                    )
+                else:
+                    logger.error("Unsupported type")
+
             elif isinstance(ngw_resource, NGWRasterLayer):
                 try:
                     self._add_with_style(ngw_resource)
                 except UnsupportedRasterTypeException:
                     self._show_unsupported_raster_err()
+
             elif isinstance(ngw_resource, NGWQGISRasterStyle):
                 try:
                     parent_resource: NGWResource = index.parent().data(
@@ -1387,6 +1415,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             elif isinstance(ngw_resource, NGWBaseMap):
                 self.__add_basemap(ngw_resource)
+            elif isinstance(ngw_resource, NGWTmsLayer):
+                self.__add_tms_layer(ngw_resource)
+            elif isinstance(ngw_resource, NGWPostgisLayer):
+                self._add_with_style(ngw_resource)
             elif isinstance(ngw_resource, NGWWebMap):
                 self.__add_webmap(ngw_resource, insertion_point)
             elif isinstance(ngw_resource, NGWGroupResource):
@@ -1596,7 +1628,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resources_tree_view.ngw_job_block_overlay.hide()
 
                 dlg = MetadataDialog(ngw_resource, self)
-                _ = dlg.exec_()
+                dlg.exec()
 
             except NGWError as error:
                 ng_error = NgwError()
@@ -1762,7 +1794,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     f'Layer "{ngw_src.common.display_name}" can\'t be added to the map!'
                 )
         else:
-            raise Exception("Wrong layer type! Type id: {}" % ngw_src.type_id)
+            raise Exception(f"Wrong layer type! Type id: {ngw_src.type_id}")
 
         # Export QGIS layer to NGW
         resJob = QGISResourceJob()
@@ -2139,6 +2171,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self._queue_to_add.append(command)
             return
 
+        job = self.resource_model.fetch_services_if_needed(command.ngw_indexes)
+        if job is not None:
+            command.job_uuid = job.job_uuid
+            self._queue_to_add.append(command)
+            return
+
         download_job = model.download_vector_layers_if_needed(
             command.ngw_indexes
         )
@@ -2179,7 +2217,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def __add_gpkg_layer(
         self,
         vector_layer: NGWVectorLayer,
-        children: List[NGWQGISStyle],
+        styles: List[NGWQGISStyle],
         default_style: Optional[NGWQGISVectorStyle] = None,
     ) -> Optional[QgsVectorLayer]:
         connections_manager = NgwConnectionsManager()
@@ -2206,13 +2244,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         qgs_gpkg_layer.dataProvider().setEncoding("UTF-8")  # type: ignore
 
-        _add_all_styles_to_layer(qgs_gpkg_layer, children, default_style)
+        _add_all_styles_to_layer(qgs_gpkg_layer, styles, default_style)
 
         _add_aliases(qgs_gpkg_layer, vector_layer)
 
-        project = QgsProject.instance()
-        assert project is not None
-        project.addMapLayer(qgs_gpkg_layer)
+        QgsProject.instance().addMapLayer(qgs_gpkg_layer)
 
         return qgs_gpkg_layer
 
@@ -2233,6 +2269,67 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project.addMapLayer(layer)
 
         return layer
+
+    def __add_tms_layer(
+        self, tms_layer: NGWTmsLayer, display_name: Optional[str] = None
+    ) -> QgsRasterLayer:
+        project = QgsProject.instance()
+        assert project is not None
+
+        tms_connection = cast(
+            NGWTmsConnection,
+            self.resource_model.getResourceByNGWId(
+                tms_layer.service_resource_id
+            ),
+        )
+        layer_params = tms_layer.layer_params(tms_connection)
+
+        if display_name is None:
+            uri, display_name, provider = layer_params
+        else:
+            uri, _, provider = layer_params
+
+        layer = QgsRasterLayer(uri, display_name, provider)
+        layer.setCustomProperty("ngw_connection_id", tms_layer.connection_id)
+        layer.setCustomProperty("ngw_resource_id", tms_layer.resource_id)
+        project.addMapLayer(layer)
+
+        return layer
+
+    def __add_postgis_layer(
+        self,
+        postgis_layer: NGWPostgisLayer,
+        styles: List[NGWQGISStyle],
+        default_style: Optional[NGWQGISVectorStyle] = None,
+    ) -> QgsVectorLayer:
+        project = QgsProject.instance()
+        assert project is not None
+
+        postgis_connection = cast(
+            NGWPostgisConnection,
+            self.resource_model.getResourceByNGWId(
+                postgis_layer.service_resource_id
+            ),
+        )
+        uri, display_name, provider = postgis_layer.layer_params(
+            postgis_connection
+        )
+
+        qgs_layer = QgsVectorLayer(uri, display_name, provider)
+        qgs_layer.setCustomProperty(
+            "ngw_connection_id", postgis_layer.connection_id
+        )
+        qgs_layer.setCustomProperty(
+            "ngw_resource_id", postgis_layer.resource_id
+        )
+
+        _add_all_styles_to_layer(qgs_layer, styles, default_style)
+        _add_aliases(qgs_layer, postgis_layer)
+        _add_lookup_tables(qgs_layer, postgis_layer)
+
+        QgsProject.instance().addMapLayer(qgs_layer)
+
+        return qgs_layer
 
     def __add_webmap(
         self,
@@ -2352,15 +2449,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if style_resource is None:
             return False
 
+        styles = [style_resource]
+
         if isinstance(layer_resource, NGWVectorLayer):
-            assert isinstance(style_resource, NGWQGISStyle)
-            qgs_layer = self.__add_gpkg_layer(layer_resource, [style_resource])
+            qgs_layer = self.__add_gpkg_layer(layer_resource, styles)  # type: ignore
+
+        elif isinstance(layer_resource, NGWPostgisLayer):
+            qgs_layer = self.__add_postgis_layer(layer_resource, styles)  # type: ignore
 
         elif isinstance(layer_resource, NGWRasterLayer):
-            assert isinstance(style_resource, NGWQGISStyle)
-            qgs_layer = add_resource_as_cog_raster(
-                layer_resource, [style_resource]
-            )
+            qgs_layer = add_resource_as_cog_raster(layer_resource, styles)
 
         elif isinstance(style_resource, NGWWmsLayer):
             qgs_layer = utils.add_wms_layer(
@@ -2369,6 +2467,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 style_resource.ngw_wms_layers,
                 connection,
             )
+
+        elif isinstance(style_resource, NGWTmsLayer):
+            qgs_layer = self.__add_tms_layer(style_resource)
 
         else:
             logger.error("Wrong layer resource")
