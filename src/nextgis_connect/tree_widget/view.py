@@ -55,7 +55,9 @@ class QMessageOverlay(QOverlay):
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
         self.text.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
+            Qt.TextInteractionFlags()
+            | Qt.TextInteractionFlag.TextSelectableByMouse
+            | Qt.TextInteractionFlag.TextBrowserInteraction
         )
         self.layout.addWidget(self.text)
 
@@ -91,9 +93,22 @@ class MigrationOverlay(QOverlay):
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
 
-        full_migrate_button = QPushButton(
-            self.tr("Convert connectons and authentification data")
+        full_migrate_button = QPushButton(self)
+        button_size_policy = full_migrate_button.sizePolicy()
+        button_size_policy.setVerticalPolicy(QSizePolicy.Policy.Preferred)
+        full_migrate_button.setSizePolicy(button_size_policy)
+
+        migrate_label = QLabel(
+            self.tr("Convert connectons and authentification data"),
+            full_migrate_button,
         )
+        migrate_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        migrate_label.setWordWrap(True)
+
+        button_layout = QVBoxLayout(full_migrate_button)
+        button_layout.addWidget(migrate_label)
+        button_layout.setContentsMargins(6, 6, 6, 6)
+
         full_migrate_button.clicked.connect(self.__full_migrate)
 
         layout.addSpacerItem(spacer_before)
@@ -368,7 +383,7 @@ class QNGWResourceTreeView(QTreeView):
         dialog.setHintString(self.tr("Enter new name for selected resource"))
         dialog.setConflictingNameWarning(self.tr("Resource already exists"))
 
-        if dialog.exec_() != QDialog.DialogCode.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         new_name = dialog.name()

@@ -168,10 +168,20 @@ class DetachedLayerFactory:
                 'lookup_table' INTEGER
             );
 
+            CREATE TABLE ngw_added_attributes (
+                'cid' INTEGER
+            );
+            CREATE TABLE ngw_removed_attributes (
+                'cid' INTEGER
+            );
+
             CREATE TABLE ngw_added_features (
                 'fid' INTEGER
             );
             CREATE TABLE ngw_removed_features (
+                'fid' INTEGER
+            );
+            CREATE TABLE ngw_restored_features (
                 'fid' INTEGER
             );
             CREATE TABLE ngw_updated_attributes (
@@ -267,12 +277,12 @@ class DetachedLayerFactory:
             """
             SELECT table_name FROM gpkg_contents
             WHERE data_type='features'
-        """
+            """
         )
         table_name = cursor.fetchone()[0]
         cursor.execute(
             f"""
             INSERT INTO ngw_features_metadata
                 SELECT fid, fid, NULL, NULL FROM '{table_name}'
-        """
+            """
         )

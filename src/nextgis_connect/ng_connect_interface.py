@@ -2,7 +2,6 @@ import configparser
 from abc import ABC, abstractmethod
 
 from qgis import utils
-from qgis.core import QgsTaskManager
 from qgis.PyQt.QtCore import QAbstractItemModel, QItemSelectionModel
 from qgis.PyQt.QtWidgets import QToolBar
 
@@ -10,7 +9,7 @@ from qgis.PyQt.QtWidgets import QToolBar
 class NgConnectInterface(ABC):
     PACKAGE_NAME = "nextgis_connect"
     PLUGIN_NAME = "NextGIS Connect"
-    TRANSLATE_CONTEXT = "NgConnectPlugin"
+    TRANSLATION_CONTEXT = "NgConnectPlugin"
 
     @classmethod
     def instance(cls) -> "NgConnectInterface":
@@ -34,15 +33,11 @@ class NgConnectInterface(ABC):
 
     @property
     @abstractmethod
-    def model(self) -> QAbstractItemModel: ...
+    def resource_model(self) -> QAbstractItemModel: ...
 
     @property
     @abstractmethod
-    def selection_model(self) -> QItemSelectionModel: ...
-
-    @property
-    @abstractmethod
-    def task_manager(self) -> QgsTaskManager: ...
+    def resource_selection_model(self) -> QItemSelectionModel: ...
 
     @abstractmethod
     def synchronize_layers(self) -> None: ...
@@ -55,6 +50,3 @@ class NgConnectInterface(ABC):
 
     @abstractmethod
     def show_error(self, error: Exception) -> None: ...
-
-    # TODO(ibarsukov): add import adction
-    # TODO(ibarsukov): add export adction

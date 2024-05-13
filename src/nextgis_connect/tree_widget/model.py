@@ -54,7 +54,9 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
 )
 from nextgis_connect.ngw_connection import NgwConnectionsManager
-from nextgis_connect.settings import NgConnectCacheManager
+from nextgis_connect.settings.ng_connect_cache_manager import (
+    NgConnectCacheManager,
+)
 
 from .item import QModelItem, QNGWResourceItem
 
@@ -658,6 +660,16 @@ def modelRequest(
 
 
 class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
+    @property
+    def connection_id(self) -> Optional[str]:
+        if self._ngw_connection is None:
+            return None
+        return self._ngw_connection.connection_id
+
+    @property
+    def is_connected(self) -> bool:
+        return self.ngw_version is not None
+
     def _nearest_ngw_group_resource_parent(self, index):
         checking_index = index
 

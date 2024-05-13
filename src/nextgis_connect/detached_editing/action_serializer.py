@@ -42,7 +42,9 @@ class ActionSerializer:
         self.__layer_metadata = layer_metadata
         self.__fields = {}
 
-    def to_json(self, actions: Iterable[VersioningAction]) -> str:
+    def to_json(
+        self, actions: Iterable[VersioningAction], last_action_number: int = 0
+    ) -> str:
         if len(self.__fields) == 0:
             self.__fields = {
                 field.ngw_id: field for field in self.__layer_metadata.fields
@@ -58,7 +60,10 @@ class ActionSerializer:
 
         if self.__layer_metadata.is_versioning_enabled:
             actions_container = list(
-                (number, action) for number, action in enumerate(actions)
+                (number, action)
+                for number, action in enumerate(
+                    actions, start=last_action_number
+                )
             )
 
         return json.dumps(actions_container, default=action_converter)

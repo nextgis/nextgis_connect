@@ -204,9 +204,10 @@ class UploadChangesTask(DetachedEditingTask):
         serializer = ActionSerializer(layer_metadata)
 
         iterator = iter(actions)
+        last_action_number = 0
         batch = tuple(islice(iterator, self.BATCH_SIZE))
         while batch:
-            body = serializer.to_json(batch)
+            body = serializer.to_json(batch, last_action_number)
 
             logger.debug(f"Send {len(batch)} actions")
 
@@ -215,6 +216,7 @@ class UploadChangesTask(DetachedEditingTask):
                 body,
             )
 
+            last_action_number += len(batch)
             batch = tuple(islice(iterator, self.BATCH_SIZE))
 
         logger.debug(f"Commit transaction {transaction_id}")

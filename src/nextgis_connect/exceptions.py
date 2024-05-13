@@ -35,8 +35,8 @@ class ErrorCode(IntEnum):
     SynchronizationError = 1200
     NotVersionedContentChanged = auto()
     DomainChanged = auto()
-    EpochChanged = auto()
     StructureChanged = auto()
+    EpochChanged = auto()
     VersioningEnabled = auto()
     VersioningDisabled = auto()
 
@@ -91,7 +91,7 @@ class NgConnectError(Exception):
             log_message
             if log_message is not None
             else _default_log_message(self.code)
-        )
+        ).strip()
 
         super().__init__(f"<b>{log_message}</b>")
 
@@ -100,8 +100,14 @@ class NgConnectError(Exception):
             if user_message is not None
             else default_user_message(self.code)
         )
+        if self.__user_message is not None:
+            self.__user_message = self.__user_message.strip()
 
-        self.__detail = detail
+        self.__detail = (
+            detail if detail is not None else default_detail(self.code)
+        )
+        if self.__detail is not None:
+            self.__detail = self.__detail.strip()
 
         if self.code != ErrorCode.PluginError:
             self.add_note(f"Error code: {self.code.name}")
@@ -163,6 +169,8 @@ class NgwError(NgConnectError):
             code = ErrorCode.AuthorizationError
         elif status_code == HTTPStatus.FORBIDDEN:
             code = ErrorCode.PermissionsError
+        elif status_code == HTTPStatus.NOT_FOUND:
+            code = ErrorCode.NotFound
         else:
             code = ErrorCode.NgwError
 
@@ -181,9 +189,12 @@ class NgwError(NgConnectError):
             code=code,
         )
 
-        error.add_note(f"NGW exception: {json.get('exception')}")
         error.add_note(f"Status code: {status_code}")
-        error.add_note(f"Guru meditation: {json.get('guru_meditation')}")
+
+        if "exception" in json:
+            error.add_note(f"NGW exception: {json.get('exception')}")
+        if "guru_meditation" in json:
+            error.add_note(f"Guru meditation: {json.get('guru_meditation')}")
 
         return error
 
@@ -285,6 +296,7 @@ def _default_log_message(code: ErrorCode) -> str:
 
 @lru_cache(maxsize=128)
 def default_user_message(code: ErrorCode) -> str:
+    # fmt: off
     messages = {
         ErrorCode.PluginError: QgsApplication.translate(
             "Errors", "Internal plugin error occurred."
@@ -303,41 +315,41 @@ def default_user_message(code: ErrorCode) -> str:
         ),
         ErrorCode.ContainerCreationError: QgsApplication.translate(
             "Errors",
-            "An error occurred while creating the container for the layer.",
+            "An error occurred while creating the container for the layer."
         ),
         ErrorCode.ContainerVersionIsOutdated: QgsApplication.translate(
-            "Errors",
-            "The container version is out of date. It is necessary to update "
-            "using forced synchronization.",
+            "Errors", "The container version is out of date."
         ),
         ErrorCode.DeletedContainer: QgsApplication.translate(
             "Errors",
-            "The container could not be found. It may have been deleted.",
+            "The container could not be found. It may have been deleted."
         ),
         ErrorCode.SynchronizationError: QgsApplication.translate(
             "Errors", "An error occured while layer synchronization."
         ),
         ErrorCode.NotVersionedContentChanged: QgsApplication.translate(
-            "Errors",
-            "Layer features have been modified outside of QGIS. No further"
-            " synchronization is possible.",
+            "Errors", "Layer features have been modified outside of QGIS."
         ),
         ErrorCode.DomainChanged: QgsApplication.translate(
             "Errors",
-            "Invalid NextGIS Web address. Please check layer connection"
-            " settings.",
+            "Invalid NextGIS Web address."
+        ),
+        ErrorCode.StructureChanged: QgsApplication.translate(
+            "Errors",
+            "The layer structure is different from the structure on the server."
+        ),
+        ErrorCode.EpochChanged: QgsApplication.translate(
+            "Errors",
+            "Versioning state has been changed on ther server multiple times."
         ),
         ErrorCode.VersioningEnabled: QgsApplication.translate(
-            "Errors",
-            "Versioning has been enabled. No further synchronization is"
-            " possible.",
+            "Errors", "Versioning has been enabled on the server."
         ),
         ErrorCode.VersioningDisabled: QgsApplication.translate(
-            "Errors",
-            "Versioning has been disabled. No further synchronization is"
-            " possible.",
+            "Errors", "Versioning has been disabled on the server."
         ),
     }
+    # fmt: on
 
     code_message = messages.get(code)
     if code_message is not None:
@@ -351,3 +363,29 @@ def default_user_message(code: ErrorCode) -> str:
         return code_message
 
     return messages[ErrorCode.PluginError]
+
+
+@lru_cache(maxsize=128)
+def default_detail(code: ErrorCode) -> Optional[str]:
+    # fmt: off
+    layer_reset_detail = QgsApplication.translate(
+        "Errors",
+        "Changes in the structure of the layer and some of its settings lead"
+        " to the fact that further synchronization becomes impossible.\n\n"
+        "To continue working with the layer, you need to reset the layer to"
+        " its state in NextGIS Web. This can be done from the sync status"
+        " window by clicking on the layer indicator.\n\n"
+        "If a layer contains important changes that were not sent to the"
+        " server, they will be lost. Create a backup if necessary."
+    )
+    # fmt: on
+
+    detail = {
+        ErrorCode.ContainerVersionIsOutdated: layer_reset_detail,
+        ErrorCode.NotVersionedContentChanged: layer_reset_detail,
+        ErrorCode.EpochChanged: layer_reset_detail,
+        ErrorCode.StructureChanged: layer_reset_detail,
+        ErrorCode.VersioningEnabled: layer_reset_detail,
+        ErrorCode.VersioningDisabled: layer_reset_detail,
+    }
+    return detail.get(code)

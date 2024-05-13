@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from qgis.core import (
     QgsExpressionContext,
@@ -96,8 +96,13 @@ class FeatureMetaData:
     description: Optional[str] = None
 
 
-def container_path(layer: QgsMapLayer) -> Path:
-    return Path(layer.source().split("|")[0])
+def container_path(layer: Union[QgsMapLayer, Path]) -> Path:
+    if isinstance(layer, QgsMapLayer):
+        return Path(layer.source().split("|")[0])
+    elif isinstance(layer, Path):
+        return layer
+    else:
+        raise TypeError
 
 
 def detached_layer_uri(path: Path) -> str:
@@ -113,11 +118,11 @@ def detached_layer_uri(path: Path) -> str:
         return f"{path}|layername={cursor.fetchone()[0]}"
 
 
-def is_ngw_container(layer: QgsMapLayer) -> bool:
+def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
         return "ngw_connection_id" in layer.customPropertyKeys()
 
-    def has_metadata(layer: QgsMapLayer) -> bool:
+    def has_metadata(layer: Union[QgsMapLayer, Path]) -> bool:
         try:
             with closing(
                 sqlite3.connect(container_path(layer))
@@ -135,11 +140,19 @@ def is_ngw_container(layer: QgsMapLayer) -> bool:
 
         return False
 
-    return (
-        isinstance(layer, QgsVectorLayer)
-        and layer.storageType() == "GPKG"
-        and (has_properties(layer) or has_metadata(layer))
-    )
+    if isinstance(layer, QgsVectorLayer):
+        return layer.storageType() == "GPKG" and (
+            has_properties(layer) or has_metadata(layer)
+        )
+
+    elif isinstance(layer, Path):
+        return (
+            layer.is_file()
+            and layer.suffix.lower() == ".gpkg"
+            and has_metadata(layer)
+        )
+
+    return False
 
 
 @singledispatch
@@ -294,7 +307,7 @@ def ngw_feature_id(
     return None
 
 
-@qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
+# @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
 def ngw_feature_description(
     feature: QgsFeature, context: QgsExpressionContext
 ) -> Optional[str]:

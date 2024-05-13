@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import closing
 from pathlib import Path
 from typing import List, Optional, cast
 
@@ -121,14 +122,18 @@ class DetachedEditingTask(NgConnectTask):
             error.add_note(f"Remote: {ngw_layer.geom_name}")
             raise error
 
-        if not self.__is_fields_compatible(
-            self._metadata.fields, ngw_layer.fields
-        ):
-            message = "Fields is not compatible"
+        if not self.__is_fields_compatible(ngw_layer.fields):
+            message = "Fields changed in NGW"
             code = ErrorCode.StructureChanged
             error = SynchronizationError(message, code=code)
             error.add_note(f"Local: {self._metadata.fields}")
             error.add_note(f"Remote: {ngw_layer.fields}")
+            raise error
+
+        if self.__is_container_fields_changed():
+            message = "Fields changed in QGIS"
+            code = ErrorCode.StructureChanged
+            error = SynchronizationError(message, code=code)
             raise error
 
         if (
@@ -168,12 +173,12 @@ class DetachedEditingTask(NgConnectTask):
                 code = ErrorCode.NotVersionedContentChanged
                 error = SynchronizationError(message, code=code)
                 error.add_note(f"Last sync count: {last_sync_features_count}")
-                error.add_note(f"Count: {remote_features_count}")
+                error.add_note(f"Remote count: {remote_features_count}")
                 raise error
 
-    def __is_fields_compatible(
-        self, lhs: List[NgwField], rhs: List[NgwField]
-    ) -> bool:
+    def __is_fields_compatible(self, rhs: List[NgwField]) -> bool:
+        lhs = self._metadata.fields
+
         if len(lhs) != len(rhs):
             return False
 
@@ -187,6 +192,24 @@ class DetachedEditingTask(NgConnectTask):
 
         return True
 
+    def __is_container_fields_changed(self) -> bool:
+        container_fields_name = set()
+        with closing(self._make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            container_fields_name = set(
+                row[1]
+                for row in cursor.execute(
+                    f"PRAGMA table_info('{self._metadata.table_name}')"
+                )
+                if row[1] not in ("fid", "geom")
+            )
+
+        return any(
+            ngw_field.keyname not in container_fields_name
+            for ngw_field in self._metadata.fields
+        )
+
     def __check_connection(self) -> None:
         connection_id = self._metadata.connection_id
         connection_manager = NgwConnectionsManager()
@@ -195,10 +218,23 @@ class DetachedEditingTask(NgConnectTask):
                 default_user_message(ErrorCode.SynchronizationError)
                 + " "
                 + default_user_message(ErrorCode.InvalidConnection)
+                + " "
+                + self.tr("Please check layer connection settings.")
             )
             self._error = SynchronizationError(user_message=user_message)
             self._error.add_note(f"Connection id = {connection_id}")
+            return
 
         connection = connection_manager.connection(connection_id)
         if self._metadata.instance_id != connection.domain_uuid:
-            self._error = SynchronizationError(code=ErrorCode.DomainChanged)
+            user_message = (
+                default_user_message(ErrorCode.SynchronizationError)
+                + " "
+                + default_user_message(ErrorCode.DomainChanged)
+                + " "
+                + self.tr("Please check layer connection settings.")
+            )
+            self._error = SynchronizationError(
+                code=ErrorCode.DomainChanged, user_message=user_message
+            )
+            return

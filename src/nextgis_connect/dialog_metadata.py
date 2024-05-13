@@ -208,7 +208,7 @@ class MetadataDialog(QDialog, FORM_CLASS):
             )
             qm.setStandardButtons(QMessageBox.Yes | QMessageBox.Close)
             qm.button(QMessageBox.Yes).setText(self.tr("Continue"))
-            if qm.exec_() != QMessageBox.Yes:
+            if qm.exec() != QMessageBox.Yes:
                 self.reject()
         else:
             self.accept()

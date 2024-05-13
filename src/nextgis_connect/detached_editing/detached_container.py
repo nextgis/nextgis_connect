@@ -1,6 +1,7 @@
 import shutil
 import sqlite3
 import tempfile
+from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -298,10 +299,8 @@ class DetachedContainer(QObject):
 
         return True
 
-    def force_synchronize(self) -> None:
-        logger.debug(
-            f"Started forced synchronization for layer {self.metadata}"
-        )
+    def reset_container(self) -> None:
+        logger.debug(f"Started layer {self.metadata} reset")
 
         # Get resource
         if self.__metadata is not None:
@@ -395,6 +394,8 @@ class DetachedContainer(QObject):
 
             self.state_changed.emit(self.__state)
             return
+
+        self.__check_structure()
 
         if self.state == DetachedLayerState.Error:
             if is_full_update:
@@ -724,6 +725,34 @@ class DetachedContainer(QObject):
         self.__error = error
 
         NgConnectInterface.instance().show_error(error)
+
+    def __check_structure(self) -> None:
+        container_fields_name = set()
+        with closing(self.make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            container_fields_name = set(
+                row[1]
+                for row in cursor.execute(
+                    f"PRAGMA table_info('{self.metadata.table_name}')"
+                )
+                if row[1] not in ("fid", "geom")
+            )
+
+        if all(
+            ngw_field.keyname in container_fields_name
+            for ngw_field in self.metadata.fields
+        ):
+            return
+
+        self.__state = DetachedLayerState.Error
+        self.__versioning_state = VersioningSynchronizationState.Error
+        message = "Fields changed in QGIS"
+        code = ErrorCode.StructureChanged
+        self.__error = ContainerError(message, code=code)
+        self.__changes = DetachedContainerChangesInfo()
+        self.__additional_data_fetch_date = None
+        self.__is_edit_allowed = False
 
     @pyqtSlot()
     def __on_settings_changed(self) -> None:

@@ -3,12 +3,13 @@ from typing import TYPE_CHECKING, Optional
 
 from qgis.core import QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import pyqtSlot
+from qgis.PyQt.QtCore import QSize, pyqtSlot
 from qgis.PyQt.QtWidgets import (
     QAction,
     QDialog,
     QDialogButtonBox,
     QMenu,
+    QMessageBox,
     QWidget,
 )
 
@@ -32,6 +33,20 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         super().__init__(parent)
         self.setupUi(self)
 
+        warning_icon = QgsApplication.getThemeIcon("mIconWarning.svg")
+        size = int(max(24.0, self.syncButton.minimumSize().height()))
+        pixmap = warning_icon.pixmap(
+            warning_icon.actualSize(QSize(size, size))
+        )
+        self.warningLabel.setToolTip(
+            self.tr(
+                "Synchronization is not possible while the layer is in edit"
+                " mode"
+            )
+        )
+        self.warningLabel.setPixmap(pixmap)
+        self.warningLabel.hide()
+
         Button = QDialogButtonBox.StandardButton
         button_box_template = QDialogButtonBox(
             QDialogButtonBox.StandardButtons() | Button.Reset | Button.Close
@@ -52,10 +67,10 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
 
         self.__forced_sync_action = QAction(
             icon=reset_button.icon(),
-            text=self.tr("Forced synchronization"),
+            text=self.tr("Reset layer"),
             parent=self,
         )
-        self.__forced_sync_action.triggered.connect(self.__forced_synchronize)
+        self.__forced_sync_action.triggered.connect(self.__reset_container)
 
         sync_menu = QMenu(self)
         sync_menu.addAction(self.__forced_sync_action)
@@ -93,9 +108,25 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
     def __synchronize(self) -> None:
         self.__container.synchronize(is_manual=True)
 
-    @pyqtSlot(name="forceSynchronize")
-    def __forced_synchronize(self) -> None:
-        self.__container.force_synchronize()
+    @pyqtSlot(name="resetContainer")
+    def __reset_container(self) -> None:
+        has_changes = self.__container.metadata.has_changes
+        if has_changes:
+            answer = QMessageBox.question(
+                self,
+                self.tr("Possible data loss"),
+                self.tr(
+                    "The layer contains changes. If you continue, you will"
+                    " lose them forever.\n\nAre you sure you want to continue?"
+                ),
+                QMessageBox.StandardButtons()
+                | QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.No,
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                return
+
+        self.__container.reset_container()
 
     @pyqtSlot(name="updateSyncButton")
     def __update_sync_button(self) -> None:
@@ -108,6 +139,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
             self.__container.state != DetachedLayerState.Synchronization
             and not self.__container.is_edit_mode_enabled
         )
+        self.warningLabel.setVisible(self.__container.is_edit_mode_enabled)
 
     def __fill_status(self) -> None:
         sync_datetime = self.__container.sync_date

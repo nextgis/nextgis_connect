@@ -14,9 +14,7 @@ class NgwConnectionsManager:
     def __init__(self) -> None:
         self.__settings = QgsSettings()
 
-    def connection(self, connection_id: str) -> Optional[NgwConnection]:
-        return self.__read_connection(connection_id)
-
+    @property
     def connections(self) -> List[NgwConnection]:
         self.__settings.beginGroup(self.__key)
         connection_ids = self.__settings.childGroups()
@@ -40,22 +38,29 @@ class NgwConnectionsManager:
         value = self.__settings.value(
             "NextGIS/Connect/currentConnectionId", defaultValue=None
         )
-        if value is not None:
-            return value
 
         self.__settings.beginGroup(self.__key)
         connection_ids = self.__settings.childGroups()
         self.__settings.endGroup()
-        if len(connection_ids) > 0:
-            return connection_ids[0]
 
-        return None
+        if value is None or value not in connection_ids:
+            if len(connection_ids) == 0:
+                value = None
+                self.current_connection_id = None
+            else:
+                value = next(iter(connection_ids))
+                self.current_connection_id = value
+
+        return value
 
     @current_connection_id.setter
     def current_connection_id(self, connecton_id: Optional[str]) -> None:
         self.__settings.setValue(
             "NextGIS/Connect/currentConnectionId", connecton_id
         )
+
+    def connection(self, connection_id: str) -> Optional[NgwConnection]:
+        return self.__read_connection(connection_id)
 
     def save(self, connection: NgwConnection) -> None:
         connection_key = f"{self.__key}/{connection.id}"
@@ -66,11 +71,15 @@ class NgwConnectionsManager:
         )
 
     def remove(self, connection_id: str) -> None:
-        key = f"{self.__key}/{connection_id}"
-        self.__settings.remove(key)
+        self.__settings.beginGroup(self.__key)
+        self.__settings.remove(connection_id)
+        self.__settings.endGroup()
 
-    def is_valid(self, connection_id: str) -> bool:
-        if connection_id == "":
+        if connection_id == self.current_connection_id:
+            self.current_connection_id = None
+
+    def is_valid(self, connection_id: Optional[str]) -> bool:
+        if connection_id is None or connection_id == "":
             return False
 
         self.__settings.beginGroup(self.__key)
@@ -82,7 +91,6 @@ class NgwConnectionsManager:
         connection = self.__read_connection(connection_id)
         if connection.auth_config_id is not None:
             auth_manager = QgsApplication.instance().authManager()
-            assert auth_manager is not None
             configs = auth_manager.availableAuthMethodConfigs()
             if connection.auth_config_id not in configs:
                 return False
@@ -97,9 +105,7 @@ class NgwConnectionsManager:
         settings.endGroup()
 
         # Get new connections
-        new_connections = [
-            connection.name for connection in self.connections()
-        ]
+        new_connections = [connection.name for connection in self.connections]
 
         return len(set(old_connections) - set(new_connections)) > 0
 
@@ -113,7 +119,7 @@ class NgwConnectionsManager:
 
         # Get converted connections
         converted_connection_names = [
-            connection.name for connection in self.connections()
+            connection.name for connection in self.connections
         ]
 
         for old_connection_name in old_connection_names:

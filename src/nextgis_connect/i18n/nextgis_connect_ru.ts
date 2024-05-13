@@ -4,7 +4,7 @@
 <context>
     <name>ApplyDeltaTask</name>
     <message>
-        <location filename="../tasks/detached_editing/apply_delta_task.py" line="41"/>
+        <location filename="../tasks/detached_editing/apply_delta_task.py" line="44"/>
         <source>Applying changes for layer &quot;{layer_name}&quot;</source>
         <translation>Применение изменений к слою &quot;{layer_name}&quot;</translation>
     </message>
@@ -12,9 +12,35 @@
 <context>
     <name>DetachedEditingTask</name>
     <message>
-        <location filename="../tasks/detached_editing/detached_editing_task.py" line="58"/>
+        <location filename="../tasks/detached_editing/detached_editing_task.py" line="61"/>
         <source>&quot;{layer_name}&quot; layer synchronization</source>
         <translation>Синхронизация слоя &quot;{layer_name}&quot;</translation>
+    </message>
+</context>
+<context>
+    <name>DetachedLayer</name>
+    <message>
+        <location filename="../detached_editing/detached_layer.py" line="321"/>
+        <source>Layer structure changed</source>
+        <translation>Была изменена структура слоя</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/detached_layer.py" line="292"/>
+        <source>Added columns in QGIS will not be added to NextGIS Web layer.
+
+If you want to change the layer structure, please do so in the NextGIS Web interface and reset the layer in sync status window.</source>
+        <translation>Добавленные атрибуты в QGIS не будут добавлены в слой NextGIS Web.
+
+Если вы хотите изменить структуру слоя, сделайте это в интерфейсе NextGIS Web и сбросьте слой в окне состояния синхронизации.</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/detached_layer.py" line="321"/>
+        <source>Deleting a column is only possible from the NextGIS Web interface.
+
+Further work with the layer is possible only after the layer reset. You can do this from the sync status window.</source>
+        <translation>Удаление атрибута возможно только через интерфейс NextGIS Web.
+
+Дальнейшая работа возможна только после сброса слоя. Вы можете сделать это в окне состояния синхронизации.</translation>
     </message>
 </context>
 <context>
@@ -127,34 +153,44 @@
 <context>
     <name>DetachedLayerStatusDialog</name>
     <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="119"/>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="140"/>
         <source>Synchronization</source>
         <translation>Синхронизация</translation>
     </message>
     <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="53"/>
-        <source>Forced synchronization</source>
-        <translation>Принудительная синхронизация</translation>
-    </message>
-    <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="116"/>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="137"/>
         <source>Not initialized</source>
         <translation>Не инициализирован</translation>
     </message>
     <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="117"/>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="138"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="118"/>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="139"/>
         <source>Not synchronized</source>
         <translation>Не синхронизирован</translation>
     </message>
     <message>
-        <location filename="../detached_editing/detached_layer_status_dialog.py" line="120"/>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="141"/>
         <source>Synchronized</source>
         <translation>Синхронизирован</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="54"/>
+        <source>Reset layer</source>
+        <translation>Сброс слоя</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="101"/>
+        <source>Possible data loss</source>
+        <translation>Возможна потеря данных</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/detached_layer_status_dialog.py" line="101"/>
+        <source>The layer contains changes. If you continue, you will lose them forever. Are you sure you want to continue?</source>
+        <translation>Слой содержит изменения. Если вы продолжите, они будут безвозвратно утеряны. Вы уверены, что хотите продолжить?</translation>
     </message>
 </context>
 <context>
@@ -251,7 +287,7 @@
 <context>
     <name>DownloadGpkgTask</name>
     <message>
-        <location filename="../tasks/detached_editing/download_gpkg_task.py" line="40"/>
+        <location filename="../tasks/detached_editing/download_gpkg_task.py" line="43"/>
         <source>Downloading layer &quot;{layer_name}&quot;</source>
         <translation>Загрузка слоя &quot;{layer_name}&quot;</translation>
     </message>
@@ -259,40 +295,98 @@
 <context>
     <name>Errors</name>
     <message>
-        <location filename="../exceptions.py" line="289"/>
+        <location filename="../exceptions.py" line="301"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="292"/>
+        <location filename="../exceptions.py" line="304"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="295"/>
+        <location filename="../exceptions.py" line="307"/>
         <source>Ivalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="298"/>
+        <location filename="../exceptions.py" line="310"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="301"/>
+        <location filename="../exceptions.py" line="313"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="317"/>
+        <location filename="../exceptions.py" line="327"/>
         <source>An error occured while layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="320"/>
+        <source>The container version is out of date. </source>
+        <translation>Версия контейнера устарела. </translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="330"/>
+        <source>Layer features have been modified outside of QGIS. </source>
+        <translation>Объекты слоя были изменены вне QGIS. </translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="346"/>
+        <source>Versioning has been enabled on the server. </source>
+        <translation>Версионирование было включено на сервере. </translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="349"/>
+        <source>Versioning has been disabled on the server. </source>
+        <translation>Версионирование было выключено на сервере. </translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="372"/>
+        <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
+
+To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
+
+If a layer contains important changes that were not sent to the server, they will be lost. Create a backup if necessary.</source>
+        <translation>Изменение структуры слоя и некоторых его настроек может привести к тому, что синхронизация станет невозможной.
+
+Для продолжения работы со слоем, необходимо сбросить его к состоянию в NextGIS Web. Это может быть сделано из окна статуса синхронизации, по нажатию на индикатоор слоя.
+
+Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="316"/>
+        <source>An error occurred while creating the container for the layer.</source>
+        <translation>Произошла ошибка при создании контейнера для слоя.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="323"/>
+        <source>The container could not be found. It may have been deleted.</source>
+        <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="333"/>
+        <source>Invalid NextGIS Web address. Please check layer connection settings.</source>
+        <translation>Неверный адрес NextGIS Web. Пожалуйста, проверьте настройки соединения.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="338"/>
+        <source>The layer structure is different from the structure on the server. </source>
+        <translation>Структура слоя отличается то структуры на сервере. </translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="342"/>
+        <source>Versioning state has been changed on ther server multiple times. </source>
+        <translation>Версионирования слоя было изменено на сервере множество раз. </translation>
     </message>
 </context>
 <context>
     <name>FetchAdditionalDataTask</name>
     <message>
-        <location filename="../tasks/detached_editing/fetch_additional_data_task.py" line="33"/>
+        <location filename="../tasks/detached_editing/fetch_additional_data_task.py" line="36"/>
         <source>Downloading layer &quot;{layer_name}&quot; metadata</source>
         <translation>Загрузка метаданных слоя &quot;{layer_name}&quot;</translation>
     </message>
@@ -300,7 +394,7 @@
 <context>
     <name>FetchDeltaTask</name>
     <message>
-        <location filename="../tasks/detached_editing/fetch_delta_task.py" line="30"/>
+        <location filename="../tasks/detached_editing/fetch_delta_task.py" line="33"/>
         <source>Downloading changes for layer &quot;{layer_name}&quot;</source>
         <translation>Загрузка изменений слоя &quot;{layer_name}&quot;</translation>
     </message>
@@ -308,7 +402,7 @@
 <context>
     <name>FillLayerWithVersioning</name>
     <message>
-        <location filename="../tasks/detached_editing/fill_layer_with_versioning_task.py" line="23"/>
+        <location filename="../tasks/detached_editing/fill_layer_with_versioning_task.py" line="26"/>
         <source>Downloading layer &quot;{layer_name}&quot;</source>
         <translation>Скачивание слоя &quot;{layer_name}&quot;</translation>
     </message>
@@ -499,390 +593,390 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgConnectDock</name>
     <message>
-        <location filename="../ng_connect_dock.py" line="192"/>
+        <location filename="../ng_connect_dock.py" line="198"/>
         <source>Open in Web GIS</source>
         <translation>Открыть в Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="201"/>
+        <location filename="../ng_connect_dock.py" line="207"/>
         <source>Rename</source>
         <translation>Переименовать</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="354"/>
+        <location filename="../ng_connect_dock.py" line="360"/>
         <source>Add to QGIS</source>
         <translation>Добавить в QGIS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="211"/>
+        <location filename="../ng_connect_dock.py" line="217"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="217"/>
+        <location filename="../ng_connect_dock.py" line="223"/>
         <source>Upload selected</source>
         <translation>Загрузить выбранное</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="225"/>
+        <location filename="../ng_connect_dock.py" line="231"/>
         <source>Upload all</source>
         <translation>Загрузить всё</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="232"/>
+        <location filename="../ng_connect_dock.py" line="238"/>
         <source>Update layer style</source>
         <translation>Обновить стиль слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="237"/>
+        <location filename="../ng_connect_dock.py" line="243"/>
         <source>Add new style to layer</source>
         <translation>Добавить новый стиль к слою</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="247"/>
+        <location filename="../ng_connect_dock.py" line="253"/>
         <source>Overwrite selected layer</source>
         <translation>Перезаписать выбранный слой</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1465"/>
+        <location filename="../ng_connect_dock.py" line="1497"/>
         <source>Create resource group</source>
         <translation>Создать группу ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="269"/>
+        <location filename="../ng_connect_dock.py" line="275"/>
         <source>Create web map</source>
         <translation>Создать веб-карту</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="276"/>
+        <location filename="../ng_connect_dock.py" line="282"/>
         <source>Download as QML</source>
         <translation>Загрузить как QML</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="279"/>
+        <location filename="../ng_connect_dock.py" line="285"/>
         <source>Copy Style</source>
         <translation>Копировать стиль</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="282"/>
+        <location filename="../ng_connect_dock.py" line="288"/>
         <source>Create WFS service</source>
         <translation>Создать сервис WFS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="296"/>
+        <location filename="../ng_connect_dock.py" line="302"/>
         <source>Create WMS service</source>
         <translation>Создать сервис WMS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1798"/>
+        <location filename="../ng_connect_dock.py" line="1830"/>
         <source>Duplicate Resource</source>
         <translation>Дублировать ресурс</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="306"/>
+        <location filename="../ng_connect_dock.py" line="312"/>
         <source>Edit metadata</source>
         <translation>Редактировать метаданные</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1640"/>
+        <location filename="../ng_connect_dock.py" line="1672"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="318"/>
+        <location filename="../ng_connect_dock.py" line="324"/>
         <source>Open web map in browser</source>
         <translation>Открыть веб-карту в браузере</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="325"/>
+        <location filename="../ng_connect_dock.py" line="331"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="332"/>
+        <location filename="../ng_connect_dock.py" line="338"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="339"/>
+        <location filename="../ng_connect_dock.py" line="345"/>
         <source>Help</source>
         <translation>Справка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="398"/>
+        <location filename="../ng_connect_dock.py" line="404"/>
         <source>Resource is being created</source>
         <translation>Ресурс создается</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="399"/>
+        <location filename="../ng_connect_dock.py" line="405"/>
         <source>Resource is being deleted</source>
         <translation>Ресурс удаляется</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="400"/>
+        <location filename="../ng_connect_dock.py" line="406"/>
         <source>Layer is being imported</source>
         <translation>Слой импортируется</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="401"/>
+        <location filename="../ng_connect_dock.py" line="407"/>
         <source>Project is being imported</source>
         <translation>Проект импортируется</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="402"/>
+        <location filename="../ng_connect_dock.py" line="408"/>
         <source>WFS service is being created</source>
         <translation>Создается сервис WFS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="406"/>
+        <location filename="../ng_connect_dock.py" line="412"/>
         <source>WMS service is being created</source>
         <translation>Создается сервис WMS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="408"/>
+        <location filename="../ng_connect_dock.py" line="414"/>
         <source>Web map is being created</source>
         <translation>Создается веб-карта</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="409"/>
+        <location filename="../ng_connect_dock.py" line="415"/>
         <source>Style for layer is being updated</source>
         <translation>Обновляется стиль слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="410"/>
+        <location filename="../ng_connect_dock.py" line="416"/>
         <source>Style for layer is being created</source>
         <translation>Создается стиль для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="411"/>
+        <location filename="../ng_connect_dock.py" line="417"/>
         <source>Resource is being renamed</source>
         <translation>Идет переименование ресурса</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="412"/>
+        <location filename="../ng_connect_dock.py" line="418"/>
         <source>Resource is being updated</source>
         <translation>Ресурс обновляется</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="793"/>
+        <location filename="../ng_connect_dock.py" line="801"/>
         <source>Access denied. Enter your login.</source>
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="991"/>
+        <location filename="../ng_connect_dock.py" line="999"/>
         <source>This type of raster is not supported yet</source>
         <translation>Данный тип растра пока не поддерживается</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="991"/>
+        <location filename="../ng_connect_dock.py" line="999"/>
         <source>Please add COG support</source>
         <translation>Добавьте поддержку COG</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1185"/>
+        <location filename="../ng_connect_dock.py" line="1195"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1345"/>
+        <location filename="../ng_connect_dock.py" line="1373"/>
         <source>You are trying to add a WFS service containing a layer with Z dimension. WFS in QGIS doesn&apos;t fully support editing such geometries. You won&apos;t be able to edit and create new features. You will only be able to delete features. To fix this, change geometry type of your layer(s) and recreate WFS service.</source>
         <translation>Вы собираетесь добавить сервис WFS, один из слоёв которого имеет измерение Z. Редактирование таких геометрий по WFS в QGIS не поддерживается. Вы не сможете редактировать и создавать новые объекты. Вы сможете только удалять объекты целиком. Чтобы исправить это, измените тип геометрии исходного слоя (слоев) и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1345"/>
+        <location filename="../ng_connect_dock.py" line="1373"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2108"/>
+        <location filename="../ng_connect_dock.py" line="2140"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1458"/>
+        <location filename="../ng_connect_dock.py" line="1490"/>
         <source>Please select parent resource group for a new resource group</source>
         <translation>Пожалуйста, выберите родительскую группу ресурсов для новой группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1465"/>
+        <location filename="../ng_connect_dock.py" line="1497"/>
         <source>New resource group</source>
         <translation>Новая группа ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1506"/>
+        <location filename="../ng_connect_dock.py" line="1538"/>
         <source>Uploading parameters</source>
         <translation>Параметры загрузки</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1509"/>
+        <location filename="../ng_connect_dock.py" line="1541"/>
         <source>Enter name for resource group</source>
         <translation>Введите новое имя для группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1559"/>
+        <location filename="../ng_connect_dock.py" line="1591"/>
         <source>Overwrite resource</source>
         <translation>Перезаписать ресурс</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1559"/>
+        <location filename="../ng_connect_dock.py" line="1591"/>
         <source>Resource &quot;{}&quot; will be overwritten with QGIS layer &quot;{}&quot;. Current data will be lost.&lt;br/&gt;Are you sure you want to overwrite it?</source>
         <translation>Ресурс &quot;{}&quot; будет перезаписан слоем QGIS &quot;{}&quot; . Текущие данные будут потеряны.&lt;br/&gt;Вы уверены, что хотите перезаписать его?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1589"/>
+        <location filename="../ng_connect_dock.py" line="1621"/>
         <source>Get resource metadata</source>
         <translation>Получение метаданных ресурса</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1640"/>
+        <location filename="../ng_connect_dock.py" line="1672"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1676"/>
+        <location filename="../ng_connect_dock.py" line="1708"/>
         <source>Failed to download raster source:</source>
         <translation>Ошибка загрузки растрового файла:</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1711"/>
+        <location filename="../ng_connect_dock.py" line="1743"/>
         <source>Can&apos;t open file to write raster!</source>
         <translation>Ошибка записи растрового файла!</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1722"/>
+        <location filename="../ng_connect_dock.py" line="1754"/>
         <source>Style for &quot;{}&quot; - Upload ({}%)</source>
         <translation>Стиль слоя &quot;{}&quot; - Загрузка ({}%)</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1798"/>
+        <location filename="../ng_connect_dock.py" line="1830"/>
         <source>Are you sure you want to duplicate this resource?</source>
         <translation>Вы уверены, что хотите дублировать этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1813"/>
+        <location filename="../ng_connect_dock.py" line="1845"/>
         <source>Duplicating</source>
         <translation>Дублирование</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1850"/>
+        <location filename="../ng_connect_dock.py" line="1882"/>
         <source>You are trying to create a WFS service for a layer that contains Z geometries. WFS in QGIS doesn&apos;t fully support editing such geometries. To fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается. Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1861"/>
+        <location filename="../ng_connect_dock.py" line="1893"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1902"/>
+        <location filename="../ng_connect_dock.py" line="1934"/>
         <source>Create WMS service for layer</source>
         <translation>Создать сервис WMS для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1947"/>
+        <location filename="../ng_connect_dock.py" line="1979"/>
         <source>Create web map for layer</source>
         <translation>Создать веб-карту для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2018"/>
+        <location filename="../ng_connect_dock.py" line="2050"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2022"/>
+        <location filename="../ng_connect_dock.py" line="2054"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2040"/>
+        <location filename="../ng_connect_dock.py" line="2072"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2040"/>
+        <location filename="../ng_connect_dock.py" line="2072"/>
         <source>QGIS Layer Style File</source>
         <translation>Файлы стилей QGIS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2076"/>
+        <location filename="../ng_connect_dock.py" line="2108"/>
         <source>{error_message} at line {line} column {column}</source>
         <translation>{error_message} строка {line} столбец {column}</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2103"/>
+        <location filename="../ng_connect_dock.py" line="2135"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1465"/>
+        <location filename="../ng_connect_dock.py" line="1497"/>
         <source>Resource group name</source>
         <translation>Название группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="289"/>
+        <location filename="../ng_connect_dock.py" line="295"/>
         <source>Create OGC API - Features service</source>
         <translation>Создать сервис OGC API - Features</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="403"/>
+        <location filename="../ng_connect_dock.py" line="409"/>
         <source>OGC API - Features service is being created</source>
         <translation>Создается сервис OGC API - Features</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="738"/>
+        <location filename="../ng_connect_dock.py" line="746"/>
         <source>Failed to connect. Please check your connection details</source>
         <translation>Ошибка подключения. Пожалуйста, проверьте параметры соединения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="781"/>
+        <location filename="../ng_connect_dock.py" line="789"/>
         <source>Error occurred while communicating with Web GIS</source>
         <translation>При обращении к Веб ГИС происзошла ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1989"/>
+        <location filename="../ng_connect_dock.py" line="2021"/>
         <source>NextGIS Connect operation errors</source>
         <translation>Ошибки операций NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="819"/>
+        <location filename="../ng_connect_dock.py" line="827"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1399"/>
+        <location filename="../ng_connect_dock.py" line="1431"/>
         <source>Resource &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1861"/>
+        <location filename="../ng_connect_dock.py" line="1893"/>
         <source>Create </source>
         <translation>Создать </translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2081"/>
+        <location filename="../ng_connect_dock.py" line="2113"/>
         <source>An error occured when copying the style</source>
         <translation>При копировании стиля произошла ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="413"/>
+        <location filename="../ng_connect_dock.py" line="419"/>
         <source>Vector layers is being downloaded</source>
         <translation>Скачиваются векторные слои</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="416"/>
-        <source>WebMap resources is being downloaded</source>
-        <translation>Скачиваются ресурсы веб-карты</translation>
-    </message>
-    <message>
-        <location filename="../ng_connect_dock.py" line="2390"/>
+        <location filename="../ng_connect_dock.py" line="2502"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
+    </message>
+    <message>
+        <location filename="../ng_connect_dock.py" line="422"/>
+        <source>Linked resources is being downloaded</source>
+        <translation>Скачиваются связанные ресурсы</translation>
     </message>
 </context>
 <context>
     <name>NgConnectOptionsErrorPageWidget</name>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="440"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="443"/>
         <source>Settings dialog was crashed</source>
         <translation>В диалоге настроек произошла ошибка</translation>
     </message>
@@ -890,22 +984,22 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgConnectOptionsPageWidget</name>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="65"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="68"/>
         <source>Can&apos;t load settings UI</source>
         <translation>Не удалось загрузить интерфейс настроек</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="69"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="72"/>
         <source>Errors in settings UI</source>
         <translation>Ошибка в интерфейсе настроек</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="423"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="426"/>
         <source>GiB</source>
         <translation>ГиБ</translation>
     </message>
     <message numerus="yes">
-        <location filename="../settings/ng_connect_settings_page.py" line="188"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="191"/>
         <source>%n$minute</source>
         <translation>
             <numerusform>%n$минута</numerusform>
@@ -914,7 +1008,7 @@ Please be aware that your current connections will be converted to the new forma
         </translation>
     </message>
     <message numerus="yes">
-        <location filename="../settings/ng_connect_settings_page.py" line="194"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="197"/>
         <source>%n$hour</source>
         <translation>
             <numerusform>%n$час</numerusform>
@@ -923,42 +1017,42 @@ Please be aware that your current connections will be converted to the new forma
         </translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="274"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="277"/>
         <source>Clear Cache</source>
         <translation>Очистить кэш</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="269"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="272"/>
         <source>Cache is empty</source>
         <translation>Кэш пуст</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="319"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="322"/>
         <source>Choose a directory to store NextGIS Connect cache</source>
         <translation>Выберите директорию для хранения кэша NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="396"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="399"/>
         <source>Cache has been successfully cleared</source>
         <translation>Кэш был успешно очищен</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="403"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="406"/>
         <source>Some files were not cleared. Perhaps they are in use.</source>
         <translation>Некоторые файлы не были очищены. Возможно, они используются.</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="421"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="424"/>
         <source>KiB</source>
         <translation>КиБ</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="422"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="425"/>
         <source>MiB</source>
         <translation>МиБ</translation>
     </message>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="424"/>
+        <location filename="../settings/ng_connect_settings_page.py" line="427"/>
         <source>TiB</source>
         <translation>ТиБ</translation>
     </message>
@@ -1155,7 +1249,7 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgwCreateVectorLayersStubs</name>
     <message>
-        <location filename="../tree_widget/model.py" line="190"/>
+        <location filename="../tree_widget/model.py" line="194"/>
         <source>Adding layer &quot;{name}&quot;</source>
         <translation>Добавление слоя {name}&quot;</translation>
     </message>
@@ -1178,7 +1272,7 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>PurgeNgConnectCacheTask</name>
     <message>
-        <location filename="../tasks/purge_ng_connect_cache_task.py" line="9"/>
+        <location filename="../tasks/purge_ng_connect_cache_task.py" line="11"/>
         <source>Clearing NextGIS Connect cache</source>
         <translation>Очистка кэша NextGIS Connect</translation>
     </message>
@@ -1229,7 +1323,7 @@ NextGIS Web version: {}</source>
 <context>
     <name>UploadChangesTask</name>
     <message>
-        <location filename="../tasks/detached_editing/upload_changes_task.py" line="25"/>
+        <location filename="../tasks/detached_editing/upload_changes_task.py" line="28"/>
         <source>&quot;{layer_name}&quot; layer synchronization</source>
         <translation>Синхронизация слоя &quot;{layer_name}&quot;</translation>
     </message>

@@ -28,7 +28,6 @@ from qgis.core import (
     Qgis,
     QgsApplication,
     QgsRuntimeProfiler,
-    QgsTaskManager,
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
@@ -117,17 +116,17 @@ class NgConnectPlugin(NgConnectInterface):
         return self.__ng_connect_toolbar
 
     @property
-    def model(self) -> QAbstractItemModel:
+    def resource_model(self) -> QAbstractItemModel:
         return self.__ng_resources_tree_dock.resource_model
 
     @property
-    def selection_model(self) -> QItemSelectionModel:
+    def resource_selection_model(self) -> QItemSelectionModel:
         return None  # type: ignore
 
-    @property
-    def task_manager(self) -> QgsTaskManager:
-        assert self.__task_manager is not None
-        return self.__task_manager
+    # @property
+    # def task_manager(self) -> QgsTaskManager:
+    # assert self.__task_manager is not None
+    # return self.__task_manager
 
     def synchronize_layers(self) -> None:
         assert self.__detached_editing is not None
@@ -164,8 +163,6 @@ class NgConnectPlugin(NgConnectInterface):
             message += "."
         if message.endswith(".."):
             message = message[:-1]
-        if error.detail is None:
-            message += " " + self.tr("See logs for details.")
 
         message_bar = self.iface.messageBar()
         assert message_bar is not None
@@ -203,7 +200,7 @@ class NgConnectPlugin(NgConnectInterface):
         n: int = -1,
     ) -> str:
         return QgsApplication.translate(
-            self.TRANSLATE_CONTEXT, source_text, disambiguation, n
+            self.TRANSLATION_CONTEXT, source_text, disambiguation, n
         )
 
     def __init_translator(self) -> None:

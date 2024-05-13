@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>427</width>
-    <height>302</height>
+    <width>450</width>
+    <height>320</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -150,6 +150,12 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QProgressBar" name="progressBar">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimum">
         <number>0</number>
        </property>
@@ -173,6 +179,13 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QLabel" name="warningLabel">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QToolButton" name="syncButton">

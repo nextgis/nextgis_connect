@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsMapLayerType, QgsWkbTypes
+from qgis.core import Qgis, QgsMapLayerProxyModel, QgsMapLayerType, QgsWkbTypes
 
 QGIS_3_30 = 33000
+QGIS_3_34 = 33400
 
 
 if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
@@ -42,6 +43,14 @@ else:
     LayerType.Annotation.is_monkey_patched = True
     LayerType.PointCloud = QgsMapLayerType.PointCloudLayer  # type: ignore
     LayerType.PointCloud.is_monkey_patched = True
+
+if Qgis.versionInt() >= QGIS_3_34 or TYPE_CHECKING:
+    LayerFilter = Qgis.LayerFilter
+    LayerFilters = Qgis.LayerFilters
+
+else:
+    LayerFilter = QgsMapLayerProxyModel.Filter
+    LayerFilters = QgsMapLayerProxyModel.Filters
 
 try:
     from packaging import version

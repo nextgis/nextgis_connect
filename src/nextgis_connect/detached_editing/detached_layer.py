@@ -2,8 +2,9 @@ import sqlite3
 from contextlib import closing
 from typing import TYPE_CHECKING, Any, Dict, List
 
-from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer
+from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsVectorLayer
 from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
@@ -88,6 +89,13 @@ class DetachedLayer(QObject):
             self.__log_geometry_changes
         )
 
+        self.__layer.committedAttributesAdded.connect(
+            self.__on_attribute_added
+        )
+        self.__layer.committedAttributesDeleted.connect(
+            self.__on_attribute_deleted
+        )
+
         self.editing_started.emit()
 
     @pyqtSlot()
@@ -103,6 +111,13 @@ class DetachedLayer(QObject):
         )
         self.__layer.committedGeometriesChanges.disconnect(
             self.__log_geometry_changes
+        )
+
+        self.__layer.committedAttributesAdded.disconnect(
+            self.__on_attribute_added
+        )
+        self.__layer.committedAttributesDeleted.disconnect(
+            self.__on_attribute_deleted
         )
 
         layer_name = self.__container.metadata.layer_name
@@ -261,6 +276,56 @@ class DetachedLayer(QObject):
         logger.debug(
             f"Updated geometries for {len(feature_ids)} features in layer "
             f'"{layer_name}" ({layer_id})'
+        )
+
+        self.layer_changed.emit()
+
+    @pyqtSlot(str, "QList<QgsField>")
+    def __on_attribute_added(
+        self, layer_id: str, added_attributes: List[QgsField]
+    ) -> None:
+        metadata = self.__container.metadata
+        logger.debug(
+            f"Added {len(added_attributes)} attributes in layer {metadata}"
+        )
+
+        QMessageBox.warning(
+            None,
+            self.tr("Layer structure changed"),
+            self.tr(
+                "Added columns in QGIS will not be added to NextGIS Web layer."
+                "\n\nIf you want to change the layer structure, please do so"
+                " in the NextGIS Web interface and reset the layer in sync"
+                " status window."
+            ),
+        )
+
+    @pyqtSlot(str, "QgsAttributeList")
+    def __on_attribute_deleted(
+        self, layer_id, deleted_attributes: List[int]
+    ) -> None:
+        metadata = self.__container.metadata
+        logger.debug(
+            f"Removed {len(deleted_attributes)} attributes in layer {metadata}"
+        )
+
+        container_fields_name = set(
+            field.name() for field in self.__layer.fields()
+        )
+        if all(
+            ngw_field.keyname in container_fields_name
+            for ngw_field in metadata.fields
+        ):
+            return
+
+        QMessageBox.warning(
+            None,
+            self.tr("Layer structure changed"),
+            self.tr(
+                "Deleting a column is only possible from the NextGIS Web interface."
+                "\n\nFurther work with the layer is possible only after the"
+                " layer reset. You can do this from the sync status window."
+            ),
         )
 
         self.layer_changed.emit()

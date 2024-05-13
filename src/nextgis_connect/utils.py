@@ -25,7 +25,7 @@ from qgis.utils import iface
 from nextgis_connect.exceptions import NgConnectError
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
-from nextgis_connect.settings import NgConnectSettings
+from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
 
@@ -46,7 +46,7 @@ def add_wms_layer(
 ) -> Optional[QgsRasterLayer]:
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
-        result = layersChooser.exec_()
+        result = layersChooser.exec()
         if result != ChooserDialog.DialogCode.Accepted:
             return
         layer_keys = layersChooser.seleced_options

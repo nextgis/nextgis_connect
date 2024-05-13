@@ -43,6 +43,9 @@
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
+       <property name="toolTip">
+        <string>Connection is invalid!</string>
+       </property>
        <property name="text">
         <string/>
        </property>

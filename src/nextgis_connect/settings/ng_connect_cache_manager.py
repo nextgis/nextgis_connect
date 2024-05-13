@@ -4,6 +4,13 @@ from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Union
 
+from qgis.core import QgsProject
+
+from nextgis_connect.detached_editing.utils import (
+    container_metadata,
+    container_path,
+    is_ngw_container,
+)
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
@@ -65,6 +72,20 @@ class NgConnectCacheManager:
     def cache_max_size(self, value: int) -> None:
         self.__settings.cache_max_size = value
 
+    @property
+    def has_files_used_by_project(self) -> bool:
+        return any(
+            self.__is_file_used_by_project(file_path)
+            for file_path in Path(self.cache_directory).glob("**/*")
+        )
+
+    @property
+    def has_containers_with_changes(self) -> bool:
+        return any(
+            self.__is_container_with_changes(file_path)
+            for file_path in Path(self.cache_directory).glob("**/*")
+        )
+
     def exists(self, path: str) -> bool:
         path_to_file = Path(path)
         if not path_to_file.is_absolute():
@@ -100,6 +121,12 @@ class NgConnectCacheManager:
         files_with_time: List[Tuple[Path, float, float]] = []
         for file_path in cache_path.glob("**/*"):
             if not file_path.is_file():
+                continue
+
+            if self.__is_container_with_changes(file_path):
+                continue
+
+            if self.__is_file_used_by_project(file_path):
                 continue
 
             file_size = file_path.stat().st_size / 1024**2
@@ -146,3 +173,23 @@ class NgConnectCacheManager:
 
         if not any(path.iterdir()):
             path.rmdir()
+
+    def __is_container_with_changes(self, file_path: Path) -> bool:
+        if not is_ngw_container(file_path):
+            return False
+
+        try:
+            metadata = container_metadata(file_path)
+        except Exception:
+            return False
+
+        return metadata.has_changes
+
+    def __is_file_used_by_project(self, file_path: Path) -> bool:
+        if not is_ngw_container(file_path):
+            return False
+
+        layers = filter(
+            is_ngw_container, QgsProject().instance().mapLayers().values()
+        )
+        return any(container_path(layer) == file_path for layer in layers)

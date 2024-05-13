@@ -19,7 +19,7 @@ with warnings.catch_warnings():
 
 
 class NgwConnectionsWidget(BASE, WIDGET):
-    selectedConnectionChanged = pyqtSignal(str)
+    selected_connection_changed = pyqtSignal(str)
     __connection_id: Optional[str]
 
     def __init__(self, parent: Optional[QWidget]) -> None:
@@ -38,6 +38,9 @@ class NgwConnectionsWidget(BASE, WIDGET):
 
         self.blockSignals(True)
         self.refresh()
+        current_index = self.connectionComboBox.currentIndex()
+        self.editPushButton.setEnabled(current_index != -1)
+        self.removePushButton.setEnabled(current_index != -1)
         self.blockSignals(False)
 
         self.newPushButton.clicked.connect(self.__new_connection)
@@ -66,39 +69,36 @@ class NgwConnectionsWidget(BASE, WIDGET):
         self.__connection_id = connection_id if found_index != -1 else None
         self.connectionComboBox.setCurrentIndex(found_index)
 
-        # TODO fix this workaround
-        self.selectedConnectionChanged.emit(self.__connection_id)
+        self.__on_current_index_changed(found_index)
 
     def refresh(self):
         connections_manager = NgwConnectionsManager()
 
         self.connectionComboBox.blockSignals(True)
+
+        # Clear combobox
         self.connectionComboBox.clear()
 
-        connections = connections_manager.connections()
+        # Fill combobox
+        connections = connections_manager.connections
         for connection in connections:
             self.connectionComboBox.addItem(connection.name, connection.id)
 
         self.connectionComboBox.blockSignals(False)
 
+        # Set current connection if not set
         if self.__connection_id is None:
-            self.__connection_id = connections_manager.current_connection_id
+            current_connection_id = connections_manager.current_connection_id
+            if current_connection_id is None and len(connections) > 0:
+                self.__connection_id = next(iter(connections)).id
+            else:
+                self.__connection_id = current_connection_id
 
-        has_connections = self.connectionComboBox.count() > 0
-        self.editPushButton.setEnabled(has_connections)
-        self.removePushButton.setEnabled(has_connections)
-
-        connection_ids = [connection.id for connection in connections]
-        if has_connections and self.__connection_id not in connection_ids:
-            self.__connection_id = connection_ids[0]
-
-        self.set_connection_id(
-            self.__connection_id if has_connections else None
-        )
+        self.set_connection_id(self.__connection_id)
 
     def __new_connection(self):
         dialog = NgwConnectionEditDialog(self)
-        result = dialog.exec_()
+        result = dialog.exec()
 
         if result != NgwConnectionEditDialog.DialogCode.Accepted:
             return
@@ -111,7 +111,7 @@ class NgwConnectionsWidget(BASE, WIDGET):
         current_index = self.connectionComboBox.currentIndex()
         connection_id = self.connectionComboBox.itemData(current_index)
         dialog = NgwConnectionEditDialog(self, connection_id)
-        dialog.exec_()
+        dialog.exec()
 
         # TODO emit if changed
 
@@ -123,8 +123,6 @@ class NgwConnectionsWidget(BASE, WIDGET):
         connections_manager.remove(connection_id)
 
         self.__connection_id = None
-        if connection_id == connections_manager.current_connection_id:
-            connections_manager.current_connection_id = None
 
         self.refresh()
 
@@ -137,4 +135,7 @@ class NgwConnectionsWidget(BASE, WIDGET):
         else:
             self.__connection_id = None
 
-        self.selectedConnectionChanged.emit(self.__connection_id)
+        self.editPushButton.setEnabled(index != -1)
+        self.removePushButton.setEnabled(index != -1)
+
+        self.selected_connection_changed.emit(self.__connection_id)
