@@ -3,6 +3,7 @@ import uuid
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union, cast
 
+from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QCoreApplication,
@@ -231,18 +232,22 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
 
-    def resetModel(self, ngw_connection):
-        self.__indexes_locked_by_jobs = {}
-        self.__indexes_locked_by_job_errors = {}
+    def resetModel(self, ngw_connection: QgsNgwConnection):
+        self.beginResetModel()
 
         self._ngw_connection = ngw_connection
         if ngw_connection is not None:
             self._ngw_connection.setParent(self)
 
-        self.__cleanModel()
-        self.beginResetModel()
+        self.ngw_version = None
+        self.support_status = None
 
+        self.__cleanModel()
         self.root_item = QModelItem()
+
+        self.jobs = []
+        self.__indexes_locked_by_jobs = {}
+        self.__indexes_locked_by_job_errors = {}
         self.__dangling_resources = {}
 
         request_error = None

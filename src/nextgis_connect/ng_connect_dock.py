@@ -514,6 +514,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     @pyqtSlot()
     def checkImportActionsAvailability(self):
+        self.actionRefresh.setEnabled(
+            self.resource_model.connection_id is not None
+        )
+
         if not self.resource_model.is_connected:
             return
 
@@ -706,13 +710,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             dialog = NgwConnectionEditDialog(
                 self.iface.mainWindow(), current_connection_id
             )
+            message = self.tr(
+                "Failed to connect. Please check your connection details"
+            )
             dialog.set_message(
-                self.tr(
-                    "Failed to connect. Please check your connection details"
-                ),
+                message,
                 Qgis.MessageLevel.Critical,
                 duration=0,
             )
+            logger.error(message)
             result = dialog.exec()
             if result == QDialog.DialogCode.Accepted:
                 self.reinit_tree(force=True)
@@ -749,13 +755,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 dialog = NgwConnectionEditDialog(
                     self.iface.mainWindow(), current_connection_id
                 )
+                message = self.tr(
+                    "Failed to connect. Please check your connection details"
+                )
                 dialog.set_message(
-                    self.tr(
-                        "Failed to connect. Please check your connection details"
-                    ),
+                    message,
                     Qgis.MessageLevel.Critical,
                     duration=0,
                 )
+                logger.error(message)
                 result = dialog.exec()
                 if result == QDialog.DialogCode.Accepted:
                     self.reinit_tree(force=True)
@@ -922,7 +930,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             if (
                 HAS_NGSTD
-                and current_connection.auth_config_id == "NextGIS"
+                and current_connection.method == "NextGIS"
                 and not NGAccess.instance().isUserAuthorized()
             ):
                 self.jobs_count = 0
@@ -937,10 +945,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.no_oauth_auth_overlay.hide()
 
             if force:
-                if (
-                    HAS_NGSTD
-                    and current_connection.auth_config_id == "NextGIS"
-                ):
+                if HAS_NGSTD and current_connection.method == "NextGIS":
                     NGRequest.addAuthURL(
                         NGAccess.instance().endPoint(), current_connection.url
                     )
@@ -2239,7 +2244,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_connection = connections_manager.current_connection
         if (
             current_connection is None
-            or current_connection.auth_config_id != "NextGIS"
+            or current_connection.method != "NextGIS"
         ):
             return
 

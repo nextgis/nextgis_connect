@@ -148,7 +148,9 @@ class NoNgstdAuthOverlay(QOverlay):
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
 
-        full_migrate_button = QPushButton(self.tr("Open NextGIS settings"))
+        full_migrate_button = QPushButton(
+            self.tr("Open NextGIS QGIS settings")
+        )
         full_migrate_button.clicked.connect(self.__open_nextgis_settings)
 
         layout.addSpacerItem(spacer_before)
@@ -295,11 +297,7 @@ class QNGWResourceTreeView(QTreeView):
 
     def __insertRowsProcess(self, parent):
         if not parent.isValid():
-            self.expandAll()
-        # else:
-        #     self.expand(
-        #         parent
-        #     )
+            self.expandToDepth(1)
 
     def resizeEvent(self, event):
         self.no_ngw_connections_overlay.resize(event.size())

@@ -340,10 +340,22 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
                         new_connection_id
                     )
 
-        if self.__need_reinit:
+        self.__current_connection = connections_manager.current_connection
+        self.__connections = connections_manager.connections
+
+        method = ""
+        if self.__current_connection is not None:
+            method = QgsApplication.authManager().configAuthMethodKey(
+                self.__current_connection.auth_config_id
+            )
+
+        # If method is NextGIS tree will be automatically updated on apply
+        if self.__need_reinit and method != "NextGIS":
             # TODO (ivanbarsukov): refactoring
             dock = iface.mainWindow().findChild(NgConnectDock, "NGConnectDock")  # type: ignore
             dock.reinit_tree(force=True)
+
+        self.__need_reinit = False
 
     def __choose_cache_directory(self) -> None:
         cache_manager = NgConnectCacheManager()

@@ -5,9 +5,9 @@ import uuid
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 
-from qgis.core import Qgis, QgsNetworkAccessManager
+from qgis.core import Qgis, QgsNetworkAccessManager, QgsApplication
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QStringListModel, QTimer, QUrl
+from qgis.PyQt.QtCore import QStringListModel, QTimer, QUrl, QSize
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import QCompleter, QDialog, QDialogButtonBox, QWidget
 
@@ -18,7 +18,7 @@ from .ngw_connections_manager import NgwConnectionsManager
 
 HAS_NGSTD = True
 try:
-    import ngstd  # noqa: F401
+    from ngstd.framework import NGAccess  # type: ignore
 except ImportError:
     HAS_NGSTD = False
 
@@ -49,6 +49,22 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     ) -> None:
         super().__init__(parent)
         self.setupUi(self)
+
+        warning_icon = QgsApplication.getThemeIcon("mIconWarning.svg")
+        size = int(max(24.0, self.authWidget.minimumSize().height()))
+        pixmap = warning_icon.pixmap(
+            warning_icon.actualSize(QSize(size, size))
+        )
+        self.authWarningLabel.setPixmap(pixmap)
+        self.authWarningLabel.setToolTip(
+            self.tr(
+                "NextGIS authentification  is not supported for my.nextgis.com"
+                " yet. Please choose Basic authentification or change"
+                " authentification endpoint."
+            )
+        )
+        self.authWarningLabel.hide()
+
         self.progressBar.hide()
 
         self.__network_manager = QgsNetworkAccessManager()
@@ -211,8 +227,21 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     def __validate(self):
         is_url_valid = len(self.urlLineEdit.text()) != 0
         is_name_valid = len(self.nameLineEdit.text()) != 0
+        is_auth_valid = True
 
-        is_valid = is_url_valid and is_name_valid
+        if HAS_NGSTD:
+            method = QgsApplication.authManager().configAuthMethodKey(
+                self.authWidget.configId()
+            )
+
+            endpoint = NGAccess.instance().endPoint()
+            domain = urlparse(endpoint).netloc
+            is_my = method == "NextGIS" and domain.startswith("my.nextgis")
+
+            is_auth_valid = not is_my
+            self.authWarningLabel.setVisible(not is_auth_valid)
+
+        is_valid = is_url_valid and is_name_valid and is_auth_valid
 
         save_button = self.buttonBox.button(
             QDialogButtonBox.StandardButton.Save
