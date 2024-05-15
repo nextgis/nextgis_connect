@@ -19,7 +19,7 @@
     <message>
         <location filename="../tasks/detached_editing/detached_editing_task.py" line="230"/>
         <source>Please check layer connection settings.</source>
-        <translation>Пожалуйста, проверьте настройки соединения.</translation>
+        <translation>Пожалуйста, проверьте настройки соединения в слое.</translation>
     </message>
 </context>
 <context>
@@ -70,13 +70,13 @@ Further work with the layer is possible only after the layer reset. You can do t
     </message>
     <message>
         <location filename="../detached_editing/detached_layer_config_widget.py" line="47"/>
-        <source>Can&apos;t load settings UI</source>
-        <translation>Не удалось загрузить интерфейс настроек</translation>
+        <source>An error occured while settings UI loading</source>
+        <translation>Вознилка ошибка при загрузке интерфейса настроек</translation>
     </message>
     <message>
         <location filename="../detached_editing/detached_layer_config_widget.py" line="51"/>
-        <source>Errors in settings UI</source>
-        <translation>Ошибка в интерфейсе настроек</translation>
+        <source>An error occured in settings UI</source>
+        <translation>Возникла ошибка в интерфейсе настроек</translation>
     </message>
 </context>
 <context>
@@ -99,7 +99,7 @@ Further work with the layer is possible only after the layer reset. You can do t
     <message>
         <location filename="../detached_editing/detached_layer_config_widget_base.ui" line="37"/>
         <source>Synchronize on save</source>
-        <translation>Синхронизация при сохранении слоя</translation>
+        <translation>Синхронизировать слой при сохранении</translation>
     </message>
 </context>
 <context>
@@ -117,7 +117,7 @@ Further work with the layer is possible only after the layer reset. You can do t
     <message>
         <location filename="../detached_editing/detached_layer_indicator.py" line="78"/>
         <source>Layer is syncing</source>
-        <translation>Синхронизация</translation>
+        <translation>Синхронизация слоя</translation>
     </message>
     <message>
         <location filename="../detached_editing/detached_layer_indicator.py" line="82"/>
@@ -295,7 +295,7 @@ Are you sure you want to continue?</source>
     <message>
         <location filename="../metadata_dialog_base.ui" line="20"/>
         <source>Edit metadata</source>
-        <translation>Редактировать метаданные</translation>
+        <translation>Редактирование метаданных</translation>
     </message>
 </context>
 <context>
@@ -1003,16 +1003,6 @@ Please be aware that your current connections will be converted to the new forma
 <context>
     <name>NgConnectOptionsPageWidget</name>
     <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="70"/>
-        <source>Can&apos;t load settings UI</source>
-        <translation>Не удалось загрузить интерфейс настроек</translation>
-    </message>
-    <message>
-        <location filename="../settings/ng_connect_settings_page.py" line="74"/>
-        <source>Errors in settings UI</source>
-        <translation>Ошибка в интерфейсе настроек</translation>
-    </message>
-    <message>
         <location filename="../settings/ng_connect_settings_page.py" line="514"/>
         <source>GiB</source>
         <translation>ГиБ</translation>
@@ -1103,6 +1093,16 @@ Are you sure you want to continue?</source>
         <location filename="../settings/ng_connect_settings_page.py" line="501"/>
         <source>Connections were successfully converted!</source>
         <translation>Соединения были успешно конвертированы!</translation>
+    </message>
+    <message>
+        <location filename="../settings/ng_connect_settings_page.py" line="70"/>
+        <source>An error occured while settings UI loading</source>
+        <translation>Вознилка ошибка при загрузке интерфейса настроек</translation>
+    </message>
+    <message>
+        <location filename="../settings/ng_connect_settings_page.py" line="74"/>
+        <source>An error occured in settings UI</source>
+        <translation>Возникла ошибка в интерфейсе настроек</translation>
     </message>
 </context>
 <context>
@@ -1211,11 +1211,6 @@ Are you sure you want to continue?</source>
         <translation>Сброс</translation>
     </message>
     <message>
-        <location filename="../settings/settings_dialog_base.ui" line="222"/>
-        <source>Auto-remove</source>
-        <translation>Авто-удаление</translation>
-    </message>
-    <message>
         <location filename="../settings/settings_dialog_base.ui" line="246"/>
         <source>1 month</source>
         <translation>1 месяц</translation>
@@ -1259,6 +1254,11 @@ Are you sure you want to continue?</source>
         <location filename="../settings/settings_dialog_base.ui" line="310"/>
         <source>Log network requests</source>
         <translation>Включить отладочные сообщения для запросов</translation>
+    </message>
+    <message>
+        <location filename="../settings/settings_dialog_base.ui" line="222"/>
+        <source>Storage duration</source>
+        <translation>Длительность хранения</translation>
     </message>
 </context>
 <context>
