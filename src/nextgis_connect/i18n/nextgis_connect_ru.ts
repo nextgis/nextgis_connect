@@ -1108,27 +1108,27 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgConnectPlugin</name>
     <message>
-        <location filename="../ng_connect_plugin.py" line="280"/>
+        <location filename="../ng_connect_plugin.py" line="288"/>
         <source>Show/Hide NextGIS Connect panel</source>
         <translation>Показать/Скрыть панель NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="276"/>
+        <location filename="../ng_connect_plugin.py" line="284"/>
         <source>NextGIS Connect Toolbar</source>
         <translation>Инструменты NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="175"/>
+        <location filename="../ng_connect_plugin.py" line="179"/>
         <source>Open details</source>
         <translation>Подробнее</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="179"/>
+        <location filename="../ng_connect_plugin.py" line="183"/>
         <source>Open logs</source>
         <translation>Открыть отладочные сообщения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="184"/>
+        <location filename="../ng_connect_plugin.py" line="188"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
