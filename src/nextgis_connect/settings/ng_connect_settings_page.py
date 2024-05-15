@@ -152,7 +152,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
 
         self.__need_reinit = False
 
-        if connections_manager.has_old_connections():
+        if connections_manager.has_not_converted_connections():
             message_bar = cast(QgsMessageBar, self.__widget.messageBar)
             widget = message_bar.createMessage(
                 self.tr(

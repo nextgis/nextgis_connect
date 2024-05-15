@@ -49,6 +49,9 @@ from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api import qgis as qgis_ngw_api
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
+)
 from nextgis_connect.settings.ng_connect_settings_page import (
     NgConnectOptionsWidgetFactory,
 )
@@ -68,6 +71,7 @@ class NgConnectPlugin(NgConnectInterface):
         self.iface = iface
         self.plugin_dir = Path(__file__).parent
 
+        self.__init_connections()
         self.__init_translator()
 
         logger.debug("<b>Plugin object created</b>")
@@ -202,6 +206,10 @@ class NgConnectPlugin(NgConnectInterface):
         return QgsApplication.translate(
             self.TRANSLATION_CONTEXT, source_text, disambiguation, n
         )
+
+    def __init_connections(self) -> None:
+        connections_manager = NgwConnectionsManager()
+        connections_manager.clear_old_connections_if_converted()
 
     def __init_translator(self) -> None:
         # initialize locale

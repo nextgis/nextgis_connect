@@ -922,7 +922,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resource_model.resetModel(None)
                 self.unblock_gui()
                 self.disable_tools()
-                if connections_manager.has_old_connections():
+                if connections_manager.has_not_converted_connections():
                     self.resources_tree_view.migration_overlay.show()
                 else:
                     self.resources_tree_view.showWelcomeMessage()

@@ -1,4 +1,5 @@
 import uuid
+from pathlib import Path
 from typing import List, Optional
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
@@ -97,12 +98,12 @@ class NgwConnectionsManager:
 
         return True
 
-    def has_old_connections(self) -> bool:
+    def has_not_converted_connections(self) -> bool:
         # Get old connections
-        settings = QSettings("NextGIS", "NextGIS WEB API")
-        settings.beginGroup("/connections")
-        old_connections = settings.childGroups()
-        settings.endGroup()
+        old_settings = QSettings("NextGIS", "NextGIS WEB API")
+        old_settings.beginGroup("/connections")
+        old_connections = old_settings.childGroups()
+        old_settings.endGroup()
 
         # Get new connections
         new_connections = [connection.name for connection in self.connections]
@@ -111,11 +112,13 @@ class NgwConnectionsManager:
 
     def convert_old_connections(self, convert_auth: bool = False) -> None:
         # Get old connections
-        settings = QSettings("NextGIS", "NextGIS WEB API")
-        selected_name = settings.value("/ui/selectedConnection", "", type=str)
-        settings.beginGroup("/connections")
-        old_connection_names = settings.childGroups()
-        settings.endGroup()
+        old_settings = QSettings("NextGIS", "NextGIS WEB API")
+        selected_name = old_settings.value(
+            "/ui/selectedConnection", "", type=str
+        )
+        old_settings.beginGroup("/connections")
+        old_connection_names = old_settings.childGroups()
+        old_settings.endGroup()
 
         # Get converted connections
         converted_connection_names = [
@@ -128,10 +131,10 @@ class NgwConnectionsManager:
 
             id = str(uuid.uuid4())
             key = "/connections/" + old_connection_name
-            url = settings.value(key + "/server_url", "", type=str)
-            username = settings.value(key + "/username", "", type=str)
-            password = settings.value(key + "/password", "", type=str)
-            is_oauth = settings.value(key + "/oauth", "", type=bool)
+            url = old_settings.value(key + "/server_url", "", type=str)
+            username = old_settings.value(key + "/username", "", type=str)
+            password = old_settings.value(key + "/password", "", type=str)
+            is_oauth = old_settings.value(key + "/oauth", "", type=bool)
 
             auth_config_id = None
             if is_oauth:
@@ -147,6 +150,20 @@ class NgwConnectionsManager:
 
             if selected_name == old_connection_name:
                 self.current_connection_id = id
+
+        self.clear_old_connections_if_converted()
+
+    def clear_old_connections_if_converted(self) -> None:
+        if self.has_not_converted_connections():
+            return
+
+        old_settings = QSettings("NextGIS", "NextGIS WEB API")
+        settings_path = Path(old_settings.fileName())
+        if settings_path.exists() and settings_path.is_file():
+            old_settings = None
+            settings_path.unlink()
+        else:
+            old_settings.clear()
 
     def __read_connection(self, id: str):
         name = self.__settings.value(f"{self.__key}/{id}/name")
