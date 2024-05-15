@@ -3,7 +3,6 @@ import uuid
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union, cast
 
-from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QCoreApplication,
@@ -39,6 +38,7 @@ from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISStyleUpdater,
     ResourcesDownloader,
 )
+from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle,
     NGWCreateOgcfService,
@@ -438,6 +438,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
     def addNGWResourceToTree(self, parent: QModelIndex, ngw_resource):
         parent_item = self.item(parent)
+        parent_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
 
         new_item = QNGWResourceItem(ngw_resource)
         i = -1
@@ -450,6 +451,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.beginInsertRows(parent, i, i)
         parent_item.insertChild(i, new_item)
+        if (
+            isinstance(parent_resource, NGWResource)
+            and not parent_resource.common.children
+        ):
+            parent_resource.common.children = True
         self.endInsertRows()
 
         return self.index(i, 0, parent)
@@ -944,6 +950,9 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             if isinstance(ngw_resource, NGWQGISVectorStyle):
                 parent = index.parent()
                 parent_resource = parent.data(QNGWResourceItem.NGWResourceRole)
+                if not isinstance(parent_resource, NGWVectorLayer):
+                    return [], []
+
                 if cache_manager.exists(
                     f"{instance_subdir}/{parent_resource.common.id}.gpkg"
                 ):

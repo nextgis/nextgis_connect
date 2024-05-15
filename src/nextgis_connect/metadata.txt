@@ -20,6 +20,7 @@ changelog=
 		* Added the ability to add TMS layers
 		* Added the ability to add PostGIS layers
 		* Added the ability to add demo projects to QGIS
+		* Added the ability to upload styles for PostGIS layers
 		* Switched to QGIS authentication manager as credentials store
 		* Updated the settings page
 		* Updated the error message mechanism

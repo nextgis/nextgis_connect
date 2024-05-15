@@ -1,8 +1,10 @@
 from qgis.core import QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtWidgets import QAction
 
+from nextgis_connect.ngw_api.core.ngw_abstract_vector_resource import (
+    NGWAbstractVectorResource,
+)
 from nextgis_connect.ngw_api.core.ngw_raster_layer import NGWRasterLayer
-from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 
 
 class ActionStyleImportUpdate(QAction):
@@ -20,7 +22,7 @@ class ActionStyleImportUpdate(QAction):
             enabled = True
 
         elif isinstance(qgis_layer, QgsVectorLayer) and isinstance(
-            ngw_vector_layer, NGWVectorLayer
+            ngw_vector_layer, NGWAbstractVectorResource
         ):
             enabled = (
                 qgis_layer.geometryType() == ngw_vector_layer.geometry_type

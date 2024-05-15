@@ -5,9 +5,9 @@ import uuid
 from typing import Optional
 from urllib.parse import urljoin, urlparse
 
-from qgis.core import Qgis, QgsNetworkAccessManager, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsNetworkAccessManager
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QStringListModel, QTimer, QUrl, QSize
+from qgis.PyQt.QtCore import QSize, QStringListModel, QTimer, QUrl
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import QCompleter, QDialog, QDialogButtonBox, QWidget
 
