@@ -1,6 +1,5 @@
 import platform
 from enum import Enum, auto
-from functools import lru_cache
 from itertools import islice
 from typing import Optional, Tuple, Union, cast
 
@@ -144,7 +143,6 @@ def set_clipboard_data(
     clipboard.setMimeData(mime_data, QClipboard.Mode.Clipboard)
 
 
-@lru_cache(maxsize=128)
 def is_version_supported(current_version_string: str) -> SupportStatus:
     def version_to_tuple(version: str) -> Tuple[int, int]:
         minor, major = islice(map(int, version.split(".")), 2)
@@ -157,7 +155,11 @@ def is_version_supported(current_version_string: str) -> SupportStatus:
 
     current_version = version_to_tuple(current_version_string)
 
-    supported_version_string = NgConnectSettings().supported_ngw_version
+    settings = NgConnectSettings()
+    if settings.is_developer_mode:
+        return SupportStatus.SUPPORTED
+
+    supported_version_string = settings.supported_ngw_version
     supported_version = version_to_tuple(supported_version_string)
 
     oldest_version = version_shift(supported_version, -2)
