@@ -166,7 +166,7 @@ class NgConnectPlugin(NgConnectInterface):
         if not message.endswith("."):
             message += "."
         if message.endswith(".."):
-            message = message[:-1]
+            message = message.rstrip(".") + "."
 
         message_bar = self.iface.messageBar()
         assert message_bar is not None

@@ -74,6 +74,7 @@ class ErrorCode(IntEnum):
 
 
 class NgConnectError(Exception):
+    __log_message: str
     __user_message: str
     __detail: Optional[str]
     __code: ErrorCode
@@ -87,13 +88,13 @@ class NgConnectError(Exception):
         code: ErrorCode = ErrorCode.PluginError,
     ) -> None:
         self.__code = code
-        log_message = (
+        self.__log_message = (
             log_message
             if log_message is not None
             else _default_log_message(self.code)
         ).strip()
 
-        super().__init__(f"<b>{log_message}</b>")
+        super().__init__(f"<b>{self.__log_message}</b>")
 
         self.__user_message = (
             user_message
@@ -114,7 +115,7 @@ class NgConnectError(Exception):
 
     @property
     def log_message(self) -> str:
-        return self.args[0]
+        return self.__log_message
 
     @property
     def user_message(self) -> str:
@@ -181,10 +182,16 @@ class NgwError(NgConnectError):
         if user_message is not None:
             user_message += "."
 
+        detail = json.get("detail")
+        if detail is None and json.get("exception", "").endswith(
+            "ResourceDisabled"
+        ):
+            detail = json.get("message")
+
         error = NgwError(
             log_message=json.get("message"),
             user_message=user_message,
-            detail=json.get("detail"),
+            detail=detail,
             try_reconnect=try_reconnect,
             code=code,
         )
