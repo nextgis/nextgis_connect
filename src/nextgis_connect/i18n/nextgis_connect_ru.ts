@@ -1379,7 +1379,7 @@ NextGIS Web version: {}</source>
 <context>
     <name>Utils</name>
     <message>
-        <location filename="../utils.py" line="73"/>
+        <location filename="../utils.py" line="72"/>
         <source>Invalid wms url for layer &quot;{name}&quot;</source>
         <translation>Неверные настроки WMS-слоя &quot;{name}&quot;</translation>
     </message>
