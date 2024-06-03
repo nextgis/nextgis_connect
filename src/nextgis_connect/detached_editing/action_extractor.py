@@ -9,14 +9,16 @@ from qgis.core import (
     QgsFeatureRequest,
     QgsGeometry,
     QgsVectorLayer,
+    QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QVariant
 
+from nextgis_connect.compat import GeometryType
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
 )
-from nextgis_connect.exceptions import ContainerError
+from nextgis_connect.exceptions import ContainerError, NgConnectError
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
@@ -191,13 +193,32 @@ class ActionExtractor:
     def __serialize_geometry(
         self, geometry: Optional[QgsGeometry]
     ) -> Optional[str]:
+        def as_wkt(geometry: QgsGeometry) -> str:
+            wkt = geometry.asWkt()
+
+            if not QgsWkbTypes.hasZ(geometry.wkbType()):
+                return wkt
+
+            geometry_type = geometry.type()
+            if geometry_type == GeometryType.Point:
+                replacement = ("tZ", "t Z")
+            elif geometry_type == GeometryType.Line:
+                replacement = ("gZ", "g Z")
+            elif geometry_type == GeometryType.Polygon:
+                replacement = ("nZ", "n Z")
+            else:
+                raise NgConnectError("Unknown geometry")
+
+            return wkt.replace(*replacement)
+
         geom = None
         if geometry is not None and not geometry.isEmpty():
             geom = (
                 b64encode(geometry.asWkb().data()).decode("ascii")
                 if self.__metadata.is_versioning_enabled
-                else geometry.asWkt()
+                else as_wkt(geometry)
             )
+
         return geom
 
     def __serialize_value(self, value: Any) -> Any:
