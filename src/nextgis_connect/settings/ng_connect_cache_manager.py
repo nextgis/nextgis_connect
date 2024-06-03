@@ -123,12 +123,6 @@ class NgConnectCacheManager:
             if not file_path.is_file():
                 continue
 
-            if self.__is_container_with_changes(file_path):
-                continue
-
-            if self.__is_file_used_by_project(file_path):
-                continue
-
             file_size = file_path.stat().st_size / 1024**2
             cache_size += file_size
             files_with_time.append(
@@ -152,6 +146,12 @@ class NgConnectCacheManager:
             if (check_size and cache_size > cache_max_size) or (
                 check_date and current_time - mtime > cache_duration
             ):
+                if self.__is_file_used_by_project(file_path):
+                    continue
+
+                if self.__is_container_with_changes(file_path):
+                    continue
+
                 cache_size -= file_size
                 try:
                     file_path.unlink()
