@@ -817,7 +817,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         elif isinstance(exception, JobError):
             if isinstance(exception.wrapped_exception, NgConnectError):
                 msg = exception.wrapped_exception.user_message
-                msg_ext = exception.detail
+                msg_ext = exception.wrapped_exception.detail
                 if msg_ext is None:
                     msg_ext = ""
             else:
@@ -840,7 +840,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         elif isinstance(exception, NgConnectError):
             msg = exception.user_message
-            msg_ext = ""
+            msg_ext = exception.detail
 
         else:
             msg = self.tr("Internal plugin error occurred.")
