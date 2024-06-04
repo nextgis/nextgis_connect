@@ -1227,8 +1227,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../settings/settings_dialog_base.ui" line="251"/>
-        <source>Never</source>
-        <translation>Никогда</translation>
+        <source>Indefinitely</source>
+        <translation>Бессрочно</translation>
     </message>
     <message>
         <location filename="../settings/settings_dialog_base.ui" line="265"/>
