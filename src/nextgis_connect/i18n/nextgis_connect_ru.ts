@@ -17,7 +17,7 @@
         <translation>Синхронизация слоя &quot;{layer_name}&quot;</translation>
     </message>
     <message>
-        <location filename="../tasks/detached_editing/detached_editing_task.py" line="230"/>
+        <location filename="../tasks/detached_editing/detached_editing_task.py" line="226"/>
         <source>Please check layer connection settings.</source>
         <translation>Пожалуйста, проверьте настройки соединения в слое.</translation>
     </message>

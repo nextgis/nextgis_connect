@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from qgis.core import QgsField
 from qgis.PyQt.QtCore import QVariant
@@ -29,6 +29,16 @@ class NgwField:
             "DATETIME": QVariant.Type.DateTime,
         }
         return field_types.get(self.datatype_name, QVariant.Type.String)
+
+    def is_compatible(self, rhs: Union["NgwField", QgsField]):
+        if isinstance(rhs, NgwField):
+            return (
+                self.ngw_id == rhs.ngw_id
+                and self.datatype_name == rhs.datatype_name
+                and self.keyname == rhs.keyname
+            )
+        else:
+            return self.datatype == rhs.type() and self.keyname == rhs.name()
 
     def to_qgsfield(self) -> QgsField:
         return QgsField(self.keyname, self.datatype)

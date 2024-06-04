@@ -183,11 +183,7 @@ class DetachedEditingTask(NgConnectTask):
             return False
 
         for lhs_field, rhs_field in zip(lhs, rhs):
-            if (
-                lhs_field.ngw_id != rhs_field.ngw_id
-                or lhs_field.datatype_name != rhs_field.datatype_name
-                or lhs_field.keyname != rhs_field.keyname
-            ):
+            if not lhs_field.is_compatible(rhs_field):
                 return False
 
         return True
