@@ -153,6 +153,7 @@ from nextgis_connect.tree_widget import (
     QNGWResourceTreeModel,
     QNGWResourceTreeView,
 )
+from .layer_property.layer_property_dialog import LayerPropertyDialog
 
 HAS_NGSTD = True
 try:
@@ -213,6 +214,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self,
         )
         self.actionExport.triggered.connect(self.__export_to_qgis)
+
+        self.actionLayerProperty = QAction(
+            self.tr("Layer's property"), self
+        )
+
+        self.actionLayerProperty.triggered.connect(self.show_layer_property_dialog)
+
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
         self.menuUpload.setIcon(
@@ -514,13 +522,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     @pyqtSlot()
     def checkImportActionsAvailability(self):
-        self.actionRefresh.setEnabled(
-            self.resource_model.connection_id is not None
-        )
-
-        if not self.resource_model.is_connected:
-            return
-
         # QGIS layers
         layer_tree_view = self.iface.layerTreeView()
         assert layer_tree_view is not None
@@ -680,9 +681,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # always unblock in case of any error so to allow to fix it
         self.unblock_gui()
 
-        if not self.resource_model.is_connected:
-            self.disable_tools()
-
         msg, msg_ext, icon = self.__get_model_exception_description(
             job_name, exception
         )
@@ -710,20 +708,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             dialog = NgwConnectionEditDialog(
                 self.iface.mainWindow(), current_connection_id
             )
-            message = self.tr(
-                "Failed to connect. Please check your connection details"
-            )
             dialog.set_message(
-                message,
+                self.tr(
+                    "Failed to connect. Please check your connection details"
+                ),
                 Qgis.MessageLevel.Critical,
                 duration=0,
             )
-            logger.error(message)
-            result = dialog.exec()
+            result = dialog.exec_()
             if result == QDialog.DialogCode.Accepted:
                 self.reinit_tree(force=True)
             else:
-                self.disable_tools()
+                self.block_tools()
             del dialog
             return
 
@@ -755,20 +751,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 dialog = NgwConnectionEditDialog(
                     self.iface.mainWindow(), current_connection_id
                 )
-                message = self.tr(
-                    "Failed to connect. Please check your connection details"
-                )
                 dialog.set_message(
-                    message,
+                    self.tr(
+                        "Failed to connect. Please check your connection details"
+                    ),
                     Qgis.MessageLevel.Critical,
                     duration=0,
                 )
-                logger.error(message)
-                result = dialog.exec()
+                result = dialog.exec_()
                 if result == QDialog.DialogCode.Accepted:
                     self.reinit_tree(force=True)
                 else:
-                    self.disable_tools()
+                    self.block_tools()
                 del dialog
 
         # The second time return back http if there was an error: this might be some
@@ -804,7 +798,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             msg_ext = f"URL: {exception.url}"
             msg_ext += f"\nMSG: {exception}"
 
-        elif isinstance(exception, JobNGWError):
+        elif exception.__class__ == JobNGWError:
             msg = str(exception)
             msg_ext = "URL: " + exception.url
 
@@ -814,33 +808,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             msg = " " + self.tr("Access denied. Enter your login.")
 
-        elif isinstance(exception, JobError):
-            if isinstance(exception.wrapped_exception, NgConnectError):
-                msg = exception.wrapped_exception.user_message
-                msg_ext = exception.wrapped_exception.detail
-                if msg_ext is None:
-                    msg_ext = ""
-            else:
-                msg = str(exception)
+        elif exception.__class__ == JobError:
+            msg = str(exception)
+            if exception.wrapped_exception is not None:
                 # If we have message for user - add it instead of system message.
-                if exception.wrapped_exception is not None:
-                    user_msg = getattr(
-                        exception.wrapped_exception, "user_msg", None
-                    )
-                    if user_msg is not None:
-                        msg_ext = user_msg
-                    else:
-                        msg_ext = json.loads(str(exception.wrapped_exception))[
-                            "message"
-                        ]
+                # TODO: put it somewhere globally.
+                user_msg = getattr(
+                    exception.wrapped_exception, "user_msg", None
+                )
+                if user_msg is not None:
+                    msg_ext = user_msg
+                else:
+                    msg_ext = json.loads(str(exception.wrapped_exception))[
+                        "message"
+                    ]
 
-        elif isinstance(exception, JobWarning):
+        elif exception.__class__ == JobWarning:
             msg = str(exception)
             icon = os.path.join(ICONS_PATH, "Warning.svg")
 
         elif isinstance(exception, NgConnectError):
             msg = exception.user_message
-            msg_ext = exception.detail
+            msg_ext = ""
 
         else:
             msg = self.tr("Internal plugin error occurred.")
@@ -910,9 +899,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.setEnabled(True)
         self.checkImportActionsAvailability()
 
+    def block_tools(self):
+        self.toolbuttonUpload.setEnabled(False)
+
     def reinit_tree(self, force=False):
         # clear tree and states
-        self.block_gui()
+        self.disable_tools()
 
         try:
             connections_manager = NgwConnectionsManager()
@@ -920,9 +912,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if current_connection is None:
                 self.jobs_count = 0
                 self.resource_model.resetModel(None)
-                self.unblock_gui()
-                self.disable_tools()
-                if connections_manager.has_not_converted_connections():
+                if connections_manager.has_old_connections():
                     self.resources_tree_view.migration_overlay.show()
                 else:
                     self.resources_tree_view.showWelcomeMessage()
@@ -930,14 +920,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             if (
                 HAS_NGSTD
-                and current_connection.method == "NextGIS"
+                and current_connection.auth_config_id == "NextGIS"
                 and not NGAccess.instance().isUserAuthorized()
             ):
                 self.jobs_count = 0
                 self.resource_model.resetModel(None)
                 self.resources_tree_view.no_oauth_auth_overlay.show()
-                self.unblock_gui()
-                self.disable_tools()
                 return
 
             self.resources_tree_view.hideWelcomeMessage()
@@ -945,7 +933,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.no_oauth_auth_overlay.hide()
 
             if force:
-                if HAS_NGSTD and current_connection.method == "NextGIS":
+                if (
+                    HAS_NGSTD
+                    and current_connection.auth_config_id == "NextGIS"
+                ):
                     NGRequest.addAuthURL(
                         NGAccess.instance().endPoint(), current_connection.url
                     )
@@ -954,14 +945,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.jobs_count = 0
 
                 self._first_gui_block_on_refresh = True
+                self.block_gui()  # block GUI to prevent extra clicks on toolbuttons
                 ngw_connection = QgsNgwConnection(current_connection.id)
-
                 self.resource_model.resetModel(ngw_connection)
-
                 if (
                     self.resource_model.ngw_version is not None
                     and not self.resource_model.is_ngw_version_supported
                 ):
+                    self.unblock_gui()
                     self.resources_tree_view.unsupported_version_overlay.set_status(
                         self.resource_model.support_status,
                         qgis_utils.pluginMetadata(
@@ -973,17 +964,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             # expand root item
             # self.resources_tree_view.setExpanded(self.resource_model.index(0, 0, QModelIndex()), True)
-
-        except Exception as error:
-            self.jobs_count = 0
-            self.resource_model.resetModel(None)
-
-            self.unblock_gui()
-            self.disable_tools()
-
+        except Exception:
             logger.exception("Model update error")
-
-            NgConnectInterface.instance().show_error(error)
+            self.disable_tools()
 
     def __action_refresh_tree(self):
         self.reinit_tree(force=True)
@@ -1008,20 +991,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
-        for action in (
-            self.toolbuttonDownload,
-            self.toolbuttonUpload,
-            self.actionCreateNewGroup,
-            self.actionOpenMapInBrowser,
-            self.actionUploadSelectedResources,
-            self.actionUpdateStyle,
-            self.actionAddStyle,
-        ):
-            action.setEnabled(False)
-
-        self.actionRefresh.setEnabled(
-            self.resource_model.connection_id is not None
-        )
+        self.toolbuttonDownload.setEnabled(False)
+        self.toolbuttonUpload.setEnabled(False)
+        self.actionOpenMapInBrowser.setEnabled(False)
 
     def action_settings(self):
         self.iface.showOptionsDialog(
@@ -1058,6 +1030,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         services_actions: List[QAction] = [
             self.actionOpenInNGW,
             self.actionRename,
+            self.actionLayerProperty,
             self.actionDeleteResource,
         ]
 
@@ -1151,7 +1124,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 menu.addAction(action)
             menu.addSeparator()
 
-        menu.exec(self.resources_tree_view.viewport().mapToGlobal(qpoint))
+        menu.exec_(self.resources_tree_view.viewport().mapToGlobal(qpoint))
 
     def trvDoubleClickProcess(self, index):
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1577,7 +1550,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         dialog.setHintString(self.tr("Enter name for resource group"))
         # dialog.setConflictingNameWarning(self.tr('Resource already exists'))
 
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if dialog.exec_() != QDialog.DialogCode.Accepted:
             return
 
         project_name = dialog.name()
@@ -1768,7 +1741,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             reply.readyRead.connect(write_chuck)
             reply.finished.connect(ev_loop.quit)
 
-            ev_loop.exec()
+            ev_loop.exec_()
 
             write_chuck()
             raster_file.close()
@@ -1973,7 +1946,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resource_model,
             self,
         )
-        result = dlg.exec()
+        result = dlg.exec_()
         if result != QDialog.DialogCode.Accepted:
             return
 
@@ -2018,7 +1991,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self.resource_model,
                     self,
                 )
-                result = dlg.exec()
+                result = dlg.exec_()
                 if result:
                     if dlg.selectedStyleId():
                         ngw_resource_style_id = dlg.selectedStyleId()
@@ -2164,7 +2137,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         box.setWindowTitle(title)
         box.setIcon(icon)
         box.setStandardButtons(buttons)
-        return box.exec()
+        return box.exec_()
 
     def show_info(self, text, title=None):
         if title is None:
@@ -2244,7 +2217,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_connection = connections_manager.current_connection
         if (
             current_connection is None
-            or current_connection.method != "NextGIS"
+            or current_connection.auth_config_id != "NextGIS"
         ):
             return
 
@@ -2567,6 +2540,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.iface.mapCanvas().setReferencedExtent(extent)
         self.iface.mapCanvas().refresh()
+
+    def show_layer_property_dialog(self):
+        selected_index = (
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        if not selected_index.isValid():
+            return
+        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        dialog = LayerPropertyDialog(resource)
+        dialog.exec_()
 
 
 class NGWPanelToolBar(QToolBar):
