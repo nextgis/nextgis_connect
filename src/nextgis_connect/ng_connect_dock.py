@@ -136,6 +136,9 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
 from nextgis_connect.ngw_resources_adder import NgwResourcesAdder
+from nextgis_connect.resource_properties.resource_properties_dialog import (
+    ResourcePropertiesDialog,
+)
 from nextgis_connect.search.search_panel import SearchPanel
 from nextgis_connect.search.search_settings import SearchSettings
 from nextgis_connect.search.utils import SearchType
@@ -208,6 +211,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self,
         )
         self.actionExport.triggered.connect(self.__download_selected)
+
+        self.actionResourceProperties = QAction(
+            self.tr("Resource Properties…"), self
+        )
+        self.actionResourceProperties.triggered.connect(self.show_properties_dialog)
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
         self.menuUpload.setIcon(
@@ -1176,6 +1184,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         services_actions: List[QAction] = [
             self.actionOpenInNGW,
             self.actionRename,
+            self.actionResourceProperties,
             self.actionDeleteResource,
         ]
 
@@ -2361,6 +2370,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         action = cast(QAction, self.sender())
         self.search_panel.set_type(action.data())
         self.search_button.setChecked(True)
+
+    @pyqtSlot()
+    def show_properties_dialog(self):
+        selected_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        if not selected_index.isValid():
+            return
+
+        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        dialog = ResourcePropertiesDialog(resource)
+        dialog.exec()
 
 
 class NGWPanelToolBar(QToolBar):
