@@ -1213,10 +1213,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def _add_with_style(self, resource):
         default_style = None
+        children = resource.get_children()
         style_resources = [
-            child
-            for child in resource.get_children()
-            if isinstance(child, NGWQGISStyle)
+            child for child in children if isinstance(child, NGWQGISStyle)
         ]
 
         current_index = (
@@ -1228,6 +1227,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if len(style_resources) == 1 or group_add:
             default_style = None
         elif len(style_resources) > 1:
+            if self.resource_model.canFetchMore(current_index):
+                for child in children:
+                    self.resource_model.addNGWResourceToTree(
+                        current_index, child
+                    )
+
             dialog = NGWLayerStyleChooserDialog(
                 self.tr("Select style"),
                 current_index,
