@@ -32,10 +32,12 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
+    QT_VERSION_STR,
     QAbstractItemModel,
     QCoreApplication,
     QItemSelectionModel,
     QMetaObject,
+    QSysInfo,
     Qt,
     QTranslator,
 )
@@ -76,6 +78,8 @@ class NgConnectPlugin(NgConnectInterface):
         self.__init_translator()
 
         logger.debug("<b>Plugin object created</b>")
+        logger.debug(f"<b>OS:</b> {QSysInfo().prettyProductName()}")
+        logger.debug(f"<b>Qt version:</b> {QT_VERSION_STR}")
         logger.debug(f"<b>QGIS version:</b> {Qgis.version()}")
         logger.debug(f"<b>Python version:</b> {sys.version}")
         logger.debug(f"<b>GDAL version:</b> {gdal.__version__}")
