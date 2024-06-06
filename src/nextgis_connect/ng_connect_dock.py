@@ -942,6 +942,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             self.resources_tree_view.hideWelcomeMessage()
             self.resources_tree_view.migration_overlay.hide()
+            self.resources_tree_view.unsupported_version_overlay.hide()
             self.resources_tree_view.no_oauth_auth_overlay.hide()
 
             if force:
@@ -962,6 +963,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     self.resource_model.ngw_version is not None
                     and not self.resource_model.is_ngw_version_supported
                 ):
+                    self.unblock_gui()
+                    self.disable_tools()
+
                     self.resources_tree_view.unsupported_version_overlay.set_status(
                         self.resource_model.support_status,
                         qgis_utils.pluginMetadata(
@@ -970,6 +974,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         self.resource_model.ngw_version,
                     )
                     self.resources_tree_view.unsupported_version_overlay.show()
+
+                    logger.error("NGW version is outdated")
 
             # expand root item
             # self.resources_tree_view.setExpanded(self.resource_model.index(0, 0, QModelIndex()), True)
