@@ -24,6 +24,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from osgeo import gdal
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -77,7 +78,16 @@ class NgConnectPlugin(NgConnectInterface):
         logger.debug("<b>Plugin object created</b>")
         logger.debug(f"<b>QGIS version:</b> {Qgis.version()}")
         logger.debug(f"<b>Python version:</b> {sys.version}")
+        logger.debug(f"<b>GDAL version:</b> {gdal.__version__}")
         logger.debug(f"<b>Plugin version:</b> {self.version}")
+        logger.debug(
+            f"<b>Plugin path:</b> {self.plugin_dir}"
+            + (
+                f" -> {self.plugin_dir.resolve()}"
+                if self.plugin_dir.is_symlink()
+                else ""
+            )
+        )
 
     def initGui(self) -> None:
         with QgsRuntimeProfiler.profile("Interface initialization"):  # type: ignore
