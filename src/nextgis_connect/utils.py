@@ -122,8 +122,9 @@ class ChooserDialog(QDialog):
 
 
 def open_plugin_help():
+    domain = "ru" if QgsApplication.instance().locale() == "ru" else "com"
     QDesktopServices.openUrl(
-        QUrl("https://docs.nextgis.com/docs_ngconnect/source/toc.html")
+        QUrl(f"https://docs.nextgis.{domain}/docs_ngconnect/source/toc.html")
     )
 
 
