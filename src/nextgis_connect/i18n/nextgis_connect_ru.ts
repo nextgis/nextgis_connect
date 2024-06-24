@@ -309,37 +309,37 @@ Are you sure you want to continue?</source>
 <context>
     <name>Errors</name>
     <message>
-        <location filename="../exceptions.py" line="308"/>
+        <location filename="../exceptions.py" line="313"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="311"/>
+        <location filename="../exceptions.py" line="316"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="314"/>
+        <location filename="../exceptions.py" line="319"/>
         <source>Ivalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="317"/>
+        <location filename="../exceptions.py" line="322"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="320"/>
+        <location filename="../exceptions.py" line="325"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="334"/>
+        <location filename="../exceptions.py" line="339"/>
         <source>An error occured while layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="378"/>
+        <location filename="../exceptions.py" line="383"/>
         <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
 
 To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
@@ -352,47 +352,47 @@ If a layer contains important changes that were not sent to the server, they wil
 Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="323"/>
+        <location filename="../exceptions.py" line="328"/>
         <source>An error occurred while creating the container for the layer.</source>
         <translation>Произошла ошибка при создании контейнера для слоя.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="330"/>
+        <location filename="../exceptions.py" line="335"/>
         <source>The container could not be found. It may have been deleted.</source>
         <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="327"/>
+        <location filename="../exceptions.py" line="332"/>
         <source>The container version is out of date.</source>
         <translation>Версия контейнера устарела.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="337"/>
+        <location filename="../exceptions.py" line="342"/>
         <source>Layer features have been modified outside of QGIS.</source>
         <translation>Объекты слоя были изменены вне QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="340"/>
+        <location filename="../exceptions.py" line="345"/>
         <source>Invalid NextGIS Web address.</source>
         <translation>Неверный адрес NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="344"/>
+        <location filename="../exceptions.py" line="349"/>
         <source>The layer structure is different from the structure on the server.</source>
         <translation>Структура слоя отличается от той, что на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="348"/>
+        <location filename="../exceptions.py" line="353"/>
         <source>Versioning state has been changed on ther server multiple times.</source>
         <translation>Состояние версионирования на сервере было изменено несколько раз.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="352"/>
+        <location filename="../exceptions.py" line="357"/>
         <source>Versioning has been enabled on the server.</source>
         <translation>Версионирование было включено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="355"/>
+        <location filename="../exceptions.py" line="360"/>
         <source>Versioning has been disabled on the server.</source>
         <translation>Версионирование было выключено на сервере.</translation>
     </message>
