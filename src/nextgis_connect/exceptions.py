@@ -183,8 +183,13 @@ class NgwError(NgConnectError):
             user_message += "."
 
         detail = json.get("detail")
-        if detail is None and json.get("exception", "").endswith(
-            "ResourceDisabled"
+        ngw_exception_name = json.get("exception")
+        if (
+            detail is None
+            and ngw_exception_name is not None
+            and ngw_exception_name.endswith(
+                ("ResourceDisabled", "ValidationError")
+            )
         ):
             detail = json.get("message")
 
@@ -198,7 +203,7 @@ class NgwError(NgConnectError):
 
         error.add_note(f"Status code: {status_code}")
 
-        if "exception" in json:
+        if ngw_exception_name is not None:
             error.add_note(f"NGW exception: {json.get('exception')}")
         if "guru_meditation" in json:
             error.add_note(f"Guru meditation: {json.get('guru_meditation')}")
