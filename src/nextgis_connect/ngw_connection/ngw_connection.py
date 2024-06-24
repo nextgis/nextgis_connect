@@ -1,9 +1,9 @@
 import uuid
 from dataclasses import dataclass
-from typing import Optional
-from urllib.parse import urlparse
+from typing import Any, Dict, Optional
+from urllib.parse import quote, urlparse
 
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsAuthMethodConfig
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 
@@ -38,3 +38,36 @@ class NgwConnection:
         )
 
         return is_succeeded
+
+    def update_uri_config(
+        self, params: Dict[str, Any], *, workaround: bool = False
+    ) -> bool:
+        if self.auth_config_id is None:
+            return True
+
+        if not workaround or self.method != "Basic":
+            params["authcfg"] = self.auth_config_id
+            return True
+
+        config = QgsAuthMethodConfig()
+
+        is_loaded = QgsApplication.authManager().loadAuthenticationConfig(
+            self.auth_config_id, config, full=True
+        )[0]
+
+        if not is_loaded:
+            return False
+
+        username = config.config("username")
+        if "@" not in username:
+            params["authcfg"] = self.auth_config_id
+            return True
+
+        username = quote(username)
+        password = quote(config.config("password"))
+
+        params["path"] = params["path"].replace(
+            "://", f"://{username}:{password}@"
+        )
+
+        return True
