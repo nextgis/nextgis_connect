@@ -807,7 +807,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2187"/>
+        <location filename="../ng_connect_dock.py" line="2215"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -887,42 +887,42 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1981"/>
+        <location filename="../ng_connect_dock.py" line="2011"/>
         <source>Create WMS service for layer</source>
         <translation>Создать сервис WMS для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2026"/>
+        <location filename="../ng_connect_dock.py" line="2054"/>
         <source>Create web map for layer</source>
         <translation>Создать веб-карту для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2097"/>
+        <location filename="../ng_connect_dock.py" line="2125"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2101"/>
+        <location filename="../ng_connect_dock.py" line="2129"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2119"/>
+        <location filename="../ng_connect_dock.py" line="2147"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2119"/>
+        <location filename="../ng_connect_dock.py" line="2147"/>
         <source>QGIS Layer Style File</source>
         <translation>Файлы стилей QGIS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2155"/>
+        <location filename="../ng_connect_dock.py" line="2183"/>
         <source>{error_message} at line {line} column {column}</source>
         <translation>{error_message} строка {line} столбец {column}</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2182"/>
+        <location filename="../ng_connect_dock.py" line="2210"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>
@@ -952,7 +952,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>При обращении к Веб ГИС происзошла ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2068"/>
+        <location filename="../ng_connect_dock.py" line="2096"/>
         <source>NextGIS Connect operation errors</source>
         <translation>Ошибки операций NextGIS Connect</translation>
     </message>
@@ -972,7 +972,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Создать </translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2160"/>
+        <location filename="../ng_connect_dock.py" line="2188"/>
         <source>An error occured when copying the style</source>
         <translation>При копировании стиля произошла ошибка</translation>
     </message>
@@ -982,7 +982,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Скачиваются векторные слои</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2549"/>
+        <location filename="../ng_connect_dock.py" line="2577"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
