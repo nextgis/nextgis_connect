@@ -99,7 +99,7 @@ class MigrationOverlay(QOverlay):
         full_migrate_button.setSizePolicy(button_size_policy)
 
         migrate_label = QLabel(
-            self.tr("Convert connectons and authentification data"),
+            self.tr("Convert connections and authentication data"),
             full_migrate_button,
         )
         migrate_label.setAlignment(Qt.AlignmentFlag.AlignCenter)

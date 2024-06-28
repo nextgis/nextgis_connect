@@ -90,7 +90,7 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Authentification</string>
+      <string>authentication</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>

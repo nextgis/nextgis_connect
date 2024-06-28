@@ -324,22 +324,22 @@ Are you sure you want to continue?</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="322"/>
+        <location filename="../exceptions.py" line="325"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="325"/>
+        <location filename="../exceptions.py" line="328"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="339"/>
+        <location filename="../exceptions.py" line="342"/>
         <source>An error occured while layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="383"/>
+        <location filename="../exceptions.py" line="386"/>
         <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
 
 To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
@@ -352,49 +352,54 @@ If a layer contains important changes that were not sent to the server, they wil
 Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="328"/>
+        <location filename="../exceptions.py" line="331"/>
         <source>An error occurred while creating the container for the layer.</source>
         <translation>Произошла ошибка при создании контейнера для слоя.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="335"/>
+        <location filename="../exceptions.py" line="338"/>
         <source>The container could not be found. It may have been deleted.</source>
         <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="332"/>
+        <location filename="../exceptions.py" line="335"/>
         <source>The container version is out of date.</source>
         <translation>Версия контейнера устарела.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="342"/>
+        <location filename="../exceptions.py" line="345"/>
         <source>Layer features have been modified outside of QGIS.</source>
         <translation>Объекты слоя были изменены вне QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="345"/>
+        <location filename="../exceptions.py" line="348"/>
         <source>Invalid NextGIS Web address.</source>
         <translation>Неверный адрес NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="349"/>
+        <location filename="../exceptions.py" line="352"/>
         <source>The layer structure is different from the structure on the server.</source>
         <translation>Структура слоя отличается от той, что на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="353"/>
+        <location filename="../exceptions.py" line="356"/>
         <source>Versioning state has been changed on ther server multiple times.</source>
         <translation>Состояние версионирования на сервере было изменено несколько раз.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="357"/>
+        <location filename="../exceptions.py" line="360"/>
         <source>Versioning has been enabled on the server.</source>
         <translation>Версионирование было включено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="360"/>
+        <location filename="../exceptions.py" line="363"/>
         <source>Versioning has been disabled on the server.</source>
         <translation>Версионирование было выключено на сервере.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="322"/>
+        <source>Ivalid permissions.</source>
+        <translation>Неверные разрешения.</translation>
     </message>
 </context>
 <context>
@@ -524,7 +529,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../tree_widget/view.py" line="101"/>
-        <source>Convert connectons and authentification data</source>
+        <source>Convert connections and authentication data</source>
         <translation>Конвертировать соединения и данные аутентификации</translation>
     </message>
 </context>
@@ -562,7 +567,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ngw_connection/ngw_connection_edit_dialog_base.ui" line="93"/>
-        <source>Authentification</source>
+        <source>authentication</source>
         <translation>Аутентификация</translation>
     </message>
     <message>
@@ -1275,7 +1280,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="271"/>
-        <source>Authentification error</source>
+        <source>authentication error</source>
         <translation>Ошибка аутентификации</translation>
     </message>
     <message>
@@ -1290,7 +1295,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="59"/>
-        <source>NextGIS authentification  is not supported for my.nextgis.com yet. Please choose Basic authentification or change authentification endpoint.</source>
+        <source>NextGIS authentication is not supported for my.nextgis.com yet. Please choose Basic authentication or change authentication endpoint.</source>
         <translation>Аутентификация NextGIS пока не поддерживается для my.nextgis.com. Пожалуйста, выберите аутентификацию типа Basic или измените сервер аутентификации.</translation>
     </message>
 </context>

@@ -1054,7 +1054,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         not_donloaded_resources_id = set()
         for index in indexes:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            if isinstance(ngw_resource, NGWTmsLayer):
+            if isinstance(ngw_resource, (NGWTmsLayer, NGWPostgisLayer)):
                 if not is_downloaded(ngw_resource.service_resource_id):
                     not_donloaded_resources_id.add(
                         ngw_resource.service_resource_id

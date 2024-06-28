@@ -319,6 +319,9 @@ def default_user_message(code: ErrorCode) -> str:
         ErrorCode.InvalidConnection: QgsApplication.translate(
             "Errors", "Ivalid NextGIS Web connection."
         ),
+        ErrorCode.PermissionsError: QgsApplication.translate(
+            "Errors", "Ivalid permissions."
+        ),
         ErrorCode.DetachedEditingError: QgsApplication.translate(
             "Errors", "Detached editing error occurred."
         ),

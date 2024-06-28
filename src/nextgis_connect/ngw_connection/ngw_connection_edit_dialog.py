@@ -58,9 +58,9 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.authWarningLabel.setPixmap(pixmap)
         self.authWarningLabel.setToolTip(
             self.tr(
-                "NextGIS authentification  is not supported for my.nextgis.com"
-                " yet. Please choose Basic authentification or change"
-                " authentification endpoint."
+                "NextGIS authentication is not supported for my.nextgis.com"
+                " yet. Please choose Basic authentication or change"
+                " authentication endpoint."
             )
         )
         self.authWarningLabel.hide()
@@ -270,7 +270,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self.messageBar.clearWidgets()
             self.messageBar.pushMessage(
                 self.tr("Connection failed"),
-                self.tr("Authentification error"),
+                self.tr("authentication error"),
                 Qgis.MessageLevel.Warning,
             )
             return
