@@ -1973,29 +1973,57 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         add_ogcf_resource(ngw_resource)
 
+    def add_created_wms_service(self, index: QModelIndex) -> None:
+        if not NgConnectSettings().add_layer_after_service_creation:
+            return
+
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        connection_manager = NgwConnectionsManager()
+        connection = connection_manager.connection(ngw_resource.connection_id)
+        assert connection is not None
+        utils.add_wms_layer(
+            ngw_resource.common.display_name,
+            ngw_resource.get_url(),
+            ngw_resource.get_layer_keys(),
+            connection,
+            ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
+        )
+
     def create_wms_service(self):
         selected_index = (
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
-        dlg = NGWLayerStyleChooserDialog(
-            self.tr("Create WMS service for layer"),
-            selected_index,
-            self.resource_model,
-            self,
-        )
-        result = dlg.exec()
-        if result != QDialog.DialogCode.Accepted:
-            return
+        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        children = resource.get_children()
+        style_resources = [
+            child for child in children if isinstance(child, NGWQGISStyle)
+        ]
+        if len(style_resources) > 0 and self.resource_model.canFetchMore(
+            selected_index
+        ):
+            for child in children:
+                self.resource_model.addNGWResourceToTree(selected_index, child)
 
-        ngw_resource_style_id = None
-        if dlg.selectedStyleId():
+        if len(style_resources) == 1:
+            ngw_resource_style_id = style_resources[0].resource_id
+        else:
+            dlg = NGWLayerStyleChooserDialog(
+                self.tr("Create WMS service for layer"),
+                selected_index,
+                self.resource_model,
+                self,
+            )
+            result = dlg.exec()
+            if result != QDialog.DialogCode.Accepted:
+                return
             ngw_resource_style_id = dlg.selectedStyleId()
 
         responce = self.resource_model.createWMSForVector(
             selected_index, ngw_resource_style_id
         )
         responce.done.connect(self.resources_tree_view.setCurrentIndex)
+        responce.done.connect(self.add_created_wms_service)
 
     def create_web_map_for_style(self):
         selected_index = (
