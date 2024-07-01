@@ -26,7 +26,6 @@ from nextgis_connect.ngw_api.core import (
 )
 from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisLayer
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
-from nextgis_connect.ngw_api.core.ngw_tms_resources import NGWTmsLayer
 from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
@@ -1039,9 +1038,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             result = []
             for resource_id in webmap.all_resources_id:
                 ngw_resource = self.getResourceByNGWId(resource_id)
-                if not isinstance(
-                    ngw_resource, (NGWTmsLayer, NGWPostgisLayer)
-                ):
+                if not isinstance(ngw_resource, (NGWPostgisLayer,)):
                     continue
 
                 if is_downloaded(ngw_resource.service_resource_id):
@@ -1054,7 +1051,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         not_donloaded_resources_id = set()
         for index in indexes:
             ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            if isinstance(ngw_resource, (NGWTmsLayer, NGWPostgisLayer)):
+            if isinstance(ngw_resource, (NGWPostgisLayer,)):
                 if not is_downloaded(ngw_resource.service_resource_id):
                     not_donloaded_resources_id.add(
                         ngw_resource.service_resource_id

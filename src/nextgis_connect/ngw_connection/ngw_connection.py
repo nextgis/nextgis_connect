@@ -42,7 +42,9 @@ class NgwConnection:
     def update_uri_config(
         self, params: Dict[str, Any], *, workaround: bool = False
     ) -> bool:
-        if self.auth_config_id is None:
+        if self.auth_config_id is None or not (
+            params.get("url", "").startswith(self.url)
+        ):
             return True
 
         if not workaround or self.method != "Basic":

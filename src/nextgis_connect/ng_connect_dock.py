@@ -111,7 +111,6 @@ from nextgis_connect.ngw_api.core import (
 from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
 from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisConnection
 from nextgis_connect.ngw_api.core.ngw_tms_resources import (
-    NGWTmsConnection,
     NGWTmsLayer,
 )
 from nextgis_connect.ngw_api.core.ngw_webmap import (
@@ -2351,13 +2350,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project = QgsProject.instance()
         assert project is not None
 
-        tms_connection = cast(
-            NGWTmsConnection,
-            self.resource_model.getResourceByNGWId(
-                tms_layer.service_resource_id
-            ),
-        )
-        layer_params = tms_layer.layer_params(tms_connection)
+        layer_params = tms_layer.layer_params()
 
         if display_name is None:
             uri, display_name, provider = layer_params
