@@ -421,7 +421,7 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>FillLayerWithVersioning</name>
     <message>
-        <location filename="../tasks/detached_editing/fill_layer_with_versioning_task.py" line="26"/>
+        <location filename="../tasks/detached_editing/fill_layer_with_versioning_task.py" line="25"/>
         <source>Downloading layer &quot;{layer_name}&quot;</source>
         <translation>Скачивание слоя &quot;{layer_name}&quot;</translation>
     </message>
