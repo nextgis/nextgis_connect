@@ -6,7 +6,6 @@ from qgis.PyQt.QtCore import pyqtSignal
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
-from nextgis_connect.detached_editing.actions import ContinueAction
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -48,17 +47,17 @@ class FillLayerWithVersioning(DetachedEditingTask):
             )
             fetch_url = check_result["fetch"]
 
-            serializer = ActionSerializer(self._metadata)
-            actions = serializer.from_json(ngw_connection.get(fetch_url))
-            while len(actions) > 0:
-                applier = ActionApplier(self._container_path, self._metadata)
-                applier.apply(actions)
+            actions = []
+            fetched_actions = ngw_connection.get(fetch_url)
+            while len(fetched_actions) > 0:
+                actions.extend(fetched_actions)
+                continue_action = fetched_actions[-1]
+                assert "url" in continue_action
+                fetched_actions = ngw_connection.get(continue_action["url"])
 
-                continue_action = actions[-1]
-                assert isinstance(continue_action, ContinueAction)
-                actions = serializer.from_json(
-                    ngw_connection.get(continue_action.url)
-                )
+            serializer = ActionSerializer(self._metadata)
+            applier = ActionApplier(self._container_path, self._metadata)
+            applier.apply(serializer.from_json(actions))
 
             sync_date = check_result["tstamp"]
             with closing(
