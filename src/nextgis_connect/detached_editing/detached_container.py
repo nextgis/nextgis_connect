@@ -4,7 +4,7 @@ import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from qgis.core import (
     QgsApplication,
@@ -18,10 +18,16 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
+from nextgis_connect.detached_editing.action_extractor import ActionExtractor
+from nextgis_connect.detached_editing.actions import (
+    DataChangeAction,
+    VersioningAction,
+)
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
     NgConnectError,
+    SynchronizationError,
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -559,9 +565,13 @@ class DetachedContainer(QObject):
 
         assert isinstance(self.__sync_task, FetchDeltaTask)
 
-        # TODO (ivanbarsukov): Conflicts
-
         if len(self.__sync_task.delta) > 0:
+            if self.__has_conflicts(self.__sync_task.delta):
+                error = SynchronizationError("Delta has conflicts")
+                self.__process_sync_error(error)
+                self.__finish_sync()
+                return
+
             self.__versioning_state = (
                 VersioningSynchronizationState.ChangesApplying
             )
@@ -759,3 +769,19 @@ class DetachedContainer(QObject):
         self.__update_state(is_full_update=True)
         self.__update_layers_properties()
         self.synchronize(is_manual=True)
+
+    def __has_conflicts(self, actions: List[VersioningAction]) -> bool:
+        delta_fids = set(
+            action.fid
+            for action in actions
+            if isinstance(action, DataChangeAction)
+        )
+
+        extractor = ActionExtractor(self.path, self.metadata)
+        local_changes_fids = set(
+            action.fid
+            for action in extractor.extract_all()
+            if isinstance(action, DataChangeAction)
+        )
+
+        return len(delta_fids.intersection(local_changes_fids)) > 0
