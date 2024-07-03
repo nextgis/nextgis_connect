@@ -223,7 +223,8 @@ class UploadChangesTask(DetachedEditingTask):
 
         try:
             result = connection.post(
-                f"{resource_url}/feature/transaction/{transaction_id}"
+                f"{resource_url}/feature/transaction/{transaction_id}",
+                is_lunkwill=True,
             )
         except Exception:
             logger.exception("Exception occured while commiting transaction")
