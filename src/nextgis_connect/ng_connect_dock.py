@@ -24,6 +24,7 @@ import html
 import json
 import os
 import tempfile
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional, cast
@@ -1818,8 +1819,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Download sources and create a QGIS layer
         if ngw_src.type_id == NGWVectorLayer.type_id:
+            resource_id = ngw_src.resource_id
+            export_params = {
+                "format": "GPKG",
+                "fid": "",
+                "zipped": "false",
+            }
+            export_url = (
+                f"/api/resource/{resource_id}/export?"
+                + urllib.parse.urlencode(export_params)
+            )
+
+            temp_path = Path(tempfile.mktemp(suffix=".gpkg"))
+
+            ngw_connection = QgsNgwConnection(ngw_src.connection_id)
+            ngw_connection.download(export_url, str(temp_path))
+
             qgs_layer = QgsVectorLayer(
-                ngw_src.get_absolute_geojson_url(),
+                str(temp_path),
                 ngw_src.common.display_name,
                 "ogr",
             )
@@ -1847,7 +1864,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ngw_res = resJob.importQGISMapLayer(qgs_layer, ngw_group)[0]
 
         # Remove temp layer and sources
+
         del qgs_layer
+        if ngw_src.type_id == NGWVectorLayer.type_id:
+            try:
+                temp_path.unlink()
+            except Exception:
+                pass
         if ngw_src.type_id == NGWRasterLayer.type_id:
             raster_file.remove()
 
