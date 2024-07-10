@@ -567,7 +567,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ngw_connection/ngw_connection_edit_dialog_base.ui" line="93"/>
-        <source>authentication</source>
+        <source>Authentication</source>
         <translation>Аутентификация</translation>
     </message>
     <message>
@@ -1280,7 +1280,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="271"/>
-        <source>authentication error</source>
+        <source>Authentication error</source>
         <translation>Ошибка аутентификации</translation>
     </message>
     <message>
