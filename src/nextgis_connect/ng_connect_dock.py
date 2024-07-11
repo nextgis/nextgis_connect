@@ -2402,6 +2402,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 postgis_layer.service_resource_id
             ),
         )
+        if postgis_connection is None:
+            logger.warning(
+                f"Connecton for PostGIS layer {postgis_layer.display_name}"
+                " is not accessible"
+            )
+            return QgsVectorLayer()
+
         uri, display_name, provider = postgis_layer.layer_params(
             postgis_connection
         )
@@ -2486,7 +2493,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Create group
         group = insertion_point.group.addGroup(webmap_group.display_name)
-        group.setExpanded(webmap_group.expanded)
         assert group is not None
         insertion_point.group = group
         insertion_point.position = 0
@@ -2506,8 +2512,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if is_added:
                 insertion_point.position += 1
 
+        group.setExpanded(webmap_group.expanded)
+
         # Restore insertion point
         tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
+
+        if insertion_point.position == 0:
+            insertion_point_backup.group.removeChildNode(group)
+            return False
 
         return True
 
@@ -2518,6 +2530,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         layer_resource = self.resource_model.getResourceByNGWId(
             webmap_layer.style_parent_id
         )
+        if layer_resource is None:
+            logger.warning(
+                f"Can't add layer with style (id={webmap_layer.style_parent_id}) to the map"
+            )
+            return False
 
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(
@@ -2538,6 +2555,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             webmap_layer.layer_style_id
         )
         if style_resource is None:
+            logger.warning(
+                f"Can't find style (id={webmap_layer.layer_style_id})"
+            )
             return False
 
         styles = [style_resource]
@@ -2564,6 +2584,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         else:
             logger.error("Wrong layer resource")
+            return False
+
+        if qgs_layer is None or not qgs_layer.isValid():
             return False
 
         qgs_layer.setName(webmap_layer.display_name)
@@ -2604,7 +2627,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 basemap.resource_id
             )
             if basemap_resource is None:
-                logger.warning("Can't find basemap")
+                logger.warning(
+                    f"Can't find basemap (id={basemap.resource_id})"
+                )
                 continue
 
             assert isinstance(basemap_resource, NGWBaseMap)

@@ -227,6 +227,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.support_status = None
 
         self.__dangling_resources = {}
+        self.__not_permitted_resources = set()
 
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
@@ -248,6 +249,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
         self.__dangling_resources = {}
+        self.__not_permitted_resources = set()
 
         request_error = None
         # Get NGW version.
@@ -537,6 +539,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         return self.__dangling_resources.get(ngw_resource_id)
 
+    def is_forbidden(self, resource_id: int) -> bool:
+        return resource_id in self.__not_permitted_resources
+
     def processJobResult(self, job: NGWResourcesModelJob):
         job_result = job.getResult()
 
@@ -645,6 +650,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         for ngw_resource in job_result.dangling_resources:
             self.__dangling_resources[ngw_resource.resource_id] = ngw_resource
+
+        self.__not_permitted_resources.update(
+            job_result.not_permitted_resources
+        )
 
     @property
     def is_ngw_version_supported(self) -> bool:
@@ -904,7 +913,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         def is_not_downloaded(resource_id: int) -> bool:
             resource = self.getResourceByNGWId(resource_id)
-            return resource is None
+            return resource is None and not self.is_forbidden(resource_id)
 
         not_donloaded_resources_id = set(
             resource_id
@@ -1032,7 +1041,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         def is_downloaded(resource_id: int) -> bool:
             resource = self.getResourceByNGWId(resource_id)
-            return resource is not None
+            return resource is not None or self.is_forbidden(resource_id)
 
         def collect_not_fetched_webmap_services(webmap: NGWWebMap):
             result = []
