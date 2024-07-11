@@ -4,11 +4,17 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=2.0.10
+version=2.0.11
 author=NextGIS
 email=info@nextgis.com
 
 changelog=
+	2.0.11
+		* Clarified authentication types
+		* Fixed layer features replacing
+		* Fixed adding webmap with forbidden resources
+		* Fixed adding WMS service without layers
+		! Supported NGW versions: 4.5.0 - 4.8.0
 	2.0.10
 		* Fixed vector layer copying
 		! Supported NGW versions: 4.5.0 - 4.8.0
