@@ -21,7 +21,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from nextgis_connect.exceptions import NgConnectError
+from nextgis_connect.exceptions import ErrorCode, NgConnectError, NgwError
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
@@ -43,6 +43,16 @@ def add_wms_layer(
     *,
     ask_choose_layers=False,
 ) -> Optional[QgsRasterLayer]:
+    if len(layer_keys) == 0:
+        user_message = QgsApplication.translate(
+            "Utils", "The WMS service does not contain any layers"
+        )
+        raise NgwError(
+            "Layers list is empty",
+            user_message=user_message,
+            code=ErrorCode.InvalidResource,
+        )
+
     if ask_choose_layers:
         layersChooser = ChooserDialog(layer_keys)
         result = layersChooser.exec()

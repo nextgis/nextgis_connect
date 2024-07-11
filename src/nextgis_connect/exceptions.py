@@ -19,6 +19,7 @@ class ErrorCode(IntEnum):
     AuthorizationError = 401
     PermissionsError = 403
     NotFound = 404
+    InvalidResource = 498
     InvalidConnection = 499
 
     ServerError = 500
