@@ -120,7 +120,7 @@ def detached_layer_uri(path: Path) -> str:
 
 def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
-        return "ngw_connection_id" in layer.customPropertyKeys()
+        return "ngw_is_detached_layer" in layer.customPropertyKeys()
 
     def has_metadata(layer: Union[QgsMapLayer, Path]) -> bool:
         try:

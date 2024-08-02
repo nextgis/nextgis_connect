@@ -1444,6 +1444,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.get_layer_keys(),
                     connection,
                     ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
+                    resource_id=ngw_resource.resource_id,
                 )
             elif isinstance(ngw_resource, NGWWmsConnection):
                 utils.add_wms_layer(
@@ -1452,6 +1453,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.layers(),
                     connection,
                     ask_choose_layers=len(ngw_resource.layers()) > 1,
+                    resource_id=ngw_resource.resource_id,
                 )
             elif isinstance(ngw_resource, NGWWmsLayer):
                 utils.add_wms_layer(
@@ -1459,6 +1461,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     ngw_resource.ngw_wms_connection_url,
                     ngw_resource.ngw_wms_layers,
                     connection,
+                    resource_id=ngw_resource.resource_id,
                 )
             elif isinstance(ngw_resource, NGWBaseMap):
                 self.__add_basemap(ngw_resource)
@@ -2009,6 +2012,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource.get_layer_keys(),
             connection,
             ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
+            resource_id=ngw_resource.resource_id,
         )
 
     def create_wms_service(self):
@@ -2577,6 +2581,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 style_resource.ngw_wms_connection_url,
                 style_resource.ngw_wms_layers,
                 connection,
+                resource_id=style_resource.resource_id,
             )
 
         elif isinstance(style_resource, NGWTmsLayer):

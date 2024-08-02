@@ -42,6 +42,7 @@ def add_wms_layer(
     connection: NgwConnection,
     *,
     ask_choose_layers=False,
+    resource_id=None,
 ) -> Optional[QgsRasterLayer]:
     if len(layer_keys) == 0:
         user_message = QgsApplication.translate(
@@ -88,6 +89,9 @@ def add_wms_layer(
 
         NgConnectInterface.instance().show_error(error)
         return None
+
+    rlayer.setCustomProperty("ngw_connection_id", connection.id)
+    rlayer.setCustomProperty("ngw_resource_id", resource_id)
 
     project = QgsProject.instance()
     assert project is not None
