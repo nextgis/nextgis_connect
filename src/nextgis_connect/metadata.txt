@@ -21,6 +21,9 @@ deprecated=False
 changelog=
 	2.0.14
 		* Fixed sending changes with empty geometry
+		* Fixed assigning wrong custom properties for vector layers
+		* Fixed aliases missing after layer overwriting
+		* Fixed detached layers conflicts detection
 		! Supported NGW versions: 4.7.0 - 5.0.0
 	2.0.13
 		* Fixed attachments naming when uploading
