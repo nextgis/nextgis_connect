@@ -149,7 +149,12 @@ class ActionExtractor:
             ngw_fid = feature_metadata.ngw_fid
             assert ngw_fid is not None
             vid = feature_metadata.version
-            geom = self.__serialize_geometry(feature.geometry())
+
+            geom = (
+                self.__serialize_geometry(feature.geometry())
+                if feature_metadata.fid in updated_feature_geoms
+                else None
+            )
 
             fields = []
             for attribute_id in updated_feature_attributes.get(
@@ -190,9 +195,10 @@ class ActionExtractor:
         except Exception as error:
             raise ContainerError from error
 
-    def __serialize_geometry(
-        self, geometry: Optional[QgsGeometry]
-    ) -> Optional[str]:
+    def __serialize_geometry(self, geometry: Optional[QgsGeometry]) -> str:
+        if geometry is None or geometry.isEmpty():
+            return ""
+
         def as_wkt(geometry: QgsGeometry) -> str:
             wkt = geometry.asWkt()
 
@@ -211,15 +217,14 @@ class ActionExtractor:
 
             return wkt.replace(*replacement)
 
-        geom = None
-        if geometry is not None and not geometry.isEmpty():
-            geom = (
-                b64encode(geometry.asWkb().data()).decode("ascii")
-                if self.__metadata.is_versioning_enabled
-                else as_wkt(geometry)
-            )
+        def as_wkb64(geometry: QgsGeometry) -> str:
+            return b64encode(geometry.asWkb().data()).decode("ascii")
 
-        return geom
+        return (
+            as_wkb64(geometry)
+            if self.__metadata.is_versioning_enabled
+            else as_wkt(geometry)
+        )
 
     def __serialize_value(self, value: Any) -> Any:
         if isinstance(value, QVariant) and value.isNull():

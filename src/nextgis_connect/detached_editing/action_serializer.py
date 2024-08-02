@@ -91,12 +91,19 @@ class ActionSerializer:
             code = ErrorCode.SynchronizationError
             raise DetachedEditingError(message, code=code)
 
+        def is_not_empty(value) -> bool:
+            if isinstance(value, list):
+                return len(value) > 0
+            return value is not None
+
         result = {
-            key: value for key, value in action.__dict__.items() if value
+            key: (value if value != "" else None)
+            for key, value in action.__dict__.items()
+            if is_not_empty(value)
         }
 
-        if isinstance(action, FeatureCreateAction):
-            result.pop("fid")
+        if action.action == ActionType.FEATURE_CREATE:
+            result.pop("fid", None)
             result.pop("vid", None)
 
         return result
@@ -124,7 +131,7 @@ class ActionSerializer:
             if len(fields) > 0:
                 result["fields"] = fields
             if action.geom is not None:
-                result["geom"] = action.geom
+                result["geom"] = action.geom if action.geom != "" else None
 
         return result
 

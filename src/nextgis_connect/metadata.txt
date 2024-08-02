@@ -4,11 +4,24 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=2.0.13
+version=2.0.14
 author=NextGIS
 email=info@nextgis.com
 
+# Tags are comma separated with spaces allowed
+tags=nextgis, web, tool, server
+
+homepage=https://github.com/nextgis/nextgis_connect
+tracker=https://github.com/nextgis/nextgis_connect/issues
+repository=https://github.com/nextgis/nextgis_connect
+icon=icon.png
+experimental=False
+deprecated=False
+
 changelog=
+	2.0.14
+		* Fixed sending changes with empty geometry
+		! Supported NGW versions: 4.7.0 - 5.0.0
 	2.0.13
 		* Fixed attachments naming when uploading
 		* Updated supported NGW version
@@ -385,16 +398,3 @@ changelog=
 	    * New tool for open web map
 	    * New tool for refresh resource tree
 	    * Some bug fixing
-
-# Tags are comma separated with spaces allowed
-tags=nextgis, web, tool, server
-
-homepage=https://github.com/nextgis/nextgis_connect
-tracker=https://github.com/nextgis/nextgis_connect/issues
-repository=https://github.com/nextgis/nextgis_connect
-icon=icon.png
-# experimental flag
-experimental=False
-
-# deprecated flag (applies to the whole plugin, not just a single version)
-deprecated=False
