@@ -21,6 +21,7 @@ from qgis.utils import iface
 from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.actions import (
     DataChangeAction,
+    FeatureCreateAction,
     VersioningAction,
 )
 from nextgis_connect.exceptions import (
@@ -782,6 +783,7 @@ class DetachedContainer(QObject):
             action.fid
             for action in extractor.extract_all()
             if isinstance(action, DataChangeAction)
+            and not isinstance(action, FeatureCreateAction)
         )
 
         return len(delta_fids.intersection(local_changes_fids)) > 0
