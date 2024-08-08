@@ -33,12 +33,14 @@ from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
     QgsApplication,
+    QgsCoordinateReferenceSystem,
     QgsFileUtils,
     QgsLayerTreeLayer,
     QgsLayerTreeRegistryBridge,
     QgsNetworkAccessManager,
     QgsProject,
     QgsRasterLayer,
+    QgsReferencedRectangle,
     QgsSettings,
     QgsVectorLayer,
 )
@@ -2441,6 +2443,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
         project = QgsProject.instance()
+
+        if project.count() == 0:
+            project.setCrs(QgsCoordinateReferenceSystem.fromEpsgId(3857))
+
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
 
         insertion_point_backup = InsertionPoint(insertion_point)
@@ -2650,6 +2656,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if extent is None:
             return
 
+        QTimer.singleShot(0, lambda: self.__update_extent(extent))
+
+    def __update_extent(self, extent: QgsReferencedRectangle) -> None:
         self.iface.mapCanvas().setReferencedExtent(extent)
         self.iface.mapCanvas().refresh()
 
