@@ -91,6 +91,9 @@ class UploadChangesTask(DetachedEditingTask):
             self._container_path, self._metadata
         )
 
+        resource_id = layer_metadata.resource_id
+        url = f"/api/resource/{resource_id}/feature/?geom_null=true"
+
         iterator = iter(create_actions)
         batch = tuple(islice(iterator, self.BATCH_SIZE))
         while batch:
@@ -98,7 +101,6 @@ class UploadChangesTask(DetachedEditingTask):
 
             logger.debug(f"Send {len(batch)} create actions")
 
-            url = f"/api/resource/{layer_metadata.resource_id}/feature/"
             assigned_fids = ngw_connection.patch(url, body)
 
             transaction_applier.apply(batch, assigned_fids)
@@ -125,6 +127,8 @@ class UploadChangesTask(DetachedEditingTask):
             self._container_path, self._metadata
         )
 
+        url = f"/api/resource/{layer_metadata.resource_id}/feature/"
+
         iterator = iter(delete_actions)
         batch = tuple(islice(iterator, self.BATCH_SIZE))
         while batch:
@@ -132,7 +136,6 @@ class UploadChangesTask(DetachedEditingTask):
 
             logger.debug(f"Send {len(batch)} delete actions")
 
-            url = f"/api/resource/{layer_metadata.resource_id}/feature/"
             ngw_connection.delete(url, body)
 
             transaction_applier.apply(batch)
@@ -159,6 +162,9 @@ class UploadChangesTask(DetachedEditingTask):
             self._container_path, self._metadata
         )
 
+        resource_id = layer_metadata.resource_id
+        url = f"/api/resource/{resource_id}/feature/?geom_null=true"
+
         iterator = iter(updated_actions)
         batch = tuple(islice(iterator, self.BATCH_SIZE))
         while batch:
@@ -166,7 +172,6 @@ class UploadChangesTask(DetachedEditingTask):
 
             logger.debug(f"Send {len(batch)} update actions")
 
-            url = f"/api/resource/{layer_metadata.resource_id}/feature/"
             ngw_connection.patch(url, body)
 
             transaction_applier.apply(batch)
