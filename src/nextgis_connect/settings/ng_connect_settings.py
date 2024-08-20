@@ -232,6 +232,21 @@ class NgConnectSettings:
         )
 
     @property
+    def did_last_launch_fail(self) -> bool:
+        value = self.__settings.value(
+            self.__plugin_group + "/other/did_last_launch_fail",
+            defaultValue=False,
+            type=bool,
+        )
+        return value
+
+    @did_last_launch_fail.setter
+    def did_last_launch_fail(self, value: bool) -> None:
+        self.__settings.setValue(
+            self.__plugin_group + "/other/did_last_launch_fail", value
+        )
+
+    @property
     def __plugin_group(self) -> str:
         return "NextGIS/Connect"
 

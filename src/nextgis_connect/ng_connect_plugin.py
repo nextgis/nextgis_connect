@@ -22,9 +22,10 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 from osgeo import gdal
+from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -34,14 +35,14 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
     QAbstractItemModel,
-    QCoreApplication,
     QItemSelectionModel,
     QMetaObject,
     QSysInfo,
     Qt,
     QTranslator,
+    QUrl,
 )
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 
 from nextgis_connect import utils
@@ -55,6 +56,7 @@ from nextgis_connect.ngw_api import qgis as qgis_ngw_api
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
+from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 from nextgis_connect.settings.ng_connect_settings_page import (
     NgConnectOptionsWidgetFactory,
 )
@@ -70,12 +72,11 @@ class NgConnectPlugin(NgConnectInterface):
     iface: QgisInterface
     plugin_dir: Path
 
-    def __init__(self, iface: QgisInterface) -> None:
-        self.iface = iface
+    def __init__(self) -> None:
+        self.iface = cast(QgisInterface, qgis_utils.iface)
         self.plugin_dir = Path(__file__).parent
 
-        self.__init_connections()
-        self.__init_translator()
+        NgConnectSettings().did_last_launch_fail = False
 
         logger.debug("<b>Plugin object created</b>")
         logger.debug(f"<b>OS:</b> {QSysInfo().prettyProductName()}")
@@ -94,9 +95,13 @@ class NgConnectPlugin(NgConnectInterface):
         )
 
     def initGui(self) -> None:
-        with QgsRuntimeProfiler.profile("Interface initialization"):  # type: ignore
+        with QgsRuntimeProfiler.profile("Plugin initialization"):  # type: ignore
             logger.debug("<b>Start interface initialization</b>")
 
+            with QgsRuntimeProfiler.profile("Translations initialization"):  # type: ignore
+                self.__init_translator()
+            with QgsRuntimeProfiler.profile("Connections intialization"):  # type: ignore
+                self.__init_connections()
             with QgsRuntimeProfiler.profile("Task manager initialization"):  # type: ignore
                 self.__init_task_manager()
             with QgsRuntimeProfiler.profile("Detached layers initialization"):  # type: ignore
@@ -112,10 +117,10 @@ class NgConnectPlugin(NgConnectInterface):
             with QgsRuntimeProfiler.profile("Cache initialization"):  # type: ignore
                 self.__init_cache_purging()
 
-            logger.debug("<b>End interface initialization</b>")
+            logger.debug("<b>End plugin initialization</b>")
 
     def unload(self) -> None:
-        logger.debug("<b>Start plugin unload</b>")
+        logger.debug("<b>Start plugin unloading</b>")
 
         self.__unload_ng_connect_settings_page()
         self.__unload_ng_layer_actions()
@@ -123,8 +128,9 @@ class NgConnectPlugin(NgConnectInterface):
         self.__unload_ng_connect_dock()
         self.__unload_detached_editing()
         self.__unload_task_manger()
+        self.__unload_translations()
 
-        logger.debug("<b>End plugin unload</b>")
+        logger.debug("<b>End plugin unloading</b>")
 
         unload_logger()
 
@@ -176,6 +182,17 @@ class NgConnectPlugin(NgConnectInterface):
                 self.iface.mainWindow(), user_message, error.detail
             )
 
+        def contact_us():
+            locale = QgsApplication.instance().locale()
+            domain = "ru" if locale == "ru" else "com"
+            utm = (
+                "?utm_source=qgis_plugin&utm_medium=error"
+                f"&utm_campaign={self.PACKAGE_NAME}"
+            )
+            QDesktopServices.openUrl(
+                QUrl(f"https://nextgis.{domain}/contact/{utm}")
+            )
+
         message = error.user_message
         if not message.endswith("."):
             message += "."
@@ -207,6 +224,11 @@ class NgConnectPlugin(NgConnectInterface):
             )
             widget.layout().addWidget(button)
 
+        if error.code.is_plugin_error:
+            button = QPushButton(self.tr("Let us know"))
+            button.pressed.connect(contact_us)
+            widget.layout().addWidget(button)
+
         message_bar.pushWidget(widget, Qgis.MessageLevel.Critical)
 
         logger.exception(error.log_message, exc_info=error)
@@ -230,15 +252,21 @@ class NgConnectPlugin(NgConnectInterface):
         application = QgsApplication.instance()
         assert application is not None
         locale = application.locale()
-        self._translators = list()
+        self.__translators = list()
 
         def add_translator(locale_path: Path) -> None:
-            if not locale_path.exists():
-                return
             translator = QTranslator()
-            translator.load(str(locale_path))
-            QCoreApplication.installTranslator(translator)
-            self._translators.append(translator)  # Should be kept in memory
+
+            is_loaded = translator.load(str(locale_path))
+            if not is_loaded:
+                return
+
+            is_installed = QgsApplication.installTranslator(translator)
+            if not is_installed:
+                return
+
+            # Should be kept in memory
+            self.__translators.append(translator)
 
         add_translator(
             Path(self.plugin_dir) / "i18n" / f"nextgis_connect_{locale}.qm",
@@ -248,6 +276,12 @@ class NgConnectPlugin(NgConnectInterface):
             / "i18n"
             / f"qgis_ngw_api_{locale}.qm",
         )
+
+    def __unload_translations(self) -> None:
+        for translator in self.__translators:
+            QgsApplication.removeTranslator(translator)
+
+        self.__translators.clear()
 
     def __init_task_manager(self) -> None:
         self.__task_manager = NgConnectTaskManager()

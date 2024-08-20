@@ -11,6 +11,8 @@ class ErrorCode(IntEnum):
     NoError = -1
 
     PluginError = 0
+    BigUpdateError = 1
+
     NgStdError = 50
 
     NgwError = 100
@@ -40,6 +42,10 @@ class ErrorCode(IntEnum):
     EpochChanged = auto()
     VersioningEnabled = auto()
     VersioningDisabled = auto()
+
+    @property
+    def is_plugin_error(self) -> bool:
+        return self.PluginError <= self < self.NgStdError
 
     @property
     def is_connection_error(self) -> bool:
@@ -272,6 +278,7 @@ class SynchronizationError(DetachedEditingError):
 def _default_log_message(code: ErrorCode) -> str:
     messages = {
         ErrorCode.PluginError: "Internal plugin error",
+        ErrorCode.BigUpdateError: "Big update error",
         ErrorCode.NgStdError: "NgStd library error",
         ErrorCode.NgwError: "NGW communication error",
         ErrorCode.NgwConnectionError: "Connection error",
@@ -313,6 +320,11 @@ def default_user_message(code: ErrorCode) -> str:
     messages = {
         ErrorCode.PluginError: QgsApplication.translate(
             "Errors", "Internal plugin error occurred."
+        ),
+        ErrorCode.BigUpdateError: QgsApplication.translate(
+            "Errors",
+            "The plugin has been updated successfully. "
+            "To continue working, please restart QGIS."
         ),
         ErrorCode.NgwError: QgsApplication.translate(
             "Errors", "Error occurred while communicating with Web GIS."

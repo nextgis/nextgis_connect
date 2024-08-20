@@ -1,5 +1,6 @@
 import configparser
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from qgis import utils
 from qgis.PyQt.QtCore import QAbstractItemModel, QItemSelectionModel
@@ -38,6 +39,20 @@ class NgConnectInterface(ABC):
     @property
     @abstractmethod
     def resource_selection_model(self) -> QItemSelectionModel: ...
+
+    @abstractmethod
+    def initGui(self) -> None: ...
+
+    @abstractmethod
+    def unload(self) -> None: ...
+
+    @abstractmethod
+    def tr(
+        self,
+        source_text: str,
+        disambiguation: Optional[str] = None,
+        n: int = -1,
+    ) -> str: ...
 
     @abstractmethod
     def synchronize_layers(self) -> None: ...

@@ -32,7 +32,16 @@ if TYPE_CHECKING:
 
 
 def classFactory(iface: "QgisInterface") -> NgConnectInterface:
-    with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
-        from .ng_connect_plugin import NgConnectPlugin
+    try:
+        with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
+            from nextgis_connect.ng_connect_plugin import NgConnectPlugin
 
-    return NgConnectPlugin(iface)
+        plugin = NgConnectPlugin()
+
+    except Exception as error:
+        from nextgis_connect.ng_connect_plugin_stub import NgConnectPluginStub
+
+        plugin = NgConnectPluginStub()
+        plugin.show_error(error)
+
+    return plugin
