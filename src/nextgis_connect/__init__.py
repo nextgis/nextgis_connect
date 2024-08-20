@@ -39,9 +39,14 @@ def classFactory(iface: "QgisInterface") -> NgConnectInterface:
         plugin = NgConnectPlugin()
 
     except Exception as error:
+        import copy
+
+        from qgis.PyQt.QtCore import QTimer
+
         from nextgis_connect.ng_connect_plugin_stub import NgConnectPluginStub
 
         plugin = NgConnectPluginStub()
-        plugin.show_error(error)
+        error_copy = copy.deepcopy(error)
+        QTimer.singleShot(0, lambda: plugin.show_error(error_copy))
 
     return plugin
