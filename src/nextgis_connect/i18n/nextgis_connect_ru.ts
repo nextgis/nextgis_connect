@@ -309,37 +309,37 @@ Are you sure you want to continue?</source>
 <context>
     <name>Errors</name>
     <message>
-        <location filename="../exceptions.py" line="314"/>
+        <location filename="../exceptions.py" line="321"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="317"/>
+        <location filename="../exceptions.py" line="329"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="320"/>
+        <location filename="../exceptions.py" line="332"/>
         <source>Ivalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="326"/>
+        <location filename="../exceptions.py" line="338"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="329"/>
+        <location filename="../exceptions.py" line="341"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="343"/>
+        <location filename="../exceptions.py" line="355"/>
         <source>An error occured while layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="387"/>
+        <location filename="../exceptions.py" line="399"/>
         <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
 
 To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
@@ -352,54 +352,59 @@ If a layer contains important changes that were not sent to the server, they wil
 Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="332"/>
+        <location filename="../exceptions.py" line="344"/>
         <source>An error occurred while creating the container for the layer.</source>
         <translation>Произошла ошибка при создании контейнера для слоя.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="339"/>
+        <location filename="../exceptions.py" line="351"/>
         <source>The container could not be found. It may have been deleted.</source>
         <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="336"/>
+        <location filename="../exceptions.py" line="348"/>
         <source>The container version is out of date.</source>
         <translation>Версия контейнера устарела.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="346"/>
+        <location filename="../exceptions.py" line="358"/>
         <source>Layer features have been modified outside of QGIS.</source>
         <translation>Объекты слоя были изменены вне QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="349"/>
+        <location filename="../exceptions.py" line="361"/>
         <source>Invalid NextGIS Web address.</source>
         <translation>Неверный адрес NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="353"/>
+        <location filename="../exceptions.py" line="365"/>
         <source>The layer structure is different from the structure on the server.</source>
         <translation>Структура слоя отличается от той, что на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="357"/>
+        <location filename="../exceptions.py" line="369"/>
         <source>Versioning state has been changed on ther server multiple times.</source>
         <translation>Состояние версионирования на сервере было изменено несколько раз.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="361"/>
+        <location filename="../exceptions.py" line="373"/>
         <source>Versioning has been enabled on the server.</source>
         <translation>Версионирование было включено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="364"/>
+        <location filename="../exceptions.py" line="376"/>
         <source>Versioning has been disabled on the server.</source>
         <translation>Версионирование было выключено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="323"/>
+        <location filename="../exceptions.py" line="335"/>
         <source>Ivalid permissions.</source>
         <translation>Неверные разрешения.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="324"/>
+        <source>The plugin has been updated successfully. To continue working, please restart QGIS.</source>
+        <translation>Плагин успешно обновлён. Для продолжения работы, пожалуйста, презапустите QGIS.</translation>
     </message>
 </context>
 <context>
@@ -1113,29 +1118,47 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgConnectPlugin</name>
     <message>
-        <location filename="../ng_connect_plugin.py" line="302"/>
+        <location filename="../ng_connect_plugin.py" line="336"/>
         <source>Show/Hide NextGIS Connect panel</source>
         <translation>Показать/Скрыть панель NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="298"/>
+        <location filename="../ng_connect_plugin.py" line="332"/>
         <source>NextGIS Connect Toolbar</source>
         <translation>Инструменты NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="193"/>
+        <location filename="../ng_connect_plugin.py" line="210"/>
         <source>Open details</source>
         <translation>Подробнее</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="197"/>
+        <location filename="../ng_connect_plugin.py" line="214"/>
         <source>Open logs</source>
         <translation>Открыть отладочные сообщения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="202"/>
+        <location filename="../ng_connect_plugin.py" line="219"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
+    </message>
+    <message>
+        <location filename="../ng_connect_plugin.py" line="228"/>
+        <source>Let us know</source>
+        <translation>Сообщить об ошибке</translation>
+    </message>
+</context>
+<context>
+    <name>NgConnectPluginStub</name>
+    <message>
+        <location filename="../ng_connect_plugin_stub.py" line="121"/>
+        <source>Open logs</source>
+        <translation>Открыть отладочные сообщения</translation>
+    </message>
+    <message>
+        <location filename="../ng_connect_plugin_stub.py" line="125"/>
+        <source>Let us know</source>
+        <translation>Сообщить об ошибке</translation>
     </message>
 </context>
 <context>
