@@ -4,7 +4,7 @@ import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from qgis.core import (
     QgsApplication,
@@ -62,7 +62,8 @@ from .utils import (
     VersioningSynchronizationState,
 )
 
-assert isinstance(iface, QgisInterface)
+if TYPE_CHECKING:
+    assert isinstance(iface, QgisInterface)
 
 
 class DetachedContainer(QObject):

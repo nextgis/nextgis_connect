@@ -16,6 +16,8 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnectionsManager
 
+# TODO (ivanbarsukov): rename in v3.0
+
 
 class DetachedLayerFactory:
     def create_container(

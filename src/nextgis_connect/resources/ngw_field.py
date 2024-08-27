@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 from qgis.core import QgsField
@@ -11,14 +11,14 @@ FieldId = int
 class NgwField:
     attribute: int
     ngw_id: FieldId
+    datatype: QVariant.Type = field(init=False)
     datatype_name: str
     keyname: str
     display_name: str
     is_label: bool
     lookup_table: Optional[int] = None
 
-    @property
-    def datatype(self) -> QVariant.Type:
+    def __post_init__(self) -> None:
         field_types = {
             "INTEGER": QVariant.Type.Int,
             "BIGINT": QVariant.Type.LongLong,
@@ -28,7 +28,8 @@ class NgwField:
             "TIME": QVariant.Type.Time,
             "DATETIME": QVariant.Type.DateTime,
         }
-        return field_types.get(self.datatype_name, QVariant.Type.String)
+        datatype = field_types.get(self.datatype_name, QVariant.Type.String)
+        super().__setattr__("datatype", datatype)
 
     def is_compatible(self, rhs: Union["NgwField", QgsField]):
         if isinstance(rhs, NgwField):
@@ -44,22 +45,26 @@ class NgwField:
         return QgsField(self.keyname, self.datatype)
 
     @staticmethod
-    def list_from_json(json: List[Dict[str, Any]]) -> List["NgwField"]:
-        def get_lookup_table(field):
+    def from_json(json: Dict[str, Any], *, index: int = -1) -> "NgwField":
+        def get_lookup_table(field: Dict[str, Any]) -> Optional[int]:
             table = field.get("lookup_table")
             if table is None:
                 return None
             return table.get("id")
 
+        return NgwField(
+            attribute=index,
+            ngw_id=json["id"],
+            datatype_name=json["datatype"],
+            keyname=json["keyname"],
+            display_name=json["display_name"],
+            is_label=json["label_field"],
+            lookup_table=get_lookup_table(json),
+        )
+
+    @staticmethod
+    def list_from_json(json: List[Dict[str, Any]]) -> List["NgwField"]:
         return [
-            NgwField(
-                attribute,
-                field["id"],
-                field["datatype"],
-                field["keyname"],
-                field["display_name"],
-                field["label_field"],
-                get_lookup_table(field),
-            )
-            for attribute, field in enumerate(json)
+            NgwField.from_json(field, index=index)
+            for index, field in enumerate(json)
         ]

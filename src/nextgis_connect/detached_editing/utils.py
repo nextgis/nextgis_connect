@@ -120,7 +120,9 @@ def detached_layer_uri(path: Path) -> str:
 
 def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
-        return "ngw_is_detached_layer" in layer.customPropertyKeys()
+        return layer.customProperty(
+            "ngw_is_detached_layer", defaultValue=False
+        )
 
     def has_metadata(layer: Union[QgsMapLayer, Path]) -> bool:
         try:
@@ -215,7 +217,18 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
             lookup_table
         FROM ngw_fields_metadata
     """
-    fields = [NgwField(*row) for row in cursor.execute(fields_query)]
+    fields = [
+        NgwField(
+            attribute=row[0],
+            ngw_id=row[1],
+            datatype_name=row[2],
+            keyname=row[3],
+            display_name=row[4],
+            is_label=row[5],
+            lookup_table=row[6],
+        )
+        for row in cursor.execute(fields_query)
+    ]
 
     cursor.execute(f"SELECT COUNT(*) FROM '{table_name}'")
     features_count = cursor.fetchone()[0]
