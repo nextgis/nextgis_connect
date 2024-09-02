@@ -19,7 +19,6 @@ from nextgis_connect.detached_editing.utils import (
     FeatureMetaData,
 )
 from nextgis_connect.exceptions import ContainerError, NgConnectError
-from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
     FeatureCreateAction,
@@ -34,8 +33,6 @@ class ActionExtractor:
     __container_path: Path
     __metadata: DetachedContainerMetaData
     __layer: QgsVectorLayer
-    __fields: Dict[FieldId, NgwField]
-    __attributes: Dict[int, NgwField]
 
     def __init__(
         self, container_path: Path, metadata: DetachedContainerMetaData
@@ -44,11 +41,6 @@ class ActionExtractor:
         self.__metadata = metadata
         layer_path = f"{container_path}|layername={metadata.table_name}"
         self.__layer = QgsVectorLayer(layer_path)
-
-        self.__fields = {field.ngw_id: field for field in metadata.fields}
-        self.__attributes = {
-            field.attribute: field for field in self.__metadata.fields
-        }
 
     def extract_all(self) -> List[VersioningAction]:
         added_features = self.extract_added_features()
@@ -79,16 +71,18 @@ class ActionExtractor:
         for feature in self.__layer.getFeatures(request):  # type: ignore
             fid = feature.id()
             geom = self.__serialize_geometry(feature.geometry())
-            fields = []
-            for field_id, field in self.__fields.items():
+            fields_values = []
+            for field in self.__metadata.fields:
                 value = self.__serialize_value(
                     feature.attribute(field.attribute)
                 )
                 if value is None:
                     continue
-                fields.append([field_id, value])
+                fields_values.append([field.ngw_id, value])
 
-            create_actions.append(FeatureCreateAction(fid, None, geom, fields))
+            create_actions.append(
+                FeatureCreateAction(fid, None, geom, fields_values)
+            )
 
         return create_actions
 
@@ -156,13 +150,15 @@ class ActionExtractor:
                 else None
             )
 
-            fields = []
+            fields = self.__metadata.fields
+
+            fields_values = []
             for attribute_id in updated_feature_attributes.get(
                 feature.id(), set()
             ):
-                fields.append(
+                fields_values.append(
                     [
-                        self.__attributes[attribute_id].ngw_id,
+                        fields.get_with(attribute=attribute_id).ngw_id,
                         self.__serialize_value(
                             feature.attribute(attribute_id)
                         ),
@@ -170,7 +166,7 @@ class ActionExtractor:
                 )
 
             updated_actions.append(
-                FeatureUpdateAction(ngw_fid, vid, geom, fields)
+                FeatureUpdateAction(ngw_fid, vid, geom, fields_values)
             )
 
         return updated_actions

@@ -1,0 +1,130 @@
+{
+    "resource": {
+        "id": 42,
+        "cls": "vector_layer",
+        "creation_date": "2024-08-30T12:00:00.000000",
+        "parent": {
+            "id": 41,
+            "parent": {
+                "id": 40
+            }
+        },
+        "owner_user": {
+            "id": 4
+        },
+        "permissions": [],
+        "keyname": null,
+        "display_name": "points_layer",
+        "description": "<p><strong>Description</strong></p>",
+        "children": true,
+        "interfaces": [
+            "IBboxLayer",
+            "IFeatureLayer",
+            "IFieldEditableFeatureLayer",
+            "IGeometryEditableFeatureLayer",
+            "IWritableFeatureLayer",
+            "IVersionableFeatureLayer"
+        ],
+        "scopes": [
+            "data",
+            "resource"
+        ]
+    },
+    "resmeta": {
+        "items": {}
+    },
+    "social": {
+        "preview_image_exists": false,
+        "preview_description": null
+    },
+    "feature_layer": {
+        "fields": [
+            {
+                "id": 42000,
+                "keyname": "INTEGER",
+                "datatype": "INTEGER",
+                "typemod": null,
+                "display_name": "INTEGER field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42001,
+                "keyname": "BIGINT",
+                "datatype": "BIGINT",
+                "typemod": null,
+                "display_name": "BIGINT field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42002,
+                "keyname": "REAL",
+                "datatype": "REAL",
+                "typemod": null,
+                "display_name": "REAL field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42003,
+                "keyname": "STRING",
+                "datatype": "STRING",
+                "typemod": null,
+                "display_name": "STRING field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42004,
+                "keyname": "DATE",
+                "datatype": "DATE",
+                "typemod": null,
+                "display_name": "DATE field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42005,
+                "keyname": "TIME",
+                "datatype": "TIME",
+                "typemod": null,
+                "display_name": "TIME field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            },
+            {
+                "id": 42006,
+                "keyname": "DATETIME",
+                "datatype": "DATETIME",
+                "typemod": null,
+                "display_name": "DATETIME field",
+                "label_field": false,
+                "grid_visibility": true,
+                "text_search": true,
+                "lookup_table": null
+            }
+        ],
+        "versioning": {
+            "enabled": false
+        }
+    },
+    "vector_layer": {
+        "srs": {
+            "id": 3857
+        },
+        "geometry_type": "POINT"
+    }
+}

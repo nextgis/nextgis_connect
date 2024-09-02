@@ -93,7 +93,8 @@ class DetachedEditing(QObject):
 
         stubs = list(
             filter(
-                lambda container: container.is_stub, self.__containers.values()
+                lambda container: container.is_not_initialized,
+                self.__containers.values(),
             )
         )
         containers = (

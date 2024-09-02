@@ -5,7 +5,7 @@ from datetime import datetime
 from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from qgis.core import (
     QgsExpressionContext,
@@ -21,7 +21,7 @@ from nextgis_connect.exceptions import (
     NgConnectError,
 )
 from nextgis_connect.logging import logger
-from nextgis_connect.resources.ngw_field import NgwField
+from nextgis_connect.resources.ngw_field import NgwField, NgwFields
 
 
 class DetachedLayerState(Enum):
@@ -59,13 +59,13 @@ class DetachedContainerMetaData:
     version: Optional[int]
     sync_date: Optional[datetime]
     is_auto_sync_enabled: bool
-    fields: List[NgwField]
+    fields: NgwFields
     features_count: int
     has_changes: bool
     srs_id: int
 
     @property
-    def is_stub(self) -> bool:
+    def is_not_initialized(self) -> bool:
         return self.sync_date is None
 
     @property
@@ -97,12 +97,23 @@ class FeatureMetaData:
 
 
 def container_path(layer: Union[QgsMapLayer, Path]) -> Path:
+    path = Path()
     if isinstance(layer, QgsMapLayer):
-        return Path(layer.source().split("|")[0])
+        path = Path(layer.source().split("|")[0])
     elif isinstance(layer, Path):
-        return layer
+        path = layer
     else:
         raise TypeError
+
+    if path.suffix != ".gpkg":
+        raise ContainerError
+
+    return path
+
+
+def make_connection(layer: Union[QgsMapLayer, Path]) -> sqlite3.Connection:
+    path = container_path(layer)
+    return sqlite3.connect(str(path))
 
 
 def detached_layer_uri(path: Path) -> str:
@@ -164,6 +175,11 @@ def container_metadata(path_or_cursor) -> DetachedContainerMetaData:
 
 
 @container_metadata.register
+def _(path: str) -> DetachedContainerMetaData:
+    return container_metadata(Path(path))
+
+
+@container_metadata.register
 def _(path: Path) -> DetachedContainerMetaData:
     if not path.exists():
         error = ContainerError(code=ErrorCode.DeletedContainer)
@@ -217,18 +233,18 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
             lookup_table
         FROM ngw_fields_metadata
     """
-    fields = [
+    fields = NgwFields(
         NgwField(
             attribute=row[0],
             ngw_id=row[1],
             datatype_name=row[2],
             keyname=row[3],
             display_name=row[4],
-            is_label=row[5],
+            is_label=bool(row[5]),
             lookup_table=row[6],
         )
         for row in cursor.execute(fields_query)
-    ]
+    )
 
     cursor.execute(f"SELECT COUNT(*) FROM '{table_name}'")
     features_count = cursor.fetchone()[0]

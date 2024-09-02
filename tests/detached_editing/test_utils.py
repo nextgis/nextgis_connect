@@ -1,11 +1,7 @@
 import unittest
 
 from nextgis_connect.detached_editing import utils
-from qgis.testing import start_app
-
 from tests.ng_connect_testcase import NgConnectTestCase, TestData
-
-start_app()
 
 
 class TestDetachedLayerEditingUtils(NgConnectTestCase):

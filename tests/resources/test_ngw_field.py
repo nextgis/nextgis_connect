@@ -1,12 +1,14 @@
 import unittest
 from dataclasses import FrozenInstanceError
 
-from nextgis_connect.resources.ngw_field import NgwField
-from PyQt5.QtCore import QVariant
 from qgis.core import QgsField
+from qgis.PyQt.QtCore import QVariant
+
+from nextgis_connect.resources.ngw_field import NgwField, NgwFields
+from tests.ng_connect_testcase import NgConnectTestCase
 
 
-class TestNgwField(unittest.TestCase):
+class TestNgwField(NgConnectTestCase):
     def setUp(self):
         self.field_json = {
             "id": 1,
@@ -122,17 +124,6 @@ class TestNgwField(unittest.TestCase):
         self.assertTrue(field.is_label)
         self.assertEqual(field.lookup_table, 10)
 
-    def test_list_from_json(self):
-        fields_data = [
-            {**self.field_json, "id": 1, "keyname": "field_1"},
-            {**self.field_json, "id": 2, "keyname": "field_2"},
-        ]
-
-        fields = NgwField.list_from_json(fields_data)
-        self.assertEqual(len(fields), 2)
-        self.assertEqual(fields[0].attribute, 0)
-        self.assertEqual(fields[1].attribute, 1)
-
     def test_frozen_class(self):
         field = NgwField(
             attribute=0,
@@ -144,6 +135,31 @@ class TestNgwField(unittest.TestCase):
         )
         with self.assertRaises(FrozenInstanceError):
             field.ngw_id = 2  # type: ignore
+
+
+class TestNgwFields(NgConnectTestCase):
+    def setUp(self):
+        self.field_json = {
+            "id": 1,
+            "datatype": "STRING",
+            "keyname": "name",
+            "display_name": "Name",
+            "label_field": True,
+            "lookup_table": {"id": 10},
+        }
+
+    def test_list_from_json(self):
+        fields_data = [
+            {**self.field_json, "id": 1, "keyname": "field_1"},
+            {**self.field_json, "id": 2, "keyname": "field_2"},
+        ]
+
+        fields = NgwFields.from_json(fields_data)
+        self.assertEqual(len(fields), 2)
+        self.assertEqual(fields[0].attribute, 0)
+        self.assertEqual(fields[0].keyname, "field_1")
+        self.assertEqual(fields[1].attribute, 1)
+        self.assertEqual(fields[1].keyname, "field_2")
 
 
 if __name__ == "__main__":

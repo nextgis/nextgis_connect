@@ -7,7 +7,7 @@ from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from nextgis_connect.detached_editing.utils import (
-    DetachedContainerMetaData,
+    make_connection,
 )
 from nextgis_connect.logging import logger
 
@@ -35,7 +35,7 @@ class DetachedLayer(QObject):
         self.__container = container
         self.__layer = layer
 
-        self.fill_properties(self.__container.metadata)
+        self.update()
 
         # TODO (PyQt6): remove type ignore
         self.__layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore
@@ -55,14 +55,15 @@ class DetachedLayer(QObject):
     def is_edit_mode_enabled(self) -> bool:
         return self.__layer.isEditable()
 
-    def fill_properties(self, metadata: DetachedContainerMetaData) -> None:
-        if metadata is None:
+    @pyqtSlot()
+    def update(self) -> None:
+        if self.__container.metadata is None:
             return
 
         properties = {
             "ngw_is_detached_layer": True,
-            "ngw_connection_id": metadata.connection_id,
-            "ngw_resource_id": metadata.resource_id,
+            "ngw_connection_id": self.__container.metadata.connection_id,
+            "ngw_resource_id": self.__container.metadata.resource_id,
         }
 
         custom_properties = self.__layer.customProperties()
@@ -72,11 +73,8 @@ class DetachedLayer(QObject):
 
     @pyqtSlot()
     def __start_listen_changes(self) -> None:
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
-        logger.debug(
-            f'Start listening changes in layer "{layer_name}" ({layer_id})'
-        )
+        metadata = self.__container.metadata
+        logger.debug(f"Start listening changes in layer {metadata}")
 
         self.__layer.committedFeaturesAdded.connect(self.__log_added_features)
         self.__layer.committedFeaturesRemoved.connect(
@@ -120,19 +118,16 @@ class DetachedLayer(QObject):
             self.__on_attribute_deleted
         )
 
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
-        logger.debug(
-            f'Stop listening changes in layer "{layer_name}" ({layer_id})'
-        )
+        metadata = self.__container.metadata
+        logger.debug(f"Stop listening changes in layer {metadata}")
 
         self.editing_finished.emit()
 
     @pyqtSlot(str, "QgsFeatureList")
     def __log_added_features(self, _: str, features: List[QgsFeature]) -> None:
-        with closing(
-            self.__container.make_connection()
-        ) as connection, closing(connection.cursor()) as cursor:
+        with closing(make_connection(self.__layer)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             cursor.executemany(
                 "INSERT INTO ngw_added_features (fid) VALUES (?);",
                 ((feature.id(),) for feature in features),
@@ -144,20 +139,16 @@ class DetachedLayer(QObject):
 
             connection.commit()
 
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
-        logger.debug(
-            f'Added {len(features)} features in layer "{layer_name}" '
-            f"({layer_id})"
-        )
+        metadata = self.__container.metadata
+        logger.debug(f"Added {len(features)} features in layer {metadata}")
 
         self.layer_changed.emit()
 
     @pyqtSlot(str, "QgsFeatureIds")
     def __log_removed_features(self, _: str, feature_ids: List[int]) -> None:
-        with closing(
-            self.__container.make_connection()
-        ) as connection, closing(connection.cursor()) as cursor:
+        with closing(make_connection(self.__layer)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             # Delete added feature fids
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(
@@ -198,11 +189,9 @@ class DetachedLayer(QObject):
 
             connection.commit()
 
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
+        metadata = self.__container.metadata
         logger.debug(
-            f'Removed {len(feature_ids)} features in layer "{layer_name}" '
-            f"({layer_id})"
+            f"Removed {len(feature_ids)} features in layer {metadata}"
         )
 
         self.layer_changed.emit()
@@ -211,9 +200,9 @@ class DetachedLayer(QObject):
     def __log_attribute_values_changes(
         self, _: str, changed_attributes: Dict[int, Dict[int, Any]]
     ) -> None:
-        with closing(
-            self.__container.make_connection()
-        ) as connection, closing(connection.cursor()) as cursor:
+        with closing(make_connection(self.__layer)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             feature_ids = list(changed_attributes.keys())
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(
@@ -237,11 +226,10 @@ class DetachedLayer(QObject):
 
             connection.commit()
 
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
+        metadata = self.__container.metadata
         logger.debug(
             f"Updated attributes for {len(feature_ids)} features in layer "
-            f'"{layer_name}" ({layer_id})'
+            f"{metadata}"
         )
 
         self.layer_changed.emit()
@@ -250,9 +238,9 @@ class DetachedLayer(QObject):
     def __log_geometry_changes(
         self, _: str, changed_geometries: Dict[int, QgsGeometry]
     ) -> None:
-        with closing(
-            self.__container.make_connection()
-        ) as connection, closing(connection.cursor()) as cursor:
+        with closing(make_connection(self.__layer)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             feature_ids = list(changed_geometries.keys())
             added_fids_intersection = (
                 self.__extract_intersection_with_added_fids(
@@ -271,11 +259,10 @@ class DetachedLayer(QObject):
 
             connection.commit()
 
-        layer_name = self.__container.metadata.layer_name
-        layer_id = self.__layer.id()
+        metadata = self.__container.metadata
         logger.debug(
             f"Updated geometries for {len(feature_ids)} features in layer "
-            f'"{layer_name}" ({layer_id})'
+            f"{metadata}"
         )
 
         self.layer_changed.emit()

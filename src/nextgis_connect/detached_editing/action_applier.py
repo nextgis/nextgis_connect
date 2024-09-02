@@ -2,7 +2,7 @@ import sqlite3
 from base64 import b64decode
 from contextlib import closing
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer, edit
 from qgis.PyQt.QtCore import QObject, pyqtSlot
@@ -16,7 +16,6 @@ from nextgis_connect.exceptions import (
     NgConnectError,
     SynchronizationError,
 )
-from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
     ActionType,
@@ -37,7 +36,6 @@ class ActionApplier(QObject):
     __container_path: Path
     __layer: QgsVectorLayer
     __metadata: DetachedContainerMetaData
-    __fields: Dict[FieldId, NgwField]
 
     __commands: List[Tuple[str, Tuple]]
     __create_command_ids: List
@@ -51,8 +49,6 @@ class ActionApplier(QObject):
         self.__metadata = metadata
         layer_path = f"{container_path}|layername={metadata.table_name}"
         self.__layer = QgsVectorLayer(layer_path)
-
-        self.__fields = {field.ngw_id: field for field in metadata.fields}
 
         self.__commands = []
         self.__create_command_ids = []
@@ -182,10 +178,12 @@ class ActionApplier(QObject):
             )
             return
 
+        fields = self.__metadata.fields
+
         # Create new feature
         new_feature = QgsFeature(self.__layer.fields())
-        for field_id, value in action.fields:
-            attribute = self.__fields[field_id].attribute
+        for field_ngw_id, value in action.fields:
+            attribute = fields.get_with(ngw_id=field_ngw_id).attribute
             new_feature.setAttribute(attribute, value)
         new_feature.setGeometry(self.__deserialize_geometry(action.geom))
 
@@ -210,14 +208,16 @@ class ActionApplier(QObject):
 
         assert feature_metadata.fid is not None
 
+        fields = self.__metadata.fields
+
         # Update fields
-        fields = {
-            self.__fields[field_id].attribute: value
-            for field_id, value in action.fields
+        fields_values = {
+            fields.get_with(ngw_id=ngw_field_id).attribute: value
+            for ngw_field_id, value in action.fields
         }
-        if len(fields) > 0:
+        if len(fields_values) > 0:
             is_success = self.__layer.changeAttributeValues(
-                feature_metadata.fid, fields
+                feature_metadata.fid, fields_values
             )
             if not is_success:
                 raise SynchronizationError("Can't update fields")

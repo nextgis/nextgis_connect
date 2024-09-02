@@ -7,7 +7,7 @@ from qgis.core import QgsApplication, QgsAuthMethodConfig
 from qgis.PyQt.QtNetwork import QNetworkRequest
 
 
-@dataclass(unsafe_hash=True)
+@dataclass(frozen=True)
 class NgwConnection:
     id: str
     name: str
@@ -40,36 +40,40 @@ class NgwConnection:
         return is_succeeded
 
     def update_uri_config(
-        self, params: Dict[str, Any], *, workaround: bool = False
+        self, params: Dict[str, Any], *, workaround_for_email: bool = False
     ) -> bool:
         if self.auth_config_id is None or (
             self.url not in params.get("url", params.get("path", ""))
         ):
-            return True
+            return False
 
-        if not workaround or self.method != "Basic":
+        if not workaround_for_email or self.method != "Basic":
             params["authcfg"] = self.auth_config_id
             return True
 
-        config = QgsAuthMethodConfig()
-
-        is_loaded = QgsApplication.authManager().loadAuthenticationConfig(
-            self.auth_config_id, config, full=True
-        )[0]
+        is_loaded, config = (
+            QgsApplication.authManager().loadAuthenticationConfig(
+                self.auth_config_id,
+                QgsAuthMethodConfig(),
+                full=True,
+            )
+        )
 
         if not is_loaded:
             return False
 
         username = config.config("username")
-        if "@" not in username:
+        password = config.config("password")
+        quoted_username = quote(username)
+        quoted_password = quote(password)
+
+        if username == quoted_username and password == quoted_password:
             params["authcfg"] = self.auth_config_id
             return True
 
-        username = quote(username)
-        password = quote(config.config("password"))
-
-        params["path"] = params["path"].replace(
-            "://", f"://{username}:{password}@"
+        key = "path" if "path" in params else "url"
+        params[key] = params[key].replace(
+            "://", f"://{quoted_username}:{quoted_password}@"
         )
 
         return True

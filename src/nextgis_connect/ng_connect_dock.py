@@ -25,7 +25,7 @@ import json
 import os
 import tempfile
 import urllib.parse
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import List, Optional, cast
 
@@ -732,18 +732,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # Detect very first connection.
         if self.jobs_count == 1:
             if exception is JobServerRequestError and exception.need_reconnect:
-                server_url = current_connection.url
+                updated_url = current_connection.url
 
                 # Try to fix http -> https. Useful for fixing old (saved) cloud
                 # connections.
-                if server_url.startswith("http://") and server_url.endswith(
+                if updated_url.startswith("http://") and updated_url.endswith(
                     ".nextgis.com"
                 ):
                     self.try_check_https = True
-                    current_connection.url = server_url.replace(
-                        "http://", "https://"
+                    updated_url = updated_url.replace("http://", "https://")
+                    updated_connection = replace(
+                        current_connection, url=updated_url
                     )
-                    connections_manager.save(current_connection)
+                    connections_manager.save(updated_connection)
                     logger.debug(
                         'Meet "http://", ".nextgis.com" connection error at '
                         "very first time using this web gis connection. Trying"
@@ -778,9 +779,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if self.try_check_https:
             # this can be only when there are more than 1 connection errors
             self.try_check_https = False
-            server_url = current_connection.url
-            current_connection.url = server_url.replace("https://", "http://")
-            connections_manager.save(current_connection)
+            updated_url = current_connection.url.replace("https://", "http://")
+            updated_connection = replace(current_connection, url=updated_url)
+            connections_manager.save(updated_connection)
             logger.debug(
                 'Failed to reconnect with "https://". Return "http://" back'
             )

@@ -119,7 +119,7 @@ class ChooserDialog(QDialog):
         self.list.setCurrentRow(0)
 
         self.btn_box = QDialogButtonBox(
-            QDialogButtonBox.Ok, Qt.Horizontal, self
+            QDialogButtonBox.Ok, Qt.Orientation.Horizontal, self
         )
         ok_button = self.btn_box.button(QDialogButtonBox.Ok)
         assert ok_button is not None

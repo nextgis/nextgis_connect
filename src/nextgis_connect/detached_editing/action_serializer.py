@@ -5,7 +5,6 @@ from qgis.PyQt.QtCore import QDate, QDateTime, QTime
 
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
 from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
-from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 from .actions import (
     ActionType,
@@ -36,20 +35,13 @@ class ActionSerializer:
     }
 
     __layer_metadata: DetachedContainerMetaData
-    __fields: Dict[FieldId, NgwField]
 
     def __init__(self, layer_metadata: DetachedContainerMetaData) -> None:
         self.__layer_metadata = layer_metadata
-        self.__fields = {}
 
     def to_json(
         self, actions: Iterable[VersioningAction], last_action_number: int = 0
     ) -> str:
-        if len(self.__fields) == 0:
-            self.__fields = {
-                field.ngw_id: field for field in self.__layer_metadata.fields
-            }
-
         action_converter = (
             self.__convert_versioning_action
             if self.__layer_metadata.is_versioning_enabled
@@ -124,12 +116,13 @@ class ActionSerializer:
             result["id"] = action.fid
 
         if isinstance(action, FeatureAction):
-            fields = {
-                self.__fields[field_id].keyname: value
-                for field_id, value in action.fields
+            fields = self.__layer_metadata.fields
+            fields_values = {
+                fields.get_with(ngw_id=field_ngw_id).keyname: value
+                for field_ngw_id, value in action.fields
             }
-            if len(fields) > 0:
-                result["fields"] = fields
+            if len(fields_values) > 0:
+                result["fields"] = fields_values
             if action.geom is not None:
                 result["geom"] = action.geom if action.geom != "" else None
 

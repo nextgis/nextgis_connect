@@ -141,7 +141,7 @@ class DetachedContainer(QObject):
         return self.__state
 
     @property
-    def is_stub(self) -> bool:
+    def is_not_initialized(self) -> bool:
         return self.__state == DetachedLayerState.NotInitialized
 
     @property
@@ -412,7 +412,7 @@ class DetachedContainer(QObject):
             self.state_changed.emit(self.__state)
             return
 
-        if self.__metadata.is_stub:
+        if self.__metadata.is_not_initialized:
             self.__state = DetachedLayerState.NotInitialized
             if self.metadata.is_versioning_enabled:
                 self.__versioning_state = (
@@ -472,7 +472,7 @@ class DetachedContainer(QObject):
             )
 
     def __init_ordinary_task(self) -> None:
-        if self.is_stub:
+        if self.is_not_initialized:
             self.__sync_task = DownloadGpkgTask(self.path)
             self.__sync_task.download_finished.connect(
                 self.__on_synchronization_finished
@@ -492,7 +492,7 @@ class DetachedContainer(QObject):
     def __init_versioning_task(self) -> None:
         State = VersioningSynchronizationState
 
-        if self.is_stub:
+        if self.is_not_initialized:
             self.__sync_task = FillLayerWithVersioning(self.path)
             self.__sync_task.download_finished.connect(
                 self.__on_synchronization_finished
@@ -729,7 +729,7 @@ class DetachedContainer(QObject):
 
     def __update_layers_properties(self) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.fill_properties(self.__metadata)
+            detached_layer.update()
 
     def __process_sync_error(self, error: NgConnectError) -> None:
         self.__state = DetachedLayerState.Error

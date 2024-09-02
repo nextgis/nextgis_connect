@@ -1,7 +1,7 @@
 import sqlite3
 from contextlib import closing
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 from qgis.core import QgsTask
 
@@ -25,7 +25,7 @@ from nextgis_connect.ngw_api.core.ngw_resource_factory import (
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection import NgwConnectionsManager
-from nextgis_connect.resources.ngw_field import NgwField
+from nextgis_connect.resources.ngw_field import NgwFields
 from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 
@@ -176,17 +176,8 @@ class DetachedEditingTask(NgConnectTask):
                 error.add_note(f"Remote count: {remote_features_count}")
                 raise error
 
-    def __is_fields_compatible(self, rhs: List[NgwField]) -> bool:
-        lhs = self._metadata.fields
-
-        if len(lhs) != len(rhs):
-            return False
-
-        for lhs_field, rhs_field in zip(lhs, rhs):
-            if not lhs_field.is_compatible(rhs_field):
-                return False
-
-        return True
+    def __is_fields_compatible(self, rhs: NgwFields) -> bool:
+        return self._metadata.fields.is_compatible(rhs)
 
     def __is_container_fields_changed(self) -> bool:
         container_fields_name = set()

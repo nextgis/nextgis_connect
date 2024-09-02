@@ -228,7 +228,9 @@ class DetachedLayerFactory:
             "connection_id": f"'{ngw_layer.connection_id}'",
             "resource_id": str(ngw_layer.resource_id),
             "display_name": f"'{ngw_layer.display_name}'",
-            "description": f"'{ngw_layer.common.description}'",
+            "description": f"'{ngw_layer.description}'"
+            if ngw_layer.description is not None
+            else "NULL",
             "geometry_type": f"'{ngw_layer.geom_name}'",
             "error_code": "NULL",
             "is_auto_sync_enabled": "true",
@@ -236,7 +238,7 @@ class DetachedLayerFactory:
 
         if ngw_layer.is_versioning_enabled:
             metadata["epoch"] = str(ngw_layer.epoch)
-            metadata["version"] = str(ngw_layer.latest_version)
+            metadata["version"] = str(ngw_layer.version)
         elif is_update:
             metadata["sync_date"] = f"'{datetime.now().isoformat()}'"
 

@@ -60,4 +60,4 @@ try:
 except Exception:
     import pkg_resources
 
-    parse_version = pkg_resources.parse_version
+    parse_version = pkg_resources.parse_version  # type: ignore
