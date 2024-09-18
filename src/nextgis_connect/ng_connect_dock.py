@@ -268,14 +268,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionCreateNewGroup.triggered.connect(self.create_group)
 
         self.actionCreateWebMap4Layer = QAction(
-            self.tr("Create web map"), self
+            self.tr("Create Web map"), self
         )
         self.actionCreateWebMap4Layer.triggered.connect(
             self.create_web_map_for_layer
         )
 
         self.actionCreateWebMap4Style = QAction(
-            self.tr("Create web map"), self
+            self.tr("Create Web map"), self
         )
         self.actionCreateWebMap4Style.triggered.connect(
             self.create_web_map_for_style

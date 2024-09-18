@@ -320,7 +320,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../exceptions.py" line="332"/>
-        <source>Ivalid NextGIS Web connection.</source>
+        <source>Invalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
@@ -398,7 +398,7 @@ If a layer contains important changes that were not sent to the server, they wil
     </message>
     <message>
         <location filename="../exceptions.py" line="335"/>
-        <source>Ivalid permissions.</source>
+        <source>Invalid permissions.</source>
         <translation>Неверные разрешения.</translation>
     </message>
     <message>
@@ -673,8 +673,8 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="277"/>
-        <source>Create web map</source>
-        <translation>Создать веб-карту</translation>
+        <source>Create Web map</source>
+        <translation>Создать Веб-карту</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="284"/>
@@ -903,8 +903,8 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="2082"/>
-        <source>Create web map for layer</source>
-        <translation>Создать веб-карту для слоя</translation>
+        <source>Create Web map for layer</source>
+        <translation>Создать Веб-карту для слоя</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="2153"/>
