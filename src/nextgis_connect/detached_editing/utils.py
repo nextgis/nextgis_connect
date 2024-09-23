@@ -78,14 +78,14 @@ class DetachedContainerMetaData:
 
 @dataclass(frozen=True)
 class DetachedContainerChangesInfo:
-    added_features: int = 0
-    removed_features: int = 0
-    updated_attributes: int = 0
-    updated_geometries: int = 0
+    added_features_count: int = 0
+    removed_features_count: int = 0
+    updated_attributes_count: int = 0
+    updated_geometries_count: int = 0
 
     @property
-    def updated_features(self) -> int:
-        return self.updated_attributes + self.updated_geometries
+    def updated_features_count(self) -> int:
+        return self.updated_attributes_count + self.updated_geometries_count
 
 
 @dataclass(frozen=True)

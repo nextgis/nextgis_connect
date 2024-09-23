@@ -164,8 +164,8 @@ class DetachedEditingTask(NgConnectTask):
             changes = container_changes(self._container_path)
             last_sync_features_count = (
                 self._metadata.features_count
-                - changes.added_features
-                + changes.removed_features
+                - changes.added_features_count
+                + changes.removed_features_count
             )
 
             if last_sync_features_count != remote_features_count:

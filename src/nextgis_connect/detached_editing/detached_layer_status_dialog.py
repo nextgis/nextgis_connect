@@ -167,6 +167,6 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
     def __fill_changes(self) -> None:
         changes = self.__container.changes_info
 
-        self.addedFeaturesLabel.setText(str(changes.added_features))
-        self.removedFeaturesLabel.setText(str(changes.removed_features))
-        self.updatedFeaturesLabel.setText(str(changes.updated_features))
+        self.addedFeaturesLabel.setText(str(changes.added_features_count))
+        self.removedFeaturesLabel.setText(str(changes.removed_features_count))
+        self.updatedFeaturesLabel.setText(str(changes.updated_features_count))

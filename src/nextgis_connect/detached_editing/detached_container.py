@@ -204,6 +204,9 @@ class DetachedContainer(QObject):
         detached_layer = DetachedLayer(self, layer)
         detached_layer.editing_started.connect(self.editing_started)
         detached_layer.editing_finished.connect(self.editing_finished)
+        detached_layer.structure_changed.connect(
+            lambda: self.__update_state(is_full_update=True)
+        )
         detached_layer.layer_changed.connect(
             lambda: self.__update_state(is_full_update=True)
         )
@@ -519,7 +522,7 @@ class DetachedContainer(QObject):
 
         if not self.is_empty:
             first_layer = next(iter(self.__detached_layers.values()))
-            first_layer.layer.reload()
+            first_layer.qgs_layer.reload()
 
         if (
             self.__additional_data_fetch_date is not None
@@ -662,11 +665,11 @@ class DetachedContainer(QObject):
 
     def __lock_layers(self) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.layer.setReadOnly(True)
+            detached_layer.qgs_layer.setReadOnly(True)
 
     def __unlock_layers(self) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.layer.setReadOnly(not self.__is_edit_allowed)
+            detached_layer.qgs_layer.setReadOnly(not self.__is_edit_allowed)
 
     def __clear_indicators(self) -> None:
         if self.__indicator is None:
@@ -686,19 +689,19 @@ class DetachedContainer(QObject):
 
     def __property(self, name: str) -> None:
         for detached_layer in self.__detached_layers.values():
-            custom_property = detached_layer.layer.customProperty(name)
+            custom_property = detached_layer.qgs_layer.customProperty(name)
             if custom_property is not None:
                 return custom_property
         return None
 
     def __set_property(self, name: str, value: Any) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.layer.setCustomProperty(name, value)
+            detached_layer.qgs_layer.setCustomProperty(name, value)
 
     def __apply_aliases(self) -> None:
         for detached_layer in self.__detached_layers.values():
             for field in self.metadata.fields:
-                detached_layer.layer.setFieldAlias(
+                detached_layer.qgs_layer.setFieldAlias(
                     field.attribute, field.display_name
                 )
 
@@ -715,7 +718,7 @@ class DetachedContainer(QObject):
             for detached_layer in self.__detached_layers.values():
                 for attribute_id in attributes_id:
                     setup = QgsEditorWidgetSetup("ValueMap", {"map": pairs})
-                    detached_layer.layer.setEditorWidgetSetup(
+                    detached_layer.qgs_layer.setEditorWidgetSetup(
                         attribute_id, setup
                     )
 
@@ -725,7 +728,9 @@ class DetachedContainer(QObject):
         for detached_layer in self.__detached_layers.values():
             for attribute_id in attributes_with_removed_lookup_table:
                 setup = QgsEditorWidgetSetup("TextEdit", {})
-                detached_layer.layer.setEditorWidgetSetup(attribute_id, setup)
+                detached_layer.qgs_layer.setEditorWidgetSetup(
+                    attribute_id, setup
+                )
 
     def __update_layers_properties(self) -> None:
         for detached_layer in self.__detached_layers.values():
