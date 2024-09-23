@@ -163,6 +163,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
         factory = DetachedLayerFactory()
         self.container_path = Path(tempfile.mktemp(suffix=".gpkg"))
+        self.addCleanup(lambda: self.gpkg_cleanup(self.container_path))
         shutil.copy(self.data_path(TestData.Points), self.container_path)
 
         factory.update_container(ngw_layer, self.container_path)
@@ -179,7 +180,6 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
     def tearDown(self) -> None:
-        self.container_path.unlink()
         super().tearDown()
 
     def test_start_stop_signals(self) -> None:

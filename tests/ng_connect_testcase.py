@@ -169,3 +169,8 @@ class NgConnectTestCase(QgisTestCase):
         cls._connections_id[TestConnection.SandboxWithLogin] = (
             basic_connection_id
         )
+
+    @staticmethod
+    def gpkg_cleanup(path: Path) -> None:
+        for file in path.parent.glob(f"{path.name}*"):
+            file.unlink(missing_ok=True)
