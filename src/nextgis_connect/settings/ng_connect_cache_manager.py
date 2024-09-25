@@ -115,49 +115,76 @@ class NgConnectCacheManager:
         return True
 
     def purge_cache(self) -> bool:
-        cache_path = Path(self.cache_directory)
+        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
 
+        need_check_size = self.cache_max_size != -1
+        need_check_date = self.cache_duration != -1
+        if not need_check_size and not need_check_date:
+            logger.debug("Cache limits is disabled")
+            return True
+
+        cache_duration_in_s = self.cache_duration * 24 * 60 * 60
+        current_time_in_s = time()
+
+        # Collect cache files information
         cache_size = 0
+        has_old_files = False
         files_with_time: List[Tuple[Path, float, float]] = []
-        for file_path in cache_path.glob("**/*"):
+        for file_path in Path(self.cache_directory).glob("**/*"):
             if not file_path.is_file():
                 continue
 
-            file_size = file_path.stat().st_size / 1024**2
+            file_stat = file_path.stat()
+
+            file_size = file_stat.st_size / 1024**2
+            file_time = file_stat.st_mtime
             cache_size += file_size
-            files_with_time.append(
-                (file_path, file_path.stat().st_mtime, file_size)
-            )
 
+            if need_check_date:
+                has_old_files = has_old_files or (
+                    current_time_in_s - file_time > cache_duration_in_s
+                )
+
+            files_with_time.append((file_path, file_time, file_size))
+
+        # Check purge neccesity
+        limit_exceeded = need_check_size and cache_size > self.cache_max_size
+        if not limit_exceeded and not has_old_files:
+            logger.debug("There is no need to purge the cache")
+            return True
+
+        # Sort by date
         files_with_time.sort(key=lambda x: x[1])
-
-        cache_max_size = self.cache_max_size
-        cache_duration = self.cache_duration * 24 * 60 * 60
-        current_time = time()
-
-        check_size = cache_max_size != -1
-        check_date = cache_duration != -1
-
-        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
-
         has_errors = False
 
-        for file_path, mtime, file_size in files_with_time:
-            if (check_size and cache_size > cache_max_size) or (
-                check_date and current_time - mtime > cache_duration
-            ):
+        # Purge cache
+        deleted_files_count = 0
+        for file_path, file_time, file_size in files_with_time:
+            limit_exceeded = (
+                need_check_size and cache_size > self.cache_max_size
+            )
+            file_is_old = (
+                need_check_date
+                and current_time_in_s - file_time > cache_duration_in_s
+            )
+
+            if limit_exceeded or file_is_old:
                 if self.__is_file_used_by_project(file_path):
                     continue
 
                 if self.__is_container_with_changes(file_path):
                     continue
 
-                cache_size -= file_size
                 try:
                     file_path.unlink()
+                    cache_size -= file_size
                 except Exception:
-                    logger.debug("Cache clearing error")
+                    logger.debug(f"Error deleting file {file_path}")
                     has_errors = True
+            else:
+                break
+
+        logger.debug(f"Deleted {deleted_files_count} files")
 
         self.__remove_empty_dirs(self.cache_directory)
 
