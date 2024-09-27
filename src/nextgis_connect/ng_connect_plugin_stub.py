@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional
 
 from osgeo import gdal
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsTaskManager
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
@@ -146,6 +146,10 @@ class NgConnectPluginStub(NgConnectInterface):
 
     @property
     def resource_selection_model(self) -> QItemSelectionModel:
+        raise NotImplementedError
+
+    @property
+    def task_manager(self) -> QgsTaskManager:
         raise NotImplementedError
 
     def synchronize_layers(self) -> None:

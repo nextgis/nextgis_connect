@@ -34,7 +34,7 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
         logger.debug(f"Create indicator for container {container.metadata}")
 
     def __del__(self) -> None:
-        logger.debug(f'Delete indicator for "{self.__container.metadata}"')
+        logger.debug(f"Delete indicator for {self.__container.metadata}")
 
     @property
     def __container(self) -> "DetachedContainer":

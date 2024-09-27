@@ -26,11 +26,7 @@ from typing import Optional, cast
 
 from osgeo import gdal
 from qgis import utils as qgis_utils
-from qgis.core import (
-    Qgis,
-    QgsApplication,
-    QgsRuntimeProfiler,
-)
+from qgis.core import Qgis, QgsApplication, QgsRuntimeProfiler, QgsTaskManager
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
@@ -147,10 +143,10 @@ class NgConnectPlugin(NgConnectInterface):
     def resource_selection_model(self) -> QItemSelectionModel:
         return None  # type: ignore
 
-    # @property
-    # def task_manager(self) -> QgsTaskManager:
-    # assert self.__task_manager is not None
-    # return self.__task_manager
+    @property
+    def task_manager(self) -> QgsTaskManager:
+        assert self.__task_manager is not None
+        return self.__task_manager
 
     def synchronize_layers(self) -> None:
         assert self.__detached_editing is not None

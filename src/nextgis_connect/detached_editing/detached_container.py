@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 from qgis.core import (
-    QgsApplication,
     QgsEditorWidgetSetup,
     QgsLayerTreeLayer,
     QgsProject,
@@ -304,7 +303,8 @@ class DetachedContainer(QObject):
         self.__state = DetachedLayerState.Synchronization
         self.state_changed.emit(self.__state)
 
-        task_manager = QgsApplication.taskManager()
+        # task_manager = QgsApplication.taskManager()
+        task_manager = NgConnectInterface.instance().task_manager
         assert task_manager is not None
         task_manager.addTask(self.__sync_task)
 
@@ -648,7 +648,8 @@ class DetachedContainer(QObject):
     def __start_sync(self, task: DetachedEditingTask) -> None:
         self.__sync_task = task
 
-        task_manager = QgsApplication.taskManager()
+        task_manager = NgConnectInterface.instance().task_manager
+        # task_manager = QgsApplication.taskManager()
         assert task_manager is not None
         task_manager.addTask(self.__sync_task)
 

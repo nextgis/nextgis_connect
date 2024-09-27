@@ -1,10 +1,13 @@
 import configparser
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from qgis import utils
-from qgis.PyQt.QtCore import QAbstractItemModel, QItemSelectionModel
-from qgis.PyQt.QtWidgets import QToolBar
+
+if TYPE_CHECKING:
+    from qgis.core import QgsTaskManager
+    from qgis.PyQt.QtCore import QAbstractItemModel, QItemSelectionModel
+    from qgis.PyQt.QtWidgets import QToolBar
 
 
 class NgConnectInterface(ABC):
@@ -30,15 +33,19 @@ class NgConnectInterface(ABC):
 
     @property
     @abstractmethod
-    def toolbar(self) -> QToolBar: ...
+    def toolbar(self) -> "QToolBar": ...
 
     @property
     @abstractmethod
-    def resource_model(self) -> QAbstractItemModel: ...
+    def resource_model(self) -> "QAbstractItemModel": ...
 
     @property
     @abstractmethod
-    def resource_selection_model(self) -> QItemSelectionModel: ...
+    def resource_selection_model(self) -> "QItemSelectionModel": ...
+
+    @property
+    @abstractmethod
+    def task_manager(self) -> "QgsTaskManager": ...
 
     @abstractmethod
     def initGui(self) -> None: ...
