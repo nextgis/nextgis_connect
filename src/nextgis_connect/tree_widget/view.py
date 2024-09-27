@@ -213,6 +213,7 @@ class QProcessOverlay(QOverlay):
         for job_name, job_status in list(jobs.items()):
             text += f"<strong>{job_name}</strong><br/>"
             if job_status != "":
+                job_status = job_status.replace("\n", "<br/>")
                 text += f"{job_status}<br/>"
 
         self.text.setText(text)
@@ -352,7 +353,7 @@ class QNGWResourceTreeView(QTreeView):
         # Get current resource name. This name can differ from display
         # text of tree item (see style resources).
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        current_name = ngw_resource.common.display_name
+        current_name = ngw_resource.display_name
 
         # Get existing names
         existing_names = []
@@ -367,7 +368,7 @@ class QNGWResourceTreeView(QTreeView):
                 sibling_resource = sibling_index.data(
                     QNGWResourceItem.NGWResourceRole
                 )
-                existing_names.append(sibling_resource.common.display_name)
+                existing_names.append(sibling_resource.display_name)
 
         dialog = QgsNewNameDialog(
             initial=current_name,

@@ -57,7 +57,7 @@ class QNGWResourceItem(QModelItem):
 
     def __init__(self, ngw_resource):
         super().__init__()
-        title = ngw_resource.common.display_name
+        title = ngw_resource.display_name
         if isinstance(ngw_resource, (NGWQGISRasterStyle, NGWQGISVectorStyle)):
             title = "(qgis) " + title
         elif isinstance(ngw_resource, NGWMapServerStyle):
@@ -74,7 +74,7 @@ class QNGWResourceItem(QModelItem):
         if role == QNGWResourceItem.NGWResourceRole:
             return self._ngw_resource
         if role == QNGWResourceItem.NGWResourceIdRole:
-            return self._ngw_resource.common.id
+            return self._ngw_resource.resource_id
         return super().data(role)
 
     def ngw_resource_id(self):
