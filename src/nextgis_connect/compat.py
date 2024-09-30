@@ -1,9 +1,17 @@
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsMapLayerProxyModel, QgsMapLayerType, QgsWkbTypes
+from qgis.core import (
+    Qgis,
+    QgsFeatureRequest,
+    QgsMapLayerProxyModel,
+    QgsMapLayerType,
+    QgsWkbTypes,
+)
+from qgis.PyQt.QtCore import QMetaType, QVariant
 
 QGIS_3_30 = 33000
 QGIS_3_34 = 33400
+QGIS_3_38 = 33800
 
 
 if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
@@ -51,6 +59,24 @@ if Qgis.versionInt() >= QGIS_3_34 or TYPE_CHECKING:
 else:
     LayerFilter = QgsMapLayerProxyModel.Filter
     LayerFilters = QgsMapLayerProxyModel.Filters
+
+if Qgis.versionInt() >= QGIS_3_34 or TYPE_CHECKING:
+    FeatureRequestFlag = Qgis.FeatureRequestFlag
+    FeatureRequestFlags = Qgis.FeatureRequestFlags
+
+else:
+    FeatureRequestFlag = QgsFeatureRequest.Flag
+    FeatureRequestFlags = QgsFeatureRequest.Flags
+
+
+if Qgis.versionInt() >= QGIS_3_38 or TYPE_CHECKING:
+    FieldType = QMetaType.Type
+else:
+    FieldType = QVariant.Type
+    FieldType.QString = QVariant.Type.String
+    FieldType.QString.is_monkey_patched = True
+    FieldType.LongLong = QVariant.Type.LongLong
+    FieldType.LongLong.is_monkey_patched = True
 
 try:
     from packaging import version
