@@ -10,7 +10,11 @@ from nextgis_connect.settings import NgConnectSettings
 class NgConnectTask(QgsTask):
     _error: Optional[NgConnectError]
 
-    def __init__(self, flags: Union[QgsTask.Flags, QgsTask.Flag]) -> None:
+    def __init__(
+        self, flags: Union[QgsTask.Flags, QgsTask.Flag, None] = None
+    ) -> None:
+        if flags is None:
+            flags = QgsTask.Flags()
         super().__init__(flags=flags)
         self._error = None
 

@@ -21,6 +21,7 @@ class ErrorCode(IntEnum):
     AuthorizationError = 401
     PermissionsError = 403
     NotFound = 404
+    UnsupportedRasterType = 497
     InvalidResource = 498
     InvalidConnection = 499
 
@@ -288,6 +289,7 @@ def _default_log_message(code: ErrorCode) -> str:
         ErrorCode.InvalidConnection: "Invalid connection",
         ErrorCode.ServerError: "Server error",
         ErrorCode.IncorrectAnswer: "Incorrect answer",
+        ErrorCode.UnsupportedRasterType: "COG is disabled",
         ErrorCode.DetachedEditingError: "Detached editing error",
         ErrorCode.ContainerError: "Container error",
         ErrorCode.ContainerCreationError: "Container creation error",
@@ -325,6 +327,10 @@ def default_user_message(code: ErrorCode) -> str:
             "Errors",
             "The plugin has been updated successfully. "
             "To continue working, please restart QGIS."
+        ),
+        ErrorCode.UnsupportedRasterType: QgsApplication.translate(
+            "Errors",
+            "Resource can't be added to the map."
         ),
         ErrorCode.NgwError: QgsApplication.translate(
             "Errors", "Error occurred while communicating with Web GIS."
@@ -406,6 +412,14 @@ def default_detail(code: ErrorCode) -> Optional[str]:
         "If a layer contains important changes that were not sent to the"
         " server, they will be lost. Create a backup if necessary."
     )
+    unsupported_cog_detail = (
+        """
+        {}. <a href="https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>
+        """
+    ).format(
+        QgsApplication.translate("Errors", "This type of raster is not supported anymore"),
+        QgsApplication.translate("Errors", "Please add COG support"),
+    )
     # fmt: on
 
     detail = {
@@ -415,5 +429,6 @@ def default_detail(code: ErrorCode) -> Optional[str]:
         ErrorCode.StructureChanged: layer_reset_detail,
         ErrorCode.VersioningEnabled: layer_reset_detail,
         ErrorCode.VersioningDisabled: layer_reset_detail,
+        ErrorCode.UnsupportedRasterType: unsupported_cog_detail,
     }
     return detail.get(code)

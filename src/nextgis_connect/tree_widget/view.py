@@ -36,19 +36,19 @@ class QOverlay(QWidget):
         )
         self.setPalette(palette)
 
-    def paintEvent(self, event):
+    def paintEvent(self, a0):
         painter = QPainter()
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        painter.fillRect(event.rect(), QBrush(self._overlay_color))
+        painter.fillRect(a0.rect(), QBrush(self._overlay_color))
         painter.setPen(QPen(Qt.PenStyle.NoPen))
 
 
 class QMessageOverlay(QOverlay):
     def __init__(self, parent, text):
         super().__init__(parent)
-        self.layout = QHBoxLayout(self)
-        self.setLayout(self.layout)
+        layout = QHBoxLayout(self)
+        self.setLayout(layout)
 
         self.text = QLabel(text, self)
         self.text.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -59,7 +59,7 @@ class QMessageOverlay(QOverlay):
             | Qt.TextInteractionFlag.TextSelectableByMouse
             | Qt.TextInteractionFlag.TextBrowserInteraction
         )
-        self.layout.addWidget(self.text)
+        layout.addWidget(self.text)
 
     def set_text(self, text: str) -> None:
         self.text.setText(text)
@@ -165,30 +165,21 @@ class NoNgstdAuthOverlay(QOverlay):
 class QProcessOverlay(QOverlay):
     def __init__(self, parent):
         super().__init__(parent)
-        self.layout = QVBoxLayout(self)
-        self.setLayout(self.layout)
+
+        layout = QVBoxLayout(self)
+        self.setLayout(layout)
 
         spacer_before = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding
         )
-        spacer_after = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
-        )
-        self.layout.addItem(spacer_before)
-
-        self.central_widget = QWidget(self)
-        self.central_widget_layout = QVBoxLayout(self.central_widget)
-        self.central_widget.setLayout(self.central_widget_layout)
-        self.layout.addWidget(self.central_widget)
-
-        self.layout.addItem(spacer_after)
+        layout.addItem(spacer_before)
 
         self.progress = QProgressBar(self)
         self.progress.setMinimum(0)
         self.progress.setMaximum(0)
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
-        self.central_widget_layout.addWidget(self.progress)
+        layout.addWidget(self.progress)
         self.setStyleSheet(
             """
                 QProgressBar {
@@ -206,17 +197,42 @@ class QProcessOverlay(QOverlay):
         )
         self.text.setOpenExternalLinks(True)
         self.text.setWordWrap(True)
-        self.central_widget_layout.addWidget(self.text)
+        layout.addWidget(self.text)
+
+        bottom_layout = QVBoxLayout()
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(0)
+
+        self.status_text = QLabel(self)
+        self.status_text.setText("")
+        self.status_text.setAlignment(
+            Qt.AlignmentFlag(
+                Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            )
+        )
+        self.status_text.setOpenExternalLinks(True)
+        self.status_text.setWordWrap(True)
+
+        bottom_layout.addWidget(self.status_text)
+
+        spacer_after = QSpacerItem(
+            20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
+        bottom_layout.addItem(spacer_after)
+
+        layout.addLayout(bottom_layout)
 
     def write(self, jobs):
         text = ""
+        status_text = ""
+
         for job_name, job_status in list(jobs.items()):
-            text += f"<strong>{job_name}</strong><br/>"
+            text += f"<strong>{job_name}</strong>".strip()
             if job_status != "":
-                job_status = job_status.replace("\n", "<br/>")
-                text += f"{job_status}<br/>"
+                status_text += job_status.replace("\n", "<br/>").strip()
 
         self.text.setText(text)
+        self.status_text.setText(status_text)
 
 
 class UnsupportedVersionOverlay(QMessageOverlay):

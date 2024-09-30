@@ -1,7 +1,7 @@
 import functools
 import uuid
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union, cast
+from typing import Callable, Dict, List, Optional, Tuple, Union, cast
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
@@ -24,7 +24,6 @@ from nextgis_connect.ngw_api.core import (
     NGWResource,
     NGWVectorLayer,
 )
-from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisLayer
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
 from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
@@ -43,12 +42,14 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateOgcfService,
     NGWCreateWfsService,
     NGWGroupCreater,
+    NGWMissingResourceUpdater,
     NGWRenameResource,
     NGWResourceDelete,
     NGWResourceModelJob,
     NGWResourceModelJobResult,
     NGWResourceUpdater,
     NGWRootResourcesLoader,
+    NgwStylesDownloader,
 )
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     NGWResourceModelJobError,
@@ -70,7 +71,7 @@ class NGWResourceModelResponse(QObject):
         super().__init__(parent)
 
         self.job_id = None
-        self.job_uuid = None
+        self.job_uuid = ""
         self.__errors = {}
         self.warnings = []
 
@@ -177,7 +178,7 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
             self.ngw_resources = ngw_resources
         else:
             self.ngw_resources = [ngw_resources]
-            self.result.main_resource_id = ngw_resources.common.id
+            self.result.main_resource_id = ngw_resources.resource_id
 
     def _do(self):
         connections_manager = NgwConnectionsManager()
@@ -189,10 +190,11 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
 
         total = str(len(self.ngw_resources))
         for i, ngw_resource in enumerate(self.ngw_resources):
-            name = ngw_resource.common.display_name
-            progress = "" if total == "1" else f" ({i + 1}/{total})"
+            name = ngw_resource.display_name
+            progress = "" if total == "1" else f"\n({i + 1}/{total})"
             self.statusChanged.emit(
-                self.tr('Adding layer "{name}"').format(name=name) + progress
+                self.tr('Processing layer "{name}"').format(name=name)
+                + progress
             )
 
             connection = connections_manager.connection(
@@ -203,15 +205,17 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
 
             instance_cache_path = cache_directory / instance_subdir
             instance_cache_path.mkdir(parents=True, exist_ok=True)
-            gpkg_path = instance_cache_path / f"{ngw_resource.common.id}.gpkg"
+            gpkg_path = (
+                instance_cache_path / f"{ngw_resource.resource_id}.gpkg"
+            )
             detached_factory.create_container(ngw_resource, gpkg_path)
 
 
 class QNGWResourceTreeModelBase(QAbstractItemModel):
     jobStarted = pyqtSignal(str)
     jobStatusChanged = pyqtSignal(str, str)
-    errorOccurred = pyqtSignal(str, str, object)
-    warningOccurred = pyqtSignal(str, str, object)
+    errorOccurred = pyqtSignal(str, str, Exception)
+    warningOccurred = pyqtSignal(str, str, Exception)
     jobFinished = pyqtSignal(str, str)
     indexesLocked = pyqtSignal()
     indexesUnlocked = pyqtSignal()
@@ -226,7 +230,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.ngw_version = None
         self.support_status = None
 
-        self.__dangling_resources = {}
+        self._dangling_resources: Dict[int, NGWResource] = {}
         self.__not_permitted_resources = set()
 
         self.__indexes_locked_by_jobs = {}
@@ -248,7 +252,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.jobs = []
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
-        self.__dangling_resources = {}
+        self._dangling_resources = {}
         self.__not_permitted_resources = set()
 
         request_error = None
@@ -357,8 +361,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             logger.debug("Fetch root resource")
         else:
             ngw_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
-            worker = NGWResourceUpdater(ngw_resource)
-            logger.debug(f"Fetch children for id={ngw_resource.resource_id}")
+            worker = NGWResourceUpdater(ngw_resource, [])
 
         self._startJob(worker, parent)
 
@@ -383,8 +386,6 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         item = self.item(index)
         return item.flags()
 
-    # TODO job должен уметь не стартовать, например есди запущен job обновления
-    # дочерних ресурсов - нельзя запускать обновление
     def _startJob(
         self,
         worker: NGWResourceModelJob,
@@ -511,7 +512,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     def _isIndexLockedByJobError(self, index):
         return index in self.__indexes_locked_by_job_errors
 
-    def getIndexByNGWResourceId(self, ngw_resource_id, parent=None):
+    def index_from_id(self, ngw_resource_id, parent=None):
         if parent is None:
             parent = self.index(0, 0, QModelIndex())
         item = parent.internalPointer()
@@ -523,7 +524,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return parent
 
         for i in range(item.childCount()):
-            index = self.getIndexByNGWResourceId(
+            index = self.index_from_id(
                 ngw_resource_id, self.index(i, 0, parent)
             )
 
@@ -532,12 +533,45 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         return None
 
-    def getResourceByNGWId(self, ngw_resource_id) -> Optional[NGWResource]:
-        index = self.getIndexByNGWResourceId(ngw_resource_id)
+    def resource(
+        self, identifier: Union[int, QModelIndex, None]
+    ) -> Optional[NGWResource]:
+        if identifier is None:
+            return None
+
+        index = (
+            identifier
+            if isinstance(identifier, QModelIndex)
+            else self.index_from_id(identifier)
+        )
         if index is not None and index.isValid():
             return index.data(QNGWResourceItem.NGWResourceRole)
 
-        return self.__dangling_resources.get(ngw_resource_id)
+        return self._dangling_resources.get(identifier)
+
+    def children_resources(
+        self, parent_identifier: Union[int, QModelIndex]
+    ) -> List[NGWResource]:
+        parent_index = (
+            parent_identifier
+            if isinstance(parent_identifier, QModelIndex)
+            else self.index_from_id(parent_identifier)
+        )
+
+        if parent_index is not None and parent_index.isValid():
+            result = []
+            for row in range(self.rowCount(parent_index)):
+                child_index = self.index(row, 0, parent_index)
+                result.append(
+                    child_index.data(QNGWResourceItem.NGWResourceRole)
+                )
+            return result
+
+        return [
+            resource
+            for resource in self._dangling_resources.values()
+            if resource.parent_id == parent_identifier
+        ]
 
     def is_forbidden(self, resource_id: int) -> bool:
         return resource_id in self.__not_permitted_resources
@@ -563,11 +597,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 index = QModelIndex()
                 new_index = self.addNGWResourceToTree(index, ngw_resource)
             else:
-                parent_id = ngw_resource.common.parent.id
+                parent_id = ngw_resource.parent_id
                 if parent_id not in indexes:
-                    indexes[parent_id] = self.getIndexByNGWResourceId(
-                        parent_id
-                    )
+                    indexes[parent_id] = self.index_from_id(parent_id)
                 index = indexes[parent_id]
 
                 item = index.internalPointer()
@@ -576,19 +608,17 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                     for i in range(item.childCount())
                     if isinstance(item.child(i), QNGWResourceItem)
                 ]
-                if ngw_resource.common.id not in current_ids:
+                if ngw_resource.resource_id not in current_ids:
                     new_index = self.addNGWResourceToTree(index, ngw_resource)
                 else:
                     continue
 
-            if job_result.main_resource_id == ngw_resource.common.id:
+            if job_result.main_resource_id == ngw_resource.resource_id:
                 if job.model_response is not None:
                     job.model_response.done.emit(new_index)
 
         if len(indexes) == 0 and job.getJobId() == NGWResourceUpdater.__name__:
-            ngw_index = self.getIndexByNGWResourceId(
-                job_result.main_resource_id
-            )
+            ngw_index = self.index_from_id(job_result.main_resource_id)
             self.data(
                 ngw_index, QNGWResourceItem.NGWResourceRole
             ).set_children_count(0)
@@ -603,15 +633,15 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 self.cleanModel()  # remove root item
                 index = QModelIndex()
             else:
-                index = self.getIndexByNGWResourceId(
-                    ngw_resource.common.parent.id,
+                index = self.index_from_id(
+                    ngw_resource.parent_id,
                 )
                 item = index.internalPointer()
 
                 for i in range(item.childCount()):
                     if (
                         item.child(i).ngw_resource_id()
-                        == ngw_resource.common.id
+                        == ngw_resource.resource_id
                     ):
                         self.beginRemoveRows(index, i, i)
                         item.removeChild(item.child(i))
@@ -627,13 +657,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 job.model_response.done.emit(new_index)
 
         for ngw_resource in job_result.deleted_resources:
-            index = self.getIndexByNGWResourceId(
-                ngw_resource.common.parent.id,
+            index = self.index_from_id(
+                ngw_resource.parent_id,
             )
             item = index.internalPointer()
 
             for i in range(item.childCount()):
-                if item.child(i).ngw_resource_id() == ngw_resource.common.id:
+                if item.child(i).ngw_resource_id() == ngw_resource.resource_id:
                     self.beginRemoveRows(index, i, i)
                     item.removeChild(item.child(i))
                     self.endRemoveRows()
@@ -649,7 +679,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 job.model_response.done.emit(index)
 
         for ngw_resource in job_result.dangling_resources:
-            self.__dangling_resources[ngw_resource.resource_id] = ngw_resource
+            self._dangling_resources[ngw_resource.resource_id] = ngw_resource
 
         self.__not_permitted_resources.update(
             job_result.not_permitted_resources
@@ -868,59 +898,48 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         )
 
     @modelRequest
-    def fetch_group(
-        self, group_indexes: Union[QModelIndex, List[QModelIndex]]
+    def fetch_not_expanded(
+        self, resources_id: List[int]
     ) -> Optional[NGWResourcesModelJob]:
-        def collect_indexes(index: QModelIndex) -> List[QModelIndex]:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            if not isinstance(ngw_resource, NGWGroupResource):
-                return []
+        indexes_for_fetch: List[QModelIndex] = [
+            self.index_from_id(resource_id) for resource_id in resources_id
+        ]
+        indexes_for_fetch = [
+            index for index in indexes_for_fetch if index is not None
+        ]
+        ids_for_fetch = [
+            resource_id
+            for resource_id in resources_id
+            if resource_id in self._dangling_resources
+        ]
 
-            if self.canFetchMore(index):
-                return [index]
-
-            indexes: List[QModelIndex] = []
-            for row in range(self.rowCount(index)):
-                child_index = self.index(row, 0, index)
-                indexes.extend(collect_indexes(child_index))
-
-            return indexes
-
-        if isinstance(group_indexes, QModelIndex):
-            group_indexes = [group_indexes]
-
-        indexes_for_fetch: List[QModelIndex] = []
-        for group_index in group_indexes:
-            indexes_for_fetch.extend(collect_indexes(group_index))
-
-        if len(indexes_for_fetch) == 0:
+        if len(indexes_for_fetch) == 0 and len(ids_for_fetch) == 0:
             return None
 
         resources: List[NGWResource] = [
-            index.data(QNGWResourceItem.NGWResourceRole)
+            cast(NGWResource, self.resource(index))
             for index in indexes_for_fetch
         ]
+        dangling_resources: List[NGWResource] = [
+            cast(NGWResource, self.resource(index)) for index in ids_for_fetch
+        ]
 
-        worker = NGWResourceUpdater(resources, recursive=True)
+        worker = NGWMissingResourceUpdater(
+            resources, dangling_resources, recursive=True
+        )
         return self._startJob(worker, lock_indexes=indexes_for_fetch)
 
     @modelRequest
-    def fetch_webmap_resources(
-        self, webmap_indexes: Union[QModelIndex, List[QModelIndex]]
+    def fetch_missing(
+        self, resources_id: List[int]
     ) -> Optional[NGWResourcesModelJob]:
-        if isinstance(webmap_indexes, QModelIndex):
-            webmap_indexes = [webmap_indexes]
-
         def is_not_downloaded(resource_id: int) -> bool:
-            resource = self.getResourceByNGWId(resource_id)
+            resource = self.resource(resource_id)
             return resource is None and not self.is_forbidden(resource_id)
 
         not_donloaded_resources_id = set(
             resource_id
-            for index in webmap_indexes
-            for resource_id in index.data(
-                QNGWResourceItem.NGWResourceRole
-            ).all_resources_id
+            for resource_id in resources_id
             if is_not_downloaded(resource_id)
         )
         if len(not_donloaded_resources_id) == 0:
@@ -950,7 +969,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
             if isinstance(ngw_resource, NGWVectorLayer):
                 if cache_manager.exists(
-                    f"{instance_subdir}/{ngw_resource.common.id}.gpkg"
+                    f"{instance_subdir}/{ngw_resource.resource_id}.gpkg"
                 ):
                     return [index], []
                 return [index], [index]
@@ -962,7 +981,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                     return [], []
 
                 if cache_manager.exists(
-                    f"{instance_subdir}/{parent_resource.common.id}.gpkg"
+                    f"{instance_subdir}/{parent_resource.resource_id}.gpkg"
                 ):
                     return [parent, index], []
                 return [parent, index], [parent]
@@ -986,7 +1005,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         def collect_not_downloaded_webmap_layers(webmap: NGWWebMap):
             result = []
             for resource_id in webmap.all_resources_id:
-                ngw_resource = self.getResourceByNGWId(resource_id)
+                ngw_resource = self.resource(resource_id)
                 if not isinstance(ngw_resource, NGWVectorLayer):
                     continue
 
@@ -1033,47 +1052,22 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))
 
     @modelRequest
-    def fetch_services_if_needed(
-        self, indexes: Union[QModelIndex, List[QModelIndex]]
-    ):
-        if isinstance(indexes, QModelIndex):
-            indexes = [indexes]
-
-        def is_downloaded(resource_id: int) -> bool:
-            resource = self.getResourceByNGWId(resource_id)
-            return resource is not None or self.is_forbidden(resource_id)
-
-        def collect_not_fetched_webmap_services(webmap: NGWWebMap):
-            result = []
-            for resource_id in webmap.all_resources_id:
-                ngw_resource = self.getResourceByNGWId(resource_id)
-                if not isinstance(ngw_resource, (NGWPostgisLayer,)):
-                    continue
-
-                if is_downloaded(ngw_resource.service_resource_id):
-                    continue
-
-                result.append(ngw_resource.service_resource_id)
-
-            return result
-
-        not_donloaded_resources_id = set()
-        for index in indexes:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            if isinstance(ngw_resource, (NGWPostgisLayer,)):
-                if not is_downloaded(ngw_resource.service_resource_id):
-                    not_donloaded_resources_id.add(
-                        ngw_resource.service_resource_id
-                    )
-            elif isinstance(ngw_resource, NGWWebMap):
-                not_donloaded_resources_id.update(
-                    collect_not_fetched_webmap_services(ngw_resource)
-                )
-
-        if len(not_donloaded_resources_id) == 0:
+    def fetch_missing_styles(
+        self, resources_id: List[int]
+    ) -> Optional[NGWResourcesModelJob]:
+        if len(resources_id) == 0:
             return None
 
-        worker = ResourcesDownloader(
-            self._ngw_connection.connection_id, not_donloaded_resources_id
-        )
-        return self._startJob(worker)
+        indexes_for_lock: List[QModelIndex] = [
+            self.index_from_id(resource_id) for resource_id in resources_id
+        ]
+        indexes_for_lock = [
+            index for index in indexes_for_lock if index is not None
+        ]
+
+        resources = [
+            self.resource(resource_id) for resource_id in resources_id
+        ]
+
+        worker = NgwStylesDownloader(resources)  # type: ignore
+        return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))

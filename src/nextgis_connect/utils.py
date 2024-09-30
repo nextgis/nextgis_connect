@@ -1,13 +1,10 @@
 import platform
 from enum import Enum, auto
 from itertools import islice
-from typing import Optional, Tuple, Union, cast
+from typing import Tuple, Union, cast
 
 from qgis.core import (
     QgsApplication,
-    QgsProject,
-    QgsProviderRegistry,
-    QgsRasterLayer,
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QByteArray, QMimeData, Qt, QUrl
@@ -21,9 +18,6 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from nextgis_connect.exceptions import ErrorCode, NgConnectError, NgwError
-from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
@@ -33,71 +27,6 @@ class SupportStatus(Enum):
     OLD_NGW = auto()
     OLD_CONNECT = auto()
     SUPPORTED = auto()
-
-
-def add_wms_layer(
-    name,
-    url,
-    layer_keys,
-    connection: NgwConnection,
-    *,
-    ask_choose_layers=False,
-    resource_id=None,
-) -> Optional[QgsRasterLayer]:
-    if len(layer_keys) == 0:
-        user_message = QgsApplication.translate(
-            "Utils", "The WMS service does not contain any layers"
-        )
-        raise NgwError(
-            "Layers list is empty",
-            user_message=user_message,
-            code=ErrorCode.InvalidResource,
-        )
-
-    if ask_choose_layers:
-        layersChooser = ChooserDialog(layer_keys)
-        result = layersChooser.exec()
-        if result != ChooserDialog.DialogCode.Accepted:
-            return
-        layer_keys = layersChooser.seleced_options
-
-    provider_regstry = QgsProviderRegistry.instance()
-    assert provider_regstry is not None
-    wms_metadata = provider_regstry.providerMetadata("wms")
-    assert wms_metadata is not None
-    uri_params = {
-        "format": "image/png",
-        "crs": "EPSG:3857",
-        "url": url,
-    }
-    if url.startswith(connection.url):
-        uri_params["authcfg"] = connection.auth_config_id
-
-    uri = wms_metadata.encodeUri(uri_params)
-
-    for layer in layer_keys:
-        uri += f"&layers={layer}&styles="
-
-    rlayer = QgsRasterLayer(uri, name, "wms")
-    if not rlayer.isValid():
-        message = QgsApplication.translate(
-            "Utils", 'Invalid wms url for layer "{name}"'
-        ).format(uri=uri, name=name)
-
-        error = NgConnectError("WMS error", user_message=message)
-        error.add_note(f"Url: {uri}")
-
-        NgConnectInterface.instance().show_error(error)
-        return None
-
-    rlayer.setCustomProperty("ngw_connection_id", connection.id)
-    rlayer.setCustomProperty("ngw_resource_id", resource_id)
-
-    project = QgsProject.instance()
-    assert project is not None
-    project.addMapLayer(rlayer)
-
-    return rlayer
 
 
 class ChooserDialog(QDialog):

@@ -33,14 +33,12 @@ from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
     QgsApplication,
-    QgsCoordinateReferenceSystem,
     QgsFileUtils,
     QgsLayerTreeLayer,
     QgsLayerTreeRegistryBridge,
     QgsNetworkAccessManager,
     QgsProject,
     QgsRasterLayer,
-    QgsReferencedRectangle,
     QgsSettings,
     QgsVectorLayer,
 )
@@ -61,7 +59,12 @@ from qgis.PyQt.QtCore import (
     QUrl,
     pyqtSlot,
 )
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
+from qgis.PyQt.QtGui import (
+    QContextMenuEvent,
+    QDesktopServices,
+    QIcon,
+    QResizeEvent,
+)
 from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -81,11 +84,9 @@ from nextgis_connect import utils
 from nextgis_connect.action_style_import_or_update import (
     ActionStyleImportUpdate,
 )
-from nextgis_connect.detached_editing.utils import detached_layer_uri
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.dialog_metadata import MetadataDialog
 from nextgis_connect.exceptions import (
-    ContainerError,
     ErrorCode,
     NgConnectError,
     NgwError,
@@ -112,28 +113,17 @@ from nextgis_connect.ngw_api.core import (
     NGWWmsService,
 )
 from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
-from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisConnection
 from nextgis_connect.ngw_api.core.ngw_tms_resources import (
+    NGWTmsConnection,
     NGWTmsLayer,
 )
 from nextgis_connect.ngw_api.core.ngw_webmap import (
     NGWWebMap,
-    NGWWebMapGroup,
-    NGWWebMapLayer,
 )
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISResourceJob,
 )
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-from nextgis_connect.ngw_api.qgis.resource_to_map import (
-    UnsupportedRasterTypeException,
-    _add_aliases,
-    _add_all_styles_to_layer,
-    _add_lookup_tables,
-    add_ogcf_resource,
-    add_resource_as_cog_raster,
-    add_resource_as_wfs_layers,
-)
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobError,
     JobNGWError,
@@ -146,15 +136,14 @@ from nextgis_connect.ngw_connection.ngw_connection_edit_dialog import (
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
+from nextgis_connect.ngw_resources_adder import NgwResourcesAdder
 from nextgis_connect.settings import NgConnectSettings
-from nextgis_connect.settings.ng_connect_cache_manager import (
-    NgConnectCacheManager,
-)
 from nextgis_connect.tree_widget import (
     QNGWResourceItem,
     QNGWResourceTreeModel,
     QNGWResourceTreeView,
 )
+from nextgis_connect.tree_widget.model import NGWResourceModelResponse
 
 HAS_NGSTD = True
 try:
@@ -418,12 +407,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "QGISStyleAdder": self.tr("Style for layer is being created"),
             "NGWRenameResource": self.tr("Resource is being renamed"),
             "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
+            "NGWMissingResourceUpdater": self.tr(
+                "Resources is being downloaded"
+            ),
             "NgwCreateVectorLayersStubs": self.tr(
-                "Vector layers is being downloaded"
+                "Vector layers is being processed"
             ),
             "ResourcesDownloader": self.tr(
                 "Linked resources is being downloaded"
             ),
+            "NgwStylesDownloader": self.tr("Styles is being downloaded"),
+            "AddLayersStub": self.tr("Resources is being added to QGIS"),
         }
 
         # ngw resources view
@@ -470,7 +464,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.checkImportActionsAvailability()
 
-    def close(self):
+    def close(self) -> bool:
         self.resources_tree_view.customContextMenuRequested.disconnect(
             self.slotCustomContextMenu
         )
@@ -512,7 +506,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.resource_model.deleteLater()
 
-        super().close()
+        return super().close()
 
     @pyqtSlot()
     def checkImportActionsAvailability(self):
@@ -625,6 +619,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                         NGWQGISRasterStyle,
                         NGWBaseMap,
                         NGWTmsLayer,
+                        NGWTmsConnection,
                         NGWPostgisLayer,
                         NGWWebMap,
                     ),
@@ -668,26 +663,36 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionOpenInNGWFromLayer.setVisible(open_in_ngw_visible)
         self.layer_menu_separator.setVisible(open_in_ngw_visible)
 
-    def __model_warning_process(self, job_name, job_uuid, exception):
+    @pyqtSlot(str, str, Exception)
+    def __model_warning_process(
+        self, job_name: str, job_uuid: str, exception: Exception
+    ):
         self.__model_exception_process(
             job_name, job_uuid, exception, Qgis.MessageLevel.Warning
         )
 
-    def __model_error_process(self, job_name, job_uuid, exception):
+    @pyqtSlot(str, str, Exception)
+    def __model_error_process(
+        self, job_name: str, job_uuid: str, exception: Exception
+    ):
         self.__model_exception_process(
             job_name, job_uuid, exception, Qgis.MessageLevel.Critical
         )
 
-    def __model_exception_process(self, job_name, job_uuid, exception, level):
+    def __model_exception_process(
+        self,
+        job_name: str,
+        job_uuid: str,
+        exception: Exception,
+        level: Qgis.MessageLevel,
+    ):
         # always unblock in case of any error so to allow to fix it
         self.unblock_gui()
 
         if not self.resource_model.is_connected:
             self.disable_tools()
 
-        msg, msg_ext, icon = self.__get_model_exception_description(
-            job_name, exception
-        )
+        msg, msg_ext, icon = self.__get_model_exception_description(exception)
 
         connections_manager = NgwConnectionsManager()
         current_connection_id = connections_manager.current_connection_id
@@ -695,14 +700,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         current_connection = connections_manager.current_connection
         assert current_connection
 
-        if job_name == "NgwCreateVectorLayersStubs":
-            found_i = -1
-            for i in range(len(self._queue_to_add)):
-                if self._queue_to_add[i].job_uuid == job_uuid:
-                    found_i = i
-                    break
-            if found_i != -1:
-                del self._queue_to_add[found_i]
+        for i, command in enumerate(self._queue_to_add):
+            if command.job_uuid == job_uuid:
+                del self._queue_to_add[i]
+                break
 
         if (
             isinstance(exception, NgwError)
@@ -731,7 +732,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Detect very first connection.
         if self.jobs_count == 1:
-            if exception is JobServerRequestError and exception.need_reconnect:
+            if (
+                isinstance(exception, JobServerRequestError)
+                and exception.need_reconnect
+            ):
                 updated_url = current_connection.url
 
                 # Try to fix http -> https. Useful for fixing old (saved) cloud
@@ -789,7 +793,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if (
-            issubclass(exception.__class__, JobServerRequestError)
+            isinstance(exception, JobServerRequestError)
             and exception.user_msg is not None
         ):
             self.show_error(exception.user_msg)
@@ -797,7 +801,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         NgConnectInterface.instance().show_error(exception)
 
-    def __get_model_exception_description(self, job, exception):
+    def __get_model_exception_description(self, exception: Exception):
         msg = None
         msg_ext = None
         icon = os.path.join(ICONS_PATH, "Error.svg")
@@ -852,7 +856,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return msg, msg_ext, icon
 
     def __msg_in_qgis_mes_bar(
-        self, message, level=Qgis.MessageLevel.Info, duration=0
+        self, message: str, level=Qgis.MessageLevel.Info, duration: int = 0
     ):
         if message.endswith(".."):
             message = message[:-1]
@@ -862,22 +866,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.iface.messageBar().pushWidget(widget, level, duration)
 
-    def __modelJobStarted(self, job_id):
+    @pyqtSlot(str)
+    def __modelJobStarted(self, job_id: str):
         if job_id in self.blocked_jobs:
             self.block_gui()
             self.resources_tree_view.addBlockedJob(self.blocked_jobs[job_id])
 
-    def __modelJobStatusChanged(self, job_id, status):
+    @pyqtSlot(str, str)
+    def __modelJobStatusChanged(self, job_id: str, status: str):
         if job_id in self.blocked_jobs:
             self.resources_tree_view.addJobStatus(
                 self.blocked_jobs[job_id], status
             )
 
-    def __modelJobFinished(self, job_id, job_uuid):
-        self.jobs_count += 1  # note: __modelJobFinished will be triggered even if error/warning occured during job execution
-        # logger.debug(
-        #     f"Jobs finished for current connection: {self.jobs_count}"
-        # )
+    @pyqtSlot(str, str)
+    def __modelJobFinished(self, job_id: str, job_uuid: str):
+        # note: __modelJobFinished will be triggered even if error/warning
+        # occured during job execution
+        self.jobs_count += 1
 
         if job_id == "NGWRootResourcesLoader":
             self.unblock_gui()
@@ -890,9 +896,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.__add_layers_after_finish(job_uuid)
 
+    @pyqtSlot()
     def __onModelBlockIndexes(self):
         self.block_gui()
 
+    @pyqtSlot()
     def __onModelReleaseIndexes(self):
         if self._first_gui_block_on_refresh:
             self._first_gui_block_on_refresh = False
@@ -994,6 +1002,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             NgConnectInterface.instance().show_error(error)
 
+    @pyqtSlot()
     def __action_refresh_tree(self):
         self.reinit_tree(force=True)
 
@@ -1003,17 +1012,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             index = QModelIndex()
             self.resource_model.addNGWResourceToTree(index, ngw_resource)
         else:
-            index = self.resource_model.getIndexByNGWResourceId(
-                ngw_resource.common.parent.id,
+            index = self.resource_model.index_from_id(
+                ngw_resource.parent_id,
             )
 
             item = index.internalPointer()
             current_ids = [
-                item.child(i).data(QNGWResourceItem.NGWResourceRole).common.id
+                item.child(i)
+                .data(QNGWResourceItem.NGWResourceRole)
+                .resource_id
                 for i in range(item.childCount())
                 if isinstance(item.child(i), QNGWResourceItem)
             ]
-            if ngw_resource.common.id not in current_ids:
+            if ngw_resource.resource_id not in current_ids:
                 self.resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
@@ -1032,23 +1043,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resource_model.connection_id is not None
         )
 
+    @pyqtSlot()
     def action_settings(self):
         self.iface.showOptionsDialog(
             self.iface.mainWindow(), "NextGIS Connect"
         )
 
-    def str_to_link(self, text: str, url: str):
+    def str_to_link(self, text: str, url: str) -> str:
         return f'<a href="{url}"><span style=" text-decoration: underline; color:#0000ff;">{text}</span></a>'
-
-    def _show_unsupported_raster_err(self):
-        msg = "{}. {}".format(
-            self.tr("This type of raster is not supported yet"),
-            self.str_to_link(
-                self.tr("Please add COG support"),
-                "https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer",
-            ),
-        )
-        self.show_info(msg)
 
     def slotCustomContextMenu(self, qpoint: QPoint):
         index = self.resources_tree_view.indexAt(qpoint)
@@ -1086,6 +1088,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWQGISRasterStyle,
                     NGWBaseMap,
                     NGWTmsLayer,
+                    NGWTmsConnection,
                     NGWPostgisLayer,
                     NGWWebMap,
                 ),
@@ -1220,64 +1223,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
 
-    def _add_with_style(self, resource):
-        default_style = None
-        children = resource.get_children()
-        style_resources = [
-            child for child in children if isinstance(child, NGWQGISStyle)
-        ]
-
-        current_index = (
-            self.resources_tree_view.selectionModel().currentIndex()
-        )
-        current_resource = current_index.data(QNGWResourceItem.NGWResourceRole)
-        group_add = isinstance(current_resource, NGWGroupResource)
-
-        if len(style_resources) == 1 or group_add:
-            default_style = None
-        elif len(style_resources) > 1:
-            if self.resource_model.canFetchMore(current_index):
-                for child in children:
-                    self.resource_model.addNGWResourceToTree(
-                        current_index, child
-                    )
-
-            dialog = NGWLayerStyleChooserDialog(
-                self.tr("Select style"),
-                current_index,
-                self.resource_model,
-                self,
-            )
-            result = dialog.exec()
-            if result == QDialog.DialogCode.Accepted:
-                sel_index = dialog.selectedStyleIndex()
-                if sel_index is not None and sel_index.isValid():
-                    default_style = sel_index.data(
-                        QNGWResourceItem.NGWResourceRole
-                    )
-
-        if resource.type_id == NGWVectorLayer.type_id:
-            self.__add_gpkg_layer(resource, style_resources, default_style)
-        elif resource.type_id == NGWRasterLayer.type_id:
-            add_resource_as_cog_raster(
-                resource, style_resources, default_style
-            )
-        elif resource.type_id == NGWPostgisLayer.type_id:
-            self.__add_postgis_layer(resource, style_resources, default_style)
-
     def __export_to_qgis(self):
-        def is_folder(index: QModelIndex) -> bool:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            return isinstance(ngw_resource, NGWGroupResource)
-
-        def is_webmap(index: QModelIndex) -> bool:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            return isinstance(ngw_resource, NGWWebMap)
-
         selection_model = self.resources_tree_view.selectionModel()
-        assert selection_model is not None
         selected_indexes = selection_model.selectedIndexes()
-        self.__preprocess_indexes_list(selected_indexes)
 
         def save_command(job) -> None:
             insertion_point = self.iface.layerTreeInsertionPoint()
@@ -1287,21 +1235,20 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             )
 
+        adder = NgwResourcesAdder(self.resource_model, selected_indexes)
+
+        is_success, missing_ids = adder.missing_resources()
+        if not is_success:
+            return
+
         # Fetch group tree if group resource is selected
-        group_indexes = list(filter(is_folder, selected_indexes))
-        job = self.resource_model.fetch_group(group_indexes)
+        job = self.resource_model.fetch_not_expanded(missing_ids)
         if job is not None:
             save_command(job)
             return
 
         # Fetch group tree if group resource is selected
-        webmap_indexes = list(filter(is_webmap, selected_indexes))
-        job = self.resource_model.fetch_webmap_resources(webmap_indexes)
-        if job is not None:
-            save_command(job)
-            return
-
-        job = self.resource_model.fetch_services_if_needed(selected_indexes)
+        job = self.resource_model.fetch_missing(missing_ids)
         if job is not None:
             save_command(job)
             return
@@ -1313,232 +1260,40 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             save_command(download_job)
             return
 
+        # Fetch styles
+        is_success, styles_id = adder.missing_styles()
+        if not is_success:
+            return
+
+        job = self.resource_model.fetch_missing_styles(styles_id)
+        if job is not None:
+            save_command(job)
+            return
+
         plugin = NgConnectInterface.instance()
         plugin.disable_synchronization()
-
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
         project = QgsProject.instance()
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
 
-        insertion_point = self.iface.layerTreeInsertionPoint()
-        backup_point = InsertionPoint(insertion_point)
+        backup_point = self.iface.layerTreeInsertionPoint()
 
-        for selected_index in selected_indexes:
-            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-            added = self.__add_resource_to_qgis(
-                selected_index, InsertionPoint(insertion_point)
-            )
-            if added:
-                insertion_point.position += 1
+        job_id = "AddLayersStub"
+        self.block_gui()
+        self.resources_tree_view.addBlockedJob(self.blocked_jobs[job_id])
+
+        adder.run()
+
+        self.unblock_gui()
+        self.resources_tree_view.removeBlockedJob(self.blocked_jobs[job_id])
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
 
         plugin.enable_synchronization()
 
-    def __preprocess_indexes_list(
-        self, ngw_indexes: List[QModelIndex]
-    ) -> None:
-        def has_parent_in_list(index: QModelIndex) -> bool:
-            index = index.parent()
-            while index.isValid():
-                if index in ngw_indexes:
-                    return True
-                index = index.parent()
-            return False
-
-        # auto_checked_types = (
-        #     NGWGroupResource, NGWVectorLayer, NGWQGISVectorStyle
-        # )
-
-        i = 0
-        for ngw_index in ngw_indexes:
-            # ngw_resource = ngw_index.data(QNGWResourceItem.NGWResourceRole)
-            # if not isinstance(ngw_resource, auto_checked_types):
-            #     i += 1
-            #     continue
-
-            if not ngw_index.isValid() or has_parent_in_list(ngw_index):
-                del ngw_indexes[i]
-            else:
-                i += 1
-
-    def __add_resource_to_qgis(
-        self,
-        index: QModelIndex,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> bool:
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        connection_manager = NgwConnectionsManager()
-        connection = connection_manager.connection(ngw_resource.connection_id)
-        assert connection is not None
-        try:
-            if isinstance(ngw_resource, NGWVectorLayer):
-                self._add_with_style(ngw_resource)
-            elif isinstance(ngw_resource, NGWQGISVectorStyle):
-                parent_resource = index.parent().data(
-                    QNGWResourceItem.NGWResourceRole
-                )
-                siblings = cast(
-                    List[NGWQGISStyle], parent_resource.get_children()
-                )
-                if isinstance(parent_resource, NGWPostgisLayer):
-                    self.__add_postgis_layer(
-                        parent_resource, siblings, ngw_resource
-                    )
-                elif isinstance(parent_resource, NGWVectorLayer):
-                    self.__add_gpkg_layer(
-                        parent_resource, siblings, ngw_resource
-                    )
-                else:
-                    logger.error("Unsupported type")
-
-            elif isinstance(ngw_resource, NGWRasterLayer):
-                try:
-                    self._add_with_style(ngw_resource)
-                except UnsupportedRasterTypeException:
-                    self._show_unsupported_raster_err()
-
-            elif isinstance(ngw_resource, NGWQGISRasterStyle):
-                try:
-                    parent_resource: NGWResource = index.parent().data(
-                        QNGWResourceItem.NGWResourceRole
-                    )
-                    siblings = parent_resource.get_children()
-                    add_resource_as_cog_raster(
-                        parent_resource, siblings, ngw_resource
-                    )
-                except UnsupportedRasterTypeException:
-                    self._show_unsupported_raster_err()
-            elif isinstance(ngw_resource, NGWWfsService):
-                ignore_z_in_wfs = False
-                for layer in ngw_resource.get_layers():
-                    if ignore_z_in_wfs:
-                        break
-                    source_layer = ngw_resource.get_source_layer(
-                        layer["resource_id"]
-                    )
-                    if isinstance(source_layer, NGWVectorLayer):
-                        if source_layer.is_geom_with_z():
-                            res = self.show_msg_box(
-                                self.tr(
-                                    "You are trying to add a WFS service containing a layer with Z dimension. "
-                                    "WFS in QGIS doesn't fully support editing such geometries. "
-                                    "You won't be able to edit and create new features. "
-                                    "You will only be able to delete features. "
-                                    "To fix this, change geometry type of your layer(s) "
-                                    "and recreate WFS service."
-                                ),
-                                self.tr("Warning"),
-                                QMessageBox.Warning,
-                                QMessageBox.Ignore | QMessageBox.Cancel,
-                            )
-                            if res == QMessageBox.Ignore:
-                                ignore_z_in_wfs = True
-                            else:
-                                return False
-                add_resource_as_wfs_layers(ngw_resource)
-            elif isinstance(ngw_resource, NGWOgcfService):
-                add_ogcf_resource(ngw_resource)
-            elif isinstance(ngw_resource, NGWWmsService):
-                utils.add_wms_layer(
-                    ngw_resource.common.display_name,
-                    ngw_resource.get_url(),
-                    ngw_resource.get_layer_keys(),
-                    connection,
-                    ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
-                    resource_id=ngw_resource.resource_id,
-                )
-            elif isinstance(ngw_resource, NGWWmsConnection):
-                utils.add_wms_layer(
-                    ngw_resource.common.display_name,
-                    ngw_resource.get_connection_url(),
-                    ngw_resource.layers(),
-                    connection,
-                    ask_choose_layers=len(ngw_resource.layers()) > 1,
-                    resource_id=ngw_resource.resource_id,
-                )
-            elif isinstance(ngw_resource, NGWWmsLayer):
-                utils.add_wms_layer(
-                    ngw_resource.common.display_name,
-                    ngw_resource.ngw_wms_connection_url,
-                    ngw_resource.ngw_wms_layers,
-                    connection,
-                    resource_id=ngw_resource.resource_id,
-                )
-            elif isinstance(ngw_resource, NGWBaseMap):
-                self.__add_basemap(ngw_resource)
-            elif isinstance(ngw_resource, NGWTmsLayer):
-                self.__add_tms_layer(ngw_resource)
-            elif isinstance(ngw_resource, NGWPostgisLayer):
-                self._add_with_style(ngw_resource)
-            elif isinstance(ngw_resource, NGWWebMap):
-                self.__add_webmap(ngw_resource, insertion_point)
-            elif isinstance(ngw_resource, NGWGroupResource):
-                self.__add_group_to_qgis(index, insertion_point)
-
-        except NgConnectError as error:
-            NgConnectInterface.instance().show_error(error)
-
-        except Exception as error:
-            user_message = self.tr(
-                'Resource "{}" can\'t be added to the map'
-            ).format(ngw_resource.display_name)
-            ng_error = NgConnectError(user_message=user_message)
-            ng_error.__cause__ = error
-
-            NgConnectInterface.instance().show_error(ng_error)
-
-            return False
-
-        return True
-
-    def __add_group_to_qgis(
-        self,
-        group_index: QModelIndex,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> None:
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-        project = QgsProject.instance()
-        tree_rigistry_bridge = project.layerTreeRegistryBridge()
-
-        # Save current insertion point
-        insertion_point_backup = InsertionPoint(insertion_point)
-
-        # Create new group and set point to it
-        group_resource = group_index.data(QNGWResourceItem.NGWResourceRole)
-        qgis_group = insertion_point.group.addGroup(
-            group_resource.common.display_name
-        )
-        assert qgis_group is not None
-        insertion_point.group = qgis_group
-        insertion_point.position = 0
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-
-        # Add content
-        model = self.resource_model
-        for row in range(model.rowCount(group_index)):
-            child_index = model.index(row, 0, group_index)
-            child_resource = child_index.data(QNGWResourceItem.NGWResourceRole)
-            if not isinstance(
-                child_resource, (NGWGroupResource, NGWVectorLayer)
-            ):
-                continue
-
-            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-            added = self.__add_resource_to_qgis(
-                child_index, InsertionPoint(insertion_point)
-            )
-            if added:
-                insertion_point.position += 1
-
-        # Restore insertion point
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
-
-    def create_group(self):
+    @pyqtSlot()
+    def create_group(self) -> None:
         sel_index = self.resources_tree_view.selectedIndex()
-        # if sel_index is None:
-        #     sel_index = self.resource_model.index(0, 0, QModelIndex())
         if sel_index is None or not sel_index.isValid():
             self.show_info(
                 self.tr(
@@ -1649,7 +1404,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 "Current data will be lost.<br/>Are you sure you want to "
                 "overwrite it?"
             ).format(
-                index.data(Qt.DisplayRole), html.escape(qgs_map_layer.name())
+                index.data(Qt.ItemDataRole.DisplayRole),
+                html.escape(qgs_map_layer.name()),
             ),
             QMessageBox.Yes | QMessageBox.No,
         )
@@ -1658,8 +1414,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         if isinstance(qgs_map_layer, QgsVectorLayer):
             self.resource_model.updateNGWLayer(index, qgs_map_layer)
-        else:
-            pass
 
     def edit_metadata(self):
         """Edit metadata table"""
@@ -1674,7 +1428,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resources_tree_view.ngw_job_block_overlay.text.setText(
                     "<strong>{} {}</strong><br/>".format(
                         self.tr("Get resource metadata"),
-                        ngw_resource.common.display_name,
+                        ngw_resource.display_name,
                     )
                 )
                 ngw_resource.update()
@@ -1806,7 +1560,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         def qml_callback(total_size, readed_size):
             logger.debug(
                 self.tr('Style for "{}" - Upload ({}%)').format(
-                    ngw_src.common.display_name, readed_size * 100 / total_size
+                    ngw_src.display_name, readed_size * 100 / total_size
                 )
             )
 
@@ -1843,24 +1597,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             qgs_layer = QgsVectorLayer(
                 str(temp_path),
-                ngw_src.common.display_name,
+                ngw_src.display_name,
                 "ogr",
             )
             if not qgs_layer.isValid():
                 raise Exception(
-                    f'Layer "{ngw_src.common.display_name}" can\'t be added to the map!'
+                    f'Layer "{ngw_src.display_name}" can\'t be added to the map!'
                 )
             qgs_layer.dataProvider().setEncoding("UTF-8")
 
         elif ngw_src.type_id == NGWRasterLayer.type_id:
             raster_file = self._downloadRasterSource(ngw_src)
             qgs_layer = QgsRasterLayer(
-                raster_file.fileName(), ngw_src.common.display_name, "gdal"
+                raster_file.fileName(), ngw_src.display_name, "gdal"
             )
             if not qgs_layer.isValid():
                 logger.error("Failed to add raster layer to QGIS")
                 raise Exception(
-                    f'Layer "{ngw_src.common.display_name}" can\'t be added to the map!'
+                    f'Layer "{ngw_src.display_name}" can\'t be added to the map!'
                 )
         else:
             raise Exception(f"Wrong layer type! Type id: {ngw_src.type_id}")
@@ -1887,7 +1641,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_res.create_qml_style(
                 self.dwn_qml_file.fileName(),
                 qml_callback,
-                style_name=style_resource.common.display_name,
+                style_name=style_resource.display_name,
             )
             self.dwn_qml_file.remove()
             ngw_res.update()
@@ -1919,15 +1673,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.block_gui()
             self.resources_tree_view.ngw_job_block_overlay.text.setText(
                 "<strong>{} {}</strong><br/>".format(
-                    self.tr("Duplicating"), ngw_resource.common.display_name
+                    self.tr("Duplicating"), ngw_resource.display_name
                 )
             )
             # main part
             try:
                 ngw_result = self._copy_resource(ngw_resource)
                 self.__add_resource_to_tree(ngw_result)
-            except UnsupportedRasterTypeException:
-                self._show_unsupported_raster_err()
+            except NgConnectError as error:
+                NgConnectInterface.instance().show_error(error)
             except Exception as ex:
                 error_mes = str(ex)
                 self.iface.messageBar().pushMessage(
@@ -1980,43 +1734,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             service_type, selected_index, max_features
         )
         response.done.connect(self.resources_tree_view.setCurrentIndex)
-        adder = (
-            self.add_created_wfs_service
-            if service_type == "WFS"
-            else self.add_created_ogc_service
-        )
-        response.done.connect(adder)
+        response.done.connect(self.__add_created_service)
 
-    def add_created_wfs_service(self, index):
+    @pyqtSlot(QModelIndex)
+    def __add_created_service(self, index: QModelIndex):
         if not NgConnectSettings().add_layer_after_service_creation:
             return
 
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        add_resource_as_wfs_layers(ngw_resource)
-
-    def add_created_ogc_service(self, index: QModelIndex) -> None:
-        if not NgConnectSettings().add_layer_after_service_creation:
-            return
-
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        add_ogcf_resource(ngw_resource)
-
-    def add_created_wms_service(self, index: QModelIndex) -> None:
-        if not NgConnectSettings().add_layer_after_service_creation:
-            return
-
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        connection_manager = NgwConnectionsManager()
-        connection = connection_manager.connection(ngw_resource.connection_id)
-        assert connection is not None
-        utils.add_wms_layer(
-            ngw_resource.common.display_name,
-            ngw_resource.get_url(),
-            ngw_resource.get_layer_keys(),
-            connection,
-            ask_choose_layers=len(ngw_resource.get_layer_keys()) > 1,
-            resource_id=ngw_resource.resource_id,
-        )
+        adder = NgwResourcesAdder(self.resource_model, index)
+        adder.run()
 
     def create_wms_service(self):
         selected_index = (
@@ -2052,7 +1778,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             selected_index, ngw_resource_style_id
         )
         responce.done.connect(self.resources_tree_view.setCurrentIndex)
-        responce.done.connect(self.add_created_wms_service)
+        responce.done.connect(self.__add_created_service)
 
     def create_web_map_for_style(self):
         selected_index = (
@@ -2078,7 +1804,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource_style_id = None
 
             if len(ngw_styles) == 1:
-                ngw_resource_style_id = ngw_styles[0].common.id
+                ngw_resource_style_id = ngw_styles[0].resource_id
             elif len(ngw_styles) > 1:
                 dlg = NGWLayerStyleChooserDialog(
                     self.tr("Create web map for layer"),
@@ -2119,20 +1845,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         QDesktopServices.openUrl(QUrl(url))
 
     def processWarnings(self, index):
-        ngw_model_job_resp = self.sender()
-        job_id = ngw_model_job_resp.job_id
-        if len(ngw_model_job_resp.warnings) > 0:
-            dlg = ExceptionsListDialog(
-                self.tr("NextGIS Connect operation errors"), self
-            )
-            for w in ngw_model_job_resp.warnings:
-                (
-                    w_msg,
-                    w_msg_ext,
-                    icon,
-                ) = self.__get_model_exception_description(job_id, w)
-                dlg.addException(w_msg, w_msg_ext, icon)
-                dlg.show()
+        ngw_model_job_resp = cast(NGWResourceModelResponse, self.sender())
+        if len(ngw_model_job_resp.warnings) == 0:
+            return
+
+        dlg = ExceptionsListDialog(
+            self.tr("NextGIS Connect operation errors"), self
+        )
+        for w in ngw_model_job_resp.warnings:
+            (
+                w_msg,
+                w_msg_ext,
+                icon,
+            ) = self.__get_model_exception_description(w)
+            dlg.addException(w_msg, w_msg_ext, icon)
+            dlg.show()
 
     def _downloadStyleAsQML(
         self, ngw_style: NGWQGISStyle, path=None, mes_bar=True
@@ -2171,7 +1898,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         settings = QgsSettings()
         last_used_dir = settings.value("style/lastStyleDir", QDir.homePath())
-        style_name = ngw_qgis_style.common.display_name
+        style_name = ngw_qgis_style.display_name
         path_to_qml = os.path.join(last_used_dir, f"{style_name}.qml")
         filepath, selected_filter = QFileDialog.getSaveFileName(
             self,
@@ -2206,6 +1933,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             is_success, error_message, line, column = dom_document.setContent(
                 self.dwn_qml_file
             )
+            if error_message is None:
+                error_message = ""
+
             self.dwn_qml_file.close()
 
             if not is_success:
@@ -2226,7 +1956,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         text = dom_document.toString()
         utils.set_clipboard_data(QGSCLIPBOARD_STYLE_MIME, data, text)
 
-    def show_msg_box(self, text, title, icon, buttons):
+    def show_msg_box(
+        self,
+        text: str,
+        title: str,
+        icon: QMessageBox.Icon,
+        buttons: QMessageBox.StandardButtons,
+    ) -> int:
         box = QMessageBox()
         box.setText(text)
         box.setWindowTitle(title)
@@ -2234,48 +1970,49 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         box.setStandardButtons(buttons)
         return box.exec()
 
-    def show_info(self, text, title=None):
+    def show_info(self, text: str, title: Optional[str] = None):
         if title is None:
             title = self.tr("Information")
         self.show_msg_box(text, title, QMessageBox.Information, QMessageBox.Ok)
 
-    def show_error(self, text, title=None):
+    def show_error(self, text: str, title: Optional[str] = None):
         if title is None:
             title = self.tr("Error")
         self.show_msg_box(text, title, QMessageBox.Critical, QMessageBox.Ok)
 
     def __add_layers_after_finish(self, job_uuid: str):
         found_i = -1
-        for i in range(len(self._queue_to_add)):
-            if self._queue_to_add[i].job_uuid == job_uuid:
+        for i, command in enumerate(self._queue_to_add):
+            if command.job_uuid == job_uuid:
                 found_i = i
                 break
+
         if found_i == -1:
             return
 
         project = QgsProject.instance()
-        assert project is not None
         tree_rigistry_bridge = project.layerTreeRegistryBridge()
-        assert tree_rigistry_bridge is not None
 
         model = self.resource_model
         command = self._queue_to_add[found_i]
 
         del self._queue_to_add[found_i]
 
-        def is_webmap(index: QModelIndex) -> bool:
-            ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-            return isinstance(ngw_resource, NGWWebMap)
+        adder = NgwResourcesAdder(self.resource_model, command.ngw_indexes)
+
+        is_success, missing_ids = adder.missing_resources()
+        if not is_success:
+            return
 
         # Fetch group tree if group resource is selected
-        webmap_indexes = list(filter(is_webmap, command.ngw_indexes))
-        job = self.resource_model.fetch_webmap_resources(webmap_indexes)
+        job = self.resource_model.fetch_not_expanded(missing_ids)
         if job is not None:
             command.job_uuid = job.job_uuid
             self._queue_to_add.append(command)
             return
 
-        job = self.resource_model.fetch_services_if_needed(command.ngw_indexes)
+        # Fetch group tree if group resource is selected
+        job = self.resource_model.fetch_missing(missing_ids)
         if job is not None:
             command.job_uuid = job.job_uuid
             self._queue_to_add.append(command)
@@ -2289,23 +2026,33 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self._queue_to_add.append(command)
             return
 
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
+        # Fetch styles
+        is_success, styles_id = adder.missing_styles()
+        if not is_success:
+            return
+        job = self.resource_model.fetch_missing_styles(styles_id)
+        if job is not None:
+            command.job_uuid = job.job_uuid
+            self._queue_to_add.append(command)
+            return
 
-        insertion_point = InsertionPoint(command.insertion_point)
+        plugin = NgConnectInterface.instance()
+        plugin.disable_synchronization()
+
         backup_point = self.iface.layerTreeInsertionPoint()
 
-        for selected_index in command.ngw_indexes:
-            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-            added = self.__add_resource_to_qgis(
-                selected_index, InsertionPoint(insertion_point)
-            )
-            if added:
-                insertion_point.position += 1
+        job_id = "AddLayersStub"
+        self.block_gui()
+        self.resources_tree_view.addBlockedJob(self.blocked_jobs[job_id])
+
+        adder.run()
+
+        self.unblock_gui()
+        self.resources_tree_view.removeBlockedJob(self.blocked_jobs[job_id])
 
         tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
 
-        plugin = NgConnectInterface.instance()
-        plugin.synchronize_layers()
+        plugin.enable_synchronization()
 
     def __on_ngstd_user_info_updated(self):
         connections_manager = NgwConnectionsManager()
@@ -2318,351 +2065,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.reinit_tree(force=True)
 
-    def __add_gpkg_layer(
-        self,
-        vector_layer: NGWVectorLayer,
-        styles: List[NGWQGISStyle],
-        default_style: Optional[NGWQGISVectorStyle] = None,
-    ) -> Optional[QgsVectorLayer]:
-        connections_manager = NgwConnectionsManager()
-        connection = connections_manager.connection(vector_layer.connection_id)
-        assert connection is not None
-
-        cache_manager = NgConnectCacheManager()
-        connection_path = (
-            Path(cache_manager.cache_directory) / connection.domain_uuid
-        )
-
-        uri = detached_layer_uri(
-            connection_path / f"{vector_layer.common.id}.gpkg"
-        )
-        qgs_gpkg_layer = QgsVectorLayer(
-            uri, vector_layer.common.display_name, "ogr"
-        )
-        if not qgs_gpkg_layer.isValid():
-            error = ContainerError(
-                f'Layer "{vector_layer.common.display_name}" can\'t be added to the map!'
-            )
-            error.add_note(f"Uri: {uri}")
-            raise error
-
-        qgs_gpkg_layer.dataProvider().setEncoding("UTF-8")  # type: ignore
-
-        _add_all_styles_to_layer(qgs_gpkg_layer, styles, default_style)
-
-        _add_aliases(qgs_gpkg_layer, vector_layer)
-
-        QgsProject.instance().addMapLayer(qgs_gpkg_layer)
-
-        return qgs_gpkg_layer
-
-    def __add_basemap(
-        self, basemap: NGWBaseMap, display_name: Optional[str] = None
-    ) -> QgsRasterLayer:
-        project = QgsProject.instance()
-        assert project is not None
-
-        if display_name is None:
-            uri, display_name, provider = basemap.layer_params
-        else:
-            uri, _, provider = basemap.layer_params
-
-        layer = QgsRasterLayer(uri, display_name, provider)
-        layer.setCustomProperty("ngw_connection_id", basemap.connection_id)
-        layer.setCustomProperty("ngw_resource_id", basemap.resource_id)
-        project.addMapLayer(layer)
-
-        return layer
-
-    def __add_tms_layer(
-        self, tms_layer: NGWTmsLayer, display_name: Optional[str] = None
-    ) -> QgsRasterLayer:
-        project = QgsProject.instance()
-        assert project is not None
-
-        layer_params = tms_layer.layer_params()
-
-        if display_name is None:
-            uri, display_name, provider = layer_params
-        else:
-            uri, _, provider = layer_params
-
-        layer = QgsRasterLayer(uri, display_name, provider)
-        layer.setCustomProperty("ngw_connection_id", tms_layer.connection_id)
-        layer.setCustomProperty("ngw_resource_id", tms_layer.resource_id)
-        project.addMapLayer(layer)
-
-        return layer
-
-    def __add_postgis_layer(
-        self,
-        postgis_layer: NGWPostgisLayer,
-        styles: List[NGWQGISStyle],
-        default_style: Optional[NGWQGISVectorStyle] = None,
-    ) -> QgsVectorLayer:
-        project = QgsProject.instance()
-        assert project is not None
-
-        postgis_connection = cast(
-            NGWPostgisConnection,
-            self.resource_model.getResourceByNGWId(
-                postgis_layer.service_resource_id
-            ),
-        )
-        if postgis_connection is None:
-            logger.warning(
-                f"Connecton for PostGIS layer {postgis_layer.display_name}"
-                " is not accessible"
-            )
-            return QgsVectorLayer()
-
-        uri, display_name, provider = postgis_layer.layer_params(
-            postgis_connection
-        )
-
-        qgs_layer = QgsVectorLayer(uri, display_name, provider)
-        qgs_layer.setCustomProperty(
-            "ngw_connection_id", postgis_layer.connection_id
-        )
-        qgs_layer.setCustomProperty(
-            "ngw_resource_id", postgis_layer.resource_id
-        )
-
-        _add_all_styles_to_layer(qgs_layer, styles, default_style)
-        _add_aliases(qgs_layer, postgis_layer)
-        _add_lookup_tables(qgs_layer, postgis_layer)
-
-        QgsProject.instance().addMapLayer(qgs_layer)
-
-        return qgs_layer
-
-    def __add_webmap(
-        self,
-        webmap: NGWWebMap,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> None:
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-
-        project = QgsProject.instance()
-
-        if project.count() == 0:
-            project.setCrs(QgsCoordinateReferenceSystem.fromEpsgId(3857))
-
-        tree_rigistry_bridge = project.layerTreeRegistryBridge()
-
-        insertion_point_backup = InsertionPoint(insertion_point)
-
-        webmap_group = insertion_point.group.addGroup(webmap.display_name)
-        assert webmap_group is not None
-        insertion_point.group = webmap_group
-        insertion_point.position = 0
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-
-        self.__add_webmap_tree(webmap, insertion_point)
-        self.__add_webmap_basemaps(webmap, insertion_point)
-        self.__set_webmap_extent(webmap)
-
-        # Restore insertion point
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
-
-    def __add_webmap_tree(
-        self,
-        webmap: NGWWebMap,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> None:
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-
-        project = QgsProject.instance()
-        tree_rigistry_bridge = project.layerTreeRegistryBridge()
-
-        for child in webmap.root.children:
-            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-
-            is_added = False
-
-            if isinstance(child, NGWWebMapGroup):
-                is_added = self.__add_webmap_group(
-                    child, InsertionPoint(insertion_point)
-                )
-            elif isinstance(child, NGWWebMapLayer):
-                is_added = self.__add_webmap_layer(child)
-
-            if is_added:
-                insertion_point.position += 1
-
-    def __add_webmap_group(
-        self,
-        webmap_group: NGWWebMapGroup,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> bool:
-        InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
-        project = QgsProject.instance()
-        tree_rigistry_bridge = project.layerTreeRegistryBridge()
-
-        # Save current insertion point
-        insertion_point_backup = InsertionPoint(insertion_point)
-
-        # Create group
-        group = insertion_point.group.addGroup(webmap_group.display_name)
-        assert group is not None
-        insertion_point.group = group
-        insertion_point.position = 0
-
-        for child in webmap_group.children:
-            tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-
-            is_added = False
-
-            if isinstance(child, NGWWebMapGroup):
-                is_added = self.__add_webmap_group(
-                    child, InsertionPoint(insertion_point)
-                )
-            elif isinstance(child, NGWWebMapLayer):
-                is_added = self.__add_webmap_layer(child)
-
-            if is_added:
-                insertion_point.position += 1
-
-        group.setExpanded(webmap_group.expanded)
-
-        # Restore insertion point
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point_backup)
-
-        if insertion_point.position == 0:
-            insertion_point_backup.group.removeChildNode(group)
-            return False
-
-        return True
-
-    def __add_webmap_layer(
-        self,
-        webmap_layer: NGWWebMapLayer,
-    ) -> bool:
-        layer_resource = self.resource_model.getResourceByNGWId(
-            webmap_layer.style_parent_id
-        )
-        if layer_resource is None:
-            logger.warning(
-                f"Can't add layer with style (id={webmap_layer.style_parent_id}) to the map"
-            )
-            return False
-
-        connections_manager = NgwConnectionsManager()
-        connection = connections_manager.connection(
-            layer_resource.connection_id
-        )
-        assert connection is not None
-
-        if isinstance(layer_resource, NGWRasterLayer):
-            if connection.auth_config_id is not None:
-                auth_manager = QgsApplication.instance().authManager()
-                auth_method = auth_manager.configAuthMethodKey(
-                    connection.auth_config_id
-                )
-                if auth_method != "Basic":
-                    return False
-
-        style_resource = self.resource_model.getResourceByNGWId(
-            webmap_layer.layer_style_id
-        )
-        if style_resource is None:
-            logger.warning(
-                f"Can't find style (id={webmap_layer.layer_style_id})"
-            )
-            return False
-
-        styles = [style_resource]
-
-        if isinstance(layer_resource, NGWVectorLayer):
-            qgs_layer = self.__add_gpkg_layer(layer_resource, styles)  # type: ignore
-
-        elif isinstance(layer_resource, NGWPostgisLayer):
-            qgs_layer = self.__add_postgis_layer(layer_resource, styles)  # type: ignore
-
-        elif isinstance(layer_resource, NGWRasterLayer):
-            qgs_layer = add_resource_as_cog_raster(layer_resource, styles)
-
-        elif isinstance(style_resource, NGWWmsLayer):
-            qgs_layer = utils.add_wms_layer(
-                style_resource.common.display_name,
-                style_resource.ngw_wms_connection_url,
-                style_resource.ngw_wms_layers,
-                connection,
-                resource_id=style_resource.resource_id,
-            )
-
-        elif isinstance(style_resource, NGWTmsLayer):
-            qgs_layer = self.__add_tms_layer(style_resource)
-
-        else:
-            logger.error("Wrong layer resource")
-            return False
-
-        if qgs_layer is None or not qgs_layer.isValid():
-            return False
-
-        qgs_layer.setName(webmap_layer.display_name)
-
-        if qgs_layer is None:
-            logger.error("Layer wasn't created")
-            return False
-
-        node = QgsProject.instance().layerTreeRoot().findLayer(qgs_layer.id())
-        if node is None:
-            return False
-
-        node.setItemVisibilityChecked(webmap_layer.is_visible)
-
-        node.setExpanded(webmap_layer.legend)  # type: ignore
-
-        return True
-
-    def __add_webmap_basemaps(
-        self,
-        webmap: NGWWebMap,
-        insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
-    ) -> None:
-        if len(webmap.basemaps) == 0:
-            return
-
-        basemaps_group = insertion_point.group.addGroup(self.tr("Basemaps"))
-        assert basemaps_group is not None
-        insertion_point.group = basemaps_group
-        insertion_point.position = 0
-
-        project = QgsProject.instance()
-        tree_rigistry_bridge = project.layerTreeRegistryBridge()
-        tree_rigistry_bridge.setLayerInsertionPoint(insertion_point)
-
-        for basemap in webmap.basemaps:
-            basemap_resource = self.resource_model.getResourceByNGWId(
-                basemap.resource_id
-            )
-            if basemap_resource is None:
-                logger.warning(
-                    f"Can't find basemap (id={basemap.resource_id})"
-                )
-                continue
-
-            assert isinstance(basemap_resource, NGWBaseMap)
-            basemap_layer = self.__add_basemap(
-                basemap_resource, basemap.display_name
-            )
-
-            if basemap.opacity is not None:
-                basemap_layer.setOpacity(basemap.opacity)
-
-    def __set_webmap_extent(self, webmap: NGWWebMap) -> None:
-        extent = webmap.extent
-        if extent is None:
-            return
-
-        QTimer.singleShot(0, lambda: self.__update_extent(extent))
-
-    def __update_extent(self, extent: QgsReferencedRectangle) -> None:
-        self.iface.mapCanvas().setReferencedExtent(extent)
-        self.iface.mapCanvas().refresh()
-
 
 class NGWPanelToolBar(QToolBar):
     def __init__(self):
@@ -2671,9 +2073,9 @@ class NGWPanelToolBar(QToolBar):
         self.setIconSize(QSize(24, 24))
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
 
-    def contextMenuEvent(self, event):
-        event.accept()
+    def contextMenuEvent(self, a0: Optional[QContextMenuEvent]) -> None:
+        a0.accept()
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, a0: Optional[QResizeEvent]) -> None:
         super().setIconSize(QSize(24, 24))
-        event.accept()
+        a0.accept()
