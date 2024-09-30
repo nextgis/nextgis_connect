@@ -394,8 +394,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.blocked_jobs = {
             "NGWGroupCreater": self.tr("Resource is being created"),
             "NGWResourceDelete": self.tr("Resource is being deleted"),
-            "QGISResourcesUploader": self.tr("Layer is being imported"),
-            "QGISProjectUploader": self.tr("Project is being imported"),
+            "QGISResourcesUploader": self.tr("Layer is being uploaded"),
+            "QGISProjectUploader": self.tr("Project is being uploaded"),
             "NGWCreateWfsService": self.tr("WFS service is being created"),
             "NGWCreateOgcfService": self.tr(
                 "OGC API - Features service is being created"

@@ -167,6 +167,7 @@ class QProcessOverlay(QOverlay):
         super().__init__(parent)
 
         layout = QVBoxLayout(self)
+        layout.setSpacing(6)
         self.setLayout(layout)
 
         spacer_before = QSpacerItem(
@@ -180,14 +181,14 @@ class QProcessOverlay(QOverlay):
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
-        self.setStyleSheet(
-            """
-                QProgressBar {
-                    border: 1px solid grey;
-                    border-radius: 5px;
-                }
-            """
-        )
+        # self.setStyleSheet(
+        #     """
+        #         QProgressBar {
+        #             border: 1px solid grey;
+        #             border-radius: 5px;
+        #         }
+        #     """
+        # )
 
         self.text = QLabel(self)
         self.text.setAlignment(

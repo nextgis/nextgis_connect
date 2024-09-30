@@ -743,13 +743,13 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="408"/>
-        <source>Layer is being imported</source>
-        <translation>Слой импортируется</translation>
+        <source>Layer is being uploaded</source>
+        <translation>Слой загружается</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="409"/>
-        <source>Project is being imported</source>
-        <translation>Проект импортируется</translation>
+        <source>Project is being uploaded</source>
+        <translation>Проект загружается</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="410"/>
