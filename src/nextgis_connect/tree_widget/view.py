@@ -350,11 +350,15 @@ class QNGWResourceTreeView(QTreeView):
             self.jobs[job_name] = status
             self.ngw_job_block_overlay.write(self.jobs)
 
-    def removeBlockedJob(self, job_name):
+    def removeBlockedJob(self, job_name, check_overlay=True):
         if job_name in self.jobs:
             self.jobs.pop(job_name)
             self.ngw_job_block_overlay.write(self.jobs)
 
+        if check_overlay:
+            self.check_overlay()
+
+    def check_overlay(self):
         if len(self.jobs) == 0:
             self.ngw_job_block_overlay.hide()
 

@@ -891,10 +891,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if job_id in self.blocked_jobs:
             self.unblock_gui()
             self.resources_tree_view.removeBlockedJob(
-                self.blocked_jobs[job_id]
+                self.blocked_jobs[job_id], check_overlay=False
             )
 
         self.__add_layers_after_finish(job_uuid)
+
+        if all(
+            job.getJobId() not in self.blocked_jobs
+            for job in self.resource_model.jobs
+        ):
+            self.resources_tree_view.check_overlay()
 
     @pyqtSlot()
     def __onModelBlockIndexes(self):

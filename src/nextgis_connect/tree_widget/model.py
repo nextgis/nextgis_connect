@@ -5,7 +5,6 @@ from typing import Callable, Dict, List, Optional, Tuple, Union, cast
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
-    QCoreApplication,
     QModelIndex,
     QObject,
     QThread,
@@ -477,7 +476,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.layoutChanged.emit()
 
-        QCoreApplication.processEvents()
+        # QCoreApplication.processEvents()
 
         self.indexesLocked.emit()
 
@@ -499,7 +498,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self.layoutChanged.emit()
 
-        QCoreApplication.processEvents()
+        # QCoreApplication.processEvents()
 
         self.indexesUnlocked.emit()
 
