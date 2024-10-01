@@ -314,7 +314,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.actionOpenMapInBrowser = QAction(
             QIcon(os.path.join(ICONS_PATH, "mActionOpenMap.svg")),
-            self.tr("Open web map in browser"),
+            self.tr("Open Web map in browser"),
             self,
         )
         self.actionOpenMapInBrowser.triggered.connect(self.__action_open_map)
@@ -896,7 +896,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.__add_layers_after_finish(job_uuid)
 
-        if all(
+        if len(self.resource_model.jobs) == 1 or all(
             job.getJobId() not in self.blocked_jobs
             for job in self.resource_model.jobs
         ):
@@ -1813,7 +1813,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 ngw_resource_style_id = ngw_styles[0].resource_id
             elif len(ngw_styles) > 1:
                 dlg = NGWLayerStyleChooserDialog(
-                    self.tr("Create web map for layer"),
+                    self.tr("Create Web map for layer"),
                     selected_index,
                     self.resource_model,
                     self,

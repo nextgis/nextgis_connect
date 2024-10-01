@@ -713,8 +713,8 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="326"/>
-        <source>Open web map in browser</source>
-        <translation>Открыть веб-карту в браузере</translation>
+        <source>Open Web map in browser</source>
+        <translation>Открыть Веб-карту в браузере</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="333"/>
@@ -764,7 +764,7 @@ Please be aware that your current connections will be converted to the new forma
     <message>
         <location filename="../ng_connect_dock.py" line="416"/>
         <source>Web map is being created</source>
-        <translation>Создается веб-карта</translation>
+        <translation>Создается Веб-карта</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="417"/>
@@ -1205,8 +1205,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../settings/settings_dialog_base.ui" line="114"/>
-        <source>Open web map automatically on creation</source>
-        <translation>Открывать веб-карту автоматически после создания</translation>
+        <source>Open Web map automatically on creation</source>
+        <translation>Открывать Веб-карту автоматически после создания</translation>
     </message>
     <message>
         <location filename="../settings/settings_dialog_base.ui" line="127"/>

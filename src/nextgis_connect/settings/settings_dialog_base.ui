@@ -111,7 +111,7 @@
       <item>
        <widget class="QCheckBox" name="openWebMapAfterCreationCheckBox">
         <property name="text">
-         <string>Open web map automatically on creation</string>
+         <string>Open Web map automatically on creation</string>
         </property>
         <property name="checked">
          <bool>true</bool>
