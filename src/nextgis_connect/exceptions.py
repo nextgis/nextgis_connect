@@ -21,6 +21,8 @@ class ErrorCode(IntEnum):
     AuthorizationError = 401
     PermissionsError = 403
     NotFound = 404
+
+    AddingError = 497
     UnsupportedRasterType = 497
     InvalidResource = 498
     InvalidConnection = 499

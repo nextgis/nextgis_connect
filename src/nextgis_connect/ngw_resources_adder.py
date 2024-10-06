@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union, cast
 
 from qgis.core import (
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsEditorWidgetSetup,
     QgsLayerTreeGroup,
@@ -9,6 +10,7 @@ from qgis.core import (
     QgsLayerTreeRegistryBridge,
     QgsMapLayer,
     QgsMapLayerStyle,
+    QgsMapLayerStyleManager,
     QgsProject,
     QgsRasterLayer,
     QgsReferencedRectangle,
@@ -62,7 +64,8 @@ from nextgis_connect.tree_widget.model import QNGWResourceTreeModel
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
 
-InsertionId = Union[QModelIndex, int]
+LayerObjectId = int
+InsertionId = Union[QModelIndex, LayerObjectId]
 LayerParams = Tuple[str, str, str]
 
 InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
@@ -96,6 +99,8 @@ class LayerCreatorTask(NgConnectTask):
     def run(self) -> bool:
         super().run()
 
+        main_thread = QgsApplication.instance().thread()
+
         count = len(self.__layers_params)
 
         for i, (insertion_id, layer_params) in enumerate(
@@ -111,6 +116,13 @@ class LayerCreatorTask(NgConnectTask):
                 layer = QgsVectorLayer(*layer_params)
             else:
                 layer = QgsRasterLayer(*layer_params)
+
+            layer.setParent(None)
+            layer.moveToThread(main_thread)
+
+            if not layer.isValid():
+                error = layer.error().summary()
+                logger.warning(f'Layer "{layer_name}" is not valid: {error}')
 
             self.__layers[insertion_id] = layer
 
@@ -180,6 +192,7 @@ class NgwResourcesAdder(QObject):
         self,
         model: QNGWResourceTreeModel,
         indices: Union[QModelIndex, List[QModelIndex]],
+        insertion_point: InsertionPoint,
     ) -> None:
         super().__init__(model)
         self.__project = cast(QgsProject, QgsProject.instance())
@@ -187,6 +200,13 @@ class NgwResourcesAdder(QObject):
         self.__model = model
         self.__indices = indices if isinstance(indices, list) else [indices]
         self.__process_indexes_list()
+        self.__is_mass_adding = len(self.__indices) > 1 or (
+            len(self.__indices) == 1
+            and not (
+                is_layer(self.__indices[0]) or is_style(self.__indices[0])
+            )
+        )
+        self.__insertion_stack.append(insertion_point)
 
         self.__is_mass_adding = False
         self.__layers = {}
@@ -246,31 +266,21 @@ class NgwResourcesAdder(QObject):
     def run(self) -> bool:
         indices = self.__indices
 
-        self.__is_mass_adding = len(indices) > 1 or (
-            len(indices) == 1
-            and not (is_layer(indices[0]) or is_style(indices[0]))
-        )
-
         added_layers = 0
 
         try:
             self.__collect_layers_params()
             self.__create_layers()
 
-            self.__insertion_stack.append(iface.layerTreeInsertionPoint())
-
             for index in indices:
                 self.__add_resource(index)
 
             added_layers = len(self.__layers)
 
-        except NgConnectError as error:
-            NgConnectInterface.instance().show_error(error)
-            return False
-
         except Exception as error:
             if self.__is_mass_adding:
                 user_message = self.tr("Resources can't be added to the map")
+
             else:
                 ngw_resource: NGWResource = indices[0].data(
                     QNGWResourceItem.NGWResourceRole
@@ -287,6 +297,7 @@ class NgwResourcesAdder(QObject):
 
         finally:
             self.__insertion_stack.clear()
+            self.__layers_params.clear()
             self.__layers.clear()
 
         if added_layers == 0:
@@ -318,6 +329,9 @@ class NgwResourcesAdder(QObject):
 
     def __add_layer_from_style(self, index: QModelIndex) -> None:
         layer_node = self.__add_layer(index)
+        if layer_node is None:
+            return
+
         layer = layer_node.layer()
         style_resource: NGWResource = index.data(
             QNGWResourceItem.NGWResourceRole
@@ -338,10 +352,20 @@ class NgwResourcesAdder(QObject):
 
         self.__insertion_stack.pop()
 
-    def __add_layer(self, layer_index: QModelIndex) -> QgsLayerTreeLayer:
+    def __add_layer(
+        self, layer_index: QModelIndex
+    ) -> Optional[QgsLayerTreeLayer]:
         ngw_resource = layer_index.data(QNGWResourceItem.NGWResourceRole)
         if is_style(ngw_resource):
             ngw_resource = self.__model.resource(layer_index.parent())
+        assert ngw_resource is not None
+
+        if (
+            layer_index in self.__skipped_resources
+            or ngw_resource.resource_id in self.__skipped_resources
+        ):
+            return
+
         insertion_point = self.__insertion_stack[-1]
 
         if layer_index not in self.__layers:
@@ -354,17 +378,17 @@ class NgwResourcesAdder(QObject):
 
         layer.setName(ngw_resource.display_name)
 
-        layer.setCustomProperty(
-            "ngw_connection_id", ngw_resource.connection_id
-        )
-        layer.setCustomProperty("ngw_resource_id", ngw_resource.resource_id)
-
         self.__add_all_styles_to_layer(ngw_resource, layer)
         if isinstance(ngw_resource, NGWAbstractVectorResource):
             assert isinstance(layer, QgsVectorLayer)
             self.__add_fields_aliases(ngw_resource, layer)
             self.__add_lookup_tables(ngw_resource, layer)
             self.__set_display_field(ngw_resource, layer)
+
+        layer.setCustomProperty(
+            "ngw_connection_id", ngw_resource.connection_id
+        )
+        layer.setCustomProperty("ngw_resource_id", ngw_resource.resource_id)
 
         layer_node = insertion_point.group.insertLayer(
             insertion_point.position, layer
@@ -400,8 +424,12 @@ class NgwResourcesAdder(QObject):
         insertion_point = self.__insertion_stack[-1]
 
         if id(service_layer) not in self.__layers:
-            logger.debug("Layer  was not added to QGIS")
-            raise RuntimeError
+            message = (
+                f'Layer "{service_layer.display_name}" was not added to QGIS'
+            )
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
         layer = self.__layers[id(service_layer)]
         layer.setName(service_layer.display_name)
@@ -473,16 +501,24 @@ class NgwResourcesAdder(QObject):
     def __add_webmap_layer(
         self, webmap: NGWWebMap, webmap_layer: NGWWebMapLayer
     ) -> None:
-        insertion_point = self.__insertion_stack[-1]
+        if (
+            webmap_layer.layer_style_id in self.__skipped_resources
+            or webmap_layer.style_parent_id in self.__skipped_resources
+        ):
+            return
 
         if id(webmap_layer) not in self.__layers:
-            logger.debug("Layer  was not added to QGIS")
-            raise RuntimeError
+            message = (
+                f'Layer "{webmap_layer.display_name}" was not added to QGIS'
+            )
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
+
+        insertion_point = self.__insertion_stack[-1]
 
         layer = self.__layers[id(webmap_layer)]
         layer.setName(webmap_layer.display_name)
-
-        layer.setCustomProperty("ngw_connection_id", webmap.connection_id)
 
         style_resource = self.__model.resource(webmap_layer.layer_style_id)
         if is_style(style_resource):
@@ -491,6 +527,7 @@ class NgwResourcesAdder(QObject):
         else:
             layer_resource_id = webmap_layer.layer_style_id
 
+        layer.setCustomProperty("ngw_connection_id", webmap.connection_id)
         layer.setCustomProperty("ngw_resource_id", layer_resource_id)
 
         layer_node = insertion_point.group.insertLayer(
@@ -517,6 +554,9 @@ class NgwResourcesAdder(QObject):
         enabled_basemap_index = 0
 
         for i, basemap in enumerate(webmap.basemaps):
+            if basemap.resource_id in self.__skipped_resources:
+                continue
+
             basemap_layer = self.__layers[id(basemap)]
             basemap_layer.setName(basemap.display_name)
 
@@ -755,6 +795,12 @@ class NgwResourcesAdder(QObject):
         for index in self.__indices:
             self.__collect_params_for_index(index)
 
+        self.__layers_params = {
+            insertion_id: params
+            for insertion_id, params in self.__layers_params.items()
+            if params[-1] != ""
+        }
+
     def __collect_params_for_index(self, index: QModelIndex) -> None:
         if is_layer(index):
             self.__collect_params_for_layer_index(index)
@@ -810,7 +856,7 @@ class NgwResourcesAdder(QObject):
         if isinstance(resource, TmsLayerResources):
             return resource.layer_params
 
-        return ("", "", "")
+        raise NgConnectError(f"Unsupported type: {resource.common.cls}")
 
     def __collect_params_for_webmap(self, index: QModelIndex) -> None:
         webmap: NGWWebMap = index.data(QNGWResourceItem.NGWResourceRole)
@@ -830,15 +876,11 @@ class NgwResourcesAdder(QObject):
         style_resource = self.__model.resource(webmap_layer.layer_style_id)
 
         if is_layer(layer_resource):
-            if layer_resource is None:
-                raise RuntimeError
-
+            assert layer_resource is not None
             params = self.__collect_params_for_layer_resource(layer_resource)
 
         elif is_layer(style_resource):
-            if style_resource is None:
-                raise RuntimeError
-
+            assert style_resource is not None
             params = self.__collect_params_for_layer_resource(style_resource)
 
         else:
@@ -859,10 +901,10 @@ class NgwResourcesAdder(QObject):
         for basemap in webmap.basemaps:
             basemap_resource = self.__model.resource(basemap.resource_id)
             if basemap_resource is None:
-                logger.warning(
-                    f"Can't find basemap (id={basemap.resource_id})"
+                message = f"Can't find basemap (id={basemap.resource_id})"
+                raise NgConnectError(
+                    code=ErrorCode.AddingError, log_message=message
                 )
-                raise RuntimeError
 
             self.__layers_params[id(basemap)] = (
                 self.__collect_params_for_layer_resource(basemap_resource)
@@ -908,11 +950,13 @@ class NgwResourcesAdder(QObject):
             self.__model.resource(postgis_layer.service_resource_id),
         )
         if postgis_connection is None:
-            logger.warning(
+            message = (
                 f"Connecton for PostGIS layer {postgis_layer.display_name}"
                 " is not accessible"
             )
-            raise RuntimeError
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
         return postgis_layer.layer_params(postgis_connection)
 
@@ -924,11 +968,13 @@ class NgwResourcesAdder(QObject):
             self.__model.resource(wms_layer.service_resource_id),
         )
         if wms_connection is None:
-            logger.warning(
+            message = (
                 f"Connecton for WMS layer {wms_layer.display_name}"
                 " is not accessible"
             )
-            raise RuntimeError
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
         return wms_layer.layer_params(wms_connection)
 
@@ -951,7 +997,9 @@ class NgwResourcesAdder(QObject):
         connection = connections_manager.connection(raster_layer.connection_id)
         assert connection is not None
         if connection.method not in ("", "Basic"):
-            raise RuntimeError
+            logger.warning(f'Layer "{raster_layer.display_name}" was skipped')
+            self.__skipped_resources.add(raster_layer.resource_id)
+            return ("", "", "")
 
         return raster_layer.layer_params
 
@@ -970,8 +1018,10 @@ class NgwResourcesAdder(QObject):
         self.__layers = task.layers
 
         if all(not layer.isValid() for layer in self.__layers.values()):
-            # add note: qgs_layer.error().summary()
-            raise RuntimeError
+            message = "All layers is invalid"
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
         QgsProject.instance().addMapLayers(
             self.__layers.values(), addToLegend=False
@@ -1058,6 +1108,7 @@ class NgwResourcesAdder(QObject):
         styles.sort(key=lambda resource: resource.display_name)
 
         style_manager = qgs_layer.styleManager()
+        assert style_manager is not None
 
         TEMP_NAME = "_TODELETE"
         style_manager.renameStyle(style_manager.currentStyle(), TEMP_NAME)
@@ -1065,7 +1116,7 @@ class NgwResourcesAdder(QObject):
         # Add styles
         for style_resource in styles:
             style_resource = cast(NGWQGISStyle, style_resource)
-            self.__add_style_to_layer(style_resource, qgs_layer)
+            self.__add_style_to_layer(style_manager, style_resource)
 
         # Remove default style
         style_manager.removeStyle(TEMP_NAME)
@@ -1092,28 +1143,40 @@ class NgwResourcesAdder(QObject):
         self, style_resource: NGWQGISStyle, qgs_layer: QgsMapLayer
     ):
         style_manager = qgs_layer.styleManager()
+        assert style_manager is not None
 
         TEMP_NAME = "_TODELETE"
         style_manager.renameStyle(style_manager.currentStyle(), TEMP_NAME)
 
-        self.__add_style_to_layer(style_resource, qgs_layer)
+        self.__add_style_to_layer(style_manager, style_resource)
 
         # Remove default style
         style_manager.removeStyle(TEMP_NAME)
 
     def __add_style_to_layer(
-        self, style_resource: NGWQGISStyle, qgs_layer: QgsMapLayer
+        self,
+        style_manager: QgsMapLayerStyleManager,
+        style_resource: NGWQGISStyle,
     ):
         if not style_resource.is_qml_populated:
-            raise RuntimeError
+            message = (
+                f'QML for style "{style_resource.display_name}"'
+                " is not downloaded"
+            )
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
         style = QgsMapLayerStyle(style_resource.qml)
         if not style.isValid():
-            logger.error("Unable apply style to the layer")
-            raise RuntimeError
+            message = (
+                f'Unable apply style "{style_resource.display_name}"'
+                " to the layer"
+            )
+            raise NgConnectError(
+                code=ErrorCode.AddingError, log_message=message
+            )
 
-        style_manager = qgs_layer.styleManager()
-        assert style_manager is not None
         style_manager.addStyle(style_resource.display_name, style)
 
     def __set_display_field(
@@ -1179,17 +1242,19 @@ class NgwResourcesAdder(QObject):
             message_box.setStandardButtons(
                 QMessageBox.StandardButtons()
                 | QMessageBox.StandardButton.Ignore
-                | QMessageBox.StandardButton.No
+                | QMessageBox.StandardButton.Cancel
             )
             message_box.button(QMessageBox.StandardButton.Ignore).setText(
                 self.tr("Add anyway")
             )
-            message_box.button(QMessageBox.StandardButton.No).setText(
+            message_box.button(QMessageBox.StandardButton.Cancel).setText(
                 self.tr("Skip")
             )
             result = message_box.exec()
 
-            self.__skip_wfs_with_z = result == QMessageBox.StandardButton.No
+            self.__skip_wfs_with_z = (
+                result == QMessageBox.StandardButton.Cancel
+            )
 
         if not self.__skip_wfs_with_z:
             return

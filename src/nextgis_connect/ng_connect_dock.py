@@ -1241,7 +1241,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             )
 
-        adder = NgwResourcesAdder(self.resource_model, selected_indexes)
+        adder = NgwResourcesAdder(
+            self.resource_model,
+            selected_indexes,
+            self.iface.layerTreeInsertionPoint(),
+        )
 
         is_success, missing_ids = adder.missing_resources()
         if not is_success:
@@ -1747,7 +1751,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if not NgConnectSettings().add_layer_after_service_creation:
             return
 
-        adder = NgwResourcesAdder(self.resource_model, index)
+        adder = NgwResourcesAdder(
+            self.resource_model, index, self.iface.layerTreeInsertionPoint()
+        )
         adder.run()
 
     def create_wms_service(self):
@@ -2004,7 +2010,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         del self._queue_to_add[found_i]
 
-        adder = NgwResourcesAdder(self.resource_model, command.ngw_indexes)
+        adder = NgwResourcesAdder(
+            self.resource_model, command.ngw_indexes, command.insertion_point
+        )
 
         is_success, missing_ids = adder.missing_resources()
         if not is_success:
