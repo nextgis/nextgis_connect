@@ -206,15 +206,14 @@ class NgwResourcesAdder(QObject):
                 is_layer(self.__indices[0]) or is_style(self.__indices[0])
             )
         )
-        self.__insertion_stack.append(insertion_point)
 
-        self.__is_mass_adding = False
         self.__layers = {}
         self.__layers_params = {}
         self.__default_styles = {}
         self.__skip_wfs_with_z = None
         self.__skipped_resources = set()
         self.__insertion_stack = []
+        self.__insertion_stack.append(insertion_point)
 
     def missing_resources(self) -> Tuple[bool, List[int]]:
         """Extract resources needed for layers to add to QGIS"""
