@@ -1,3 +1,28 @@
+[project]
+name = "nextgis_connect"
+version = "2.1.0"
+readme = "README.md"
+license = { file = "LICENSE" }
+
+[project.optional-dependencies]
+dev = ["ruff", "pre-commit"]
+
+[tool.qgspb.package-data]
+"nextgis_connect" = ["icon.png"]
+"nextgis_connect.icons" = ["**/*.svg"]
+"nextgis_connect.ngw_api.icons" = ["*.svg"]
+"nextgis_connect.ngw_api.qgis.qgis_styles" = ["*.qml"]
+
+[tool.qgspb.forms]
+ui-files = ["src/nextgis_connect/**/*.ui"]
+compile = false
+
+[tool.qgspb.translations]
+ts-files = [
+    "src/nextgis_connect/i18n/*.ts",
+    "src/nextgis_connect/ngw_api/qgis/i18n/*.ts",
+]
+
 [tool.pyright]
 include = ["src"]
 pythonVersion = "3.7"
@@ -13,16 +38,16 @@ target-version = "py37"
 select = [
     # "A",    # flake8-builtins
     # "ARG",  # flake8-unused-arguments
-    "B",    # flake8-bugbear
+    "B", # flake8-bugbear
     # "C90",  # mccabe complexity
-    "COM",  # flake8-commas
-    "E",    # pycodestyle errors
-    "F",    # pyflakes
+    "COM", # flake8-commas
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
     # "FBT",  # flake8-boolean-trap
-    "FLY",  # flynt
-    "I",    # isort
-    "ISC",  #  flake8-implicit-str-concat
-    "LOG",  # flake8-logging
+    "FLY", # flynt
+    "I",   # isort
+    "ISC", #  flake8-implicit-str-concat
+    "LOG", # flake8-logging
     # "N",    # pep8-naming
     # "PERF", # Perflint
     # "PGH",  # pygrep-hooks
@@ -42,8 +67,8 @@ select = [
     # "TD",  # flake8-todos
     "TID", # flake8-tidy-imports
     # "TRY", # tryceratops
-    "UP",  # pyupgrade
-    "W",   # pycodesytle warnings
+    "UP", # pyupgrade
+    "W",  # pycodesytle warnings
     # "ANN",  # flake8-annotations
     # "CPY",  # flake8-copyright
     # "D",  # pydocstyle
@@ -54,6 +79,7 @@ ignore = ["ANN101", "ANN102", "TD003", "FBT003", "ISC001", "COM812", "E501"]
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/test_*.py" = ["E402"]
+"setup.py" = ["ALL"]
 
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = [
