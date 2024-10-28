@@ -1436,7 +1436,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     <message>
         <location filename="../tree_widget/view.py" line="248"/>
         <source>NextGIS Connect version is outdated. Please update the plugin via Plugins - Manage and install plugins menu.</source>
-        <translation>Версия плагина NextGIS Connect устарела. Пожалуйста, обновите его через меню Плагины - Управление и настройка плагинов.</translation>
+        <translation>Версия плагина NextGIS Connect устарела. Пожалуйста, обновите его через меню Модули - Управление модулями...</translation>
     </message>
     <message>
         <location filename="../tree_widget/view.py" line="253"/>
