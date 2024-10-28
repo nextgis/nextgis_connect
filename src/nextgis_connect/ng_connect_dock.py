@@ -120,6 +120,7 @@ from nextgis_connect.ngw_api.core.ngw_tms_resources import (
 from nextgis_connect.ngw_api.core.ngw_webmap import (
     NGWWebMap,
 )
+from nextgis_connect.ngw_api.core.ngw_wfs_layer import NGWWfsLayer
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISResourceJob,
 )
@@ -609,6 +610,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     (
                         NGWGroupResource,
                         NGWWfsService,
+                        NGWWfsLayer,
                         NGWOgcfService,
                         NGWWmsService,
                         NGWWmsConnection,
@@ -1087,6 +1089,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     NGWRasterLayer,
                     NGWWmsLayer,
                     NGWWfsService,
+                    NGWWfsLayer,
                     NGWOgcfService,
                     NGWWmsService,
                     NGWWmsConnection,
@@ -1122,7 +1125,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             creating_actions.append(self.actionCreateNewGroup)
 
         if not is_multiple_selection and isinstance(
-            ngw_resource, (NGWVectorLayer, NGWPostgisLayer)
+            ngw_resource, (NGWVectorLayer, NGWPostgisLayer, NGWWfsLayer)
         ):
             creating_actions.extend(
                 [

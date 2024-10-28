@@ -36,6 +36,7 @@ from nextgis_connect.ngw_api.core import (
     NGWResource,
     NGWVectorLayer,
     NGWWebMap,
+    NGWWfsLayer,
     NGWWfsService,
     NGWWmsConnection,
     NGWWmsLayer,
@@ -44,7 +45,6 @@ from nextgis_connect.ngw_api.core import (
 from nextgis_connect.ngw_api.core.ngw_abstract_vector_resource import (
     NGWAbstractVectorResource,
 )
-from nextgis_connect.ngw_api.core.ngw_postgis_layer import NGWPostgisConnection
 from nextgis_connect.ngw_api.core.ngw_tms_resources import (
     NGWTmsConnection,
     NGWTmsLayer,
@@ -71,9 +71,9 @@ LayerParams = Tuple[str, str, str]
 InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
 TmsLayerResources = (NGWTmsLayer, NGWTmsConnection, NGWBaseMap)
-ServiceLayerResources = (NGWPostgisLayer, NGWWmsLayer)
+ServiceLayerResources = (NGWPostgisLayer, NGWWmsLayer, NGWWfsLayer)
 
-VectorResources = (NGWVectorLayer, NGWPostgisLayer)
+VectorResources = (NGWVectorLayer, NGWWfsLayer, NGWPostgisLayer)
 RasterResources = (NGWRasterLayer, *TmsLayerResources, NGWWmsLayer)
 
 VectorServices = (NGWWfsService, NGWOgcfService)
@@ -734,7 +734,7 @@ class NgwResourcesAdder(QObject):
         if isinstance(resource, QModelIndex):
             resource = resource.data(QNGWResourceItem.NGWResourceRole)
 
-        if not isinstance(resource, (NGWPostgisLayer, NGWWmsLayer)):
+        if not isinstance(resource, ServiceLayerResources):
             return []
 
         result = []
@@ -844,10 +844,8 @@ class NgwResourcesAdder(QObject):
     ) -> LayerParams:
         if isinstance(resource, NGWVectorLayer):
             return self.__collect_params_for_detached_layer(resource)
-        if isinstance(resource, NGWPostgisLayer):
-            return self.__collect_params_for_postgis_layer(resource)
-        if isinstance(resource, NGWWmsLayer):
-            return self.__collect_params_for_wms_layer(resource)
+        if isinstance(resource, ServiceLayerResources):
+            return self.__collect_params_for_service_layer(resource)
         if isinstance(resource, NGWRasterLayer):
             return self.__collect_params_for_cog_raster_layer(resource)
         if isinstance(resource, TmsLayerResources):
@@ -939,41 +937,20 @@ class NgwResourcesAdder(QObject):
 
         return (uri, vector_layer.display_name, "ogr")
 
-    def __collect_params_for_postgis_layer(
-        self, postgis_layer: NGWPostgisLayer
+    def __collect_params_for_service_layer(
+        self, service_layer: Union[NGWWmsLayer, NGWWfsLayer, NGWPostgisLayer]
     ) -> LayerParams:
-        postgis_connection = cast(
-            NGWPostgisConnection,
-            self.__model.resource(postgis_layer.service_resource_id),
-        )
-        if postgis_connection is None:
+        connection = self.__model.resource(service_layer.service_resource_id)
+        if connection is None:
             message = (
-                f"Connecton for PostGIS layer {postgis_layer.display_name}"
+                f"Connecton for layer {service_layer.display_name}"
                 " is not accessible"
             )
             raise NgConnectError(
                 code=ErrorCode.AddingError, log_message=message
             )
 
-        return postgis_layer.layer_params(postgis_connection)
-
-    def __collect_params_for_wms_layer(
-        self, wms_layer: NGWWmsLayer
-    ) -> LayerParams:
-        wms_connection = cast(
-            NGWWmsConnection,
-            self.__model.resource(wms_layer.service_resource_id),
-        )
-        if wms_connection is None:
-            message = (
-                f"Connecton for WMS layer {wms_layer.display_name}"
-                " is not accessible"
-            )
-            raise NgConnectError(
-                code=ErrorCode.AddingError, log_message=message
-            )
-
-        return wms_layer.layer_params(wms_connection)
+        return service_layer.layer_params(connection)  # type: ignore
 
     def __collect_params_for_geojson_layer(
         self, vector_layer: NGWVectorLayer
