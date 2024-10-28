@@ -4,7 +4,7 @@ qgisMinimumVersion=3.22
 qgisMaximumVersion=3.99
 description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
-version=2.0.99
+version=2.1.0
 author=NextGIS
 email=info@nextgis.com
 
@@ -19,9 +19,11 @@ deprecated=False
 
 changelog=
 	2.1.0
+		* Added the ability to add WFS service layers to QGIS
 		* Added the ability to add all supported resources in group
 		* Added support for mutally exclusive group in webmaps
 		* Added the ability to add TMS services to QGIS
+		* Added the ability to upload styles for WFS service layers
 		* Added label attribute setting from NGW
 		* Made mutally exclusive group for webmap basemaps
 		* Optimized resources adding
