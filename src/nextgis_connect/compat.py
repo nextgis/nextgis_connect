@@ -11,6 +11,7 @@ from qgis.PyQt.QtCore import QMetaType, QVariant
 
 QGIS_3_30 = 33000
 QGIS_3_34 = 33400
+QGIS_3_36 = 33600
 QGIS_3_38 = 33800
 
 
@@ -60,7 +61,7 @@ else:
     LayerFilter = QgsMapLayerProxyModel.Filter
     LayerFilters = QgsMapLayerProxyModel.Filters
 
-if Qgis.versionInt() >= QGIS_3_34 or TYPE_CHECKING:
+if Qgis.versionInt() >= QGIS_3_36 or TYPE_CHECKING:
     FeatureRequestFlag = Qgis.FeatureRequestFlag
     FeatureRequestFlags = Qgis.FeatureRequestFlags
 
