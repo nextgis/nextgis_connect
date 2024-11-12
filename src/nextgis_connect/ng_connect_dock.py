@@ -153,6 +153,7 @@ try:
 except ImportError:
     HAS_NGSTD = False
 
+QGIS_3_30 = 33000
 QGIS_3_32 = 33200
 
 this_dir = os.path.dirname(__file__)
@@ -233,6 +234,35 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionUploadProjectResources.triggered.connect(
             self.upload_project_resources
         )
+
+        self.actionUploadProjectViaImportExportMenu = QAction(
+            QIcon(os.path.join(ICONS_PATH, "logo.svg")),
+            self.tr("Upload project to NextGIS Web"),
+        )
+        self.actionUploadProjectViaImportExportMenu.triggered.connect(
+            self.upload_project_resources
+        )
+        self.actionUploadProjectViaImportExportMenu.setEnabled(False)
+
+        if Qgis.versionInt() >= QGIS_3_30:
+            self.iface.addProjectExportAction(
+                self.actionUploadProjectViaImportExportMenu
+            )
+        else:
+            import_export_menu = utils.get_project_import_export_menu()
+            if import_export_menu:
+                export_separator = [
+                    a for a in import_export_menu.actions() if a.isSeparator()
+                ]
+                if export_separator:
+                    import_export_menu.insertAction(
+                        export_separator[0],
+                        self.actionUploadProjectViaImportExportMenu,
+                    )
+                else:
+                    import_export_menu.addAction(
+                        self.actionUploadProjectViaImportExportMenu
+                    )
 
         self.actionUpdateStyle = ActionStyleImportUpdate(
             self.tr("Update layer style")
@@ -560,6 +590,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # Upload project
         self.actionUploadProjectResources.setEnabled(
             not is_multiple_ngw_selection and project.count() != 0
+        )
+        self.actionUploadProjectViaImportExportMenu.setEnabled(
+            self.actionUploadProjectResources.isEnabled()
         )
 
         # Overwrite selected layer

@@ -1,9 +1,10 @@
 import platform
 from enum import Enum, auto
 from itertools import islice
-from typing import Tuple, Union, cast
+from typing import Optional, Tuple, Union, cast
 
 from qgis.core import (
+    Qgis,
     QgsApplication,
 )
 from qgis.gui import QgisInterface
@@ -14,6 +15,7 @@ from qgis.PyQt.QtWidgets import (
     QDialogButtonBox,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QVBoxLayout,
 )
 from qgis.utils import iface
@@ -21,6 +23,8 @@ from qgis.utils import iface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
+
+QGIS_3_30 = 33000
 
 
 class SupportStatus(Enum):
@@ -116,3 +120,22 @@ def is_version_supported(current_version_string: str) -> SupportStatus:
         return SupportStatus.OLD_CONNECT
 
     return SupportStatus.SUPPORTED
+
+
+def get_project_import_export_menu() -> Optional[QMenu]:
+    """
+    Returns the application Project - Import/Export sub menu
+    """
+    if Qgis.versionInt() >= QGIS_3_30:
+        return iface.projectImportExportMenu()
+
+    project_menu = iface.projectMenu()
+    matches = [
+        m
+        for m in project_menu.children()
+        if m.objectName() == "menuImport_Export"
+    ]
+    if matches:
+        return matches[0]
+
+    return None
