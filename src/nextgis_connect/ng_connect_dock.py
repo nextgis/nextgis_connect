@@ -153,6 +153,8 @@ try:
 except ImportError:
     HAS_NGSTD = False
 
+QGIS_3_32 = 33200
+
 this_dir = os.path.dirname(__file__)
 
 FORM_CLASS, _ = uic.loadUiType(
@@ -219,6 +221,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.upload_selected_resources
         )
         self.actionUploadSelectedResources.setEnabled(False)
+
+        if Qgis.versionInt() >= QGIS_3_32:
+            self.iface.layerTreeView().contextMenuAboutToShow.connect(
+                self.__add_upload_selected_action_to_export_menu
+            )
 
         self.actionUploadProjectResources = QAction(
             self.tr("Upload all"), self.menuUpload
@@ -2081,6 +2088,42 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         self.reinit_tree(force=True)
+
+    def __add_upload_selected_action_to_export_menu(self, menu: QMenu) -> None:
+        """
+        Triggered when the layer tree menu is about to show
+        Add action 'Upload to NextGIS Web' to the Export menu of selected layers
+        """
+
+        current_node = self.iface.layerTreeView().currentNode()
+        if not isinstance(current_node, QgsLayerTreeLayer):
+            return
+
+        menus = [
+            action
+            for action in menu.children()
+            if isinstance(action, QMenu)
+            and action.objectName() == "exportMenu"
+        ]
+
+        if not menus:
+            return
+
+        export_menu = menus[0]
+
+        actionUploadSelectedViaExportMenu = QAction(
+            QIcon(os.path.join(ICONS_PATH, "logo.svg")),
+            self.tr("Upload to NextGIS Web"),
+            export_menu,
+        )
+        actionUploadSelectedViaExportMenu.triggered.connect(
+            self.upload_selected_resources
+        )
+        actionUploadSelectedViaExportMenu.setEnabled(
+            self.actionUploadSelectedResources.isEnabled()
+        )
+
+        export_menu.addAction(actionUploadSelectedViaExportMenu)
 
 
 class NGWPanelToolBar(QToolBar):
