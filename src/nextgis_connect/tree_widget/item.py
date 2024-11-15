@@ -6,9 +6,6 @@ from qgis.PyQt.QtWidgets import QTreeWidgetItem
 
 from nextgis_connect.ngw_api.core import (
     NGWGroupResource,
-    NGWMapServerStyle,
-    NGWQGISRasterStyle,
-    NGWQGISVectorStyle,
     NGWResource,
 )
 
@@ -58,10 +55,6 @@ class QNGWResourceItem(QModelItem):
     def __init__(self, ngw_resource):
         super().__init__()
         title = ngw_resource.display_name
-        if isinstance(ngw_resource, (NGWQGISRasterStyle, NGWQGISVectorStyle)):
-            title = "(qgis) " + title
-        elif isinstance(ngw_resource, NGWMapServerStyle):
-            title = "(ms) " + title
         self._title = title
         self._ngw_resource = ngw_resource
         self._icon = QIcon(self._ngw_resource.icon_path)
