@@ -431,6 +431,14 @@ class NgwResourcesAdder(QObject):
         layer = self.__layers[id(service_layer)]
         layer.setName(service_layer.display_name)
 
+        if isinstance(layer, QgsVectorLayer):
+            layer_resource = self.__model.resource(service_layer.resource_id)
+            assert isinstance(layer_resource, NGWAbstractVectorResource)
+            self.__add_all_styles_to_layer(layer_resource, layer)
+            self.__add_fields_aliases(layer_resource, layer)
+            self.__add_lookup_tables(layer_resource, layer)
+            self.__set_display_field(layer_resource, layer)
+
         layer.setCustomProperty(
             "ngw_connection_id", ngw_resource.connection_id
         )

@@ -206,7 +206,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.tr("Add to QGIS"),
             self,
         )
-        self.actionExport.triggered.connect(self.__export_to_qgis)
+        self.actionExport.triggered.connect(self.__download_selected)
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
         self.menuUpload.setIcon(
@@ -370,7 +370,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             QIcon(os.path.join(ICONS_PATH, "mActionExport.svg"))
         )
         self.toolbuttonDownload.setToolTip(self.tr("Add to QGIS"))
-        self.toolbuttonDownload.clicked.connect(self.__export_to_qgis)
+        self.toolbuttonDownload.clicked.connect(self.__download_selected)
         self.main_tool_bar.addWidget(self.toolbuttonDownload)
 
         self.toolbuttonUpload = QToolButton()
@@ -1256,21 +1256,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
 
-    def __export_to_qgis(self):
+    def __download_selected(self):
         selection_model = self.resources_tree_view.selectionModel()
         selected_indexes = selection_model.selectedIndexes()
+        self.__download_indices(selected_indexes)
 
+    def __download_indices(self, indices: List[QModelIndex]) -> None:
         def save_command(job) -> None:
             insertion_point = self.iface.layerTreeInsertionPoint()
             self._queue_to_add.append(
-                AddLayersCommand(
-                    job.job_uuid, insertion_point, selected_indexes
-                )
+                AddLayersCommand(job.job_uuid, insertion_point, indices)
             )
 
         adder = NgwResourcesAdder(
             self.resource_model,
-            selected_indexes,
+            indices,
             self.iface.layerTreeInsertionPoint(),
         )
 
@@ -1292,7 +1292,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Make stubs for vector layers
         model = self.resource_model
-        download_job = model.download_vector_layers_if_needed(selected_indexes)
+        download_job = model.download_vector_layers_if_needed(indices)
         if download_job is not None:
             save_command(download_job)
             return
@@ -1778,10 +1778,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if not NgConnectSettings().add_layer_after_service_creation:
             return
 
-        adder = NgwResourcesAdder(
-            self.resource_model, index, self.iface.layerTreeInsertionPoint()
-        )
-        adder.run()
+        self.__download_indices([index])
 
     def create_wms_service(self):
         selected_index = (
