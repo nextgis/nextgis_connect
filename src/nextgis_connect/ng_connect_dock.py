@@ -850,8 +850,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if isinstance(exception.wrapped_exception, NgConnectError):
                 msg = exception.wrapped_exception.user_message
                 msg_ext = exception.wrapped_exception.detail
-                if msg_ext is None:
-                    msg_ext = ""
             else:
                 msg = str(exception)
                 # If we have message for user - add it instead of system message.
@@ -862,9 +860,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     if user_msg is not None:
                         msg_ext = user_msg
                     else:
-                        msg_ext = json.loads(str(exception.wrapped_exception))[
-                            "message"
-                        ]
+                        try:
+                            msg_ext = json.loads(
+                                str(exception.wrapped_exception)
+                            )["message"]
+                        except Exception:
+                            msg_ext = str(exception.wrapped_exception)
 
         elif isinstance(exception, JobWarning):
             msg = str(exception)
