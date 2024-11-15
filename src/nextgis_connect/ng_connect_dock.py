@@ -84,6 +84,7 @@ from nextgis_connect import utils
 from nextgis_connect.action_style_import_or_update import (
     ActionStyleImportUpdate,
 )
+from nextgis_connect.compat import QGIS_3_32
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.dialog_metadata import MetadataDialog
 from nextgis_connect.exceptions import (
@@ -153,8 +154,6 @@ try:
 except ImportError:
     HAS_NGSTD = False
 
-QGIS_3_30 = 33000
-QGIS_3_32 = 33200
 
 this_dir = os.path.dirname(__file__)
 
@@ -236,7 +235,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         self.actionUploadProjectViaImportExportMenu = QAction(
-            QIcon(os.path.join(ICONS_PATH, "logo.svg")),
+            QIcon(str(Path(__file__).parent / "icons" / "logo.svg")),
             self.tr("Upload project to NextGIS Web"),
         )
         self.actionUploadProjectViaImportExportMenu.triggered.connect(
@@ -244,25 +243,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.actionUploadProjectViaImportExportMenu.setEnabled(False)
 
-        if Qgis.versionInt() >= QGIS_3_30:
-            self.iface.addProjectExportAction(
-                self.actionUploadProjectViaImportExportMenu
-            )
-        else:
-            import_export_menu = utils.get_project_import_export_menu()
-            if import_export_menu:
-                export_separator = [
-                    a for a in import_export_menu.actions() if a.isSeparator()
-                ]
-                if export_separator:
-                    import_export_menu.insertAction(
-                        export_separator[0],
-                        self.actionUploadProjectViaImportExportMenu,
-                    )
-                else:
-                    import_export_menu.addAction(
-                        self.actionUploadProjectViaImportExportMenu
-                    )
+        utils.add_project_export_action(
+            self.actionUploadProjectViaImportExportMenu
+        )
 
         self.actionUpdateStyle = ActionStyleImportUpdate(
             self.tr("Update layer style")
@@ -2127,11 +2110,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         Triggered when the layer tree menu is about to show
         Add action 'Upload to NextGIS Web' to the Export menu of selected layers
         """
-
-        current_node = self.iface.layerTreeView().currentNode()
-        if not isinstance(current_node, QgsLayerTreeLayer):
-            return
-
         menus = [
             action
             for action in menu.children()
@@ -2145,7 +2123,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         export_menu = menus[0]
 
         actionUploadSelectedViaExportMenu = QAction(
-            QIcon(os.path.join(ICONS_PATH, "logo.svg")),
+            QIcon(str(Path(__file__).parent / "icons" / "logo.svg")),
             self.tr("Upload to NextGIS Web"),
             export_menu,
         )

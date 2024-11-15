@@ -11,6 +11,7 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QByteArray, QMimeData, Qt, QUrl
 from qgis.PyQt.QtGui import QClipboard, QDesktopServices
 from qgis.PyQt.QtWidgets import (
+    QAction,
     QDialog,
     QDialogButtonBox,
     QListWidget,
@@ -20,11 +21,10 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.compat import QGIS_3_30
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
-
-QGIS_3_30 = 33000
 
 
 class SupportStatus(Enum):
@@ -139,3 +139,26 @@ def get_project_import_export_menu() -> Optional[QMenu]:
         return matches[0]
 
     return None
+
+
+def add_project_export_action(project_export_action: QAction) -> None:
+    """
+    Decides how to add action of project export to the Project - Import/Export sub menu
+    """
+    if Qgis.versionInt() >= QGIS_3_30:
+        iface.addProjectExportAction(project_export_action)
+    else:
+        import_export_menu = get_project_import_export_menu()
+        if import_export_menu:
+            export_separators = [
+                action
+                for action in import_export_menu.actions()
+                if action.isSeparator()
+            ]
+            if export_separators:
+                import_export_menu.insertAction(
+                    export_separators[0],
+                    project_export_action,
+                )
+            else:
+                import_export_menu.addAction(project_export_action)
