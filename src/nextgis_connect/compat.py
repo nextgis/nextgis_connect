@@ -10,6 +10,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QMetaType, QVariant
 
 QGIS_3_30 = 33000
+QGIS_3_32 = 33200
 QGIS_3_34 = 33400
 QGIS_3_36 = 33600
 QGIS_3_38 = 33800

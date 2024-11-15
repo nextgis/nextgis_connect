@@ -352,7 +352,7 @@ class NgConnectPlugin(NgConnectInterface):
         )
 
         # Add action to Plugins
-        self.iface.addPluginToMenu(
+        self.iface.addPluginToWebMenu(
             self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
@@ -369,7 +369,7 @@ class NgConnectPlugin(NgConnectInterface):
         plugin_help_menu.addAction(self.__show_help_action)
 
     def __unload_ng_connect_menus(self) -> None:
-        self.iface.removePluginMenu(
+        self.iface.removePluginWebMenu(
             self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )

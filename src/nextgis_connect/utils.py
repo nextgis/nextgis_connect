@@ -1,23 +1,27 @@
 import platform
 from enum import Enum, auto
 from itertools import islice
-from typing import Tuple, Union, cast
+from typing import Optional, Tuple, Union, cast
 
 from qgis.core import (
+    Qgis,
     QgsApplication,
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QByteArray, QMimeData, Qt, QUrl
 from qgis.PyQt.QtGui import QClipboard, QDesktopServices
 from qgis.PyQt.QtWidgets import (
+    QAction,
     QDialog,
     QDialogButtonBox,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QVBoxLayout,
 )
 from qgis.utils import iface
 
+from nextgis_connect.compat import QGIS_3_30
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)
@@ -116,3 +120,45 @@ def is_version_supported(current_version_string: str) -> SupportStatus:
         return SupportStatus.OLD_CONNECT
 
     return SupportStatus.SUPPORTED
+
+
+def get_project_import_export_menu() -> Optional[QMenu]:
+    """
+    Returns the application Project - Import/Export sub menu
+    """
+    if Qgis.versionInt() >= QGIS_3_30:
+        return iface.projectImportExportMenu()
+
+    project_menu = iface.projectMenu()
+    matches = [
+        m
+        for m in project_menu.children()
+        if m.objectName() == "menuImport_Export"
+    ]
+    if matches:
+        return matches[0]
+
+    return None
+
+
+def add_project_export_action(project_export_action: QAction) -> None:
+    """
+    Decides how to add action of project export to the Project - Import/Export sub menu
+    """
+    if Qgis.versionInt() >= QGIS_3_30:
+        iface.addProjectExportAction(project_export_action)
+    else:
+        import_export_menu = get_project_import_export_menu()
+        if import_export_menu:
+            export_separators = [
+                action
+                for action in import_export_menu.actions()
+                if action.isSeparator()
+            ]
+            if export_separators:
+                import_export_menu.insertAction(
+                    export_separators[0],
+                    project_export_action,
+                )
+            else:
+                import_export_menu.addAction(project_export_action)
