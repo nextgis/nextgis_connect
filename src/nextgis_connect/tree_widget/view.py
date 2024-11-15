@@ -227,7 +227,8 @@ class QProcessOverlay(QOverlay):
         text = ""
         status_text = ""
 
-        for job_name, job_status in list(jobs.items()):
+        if len(jobs) > 0:
+            job_name, job_status = list(jobs.items())[-1]
             text += f"<strong>{job_name}</strong>".strip()
             if job_status != "":
                 status_text += job_status.replace("\n", "<br/>").strip()
