@@ -41,7 +41,7 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 
-from nextgis_connect import utils
+from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import LayerType
 from nextgis_connect.detached_editing import DetachedEditing
 from nextgis_connect.exceptions import NgConnectError
@@ -351,10 +351,22 @@ class NgConnectPlugin(NgConnectInterface):
             self.__show_ngw_resources_tree_action,
         )
 
-        # Add action to Plugins
+        self.__action_about = QAction(
+            QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"),
+            self.tr("About plugin..."),
+            self.iface.mainWindow(),
+        )
+
+        self.__action_about.triggered.connect(self.__open_about)
+
+        # Add action to Web
         self.iface.addPluginToWebMenu(
             self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
+        )
+        self.iface.addPluginToWebMenu(
+            self.PLUGIN_NAME,
+            self.__action_about,
         )
 
         # Add adction to Help > Plugins
@@ -363,7 +375,7 @@ class NgConnectPlugin(NgConnectInterface):
             self.PLUGIN_NAME,
             self.iface.mainWindow(),
         )
-        self.__show_help_action.triggered.connect(utils.open_plugin_help)
+        self.__show_help_action.triggered.connect(self.__open_about)
         plugin_help_menu = self.iface.pluginHelpMenu()
         assert plugin_help_menu is not None
         plugin_help_menu.addAction(self.__show_help_action)
@@ -373,11 +385,16 @@ class NgConnectPlugin(NgConnectInterface):
             self.PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
+        self.iface.removePluginWebMenu(
+            self.PLUGIN_NAME,
+            self.__action_about,
+        )
 
         assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.hide()
         self.__ng_connect_toolbar.deleteLater()
         self.__show_ngw_resources_tree_action.deleteLater()
+        self.__action_about.deleteLater()
 
         plugin_help_menu = self.iface.pluginHelpMenu()
         assert plugin_help_menu is not None
@@ -433,3 +450,7 @@ class NgConnectPlugin(NgConnectInterface):
         task_manager = QgsApplication.taskManager()
         assert task_manager is not None
         task_manager.addTask(self.__purge_cache_task)
+
+    def __open_about(self) -> None:
+        dialog = AboutDialog(str(Path(__file__).parent.name))
+        dialog.exec()
