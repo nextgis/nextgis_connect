@@ -27,7 +27,6 @@ from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
     NgConnectError,
-    SynchronizationError,
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -571,9 +570,12 @@ class DetachedContainer(QObject):
         assert isinstance(self.__sync_task, FetchDeltaTask)
 
         if len(self.__sync_task.delta) > 0:
-            if self.__has_conflicts(self.__sync_task.delta):
-                error = SynchronizationError("Delta has conflicts")
-                self.__process_sync_error(error)
+            try:
+                self.__has_conflicts(self.__sync_task.delta)
+            except Exception as error:
+                ng_error = NgConnectError()
+                ng_error.__cause__ = error
+                self.__process_sync_error(ng_error)
                 self.__finish_sync()
                 return
 
