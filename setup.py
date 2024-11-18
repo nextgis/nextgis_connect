@@ -158,7 +158,7 @@ class QgisPluginBuilder:
             metadata_path = plugin_path / "metadata.txt"
             assert metadata_path.exists()
             metadata = ConfigParser()
-            metadata.read(metadata_path)
+            metadata.read(metadata_path, "utf-8")
             installed_version = metadata.get("general", "version")
 
             print(
@@ -210,7 +210,7 @@ class QgisPluginBuilder:
         assert metadata_path.exists()
 
         metadata = ConfigParser()
-        metadata.read(metadata_path)
+        metadata.read(metadata_path, "utf-8")
         installed_version = metadata.get("general", "version")
 
         print(f"Plugin {project_name} {installed_version}\n")
@@ -316,7 +316,7 @@ class QgisPluginBuilder:
         metadata_path = src_directory / project_name / "metadata.txt"
 
         metadata = ConfigParser()
-        metadata.read(metadata_path)
+        metadata.read(metadata_path, "utf-8")
         assert metadata.get("general", "version") == project_version
 
         build_path = Path(project_name) / metadata_path.name
