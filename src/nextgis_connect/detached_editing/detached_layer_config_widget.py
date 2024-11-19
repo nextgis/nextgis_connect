@@ -145,7 +145,7 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
         icons_path = Path(__file__).parents[1] / "icons"
         super().__init__(
-            "NextGIS", QIcon(str(icons_path / "NGConnect_logo.svg"))
+            "NextGIS", QIcon(str(icons_path / "connect_logo.svg"))
         )
         self.setSupportLayerPropertiesDialog(True)
 

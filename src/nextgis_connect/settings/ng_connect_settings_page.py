@@ -546,7 +546,7 @@ class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
         icons_path = Path(__file__).parents[1] / "icons"
         super().__init__(
-            "NextGIS Connect", QIcon(str(icons_path / "NGConnect_logo.svg"))
+            "NextGIS Connect", QIcon(str(icons_path / "connect_logo.svg"))
         )
 
     def path(self) -> List[str]:
