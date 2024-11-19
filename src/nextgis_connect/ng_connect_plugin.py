@@ -353,7 +353,7 @@ class NgConnectPlugin(NgConnectInterface):
 
         self.__action_about = QAction(
             QgsApplication.getThemeIcon("mActionPropertiesWidget.svg"),
-            self.tr("About plugin..."),
+            self.tr("About plugin…"),
             self.iface.mainWindow(),
         )
 
