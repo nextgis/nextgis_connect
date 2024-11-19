@@ -15,7 +15,7 @@ tags=nextgis, web, tool, server
 homepage=https://github.com/nextgis/nextgis_connect
 tracker=https://github.com/nextgis/nextgis_connect/issues
 repository=https://github.com/nextgis/nextgis_connect
-icon=icon.png
+icon=icons/NGConnect_logo.svg
 experimental=False
 deprecated=False
 
