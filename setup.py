@@ -10,7 +10,10 @@ from configparser import ConfigParser
 from pathlib import Path
 from typing import Dict, List, Optional
 
-import tomllib
+try:
+    import tomllib
+except ImportError:
+    import pip._vendor.tomli as tomllib
 
 
 def with_name(
