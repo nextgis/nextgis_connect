@@ -9,47 +9,47 @@
         <translation> от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="184"/>
+        <location filename="../about_dialog.py" line="182"/>
         <source>REPORT_END</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="189"/>
+        <location filename="../about_dialog.py" line="187"/>
         <source>Developers</source>
         <translation>Разработчики</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="190"/>
+        <location filename="../about_dialog.py" line="188"/>
         <source>Homepage</source>
         <translation>Домашняя страница</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="191"/>
+        <location filename="../about_dialog.py" line="189"/>
         <source>Please report bugs at</source>
         <translation>Пожалуйста, сообщайте о багах в</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="193"/>
+        <location filename="../about_dialog.py" line="191"/>
         <source>bugtracker</source>
         <translation>багтрекер</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="194"/>
+        <location filename="../about_dialog.py" line="192"/>
         <source>Video with an overview of the plugin</source>
         <translation>Видео с обзором на плагин</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="195"/>
+        <location filename="../about_dialog.py" line="193"/>
         <source>Other helpful services by NextGIS</source>
         <translation>Другие полезные сервисы от NextGIS</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="196"/>
+        <location filename="../about_dialog.py" line="194"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
         <translation>Удобная выборка актуальных данных из любой точки мира</translation>
     </message>
     <message>
-        <location filename="../about_dialog.py" line="199"/>
+        <location filename="../about_dialog.py" line="197"/>
         <source>Fully featured Web GIS service</source>
         <translation>Полнофункциональный Веб ГИС-сервис</translation>
     </message>
@@ -59,7 +59,7 @@
     <message>
         <location filename="../about_dialog_base.ui" line="14"/>
         <source>About {plugin_name}</source>
-        <translation>О {plugin_name}</translation>
+        <translation>О модуле {plugin_name}</translation>
     </message>
     <message>
         <location filename="../about_dialog_base.ui" line="33"/>
@@ -1259,8 +1259,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../ng_connect_plugin.py" line="354"/>
-        <source>About plugin...</source>
-        <translation>О плагине...</translation>
+        <source>About plugin…</source>
+        <translation>О модуле…</translation>
     </message>
 </context>
 <context>
