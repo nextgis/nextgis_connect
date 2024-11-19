@@ -330,7 +330,7 @@ class NgConnectPlugin(NgConnectInterface):
         )
 
         self.__show_ngw_resources_tree_action = QAction(
-            QIcon(str(self.plugin_dir / "icon.png")),
+            QIcon(str(self.plugin_dir / "icons/NGConnect_logo.svg")),
             self.tr("Show/Hide NextGIS Connect panel"),
             self.iface.mainWindow(),
         )
@@ -371,7 +371,7 @@ class NgConnectPlugin(NgConnectInterface):
 
         # Add adction to Help > Plugins
         self.__show_help_action = QAction(
-            QIcon(str(self.plugin_dir / "icon.png")),
+            QIcon(str(self.plugin_dir / "icons/NGConnect_logo.svg")),
             self.PLUGIN_NAME,
             self.iface.mainWindow(),
         )

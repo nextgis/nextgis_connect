@@ -144,7 +144,9 @@ class DetachedLayerConfigErrorPage(QgsMapLayerConfigWidget):
 class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def __init__(self):
         icons_path = Path(__file__).parents[1] / "icons"
-        super().__init__("NextGIS", QIcon(str(icons_path / "logo.svg")))
+        super().__init__(
+            "NextGIS", QIcon(str(icons_path / "NGConnect_logo.svg"))
+        )
         self.setSupportLayerPropertiesDialog(True)
 
     def __del__(self) -> None:

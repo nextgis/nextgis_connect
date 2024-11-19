@@ -8,7 +8,6 @@ license = { file = "LICENSE" }
 dev = ["ruff", "pre-commit"]
 
 [tool.qgspb.package-data]
-"nextgis_connect" = ["icon.png"]
 "nextgis_connect.icons" = ["**/*.svg"]
 "nextgis_connect.ngw_api.icons" = ["*.svg"]
 "nextgis_connect.ngw_api.qgis.qgis_styles" = ["*.qml"]
