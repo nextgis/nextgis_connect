@@ -467,8 +467,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.setIconSize(QSize(24, 24))
 
         if HAS_NGSTD:
-            NGAccess.instance().userInfoUpdated.connect(
-                self.__on_ngstd_user_info_updated
+            self.__ngstd_connection = (
+                NGAccess.instance().userInfoUpdated.connect(
+                    self.__on_ngstd_user_info_updated
+                )
             )
 
         layer_tree_view = self.iface.layerTreeView()
@@ -949,9 +951,22 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             action.setEnabled(False)
 
+        if HAS_NGSTD and self.__ngstd_connection is not None:
+            NGAccess.instance().userInfoUpdated.disconnect(
+                self.__on_ngstd_user_info_updated
+            )
+            self.__ngstd_connection = None
+
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
         self.checkImportActionsAvailability()
+
+        if HAS_NGSTD and self.__ngstd_connection is None:
+            self.__ngstd_connection = (
+                NGAccess.instance().userInfoUpdated.connect(
+                    self.__on_ngstd_user_info_updated
+                )
+            )
 
     def reinit_tree(self, force=False):
         # clear tree and states
