@@ -26,7 +26,7 @@
     <message>
         <location filename="../about_dialog.py" line="189"/>
         <source>Please report bugs at</source>
-        <translation>Пожалуйста, сообщайте о багах в</translation>
+        <translation>Пожалуйста, сообщайте об ошибках в</translation>
     </message>
     <message>
         <location filename="../about_dialog.py" line="191"/>
@@ -36,7 +36,7 @@
     <message>
         <location filename="../about_dialog.py" line="192"/>
         <source>Video with an overview of the plugin</source>
-        <translation>Видео с обзором на плагин</translation>
+        <translation>Видео с обзором плагина</translation>
     </message>
     <message>
         <location filename="../about_dialog.py" line="193"/>
