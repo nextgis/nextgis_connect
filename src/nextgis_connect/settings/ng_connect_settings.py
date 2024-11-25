@@ -216,6 +216,10 @@ class NgConnectSettings:
         self.__settings.setValue(self.__plugin_group + "/cache/size", value)
 
     @property
+    def layer_check_period(self) -> int:
+        return int(timedelta(seconds=15) / timedelta(milliseconds=1))
+
+    @property
     def synchronizatin_period(self) -> timedelta:
         value = self.__settings.value(
             self.__plugin_group + "/synchronization/period",

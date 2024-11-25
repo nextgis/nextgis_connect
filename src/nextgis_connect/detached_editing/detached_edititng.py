@@ -1,4 +1,3 @@
-from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, cast
 
@@ -14,6 +13,7 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
 from nextgis_connect.logging import logger
+from nextgis_connect.settings import NgConnectSettings
 
 from . import utils
 from .detached_container import DetachedContainer
@@ -33,13 +33,14 @@ class DetachedEditing(QObject):
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
 
+        settings = NgConnectSettings()
+
         self.__containers = {}
         self.__containers_by_layer_id = {}
         self.__is_synchronization_enabled = True
 
-        layers_check_period = timedelta(seconds=15) / timedelta(milliseconds=1)
         self.__timer = QTimer(self)
-        self.__timer.setInterval(int(layers_check_period))
+        self.__timer.setInterval(settings.layer_check_period)
         self.__timer.timeout.connect(self.synchronize_layers)
         self.__timer.start()
 
@@ -47,22 +48,18 @@ class DetachedEditing(QObject):
         iface.registerMapLayerConfigWidgetFactory(self.__properties_factory)
 
         project = QgsProject.instance()
-        assert project is not None
-
         project.layersAdded.connect(self.__on_layers_added)
         project.layersWillBeRemoved.connect(self.__on_layers_will_be_removed)
 
         root = project.layerTreeRoot()
-        assert root is not None
-
         root.addedChildren.connect(self.__on_added_children)
         root.willRemoveChildren.connect(self.__on_will_remove_children)
-
-        iface.currentLayerChanged.connect(self.__update_actions)
 
         QTimer.singleShot(0, self.__setup_layers)
 
     def unload(self) -> None:
+        self.__timer.stop()
+
         containers = list(self.__containers.values())
 
         self.__containers.clear()
@@ -171,7 +168,6 @@ class DetachedEditing(QObject):
         for layer in layers:
             self.__setup_layer(layer)
 
-        self.__update_actions()
         self.synchronize_layers()
 
     @pyqtSlot("QStringList")
@@ -189,8 +185,6 @@ class DetachedEditing(QObject):
             ):
                 self.__containers.pop(container.path)
                 container.deleteLater()
-
-        self.__update_actions()
 
     @pyqtSlot(QgsLayerTreeNode, int, int)
     def __on_added_children(
@@ -257,6 +251,3 @@ class DetachedEditing(QObject):
             container = self.__containers.pop(path, None)
             if container is not None:
                 container.deleteLater()
-
-    def __update_actions(self) -> None:
-        pass
