@@ -6,8 +6,6 @@ from contextlib import closing
 from pathlib import Path
 from typing import cast
 
-from qgis.PyQt.QtCore import pyqtSignal
-
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.detached_editing.detached_layer_factory import (
@@ -33,8 +31,6 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 
 
 class DownloadGpkgTask(DetachedEditingTask):
-    download_finished = pyqtSignal(bool, name="downloadFinished")
-
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
         if self._error is not None:
@@ -77,10 +73,6 @@ class DownloadGpkgTask(DetachedEditingTask):
         logger.debug("Downloading GPKG completed")
 
         return True
-
-    def finished(self, result: bool) -> None:
-        self.download_finished.emit(result)
-        return super().finished(result)
 
     def __download_layer(self) -> None:
         connection_id = self._metadata.connection_id

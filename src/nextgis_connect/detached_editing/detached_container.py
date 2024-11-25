@@ -469,20 +469,33 @@ class DetachedContainer(QObject):
             self.__sync_task = FetchAdditionalDataTask(
                 self.path, need_update_structure=True
             )
-            self.__sync_task.download_finished.connect(
-                self.__on_additional_data_fetched
+            self.__sync_task.taskCompleted.connect(
+                lambda: self.__on_additional_data_fetched(True)
+            )
+            self.__sync_task.taskTerminated.connect(
+                lambda: self.__on_additional_data_fetched(False)
             )
 
     def __init_ordinary_task(self) -> None:
         if self.is_not_initialized:
             self.__sync_task = DownloadGpkgTask(self.path)
-            self.__sync_task.download_finished.connect(
-                self.__on_synchronization_finished
-            )
-            return
-
-        if self.metadata.has_changes:
+        elif self.metadata.has_changes:
             self.__sync_task = UploadChangesTask(self.path)
+
+        if self.__sync_task is not None:
+            self.__sync_task.taskCompleted.connect(
+                lambda: self.__on_synchronization_finished(True)
+            )
+            self.__sync_task.taskTerminated.connect(
+                lambda: self.__on_synchronization_finished(False)
+            )
+
+    def __init_versioning_task(self) -> None:
+        State = VersioningSynchronizationState
+        self.__versioning_state = State.FetchingChanges
+
+        if self.is_not_initialized:
+            self.__sync_task = FillLayerWithVersioning(self.path)
             self.__sync_task.taskCompleted.connect(
                 lambda: self.__on_synchronization_finished(True)
             )
@@ -491,20 +504,13 @@ class DetachedContainer(QObject):
             )
             return
 
-    def __init_versioning_task(self) -> None:
-        State = VersioningSynchronizationState
-
-        if self.is_not_initialized:
-            self.__sync_task = FillLayerWithVersioning(self.path)
-            self.__sync_task.download_finished.connect(
-                self.__on_synchronization_finished
-            )
-            self.__versioning_state = State.FetchingChanges
-            return
-
         self.__sync_task = FetchDeltaTask(self.path)
-        self.__sync_task.download_finished.connect(self.__on_fetch_finished)
-        self.__versioning_state = State.FetchingChanges
+        self.__sync_task.taskCompleted.connect(
+            lambda: self.__on_fetch_finished(True)
+        )
+        self.__sync_task.taskTerminated.connect(
+            lambda: self.__on_fetch_finished(False)
+        )
 
     @pyqtSlot(bool)
     def __on_synchronization_finished(self, result: bool) -> None:
@@ -535,8 +541,11 @@ class DetachedContainer(QObject):
         self.__sync_task = FetchAdditionalDataTask(
             self.path, need_update_structure=False
         )
-        self.__sync_task.download_finished.connect(
-            self.__on_additional_data_fetched
+        self.__sync_task.taskCompleted.connect(
+            lambda: self.__on_additional_data_fetched(True)
+        )
+        self.__sync_task.taskTerminated.connect(
+            lambda: self.__on_additional_data_fetched(False)
         )
         self.__start_sync(self.__sync_task)
 
@@ -588,7 +597,12 @@ class DetachedContainer(QObject):
                 self.__sync_task.timestamp,
                 self.__sync_task.delta,
             )
-            sync_task.apply_finished.connect(self.__on_apply_finished)
+            sync_task.taskCompleted.connect(
+                lambda: self.__on_apply_finished(True)
+            )
+            sync_task.taskTerminated.connect(
+                lambda: self.__on_apply_finished(False)
+            )
             self.__start_sync(sync_task)
             return
 
@@ -614,25 +628,24 @@ class DetachedContainer(QObject):
             self.__on_synchronization_finished(False)
             return
 
-        assert isinstance(self.__sync_task, ApplyDeltaTask)
-
+        # TODO: why?
         self.__update_state()
 
-        if self.metadata.has_changes:
-            self.__versioning_state = (
-                VersioningSynchronizationState.UploadingChanges
-            )
-            task = UploadChangesTask(self.path)
-            task.taskCompleted.connect(
-                lambda: self.__on_versioned_uploading_finished(True)
-            )
-            task.taskTerminated.connect(
-                lambda: self.__on_versioned_uploading_finished(False)
-            )
-            self.__start_sync(task)
+        if not self.metadata.has_changes:
+            self.__on_synchronization_finished(True)
             return
 
-        self.__on_synchronization_finished(True)
+        self.__versioning_state = (
+            VersioningSynchronizationState.UploadingChanges
+        )
+        task = UploadChangesTask(self.path)
+        task.taskCompleted.connect(
+            lambda: self.__on_versioned_uploading_finished(True)
+        )
+        task.taskTerminated.connect(
+            lambda: self.__on_versioned_uploading_finished(False)
+        )
+        self.__start_sync(task)
 
     @pyqtSlot(bool)
     def __on_versioned_uploading_finished(self, result: bool) -> None:
@@ -641,7 +654,12 @@ class DetachedContainer(QObject):
             return
 
         task = FetchDeltaTask(self.path)
-        task.download_finished.connect(self.__on_fetch_finished)
+        self.__sync_task.taskCompleted.connect(
+            lambda: self.__on_fetch_finished(True)
+        )
+        self.__sync_task.taskTerminated.connect(
+            lambda: self.__on_fetch_finished(False)
+        )
         self.__versioning_state = (
             VersioningSynchronizationState.FetchingChanges
         )

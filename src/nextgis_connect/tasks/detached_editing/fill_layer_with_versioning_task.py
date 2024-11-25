@@ -2,8 +2,6 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
-from qgis.PyQt.QtCore import pyqtSignal
-
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.exceptions import SynchronizationError
@@ -15,8 +13,6 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 
 
 class FillLayerWithVersioning(DetachedEditingTask):
-    download_finished = pyqtSignal(bool, name="downloadFinished")
-
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
         if self._error is not None:
@@ -81,7 +77,3 @@ class FillLayerWithVersioning(DetachedEditingTask):
             return False
 
         return True
-
-    def finished(self, result: bool) -> None:
-        self.download_finished.emit(result)
-        return super().finished(result)

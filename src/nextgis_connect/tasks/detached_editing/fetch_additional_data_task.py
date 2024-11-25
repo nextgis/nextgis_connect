@@ -3,8 +3,6 @@ from contextlib import closing
 from pathlib import Path
 from typing import Dict, List, Set
 
-from qgis.PyQt.QtCore import pyqtSignal
-
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
 )
@@ -18,8 +16,6 @@ from nextgis_connect.tasks.detached_editing import DetachedEditingTask
 
 
 class FetchAdditionalDataTask(DetachedEditingTask):
-    download_finished = pyqtSignal(bool, name="downloadFinished")
-
     __need_update_structure: bool
 
     __is_edit_allowed: bool
@@ -84,11 +80,6 @@ class FetchAdditionalDataTask(DetachedEditingTask):
             return False
 
         return True
-
-    def finished(self, result: bool) -> None:
-        self.download_finished.emit(result)
-
-        return super().finished(result)
 
     def __update_structure(self, ngw_connection: QgsNgwConnection) -> None:
         logger.debug("Update structure")

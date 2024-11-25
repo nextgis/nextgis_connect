@@ -4,8 +4,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from qgis.PyQt.QtCore import pyqtSignal
-
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.actions import (
     VersioningAction,
@@ -21,8 +19,6 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 
 
 class ApplyDeltaTask(DetachedEditingTask):
-    apply_finished = pyqtSignal(bool, name="applyFinished")
-
     _container_path: Path
     _metadata: DetachedContainerMetaData
 
@@ -88,8 +84,3 @@ class ApplyDeltaTask(DetachedEditingTask):
             return False
 
         return True
-
-    def finished(self, result: bool) -> None:
-        self.apply_finished.emit(result)
-
-        return super().finished(result)
