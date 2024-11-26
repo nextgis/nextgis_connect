@@ -17,9 +17,11 @@ from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 class NgConnectCacheManager:
     __settings: NgConnectSettings
+    __project_containers: Optional[List[Path]]
 
     def __init__(self) -> None:
         self.__settings = NgConnectSettings()
+        self.__project_containers = None
         Path(self.cache_directory).mkdir(parents=True, exist_ok=True)
 
     @property
@@ -83,7 +85,7 @@ class NgConnectCacheManager:
     def has_containers_with_changes(self) -> bool:
         return any(
             self.__is_container_with_changes(file_path)
-            for file_path in Path(self.cache_directory).glob("**/*")
+            for file_path in Path(self.cache_directory).glob("**/*.gpkg")
         )
 
     def exists(self, path: str) -> bool:
@@ -202,9 +204,6 @@ class NgConnectCacheManager:
             path.rmdir()
 
     def __is_container_with_changes(self, file_path: Path) -> bool:
-        if not is_ngw_container(file_path):
-            return False
-
         try:
             metadata = container_metadata(file_path)
         except Exception:
@@ -213,10 +212,11 @@ class NgConnectCacheManager:
         return metadata.has_changes
 
     def __is_file_used_by_project(self, file_path: Path) -> bool:
-        if not is_ngw_container(file_path):
-            return False
+        if self.__project_containers is None:
+            self.__project_containers = [
+                container_path(layer)
+                for layer in QgsProject().instance().mapLayers().values()
+                if is_ngw_container(layer)
+            ]
 
-        layers = filter(
-            is_ngw_container, QgsProject().instance().mapLayers().values()
-        )
-        return any(container_path(layer) == file_path for layer in layers)
+        return file_path in self.__project_containers

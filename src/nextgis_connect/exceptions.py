@@ -83,7 +83,7 @@ class ErrorCode(IntEnum):
         return self.PluginError
 
 
-class NgConnectError(Exception):
+class NgConnectException(Exception):
     __log_message: str
     __user_message: str
     __detail: Optional[str]
@@ -148,6 +148,14 @@ class NgConnectError(Exception):
 
             message: str = self.args[0]
             self.args = (f"{message}\n{note}",)
+
+
+class NgConnectError(NgConnectException):
+    pass
+
+
+class NgConnectWarning(NgConnectException):
+    pass
 
 
 class NgwError(NgConnectError):

@@ -56,10 +56,10 @@ from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 from nextgis_connect.settings.ng_connect_settings_page import (
     NgConnectOptionsWidgetFactory,
 )
-from nextgis_connect.tasks.ng_connect_task_manager import NgConnectTaskManager
-from nextgis_connect.tasks.purge_ng_connect_cache_task import (
+from nextgis_connect.tasks.cache.purge_ng_connect_cache_task import (
     PurgeNgConnectCacheTask,
 )
+from nextgis_connect.tasks.ng_connect_task_manager import NgConnectTaskManager
 
 
 class NgConnectPlugin(NgConnectInterface):

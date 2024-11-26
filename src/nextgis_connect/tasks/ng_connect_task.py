@@ -1,14 +1,15 @@
+from copy import deepcopy
 from typing import Optional, Union
 
 from qgis.core import QgsTask
 
-from nextgis_connect.exceptions import NgConnectError
+from nextgis_connect.exceptions import NgConnectError, NgConnectException
 from nextgis_connect.logging import logger
 from nextgis_connect.settings import NgConnectSettings
 
 
 class NgConnectTask(QgsTask):
-    _error: Optional[NgConnectError]
+    __error: Optional[NgConnectException]
 
     def __init__(
         self, flags: Union[QgsTask.Flags, QgsTask.Flag, None] = None
@@ -16,11 +17,23 @@ class NgConnectTask(QgsTask):
         if flags is None:
             flags = QgsTask.Flags()
         super().__init__(flags=flags)
-        self._error = None
+        self.__error = None
 
     @property
-    def error(self) -> Optional[NgConnectError]:
+    def error(self) -> Optional[NgConnectException]:
         return self._error
+
+    @property
+    def _error(self) -> Optional[NgConnectException]:
+        return self.__error
+
+    @_error.setter
+    def _error(self, error: Exception) -> None:
+        if isinstance(error, NgConnectException):
+            error = deepcopy(error)
+        else:
+            self.__error = NgConnectError()
+            self.__error.__cause__ = deepcopy(error)
 
     def run(self) -> bool:
         if NgConnectSettings().is_developer_mode:

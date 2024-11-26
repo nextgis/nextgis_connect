@@ -2,14 +2,14 @@ from datetime import timedelta
 from pathlib import Path
 from typing import ClassVar, List, Optional, cast
 
-from qgis.core import Qgis, QgsApplication, QgsMessageLogNotifyBlocker
+from qgis.core import Qgis, QgsApplication
 from qgis.gui import (
     QgsMessageBar,
     QgsOptionsPageWidget,
     QgsOptionsWidgetFactory,
 )
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtCore import Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QComboBox,
@@ -24,6 +24,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect import NgConnectInterface
 from nextgis_connect.logging import logger, update_level
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
@@ -37,6 +38,9 @@ from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.settings.ng_connect_cache_manager import (
     NgConnectCacheManager,
 )
+from nextgis_connect.tasks.cache.clear_ng_connect_cache_task import (
+    ClearNgConnectCacheTask,
+)
 from nextgis_connect.widgets.labeled_slider import LabeledSlider
 
 
@@ -44,6 +48,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     """NextGIS Connect settings page"""
 
     __widget: QWidget
+    __clear_task: Optional[ClearNgConnectCacheTask]
     __current_connection: Optional[NgwConnection]
     __connections: List[NgwConnection]
     __is_accepted: bool
@@ -78,6 +83,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__widget = widget
         self.__widget.setParent(self)
 
+        self.__clear_task = None
+
         self.connections_widget = NgwConnectionsWidget(self.__widget)
         self.__widget.connectionsGroupBox.layout().addWidget(
             self.connections_widget
@@ -89,6 +96,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.__widget,
         )
         self.__widget.maxSizeLayout.addWidget(self.__widget.cacheSizeSlider)
+
+        self.__widget.clearCacheProgressBar.hide()
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -430,9 +439,11 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
     def __clear_cache(self) -> None:
-        log_blocker = QgsMessageLogNotifyBlocker()
+        self.__widget.clearCacheProgressBar.show()
+        self.__widget.clearCacheButton.hide()
 
         cache_manager = NgConnectCacheManager()
+
         if cache_manager.has_files_used_by_project:
             message = self.tr(
                 "It is not possible to clear the cache while layers from it"
@@ -443,7 +454,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
                 Qgis.MessageLevel.Warning,
             )
 
-            del log_blocker
             return
 
         if cache_manager.has_containers_with_changes:
@@ -462,9 +472,20 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             if answer != QMessageBox.StandardButton.Yes:
                 return
 
-        is_success = cache_manager.clear_cache()
+        self.__clear_task = ClearNgConnectCacheTask()
+        self.__clear_task.taskCompleted.connect(
+            lambda: self.__on_clear_completed(True)
+        )
+        self.__clear_task.taskTerminated.connect(
+            lambda: self.__on_clear_completed(False)
+        )
 
-        if is_success:
+        plugin = NgConnectInterface.instance()
+        plugin.task_manager.addTask(self.__clear_task)
+
+    @pyqtSlot(bool)
+    def __on_clear_completed(self, result: bool) -> None:
+        if result:
             message = self.tr("Cache has been successfully cleared")
             cast(QgsMessageBar, self.__widget.messageBar).pushMessage(
                 message,
@@ -481,9 +502,13 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             )
             logger.warning(message)
 
-        self.__update_cache_button(cache_manager)
+        self.__clear_task = None
 
-        del log_blocker
+        self.__widget.clearCacheProgressBar.hide()
+        self.__widget.clearCacheButton.show()
+
+        cache_manager = NgConnectCacheManager()
+        self.__update_cache_button(cache_manager)
 
     def __on_debug_state_changed(self, state: bool) -> None:
         self.__widget.debugNetworkCheckBox.setEnabled(state)
