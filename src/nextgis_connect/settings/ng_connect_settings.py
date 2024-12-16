@@ -21,7 +21,7 @@
 """
 
 from datetime import timedelta
-from typing import Optional
+from typing import ClassVar, Optional
 
 from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import QSettings, QStandardPaths
@@ -31,6 +31,7 @@ class NgConnectSettings:
     """Convenience class for working with plugin settings"""
 
     __settings: QgsSettings
+    __is_migrated: ClassVar[bool] = False
 
     def __init__(self) -> None:
         self.__settings = QgsSettings()
@@ -255,12 +256,17 @@ class NgConnectSettings:
         return "NextGIS/Connect"
 
     def __migrate(self) -> None:
+        if self.__is_migrated:
+            return
+
         self.__migrate_from_qsettings()
         self.__migrate_to_more_beautiful_path()
         self.__migrate_ngw_api_settings()
         self.__migrate_keys_names()
 
         self.__settings.sync()
+
+        self.__class__.__is_migrated = True
 
     def __migrate_from_qsettings(self):
         """Migrate from QSettings to QgsSettings"""
