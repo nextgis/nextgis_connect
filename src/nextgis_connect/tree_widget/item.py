@@ -36,12 +36,17 @@ class QModelItem(QTreeWidgetItem):
             # self.removeChild(self.locked_item)
             self._locked = False
 
-    def flags(self):
+    def flags(self) -> Qt.ItemFlags:
         if self._locked:
-            return Qt.ItemFlag.NoItemFlags
-        return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+            return Qt.ItemFlags() | Qt.ItemFlag.NoItemFlags
 
-    def data(self, role):
+        return (
+            Qt.ItemFlags()
+            | Qt.ItemFlag.ItemIsEnabled
+            | Qt.ItemFlag.ItemIsSelectable
+        )
+
+    def data(self, role: Qt.ItemDataRole) -> QVariant:
         return QVariant()
 
 
