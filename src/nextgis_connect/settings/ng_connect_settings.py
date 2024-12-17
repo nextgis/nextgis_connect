@@ -26,15 +26,19 @@ from typing import ClassVar, Optional
 from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import QSettings, QStandardPaths
 
+from nextgis_connect.search.search_settings import SearchSettings
+
 
 class NgConnectSettings:
     """Convenience class for working with plugin settings"""
 
     __settings: QgsSettings
+    __search_settings: Optional[SearchSettings]
     __is_migrated: ClassVar[bool] = False
 
     def __init__(self) -> None:
         self.__settings = QgsSettings()
+        self.__search_settings = None
         self.__migrate()
 
     @property
@@ -44,6 +48,12 @@ class NgConnectSettings:
     @property
     def supported_container_version(self) -> str:
         return "1.0.0"
+
+    @property
+    def search(self) -> SearchSettings:
+        if self.__search_settings is None:
+            self.__search_settings = SearchSettings(self.__settings)
+        return self.__search_settings
 
     @property
     def rename_forbidden_fields(self) -> bool:

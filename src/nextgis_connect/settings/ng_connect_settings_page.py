@@ -120,9 +120,13 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__save_current_connection()
         self.__save_uploading_settings(settings)
         self.__save_resources_settings(settings)
+        self.__save_search_settings(settings)
         self.__save_sync_settings(settings)
         self.__save_cache_settings()
         self.__save_other_settings(settings)
+
+        plugin = NgConnectInterface.instance()
+        plugin.settings_changed.emit()
 
     def cancel(self) -> None:
         self.__is_cancelled = True
@@ -150,6 +154,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__init_connections()
         self.__init_uploading_settings(settings)
         self.__init_resources_settings(settings)
+        self.__init_search_settings(settings)
         self.__init_sync_settings(settings)
         self.__init_cache_settings()
         self.__init_other_settings(settings)
@@ -195,6 +200,11 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     def __init_resources_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
             settings.add_layer_after_service_creation
+        )
+
+    def __init_search_settings(self, settings: NgConnectSettings) -> None:
+        self.__widget.metadataKeysLineEdit.setText(
+            ", ".join(settings.search.metadata_keys)
         )
 
     def __init_sync_settings(self, settings: NgConnectSettings) -> None:
@@ -405,6 +415,13 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         settings.add_layer_after_service_creation = (
             self.__widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
         )
+
+    def __save_search_settings(self, settings: NgConnectSettings) -> None:
+        keys = [
+            key.strip()
+            for key in self.__widget.metadataKeysLineEdit.text().split(",")
+        ]
+        settings.search.metadata_keys = [key for key in keys if len(key) != 0]
 
     def __save_sync_settings(self, settings: NgConnectSettings) -> None:
         period_spinbox = cast(QSpinBox, self.__widget.syncPeriodSpinBox)
