@@ -1,4 +1,6 @@
-from qgis.core import QgsRasterLayer, QgsVectorLayer
+from typing import Optional
+
+from qgis.core import QgsMapLayer, QgsRasterLayer, QgsVectorLayer
 from qgis.PyQt.QtWidgets import QAction
 
 from nextgis_connect.ngw_api.core.ngw_abstract_vector_resource import (
@@ -8,12 +10,14 @@ from nextgis_connect.ngw_api.core.ngw_raster_layer import NGWRasterLayer
 
 
 class ActionStyleImportUpdate(QAction):
-    def __init__(self, text, parent=None):
+    def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.setText(text)
         self.setEnabled(False)
 
-    def setEnabledByType(self, qgis_layer, ngw_vector_layer):
+    def setEnabledByType(
+        self, qgis_layer: Optional[QgsMapLayer], ngw_vector_layer
+    ):
         enabled = False
 
         if isinstance(qgis_layer, QgsRasterLayer) and isinstance(
