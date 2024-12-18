@@ -579,7 +579,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         has_no_qgis_selection = len(qgis_nodes) == 0
         is_one_qgis_selected = len(qgis_nodes) == 1
         # is_multiple_qgis_selection = len(qgis_nodes) > 1
-        is_layer = is_one_qgis_selected and isinstance(
+        is_one_qgis_layer_selected = is_one_qgis_selected and isinstance(
             qgis_nodes[0], QgsLayerTreeLayer
         )
         # is_group = (
@@ -617,16 +617,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # Overwrite selected layer
         self.actionUpdateNGWVectorLayer.setEnabled(
-            is_layer
+            is_one_qgis_layer_selected
             and is_one_ngw_selected
             and isinstance(
                 cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(), QgsVectorLayer
             )
         )
 
-        if not is_one_ngw_selected or not is_layer:
+        if not is_one_ngw_selected or not is_one_qgis_layer_selected:
             self.actionUpdateStyle.setEnabled(False)
             self.actionAddStyle.setEnabled(False)
+
         elif isinstance(
             ngw_resources[0], (NGWQGISVectorStyle, NGWQGISRasterStyle)
         ):
@@ -639,8 +640,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(), ngw_layer
             )
             self.actionAddStyle.setEnabled(False)
+
         else:
-            self.actionUpdateStyle.setEnabled(False)
+            self.actionUpdateStyle.setEnabledByType(
+                cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(),
+                ngw_resources[0],
+            )
             self.actionAddStyle.setEnabledByType(
                 cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(),
                 ngw_resources[0],
@@ -712,12 +717,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         layer = (
             cast(QgsLayerTreeLayer, qgis_nodes[0]).layer()
-            if is_layer
+            if is_one_qgis_layer_selected
             else None
         )
 
         open_in_ngw_visible = (
-            is_layer
+            is_one_qgis_layer_selected
             and layer is not None
             and layer.customProperty("ngw_connection_id") is not None
             and layer.customProperty("ngw_resource_id") is not None
@@ -1586,17 +1591,57 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        ngw_layer_index = self.proxy_model.mapToSource(
+
+        def update_style_for_index(style_index: QModelIndex) -> None:
+            response = self.resource_model.updateQGISStyle(
+                qgs_map_layer, style_index
+            )
+            response.done.connect(
+                lambda index: self.resources_tree_view.setCurrentIndex(
+                    self.proxy_model.mapFromSource(index)
+                )
+            )
+
+        ngw_resource_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
-        response = self.resource_model.updateQGISStyle(
-            qgs_map_layer, ngw_layer_index
-        )
-        response.done.connect(
-            lambda index: self.resources_tree_view.setCurrentIndex(
-                self.proxy_model.mapFromSource(index)
+
+        resource = ngw_resource_index.data(QNGWResourceItem.NGWResourceRole)
+        if isinstance(resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            update_style_for_index(ngw_resource_index)
+            return
+
+        self.__fetch_children_if_needed(ngw_resource_index)
+
+        style_indices = []
+        for row in range(self.resource_model.rowCount(ngw_resource_index)):
+            child_index = self.resource_model.index(row, 0, ngw_resource_index)
+            child = child_index.data(QNGWResourceItem.NGWResourceRole)
+            if isinstance(child, NGWQGISStyle):
+                style_indices.append(child_index)
+
+        styles_count = len(style_indices)
+
+        if styles_count == 0:
+            self.add_style()
+
+        elif styles_count == 1:
+            update_style_for_index(style_indices[0])
+
+        else:
+            dlg = NGWLayerStyleChooserDialog(
+                self.tr("Choose style"),
+                ngw_resource_index,
+                self.resource_model,
+                self,
             )
-        )
+            result = dlg.exec()
+            if result != QDialog.DialogCode.Accepted:
+                return
+
+            style_index = dlg.selectedStyleIndex()
+            assert style_index is not None
+            update_style_for_index(style_index)
 
     def add_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
@@ -1888,21 +1933,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.__download_indices([index])
 
+    def __fetch_children_if_needed(self, index: QModelIndex):
+        if not self.resource_model.canFetchMore(index):
+            return
+
+        resource = index.data(QNGWResourceItem.NGWResourceRole)
+        children = resource.get_children()
+        for child in children:
+            self.resource_model.addNGWResourceToTree(index, child)
+
     def create_wms_service(self):
         selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
-        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
-        children = resource.get_children()
-        style_resources = [
-            child for child in children if isinstance(child, NGWQGISStyle)
-        ]
-        if len(style_resources) > 0 and self.resource_model.canFetchMore(
-            selected_index
-        ):
-            for child in children:
-                self.resource_model.addNGWResourceToTree(selected_index, child)
+        self.__fetch_children_if_needed(selected_index)
+
+        style_resources = []
+        for row in range(self.resource_model.rowCount(selected_index)):
+            child_index = self.resource_model.index(row, 0, selected_index)
+            child = child_index.data(QNGWResourceItem.NGWResourceRole)
+            if isinstance(child, NGWQGISStyle):
+                style_resources.append(child)
 
         if len(style_resources) == 1:
             ngw_resource_style_id = style_resources[0].resource_id
