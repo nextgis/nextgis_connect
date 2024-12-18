@@ -432,33 +432,33 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self._queue_to_add: List[AddLayersCommand] = []
 
         self.blocked_jobs = {
-            "NGWGroupCreater": self.tr("Resource is being created"),
-            "NGWResourceDelete": self.tr("Resource is being deleted"),
-            "QGISResourcesUploader": self.tr("Layer is being uploaded"),
-            "QGISProjectUploader": self.tr("Project is being uploaded"),
-            "NGWCreateWfsService": self.tr("WFS service is being created"),
+            "NGWGroupCreater": self.tr("Creating resource ..."),
+            "NGWResourceDelete": self.tr("Deleting resource ..."),
+            "QGISResourcesUploader": self.tr("Uploading layer ..."),
+            "QGISProjectUploader": self.tr("Uploading project ..."),
+            "NGWCreateWfsService": self.tr("Creating WFS service ..."),
             "NGWCreateOgcfService": self.tr(
-                "OGC API - Features service is being created"
+                "Creating OGC API Features service ..."
             ),
-            "NGWCreateWMSForVector": self.tr("WMS service is being created"),
-            "NGWCreateMapForStyle": self.tr("Web map is being created"),
-            "MapForLayerCreater": self.tr("Web map is being created"),
-            "QGISStyleUpdater": self.tr("Style for layer is being updated"),
-            "QGISStyleAdder": self.tr("Style for layer is being created"),
-            "NGWRenameResource": self.tr("Resource is being renamed"),
-            "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
+            "NGWCreateWMSForVector": self.tr("Creating WMS service ..."),
+            "NGWCreateMapForStyle": self.tr("Creating Web map ..."),
+            "MapForLayerCreater": self.tr("Creating Web map ..."),
+            "QGISStyleUpdater": self.tr("Creating style for a layer ..."),
+            "QGISStyleAdder": self.tr("Creating style for a layer ..."),
+            "NGWRenameResource": self.tr("Renaming resource ..."),
+            "NGWUpdateVectorLayer": self.tr("Updating resource ..."),
             "NGWMissingResourceUpdater": self.tr(
-                "Resources are being downloaded"
+                "Downloading resources ..."
             ),
             "NgwCreateVectorLayersStubs": self.tr(
-                "Vector layers are being processed"
+                "Processing vector layers ..."
             ),
             "ResourcesDownloader": self.tr(
-                "Linked resources are being downloaded"
+                "Downloading linked resources ..."
             ),
-            "NgwStylesDownloader": self.tr("Styles are being downloaded"),
-            "AddLayersStub": self.tr("Resources are being added to QGIS"),
-            "NgwSearch": self.tr("Resources are being sought"),
+            "NgwStylesDownloader": self.tr("Downloading styles ..."),
+            "AddLayersStub": self.tr("Adding resources to QGIS ..."),
+            "NgwSearch": self.tr("Filtering resources ..."),
         }
 
         # proxy model
