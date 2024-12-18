@@ -432,33 +432,29 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self._queue_to_add: List[AddLayersCommand] = []
 
         self.blocked_jobs = {
-            "NGWGroupCreater": self.tr("Creating resource ..."),
-            "NGWResourceDelete": self.tr("Deleting resource ..."),
-            "QGISResourcesUploader": self.tr("Uploading layer ..."),
-            "QGISProjectUploader": self.tr("Uploading project ..."),
-            "NGWCreateWfsService": self.tr("Creating WFS service ..."),
+            "NGWGroupCreater": self.tr("Creating resource..."),
+            "NGWResourceDelete": self.tr("Deleting resource..."),
+            "QGISResourcesUploader": self.tr("Uploading layer..."),
+            "QGISProjectUploader": self.tr("Uploading project..."),
+            "NGWCreateWfsService": self.tr("Creating WFS service..."),
             "NGWCreateOgcfService": self.tr(
-                "Creating OGC API Features service ..."
+                "Creating OGC API Features service..."
             ),
-            "NGWCreateWMSForVector": self.tr("Creating WMS service ..."),
-            "NGWCreateMapForStyle": self.tr("Creating Web map ..."),
-            "MapForLayerCreater": self.tr("Creating Web map ..."),
-            "QGISStyleUpdater": self.tr("Creating style for a layer ..."),
-            "QGISStyleAdder": self.tr("Creating style for a layer ..."),
-            "NGWRenameResource": self.tr("Renaming resource ..."),
-            "NGWUpdateVectorLayer": self.tr("Updating resource ..."),
-            "NGWMissingResourceUpdater": self.tr(
-                "Downloading resources ..."
-            ),
+            "NGWCreateWMSForVector": self.tr("Creating WMS service..."),
+            "NGWCreateMapForStyle": self.tr("Creating Web map..."),
+            "MapForLayerCreater": self.tr("Creating Web map..."),
+            "QGISStyleUpdater": self.tr("Creating style for a layer..."),
+            "QGISStyleAdder": self.tr("Creating style for a layer..."),
+            "NGWRenameResource": self.tr("Renaming resource..."),
+            "NGWUpdateVectorLayer": self.tr("Updating resource..."),
+            "NGWMissingResourceUpdater": self.tr("Downloading resources..."),
             "NgwCreateVectorLayersStubs": self.tr(
-                "Processing vector layers ..."
+                "Processing vector layers..."
             ),
-            "ResourcesDownloader": self.tr(
-                "Downloading linked resources ..."
-            ),
-            "NgwStylesDownloader": self.tr("Downloading styles ..."),
-            "AddLayersStub": self.tr("Adding resources to QGIS ..."),
-            "NgwSearch": self.tr("Filtering resources ..."),
+            "ResourcesDownloader": self.tr("Downloading linked resources..."),
+            "NgwStylesDownloader": self.tr("Downloading styles..."),
+            "AddLayersStub": self.tr("Adding resources to QGIS..."),
+            "NgwSearch": self.tr("Searching resources..."),
         }
 
         # proxy model
