@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from typing import Optional
 
 from osgeo import gdal
 from qgis.core import Qgis, QgsApplication, QgsTaskManager
@@ -29,6 +28,7 @@ class NgConnectPluginStub(NgConnectInterface):
     """NextGIS Connect Plugin stub for exceptions processing"""
 
     def __init__(self) -> None:
+        super().__init__()
         plugin_dir = Path(__file__).parent
 
         logger.debug("<b>Plugin stub object created</b>")
@@ -62,16 +62,6 @@ class NgConnectPluginStub(NgConnectInterface):
         logger.debug("<b>End stub unloading</b>")
 
         unload_logger()
-
-    def tr(
-        self,
-        source_text: str,
-        disambiguation: Optional[str] = None,
-        n: int = -1,
-    ) -> str:
-        return QgsApplication.translate(
-            "NgConnectPluginStub", source_text, disambiguation, n
-        )
 
     def show_error(self, error: Exception) -> None:
         settings = NgConnectSettings()

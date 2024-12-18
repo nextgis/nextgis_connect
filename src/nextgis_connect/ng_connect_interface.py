@@ -1,8 +1,9 @@
 import configparser
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional
+from abc import ABCMeta, abstractmethod
+from typing import TYPE_CHECKING
 
 from qgis import utils
+from qgis.PyQt.QtCore import QObject, pyqtSignal
 
 if TYPE_CHECKING:
     from qgis.core import QgsTaskManager
@@ -10,10 +11,15 @@ if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QToolBar
 
 
-class NgConnectInterface(ABC):
+class _NgConnectInterfaceMetaClass(ABCMeta, type(QObject)): ...
+
+
+class NgConnectInterface(QObject, metaclass=_NgConnectInterfaceMetaClass):
     PACKAGE_NAME = "nextgis_connect"
     PLUGIN_NAME = "NextGIS Connect"
     TRANSLATION_CONTEXT = "NgConnectPlugin"
+
+    settings_changed = pyqtSignal()
 
     @classmethod
     def instance(cls) -> "NgConnectInterface":
@@ -52,14 +58,6 @@ class NgConnectInterface(ABC):
 
     @abstractmethod
     def unload(self) -> None: ...
-
-    @abstractmethod
-    def tr(
-        self,
-        source_text: str,
-        disambiguation: Optional[str] = None,
-        n: int = -1,
-    ) -> str: ...
 
     @abstractmethod
     def synchronize_layers(self) -> None: ...

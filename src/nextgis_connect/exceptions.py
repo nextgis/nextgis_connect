@@ -121,7 +121,7 @@ class NgConnectException(Exception):
             self.__detail = self.__detail.strip()
 
         if self.code != ErrorCode.PluginError:
-            self.add_note(f"Error code: {self.code.name}")
+            self.add_note(f"Internal code: {self.code.name}")
 
     @property
     def log_message(self) -> str:

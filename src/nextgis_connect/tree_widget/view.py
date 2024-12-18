@@ -1,5 +1,13 @@
+from typing import TYPE_CHECKING, Optional, cast
+
 from qgis.gui import QgsNewNameDialog
-from qgis.PyQt.QtCore import QModelIndex, Qt, pyqtSignal
+from qgis.PyQt.QtCore import (
+    QAbstractItemModel,
+    QModelIndex,
+    QSortFilterProxyModel,
+    Qt,
+    pyqtSignal,
+)
 from qgis.PyQt.QtGui import QBrush, QKeyEvent, QPainter, QPalette, QPen
 from qgis.PyQt.QtWidgets import (
     QDialog,
@@ -20,23 +28,38 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
 from nextgis_connect.tree_widget.item import QNGWResourceItem
+from nextgis_connect.tree_widget.model import QNGWResourceTreeModel
 from nextgis_connect.utils import SupportStatus
+
+if TYPE_CHECKING:
+    from qgis.gui import QgisInterface
+
+    assert isinstance(iface, QgisInterface)
 
 __all__ = ["QNGWResourceTreeView"]
 
 
 class QOverlay(QWidget):
-    def __init__(self, parent):
+    def __init__(
+        self, parent: Optional[QWidget], *, draw_background: bool = True
+    ):
         super().__init__(parent)
-        palette = QPalette(self.palette())
-        self._overlay_color = palette.color(QPalette.ColorRole.Background)
-        self._overlay_color.setAlpha(200)
-        palette.setColor(
-            QPalette.ColorRole.Background, Qt.GlobalColor.transparent
-        )
-        self.setPalette(palette)
+
+        self.draw_background = draw_background
+
+        if draw_background:
+            palette = QPalette(self.palette())
+            self._overlay_color = palette.color(QPalette.ColorRole.Background)
+            self._overlay_color.setAlpha(200)
+            palette.setColor(
+                QPalette.ColorRole.Background, Qt.GlobalColor.transparent
+            )
+            self.setPalette(palette)
 
     def paintEvent(self, a0):
+        if not self.draw_background:
+            return
+
         painter = QPainter()
         painter.begin(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -45,8 +68,14 @@ class QOverlay(QWidget):
 
 
 class QMessageOverlay(QOverlay):
-    def __init__(self, parent, text):
-        super().__init__(parent)
+    def __init__(
+        self,
+        parent: Optional[QWidget],
+        text: str,
+        *,
+        draw_background: bool = True,
+    ):
+        super().__init__(parent, draw_background=draw_background)
         layout = QHBoxLayout(self)
         self.setLayout(layout)
 
@@ -66,7 +95,7 @@ class QMessageOverlay(QOverlay):
 
 
 class MigrationOverlay(QOverlay):
-    def __init__(self, parent):
+    def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -126,7 +155,7 @@ class MigrationOverlay(QOverlay):
 
 
 class NoNgstdAuthOverlay(QOverlay):
-    def __init__(self, parent):
+    def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -163,7 +192,7 @@ class NoNgstdAuthOverlay(QOverlay):
 
 
 class QProcessOverlay(QOverlay):
-    def __init__(self, parent):
+    def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
 
         layout = QVBoxLayout(self)
@@ -181,14 +210,6 @@ class QProcessOverlay(QOverlay):
         self.progress.setValue(0)
         self.progress.setTextVisible(False)
         layout.addWidget(self.progress)
-        # self.setStyleSheet(
-        #     """
-        #         QProgressBar {
-        #             border: 1px solid grey;
-        #             border-radius: 5px;
-        #         }
-        #     """
-        # )
 
         self.text = QLabel(self)
         self.text.setAlignment(
@@ -238,7 +259,7 @@ class QProcessOverlay(QOverlay):
 
 
 class UnsupportedVersionOverlay(QMessageOverlay):
-    def __init__(self, parent: QWidget):
+    def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent, "")
 
     def set_status(
@@ -265,9 +286,9 @@ class UnsupportedVersionOverlay(QMessageOverlay):
 
 
 class QNGWResourceTreeView(QTreeView):
-    itemDoubleClicked = pyqtSignal(object)
+    itemDoubleClicked = pyqtSignal(QModelIndex)
 
-    def __init__(self, parent):
+    def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
 
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
@@ -303,29 +324,44 @@ class QNGWResourceTreeView(QTreeView):
         self.ngw_job_block_overlay = QProcessOverlay(self)
         self.ngw_job_block_overlay.hide()
 
+        self.not_found_overlay = QMessageOverlay(
+            self,
+            self.tr("No resources were found matching your search query"),
+            draw_background=False,
+        )
+        self.not_found_overlay.text.setEnabled(False)
+        self.not_found_overlay.hide()
+
         self.jobs = {}
 
-    def setModel(self, model):
-        self._source_model = model
-        self._source_model.rowsInserted.connect(self.__insertRowsProcess)
+    def setModel(self, model: Optional[QAbstractItemModel]) -> None:
+        model = cast(QSortFilterProxyModel, model)
+        self._source_model = cast(QNGWResourceTreeModel, model.sourceModel())
+        self._proxy_model = model
+        self._proxy_model.rowsInserted.connect(self.__insertRowsProcess)
+        self._proxy_model.layoutChanged.connect(self.__expand_filtered)
 
-        super().setModel(self._source_model)
+        super().setModel(self._proxy_model)
 
-    def selectedIndex(self):
-        return self.selectionModel().currentIndex()
-
-    def __insertRowsProcess(self, parent):
+    def __insertRowsProcess(self, parent: QModelIndex):
         if not parent.isValid():
-            self.expandToDepth(1)
+            self.expandToDepth(0)
+            return
 
-    def resizeEvent(self, event):
-        self.no_ngw_connections_overlay.resize(event.size())
-        self.ngw_job_block_overlay.resize(event.size())
-        self.unsupported_version_overlay.resize(event.size())
-        self.migration_overlay.resize(event.size())
-        self.no_oauth_auth_overlay.resize(event.size())
+    def __expand_filtered(self) -> None:
+        for resource_id in self._proxy_model.expanded_resources:  # type: ignore
+            index = self._source_model.index_from_id(resource_id)
+            self.expand(self._proxy_model.mapFromSource(index))
 
-        super().resizeEvent(event)
+    def resizeEvent(self, e):
+        self.no_ngw_connections_overlay.resize(e.size())
+        self.ngw_job_block_overlay.resize(e.size())
+        self.unsupported_version_overlay.resize(e.size())
+        self.migration_overlay.resize(e.size())
+        self.no_oauth_auth_overlay.resize(e.size())
+        self.not_found_overlay.resize(e.size())
+
+        super().resizeEvent(e)
 
     def mouseDoubleClickEvent(self, e):
         index = self.indexAt(e.pos())
@@ -363,7 +399,7 @@ class QNGWResourceTreeView(QTreeView):
         if len(self.jobs) == 0:
             self.ngw_job_block_overlay.hide()
 
-    def keyPressEvent(self, event: QKeyEvent):
+    def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
         is_f2 = event.key() == Qt.Key.Key_F2
         index = self.currentIndex()
         if is_f2 and index.isValid():
@@ -374,6 +410,9 @@ class QNGWResourceTreeView(QTreeView):
     def rename_resource(self, index: QModelIndex):
         # Get current resource name. This name can differ from display
         # text of tree item (see style resources).
+
+        index = self._proxy_model.mapToSource(index)
+
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         current_name = ngw_resource.display_name
 
@@ -381,11 +420,12 @@ class QNGWResourceTreeView(QTreeView):
         existing_names = []
         parent = index.parent()
         if parent.isValid():
-            model = parent.model()
+            model = self._source_model
             assert model is not None
             for i in range(model.rowCount(parent)):
                 if i == index.row():
                     continue
+
                 sibling_index = model.index(i, 0, parent)
                 sibling_resource = sibling_index.data(
                     QNGWResourceItem.NGWResourceRole
@@ -412,9 +452,11 @@ class QNGWResourceTreeView(QTreeView):
         if new_name == current_name:
             return
 
-        self.__rename_resource_resp = self.model().renameResource(
+        self.__rename_resource_resp = self._source_model.renameResource(
             index, new_name
         )
         self.__rename_resource_resp.done.connect(  # type: ignore
-            self.setCurrentIndex
+            lambda index: self.setCurrentIndex(
+                self._proxy_model.mapFromSource(index)
+            )
         )

@@ -68,6 +68,7 @@ from qgis.PyQt.QtGui import (
 from qgis.PyQt.QtNetwork import QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction,
+    QActionGroup,
     QDialog,
     QFileDialog,
     QInputDialog,
@@ -96,6 +97,7 @@ from nextgis_connect.exceptions_list_dialog import ExceptionsListDialog
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import (
+    NGWBaseMap,
     NGWError,
     NGWGroupResource,
     NGWMapServerStyle,
@@ -107,21 +109,16 @@ from nextgis_connect.ngw_api.core import (
     NGWRasterLayer,
     NGWRasterStyle,
     NGWResource,
+    NGWTmsConnection,
+    NGWTmsLayer,
     NGWVectorLayer,
+    NGWWebMap,
+    NGWWfsLayer,
     NGWWfsService,
     NGWWmsConnection,
     NGWWmsLayer,
     NGWWmsService,
 )
-from nextgis_connect.ngw_api.core.ngw_base_map import NGWBaseMap
-from nextgis_connect.ngw_api.core.ngw_tms_resources import (
-    NGWTmsConnection,
-    NGWTmsLayer,
-)
-from nextgis_connect.ngw_api.core.ngw_webmap import (
-    NGWWebMap,
-)
-from nextgis_connect.ngw_api.core.ngw_wfs_layer import NGWWfsLayer
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     QGISResourceJob,
 )
@@ -139,6 +136,9 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
 from nextgis_connect.ngw_resources_adder import NgwResourcesAdder
+from nextgis_connect.search.search_panel import SearchPanel
+from nextgis_connect.search.search_settings import SearchSettings
+from nextgis_connect.search.utils import SearchType
 from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.tree_widget import (
     QNGWResourceItem,
@@ -146,6 +146,7 @@ from nextgis_connect.tree_widget import (
     QNGWResourceTreeView,
 )
 from nextgis_connect.tree_widget.model import NGWResourceModelResponse
+from nextgis_connect.tree_widget.proxy_model import NgConnectProxyModel
 
 HAS_NGSTD = True
 try:
@@ -361,9 +362,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.actionHelp.triggered.connect(utils.open_plugin_help)
 
+        connections_manager = NgwConnectionsManager()
+        current_connection_id = connections_manager.current_connection_id
+
         # Add toolbar
         self.main_tool_bar = NGWPanelToolBar()
         self.content.layout().addWidget(self.main_tool_bar)
+
+        self.search_panel = SearchPanel(current_connection_id, self)
+        NgConnectInterface.instance().settings_changed.connect(
+            self.search_panel.on_settings_changed
+        )
+        self.content.layout().addWidget(self.search_panel)
+        self.search_panel.search_requested.connect(self.__on_search_requested)
+        self.search_panel.reset_requested.connect(self.__on_search_reset)
+        self.search_panel.hide()
 
         self.toolbuttonDownload = QToolButton()
         self.toolbuttonDownload.setIcon(
@@ -384,6 +397,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.addSeparator()
 
         self.main_tool_bar.addAction(self.actionCreateNewGroup)
+        self.__create_search_button()
+        self.main_tool_bar.addWidget(self.search_button)
+
         self.main_tool_bar.addAction(self.actionRefresh)
 
         self.main_tool_bar.addSeparator()
@@ -409,6 +425,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resource_model.indexesUnlocked.connect(
             self.__onModelReleaseIndexes
         )
+        self.resource_model.connection_id_changed.connect(
+            self.search_panel.set_connection_id
+        )
 
         self._queue_to_add: List[AddLayersCommand] = []
 
@@ -429,21 +448,34 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "NGWRenameResource": self.tr("Resource is being renamed"),
             "NGWUpdateVectorLayer": self.tr("Resource is being updated"),
             "NGWMissingResourceUpdater": self.tr(
-                "Resources is being downloaded"
+                "Resources are being downloaded"
             ),
             "NgwCreateVectorLayersStubs": self.tr(
-                "Vector layers is being processed"
+                "Vector layers are being processed"
             ),
             "ResourcesDownloader": self.tr(
-                "Linked resources is being downloaded"
+                "Linked resources are being downloaded"
             ),
-            "NgwStylesDownloader": self.tr("Styles is being downloaded"),
-            "AddLayersStub": self.tr("Resources is being added to QGIS"),
+            "NgwStylesDownloader": self.tr("Styles are being downloaded"),
+            "AddLayersStub": self.tr("Resources are being added to QGIS"),
+            "NgwSearch": self.tr("Resources are being sought"),
         }
+
+        # proxy model
+        self.proxy_model = NgConnectProxyModel(self)
+        self.proxy_model.setSourceModel(self.resource_model)
+        self.resource_model.found_resources_changed.connect(
+            self.proxy_model.set_resources_id
+        )
+        self.resource_model.found_resources_changed.connect(
+            lambda resources: self.resources_tree_view.not_found_overlay.setVisible(
+                -1 in resources
+            )
+        )
 
         # ngw resources view
         self.resources_tree_view = QNGWResourceTreeView(self)
-        self.resources_tree_view.setModel(self.resource_model)
+        self.resources_tree_view.setModel(self.proxy_model)
 
         self.resources_tree_view.customContextMenuRequested.connect(
             self.slotCustomContextMenu
@@ -537,6 +569,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resource_model.connection_id is not None
         )
 
+        # Search
+        self.search_button.setEnabled(self.resource_model.is_connected)
+        self.search_panel.setEnabled(self.resource_model.is_connected)
+
         if not self.resource_model.is_connected:
             return
 
@@ -555,7 +591,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # )
 
         # NGW resources
-        selected_ngw_indexes = self.resources_tree_view.selectedIndexes()
+        selected_ngw_indexes = [
+            self.proxy_model.mapToSource(index)
+            for index in self.resources_tree_view.selectedIndexes()
+        ]
         ngw_resources: List[NGWResource] = [
             index.data(QNGWResourceItem.NGWResourceRole)
             for index in selected_ngw_indexes
@@ -943,6 +982,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def block_gui(self):
         self.main_tool_bar.setEnabled(False)
+        self.search_panel.setEnabled(False)
         # TODO (ivanbarsukov): Disable parent action
         for action in (
             self.actionUploadSelectedResources,
@@ -959,6 +999,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def unblock_gui(self):
         self.main_tool_bar.setEnabled(True)
+        self.search_panel.setEnabled(True)
         self.checkImportActionsAvailability()
 
         if HAS_NGSTD and self.__ngstd_connection is None:
@@ -1053,6 +1094,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def __action_refresh_tree(self):
         self.reinit_tree(force=True)
 
+    @pyqtSlot(bool)
+    def __toggle_filter(self, state: bool) -> None:
+        if not state:
+            self.resource_model.reset_search()
+        else:
+            self.search_panel.clear()
+            self.search_panel.focus()
+
+        self.search_panel.setVisible(state)
+
     def __add_resource_to_tree(self, ngw_resource):
         # TODO: fix duplicate with model.processJobResult
         if ngw_resource.common.parent is None:
@@ -1075,16 +1126,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
-        for action in (
+        for widget in (
             self.toolbuttonDownload,
             self.toolbuttonUpload,
             self.actionCreateNewGroup,
+            self.search_button,
+            self.search_panel,
             self.actionOpenMapInBrowser,
             self.actionUploadSelectedResources,
             self.actionUpdateStyle,
             self.actionAddStyle,
         ):
-            action.setEnabled(False)
+            widget.setEnabled(False)
 
         self.actionRefresh.setEnabled(
             self.resource_model.connection_id is not None
@@ -1100,11 +1153,17 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return f'<a href="{url}"><span style=" text-decoration: underline; color:#0000ff;">{text}</span></a>'
 
     def slotCustomContextMenu(self, qpoint: QPoint):
-        index = self.resources_tree_view.indexAt(qpoint)
+        proxy_index = self.resources_tree_view.indexAt(qpoint)
+        index = self.proxy_model.mapToSource(proxy_index)
+
         if not index.isValid() or index.internalPointer().locked:
             return
 
-        selected_indexes = self.resources_tree_view.selectedIndexes()
+        proxy_selected_indexes = self.resources_tree_view.selectedIndexes()
+        selected_indexes = [
+            self.proxy_model.mapToSource(index)
+            for index in proxy_selected_indexes
+        ]
         ngw_resources: List[NGWResource] = [
             index.data(QNGWResourceItem.NGWResourceRole)
             for index in selected_indexes
@@ -1213,13 +1272,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         menu.exec(self.resources_tree_view.viewport().mapToGlobal(qpoint))
 
-    def trvDoubleClickProcess(self, index):
+    def trvDoubleClickProcess(self, index: QModelIndex) -> None:
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         if isinstance(ngw_resource, NGWWebMap):
             self.__action_open_map()
 
     def open_ngw_resource_page(self):
-        sel_index = self.resources_tree_view.selectionModel().currentIndex()
+        sel_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
@@ -1255,6 +1316,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         QDesktopServices.openUrl(url)
 
     def rename_ngw_resource(self):
+        # rename resources takes proxy index
         selected_index = (
             self.resources_tree_view.selectionModel().currentIndex()
         )
@@ -1264,16 +1326,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.rename_resource(selected_index)
 
     def __action_open_map(self):
-        sel_index = self.resources_tree_view.selectionModel().currentIndex()
+        selected_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
 
-        if sel_index.isValid():
-            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+        if selected_index.isValid():
+            ngw_resource = selected_index.data(
+                QNGWResourceItem.NGWResourceRole
+            )
             url = ngw_resource.get_display_url()
             QDesktopServices.openUrl(QUrl(url))
 
     def __download_selected(self):
         selection_model = self.resources_tree_view.selectionModel()
-        selected_indexes = selection_model.selectedIndexes()
+        selected_indexes = [
+            self.proxy_model.mapToSource(index)
+            for index in selection_model.selectedIndexes()
+        ]
         self.__download_indices(selected_indexes)
 
     def __download_indices(self, indices: List[QModelIndex]) -> None:
@@ -1345,7 +1414,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     @pyqtSlot()
     def create_group(self) -> None:
-        sel_index = self.resources_tree_view.selectedIndex()
+        sel_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         if sel_index is None or not sel_index.isValid():
             self.show_info(
                 self.tr(
@@ -1369,7 +1440,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             new_group_name, sel_index
         )
         self.create_group_resp.done.connect(
-            self.resources_tree_view.setCurrentIndex
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
         )
 
     def upload_project_resources(self):
@@ -1385,7 +1458,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 return current_project.baseName()
             return ""
 
-        ngw_current_index = (
+        ngw_current_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
@@ -1414,13 +1487,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
         )
         self.qgis_proj_import_response.done.connect(
-            self.resources_tree_view.setCurrentIndex
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
         )
         self.qgis_proj_import_response.done.connect(self.open_create_web_map)
         self.qgis_proj_import_response.done.connect(self.processWarnings)
 
     def upload_selected_resources(self):
-        ngw_current_index = (
+        ngw_current_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
@@ -1440,12 +1515,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             qgs_layer_tree_nodes, ngw_current_index, self.iface
         )
         self.import_layer_response.done.connect(
-            self.resources_tree_view.setCurrentIndex
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
         )
         self.import_layer_response.done.connect(self.processWarnings)
 
     def overwrite_ngw_layer(self):
-        index = self.resources_tree_view.selectionModel().currentIndex()
+        index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
 
         result = QMessageBox.question(
@@ -1469,7 +1548,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def edit_metadata(self):
         """Edit metadata table"""
-        sel_index = self.resources_tree_view.selectionModel().currentIndex()
+        sel_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         if sel_index.isValid():
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
 
@@ -1509,23 +1590,31 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def update_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        ngw_layer_index = (
+        ngw_layer_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
         response = self.resource_model.updateQGISStyle(
             qgs_map_layer, ngw_layer_index
         )
-        response.done.connect(self.resources_tree_view.setCurrentIndex)
+        response.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
 
     def add_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
-        ngw_layer_index = (
+        ngw_layer_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
         response = self.resource_model.addQGISStyle(
             qgs_map_layer, ngw_layer_index
         )
-        response.done.connect(self.resources_tree_view.setCurrentIndex)
+        response.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
 
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
@@ -1537,14 +1626,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         if res == QMessageBox.Yes:
-            selected_index = (
+            selected_index = self.proxy_model.mapToSource(
                 self.resources_tree_view.selectionModel().currentIndex()
             )
             self.delete_resource_response = self.resource_model.deleteResource(
                 selected_index
             )
             self.delete_resource_response.done.connect(
-                self.resources_tree_view.setCurrentIndex
+                lambda index: self.resources_tree_view.setCurrentIndex(
+                    self.proxy_model.mapFromSource(index)
+                )
             )
 
     def _downloadRasterSource(self, ngw_lyr, raster_file=None):
@@ -1705,7 +1796,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         Only GUI stuff here, main part
         in _copy_resource function
         """
-        sel_index = self.resources_tree_view.selectionModel().currentIndex()
+        sel_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
         if sel_index.isValid():
             # ckeckbox
             res = QMessageBox.question(
@@ -1749,7 +1842,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def create_wfs_or_ogcf_service(self, service_type: str):
         assert service_type in ("WFS", "OGC API - Features")
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
@@ -1785,7 +1878,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         response = self.resource_model.createWfsOrOgcfForVector(
             service_type, selected_index, max_features
         )
-        response.done.connect(self.resources_tree_view.setCurrentIndex)
+        response.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
         response.done.connect(self.__add_created_service)
 
     @pyqtSlot(QModelIndex)
@@ -1796,7 +1893,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__download_indices([index])
 
     def create_wms_service(self):
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
@@ -1828,11 +1925,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         responce = self.resource_model.createWMSForVector(
             selected_index, ngw_resource_style_id
         )
-        responce.done.connect(self.resources_tree_view.setCurrentIndex)
+        responce.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
         responce.done.connect(self.__add_created_service)
 
     def create_web_map_for_style(self):
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
         self.create_map_response = self.resource_model.createMapForStyle(
@@ -1842,7 +1943,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.create_map_response.done.connect(self.open_create_web_map)
 
     def create_web_map_for_layer(self):
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
@@ -1880,7 +1981,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
 
         self.create_map_response.done.connect(
-            self.resources_tree_view.setCurrentIndex
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
         )
         self.create_map_response.done.connect(self.open_create_web_map)
 
@@ -1942,7 +2045,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return result
 
     def downloadQML(self):
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
@@ -1971,7 +2074,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def copy_style(self):
         # Download style
-        selected_index = (
+        selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
@@ -2148,6 +2251,67 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         export_menu.addAction(actionUploadSelectedViaExportMenu)
+
+    def __create_search_button(self) -> None:
+        menu = QMenu()
+
+        search_type_group = QActionGroup(menu)
+        search_type_group.setExclusive(True)
+
+        separator = menu.addSeparator()
+        separator.setText(self.tr("Search type"))
+
+        settings = SearchSettings()
+        last_type = settings.last_used_type
+
+        by_name_action = menu.addAction(self.tr("By name"))
+        search_type_group.addAction(by_name_action)
+        by_name_action.setData(SearchType.ByDisplayName)
+        by_name_action.setCheckable(True)
+        by_name_action.setChecked(last_type == SearchType.ByDisplayName)
+        by_name_action.triggered.connect(self.__on_search_type_changed)
+
+        by_metadata_action = menu.addAction(self.tr("By metadata"))
+        search_type_group.addAction(by_metadata_action)
+        by_metadata_action.setData(SearchType.ByMetadata)
+        by_metadata_action.setCheckable(True)
+        by_metadata_action.setChecked(last_type == SearchType.ByMetadata)
+        by_metadata_action.triggered.connect(self.__on_search_type_changed)
+        # by_metadata_action.setDisabled(True)
+
+        self.search_button = QToolButton()
+        self.search_button.setPopupMode(
+            QToolButton.ToolButtonPopupMode.MenuButtonPopup
+        )
+        self.search_button.setIcon(
+            QIcon(os.path.join(ICONS_PATH, "mActionFilter.svg"))
+        )
+        self.search_button.setToolTip(self.tr("Search"))
+        self.search_button.setCheckable(True)
+        self.search_button.setMenu(menu)
+        self.search_button.clicked.connect(self.__toggle_filter)
+
+    @pyqtSlot(str)
+    def __on_search_requested(self, search_string: str) -> None:
+        if len(search_string) == 0:
+            self.__on_search_reset()
+        else:
+            self.resources_tree_view.not_found_overlay.hide()
+            self.resource_model.search(search_string)
+
+    @pyqtSlot()
+    def __on_search_reset(self) -> None:
+        self.resource_model.reset_search()
+        self.resources_tree_view.not_found_overlay.hide()
+
+    @pyqtSlot(bool)
+    def __on_search_type_changed(self, value: bool) -> None:
+        if not value:
+            return
+
+        action = cast(QAction, self.sender())
+        self.search_panel.set_type(action.data())
+        self.search_button.setChecked(True)
 
 
 class NGWPanelToolBar(QToolBar):

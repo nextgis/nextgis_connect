@@ -22,7 +22,7 @@
 
 import sys
 from pathlib import Path
-from typing import Optional, cast
+from typing import cast
 
 from osgeo import gdal
 from qgis import utils as qgis_utils
@@ -69,6 +69,7 @@ class NgConnectPlugin(NgConnectInterface):
     plugin_dir: Path
 
     def __init__(self) -> None:
+        super().__init__()
         self.iface = cast(QgisInterface, qgis_utils.iface)
         self.plugin_dir = Path(__file__).parent
 
@@ -228,16 +229,6 @@ class NgConnectPlugin(NgConnectInterface):
         message_bar.pushWidget(widget, Qgis.MessageLevel.Critical)
 
         logger.exception(error.log_message, exc_info=error)
-
-    def tr(
-        self,
-        source_text: str,
-        disambiguation: Optional[str] = None,
-        n: int = -1,
-    ) -> str:
-        return QgsApplication.translate(
-            self.TRANSLATION_CONTEXT, source_text, disambiguation, n
-        )
 
     def __init_connections(self) -> None:
         connections_manager = NgwConnectionsManager()

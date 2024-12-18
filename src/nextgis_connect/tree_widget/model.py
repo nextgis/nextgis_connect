@@ -1,15 +1,32 @@
 import functools
+import itertools
+import re
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     QObject,
+    Qt,
     QThread,
+    QVariant,
     pyqtSignal,
 )
+from qgis.PyQt.QtGui import QFont
 
 from nextgis_connect import utils
 from nextgis_connect.detached_editing.detached_layer_factory import (
@@ -24,6 +41,9 @@ from nextgis_connect.ngw_api.core import (
     NGWVectorLayer,
 )
 from nextgis_connect.ngw_api.core.ngw_qgis_style import NGWQGISVectorStyle
+from nextgis_connect.ngw_api.core.ngw_resource_factory import (
+    NGWResourceFactory,
+)
 from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
@@ -210,6 +230,265 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
             detached_factory.create_container(ngw_resource, gpkg_path)
 
 
+class NgwSearch(NGWResourceModelJob):
+    @dataclass
+    class Tag:
+        name: str
+        query_name: str
+        visible: bool = True
+
+    INT_TAGS: ClassVar[List[Tag]] = [
+        Tag("id", "id"),
+        Tag("parent", "parent_id"),
+        Tag("owner", "owner_user_id"),
+    ]
+
+    STR_TAGS: ClassVar[List[Tag]] = [
+        Tag("type", "cls"),
+        Tag("name", "display_name"),
+        Tag("keyname", "keyname"),
+        Tag("description", "description"),
+    ]
+
+    def __init__(
+        self, search_string: str, populated_resources: Set[int]
+    ) -> None:
+        super().__init__()
+        self.result.found_resources = []
+        self.search_string = search_string.strip()
+        self.populated_resources = populated_resources
+        self.parents = []
+
+    def _do(self):
+        connections_manager = NgwConnectionsManager()
+        connection_id = connections_manager.current_connection_id
+        assert connection_id is not None
+        ngw_connection = QgsNgwConnection(connection_id)
+
+        resources_factory = NGWResourceFactory(ngw_connection)
+
+        for query in self.__queries():
+            logger.debug(f"Search for {query}")
+            search_url = (
+                f"/api/resource/search/?{query}&serialization=resource"
+            )
+            query_result = ngw_connection.get(search_url)
+            self.__process_results(resources_factory, query_result)
+
+        assert self.result.found_resources is not None
+        logger.debug(
+            f"<b>Found</b> {len(self.result.found_resources)} resources: {self.result.found_resources}"
+        )
+
+        if len(self.result.found_resources) == 0:
+            self.result.found_resources.append(-1)
+
+        try:
+            self.__fetch_parents(resources_factory)
+        except Exception:
+            self.result.added_resources = []
+            raise
+
+    def __process_results(
+        self, factory: NGWResourceFactory, resources: List[Dict[str, Any]]
+    ) -> None:
+        self.result.found_resources.extend(
+            resource_json["resource"]["id"] for resource_json in resources
+        )
+        self.parents.extend(
+            resource_json["resource"]["parent"]["id"]
+            for resource_json in resources
+        )
+
+    def __queries(self) -> List[str]:
+        if not self.search_string.startswith("@"):
+            return [self.__default_query()]
+
+        lower_search_string = self.search_string.lower()
+        and_operator_count = lower_search_string.count(" and ")
+        or_operator_count = lower_search_string.count(" or ")
+
+        if and_operator_count + or_operator_count not in (
+            and_operator_count,
+            or_operator_count,
+        ):
+            logger.warning("only one operator type is supported at a time")
+            return [self.__default_query()]
+
+        result = list(
+            itertools.chain.from_iterable(
+                self.__parallel_queries(search_substring)
+                for search_substring in re.split(
+                    r"(?i)\sor\s", self.search_string
+                )
+            )
+        )
+
+        if len(result) == 0:
+            logger.debug("Wrong syntax. Fallback to display_name query")
+            return [self.__default_query()]
+
+        return result
+
+    def __parallel_queries(self, search_string: str) -> List[str]:
+        groups = [
+            self.__tag_queries(search_substring)
+            for search_substring in re.split(r"(?i)\sand\s", search_string)
+        ]
+        return ["&".join(combo) for combo in itertools.product(*groups)]
+
+    def __tag_queries(self, search_string: str) -> List[str]:
+        for tag in self.INT_TAGS:
+            queries = self.__int_queries(search_string, tag)
+            if len(queries) != 0:
+                return queries
+
+        for tag in self.STR_TAGS:
+            queries = self.__str_queries(search_string, tag)
+            if len(queries) != 0:
+                return queries
+
+        queries = self.__metadata_queries(search_string)
+        if len(queries) != 0:
+            return queries
+
+        logger.warning(
+            self.tr("Unknown search tag. Possible values: ")
+            + ", ".join(
+                f"@{tag.name}" for tag in (*self.INT_TAGS, *self.STR_TAGS)
+            )
+            + ", @metadata"
+        )
+
+        return []
+
+    def __default_query(self) -> str:
+        if self.search_string.startswith('"') and self.search_string.endswith(
+            '"'
+        ):
+            return f"display_name__eq={self.search_string[1:-1]}"
+        else:
+            return f"display_name__ilike=%{self.search_string}%"
+
+    def __int_queries(self, search_string: str, tag: Tag) -> List[str]:
+        tag_name = re.escape(tag.name)
+        pattern = (
+            rf"^@{tag_name}\s*=\s*(\d+)$"
+            rf"|^@{tag_name}\s+IN\s*\(([\d,\s]+)\)$"
+        )
+        matches = re.findall(pattern, search_string, flags=re.IGNORECASE)
+        if not matches:
+            return []
+
+        values = []
+        for match in matches:
+            if match[0]:
+                values.append(int(match[0]))
+            elif match[1]:
+                values.extend(map(int, match[1].split(",")))
+
+        logger.debug(f"Found {tag.name} queries: {values}")
+
+        return list(map(lambda value: f"{tag.query_name}={value}", values))
+
+    def __str_queries(self, search_string: str, tag: Tag) -> List[str]:
+        tag_name = re.escape(tag.name)
+        pattern = (
+            rf"^@{tag_name}\s*=\s*(['\"])(.*?)\1$"
+            rf"|^@{tag_name}\s+ILIKE\s+(['\"])(.*?)\3$"
+            rf"|^@{tag_name}\s+IN\s*\((.*?)\)$"
+        )
+
+        matches = re.findall(pattern, search_string, flags=re.IGNORECASE)
+        if not matches:
+            return []
+
+        operator = "__eq"
+        values = []
+        for match in matches:
+            if match[1]:  # '='
+                values.append(match[1])
+            elif match[3]:  # 'ILIKE'
+                operator = "__ilike"
+                values.append(match[3])
+            elif match[4]:  # IN
+                matches = re.findall(r"\"(.*?)\"|'(.*?)'", match[4])
+                values.extend(
+                    match for pair in matches for match in pair if match
+                )
+
+        logger.debug(f"Found {tag.name} queries: {values}")
+
+        return list(
+            map(lambda value: f"{tag.query_name}{operator}={value}", values)
+        )
+
+    def __metadata_queries(self, search_string: str) -> List[str]:
+        pattern = r'@metadata\["([^"]+)"\]\s*=\s*(?:"([^"]+)"|([^"]\S*))'
+        match = re.match(pattern, search_string)
+        if not match:
+            return []
+
+        key = match.group(1)
+        value = (
+            match.group(2) if match.group(2) is not None else match.group(3)
+        )
+
+        return [f"{key}={value}"]
+
+    def __fetch_parents(self, resources_factory: NGWResourceFactory) -> None:
+        logger.debug("Fetching intermediate resources")
+
+        for parent_id in self.parents:
+            if parent_id in self.populated_resources:
+                continue
+            self.__fetch_children(resources_factory, parent_id)
+
+        sorted_added_resources = []
+
+        # Add toppest items
+        for resource in self.result.added_resources:
+            has_parent_ln_list = False
+            for other_resource in self.result.added_resources:
+                if other_resource.resource_id == resource.parent_id:
+                    has_parent_ln_list = True
+                    break
+            if not has_parent_ln_list:
+                sorted_added_resources.append(resource)
+
+        while len(sorted_added_resources) != len(self.result.added_resources):
+            for parent_resource in sorted_added_resources:
+                for other_resource in self.result.added_resources:
+                    if parent_resource.resource_id == other_resource.parent_id:
+                        sorted_added_resources.append(other_resource)
+
+        self.result.added_resources = sorted_added_resources
+
+        logger.debug("All intermediate resources are fetched")
+
+    def __fetch_children(
+        self, resources_factory: NGWResourceFactory, resource_id: int
+    ) -> None:
+        children_json = NGWResource.receive_resource_children(
+            resources_factory.connection, resource_id
+        )
+
+        children: List[NGWResource] = []
+        for child_json in children_json:
+            children.append(resources_factory.get_resource_by_json(child_json))
+
+        self.populated_resources.add(resource_id)
+
+        if len(children) == 0:
+            logger.error(f"Empty children list for resource {resource_id}")
+            return
+
+        self.result.added_resources = children + self.result.added_resources
+        grandparent_id = children[0].grandparent_id
+        if grandparent_id not in self.populated_resources:
+            self.__fetch_children(resources_factory, grandparent_id)
+
+
 class QNGWResourceTreeModelBase(QAbstractItemModel):
     jobStarted = pyqtSignal(str)
     jobStatusChanged = pyqtSignal(str, str)
@@ -218,6 +497,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
     jobFinished = pyqtSignal(str, str)
     indexesLocked = pyqtSignal()
     indexesUnlocked = pyqtSignal()
+
+    found_resources_changed = pyqtSignal(list)
 
     def __init__(self, parent: Optional[QObject] = None):
         super().__init__(parent)
@@ -231,6 +512,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self._dangling_resources: Dict[int, NGWResource] = {}
         self.__not_permitted_resources = set()
+
+        self._found_resources_id = []
 
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
@@ -300,7 +583,12 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             else self.root_item
         )
 
-    def index(self, row, column, parent):
+    def index(
+        self,
+        row: int,
+        column: int,
+        parent: QModelIndex = QModelIndex(),  # noqa: B008
+    ) -> QModelIndex:
         if not self.hasIndex(row, column, parent):
             return QModelIndex()
 
@@ -309,27 +597,29 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         assert child_item is not None
         return self.createIndex(row, column, child_item)
 
-    def parent(self, index):
-        item = self.item(index)
-        assert item is not self.root_item
+    def parent(self, child: QModelIndex) -> QModelIndex:
+        assert child.model() == self if child.isValid() else True
+
+        item = self.item(child)
+
+        if item is self.root_item or item.parent() is self.root_item:
+            return QModelIndex()
+
         parent_item = item.parent()
-        if parent_item is self.root_item:
-            return QModelIndex()
-        if parent_item is None:  # TODO: should not be without QTreeWidgetItem
-            return QModelIndex()
         assert parent_item is not None
+
         return self.createIndex(
             parent_item.parent().indexOfChild(parent_item), 0, parent_item
         )
 
-    def columnCount(self, parent):
+    def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
         return 1
 
-    def rowCount(self, parent):
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: B008
         parent_item = self.item(parent)
         return parent_item.childCount()
 
-    def canFetchMore(self, parent):
+    def canFetchMore(self, parent: QModelIndex) -> bool:
         if (
             not self.is_ngw_version_supported
             or self._isIndexLockedByJob(parent)
@@ -344,15 +634,20 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                 return False
             # We expect only one root resource group
             return item.childCount() == 0
+
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
         if (
             ngw_resource.common.children
             and ngw_resource.children_count is not None
         ):
             return ngw_resource.children_count > item.childCount()
+
         return ngw_resource.common.children and item.childCount() == 0
 
-    def fetchMore(self, parent):
+    def fetchMore(self, parent: QModelIndex) -> None:
+        if not self.canFetchMore(parent):
+            return
+
         parent_item = self.item(parent)
         assert isinstance(parent_item, QModelItem)
         if parent_item is self.root_item:
@@ -364,11 +659,24 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         self._startJob(worker, parent)
 
-    def data(self, index, role):
+    def data(
+        self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> QVariant:
         item = self.item(index)
-        return item.data(role)
+        resource_id = item.data(QNGWResourceItem.NGWResourceIdRole)
+        data = item.data(role)
 
-    def hasChildren(self, parent):
+        if (
+            role == Qt.ItemDataRole.FontRole
+            and resource_id in self._found_resources_id
+        ):
+            font: QFont = QFont()
+            font.setBold(True)
+            return font
+
+        return data
+
+    def hasChildren(self, parent: QModelIndex = QModelIndex()) -> bool:  # noqa: B008
         parent_item = self.item(parent)
         if not isinstance(parent_item, QNGWResourceItem):
             return parent_item.childCount() > 0
@@ -381,9 +689,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         has_created_children = not children and parent_item.childCount() > 0
         return has_fetched_children or has_created_children
 
-    def flags(self, index):
-        item = self.item(index)
-        return item.flags()
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        return self.item(index).flags()
 
     def _startJob(
         self,
@@ -426,8 +733,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self._unlockIndexesByJob(job)
 
         self.jobFinished.emit(job.getJobId(), job.getJobUuid())
-        job.deleteLater()
         self.jobs.remove(job)
+        job.deleteLater()
 
     def __jobErrorOccurredProcess(self, error):
         job = cast(NGWResourcesModelJob, self.sender())
@@ -466,17 +773,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             self.__indexes_locked_by_jobs[job] = []
         self.__indexes_locked_by_jobs[job].extend(indexes)
 
-        self.layoutAboutToBeChanged.emit()
-
         for index in indexes:
             item = self.item(index)
-            # self.beginInsertRows(index, item.childCount(), item.childCount())
             item.lock()
-            # self.endInsertRows()
-
-        self.layoutChanged.emit()
-
-        # QCoreApplication.processEvents()
+            self.dataChanged.emit(index, index)
 
         self.indexesLocked.emit()
 
@@ -484,21 +784,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         indexes = self.__indexes_locked_by_jobs.get(job, [])
         self.__indexes_locked_by_jobs[job] = []
 
-        self.layoutAboutToBeChanged.emit()
-
         for index in indexes:
             item = self.item(index)
-
-            # self.beginRemoveRows(index, item.childCount(), item.childCount())
             item.unlock()
-            # self.endRemoveRows()
-
             if job.error() is not None:
                 self.__indexes_locked_by_job_errors[index] = job.error()
 
-        self.layoutChanged.emit()
-
-        # QCoreApplication.processEvents()
+            self.dataChanged.emit(index, index)
 
         self.indexesUnlocked.emit()
 
@@ -680,6 +972,10 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         for ngw_resource in job_result.dangling_resources:
             self._dangling_resources[ngw_resource.resource_id] = ngw_resource
 
+        if job_result.found_resources is not None:
+            self.found_resources_changed.emit(job_result.found_resources)
+            self._found_resources_id = job_result.found_resources
+
         self.__not_permitted_resources.update(
             job_result.not_permitted_resources
         )
@@ -708,6 +1004,8 @@ def modelRequest(
 
 
 class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
+    connection_id_changed = pyqtSignal(str)
+
     @property
     def connection_id(self) -> Optional[str]:
         if self._ngw_connection is None:
@@ -717,6 +1015,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     @property
     def is_connected(self) -> bool:
         return self.ngw_version is not None
+
+    def resetModel(self, ngw_connection: QgsNgwConnection):
+        self.reset_search()
+        self.connection_id_changed.emit(ngw_connection.connection_id)
+        super().resetModel(ngw_connection)
 
     def _nearest_ngw_group_resource_parent(self, index):
         checking_index = index
@@ -950,6 +1253,15 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(worker)
 
     @modelRequest
+    def search(self, search_string) -> Optional[NGWResourcesModelJob]:
+        worker = NgwSearch(search_string, self.__collect_populated_resources())
+        return self._startJob(worker)
+
+    def reset_search(self) -> None:
+        self.found_resources_changed.emit([])
+        self._found_resources_id = []
+
+    @modelRequest
     def download_vector_layers_if_needed(
         self, indexes: Union[QModelIndex, List[QModelIndex]]
     ):
@@ -1070,3 +1382,18 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         worker = NgwStylesDownloader(resources)  # type: ignore
         return self._startJob(worker, lock_indexes=list(set(indexes_for_lock)))
+
+    def __collect_populated_resources(
+        self,
+        parent: QModelIndex = QModelIndex(),  # noqa: B008
+    ) -> Set[int]:
+        result = set()
+
+        if not self.canFetchMore(parent):
+            result.add(parent.data(QNGWResourceItem.NGWResourceIdRole))
+
+        for row in range(self.rowCount(parent)):
+            child_index = self.index(row, 0, parent)
+            result.update(self.__collect_populated_resources(child_index))
+
+        return result
