@@ -518,7 +518,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
 
-    def resetModel(self, ngw_connection: QgsNgwConnection):
+    def resetModel(self, ngw_connection: Optional[QgsNgwConnection]):
         self.beginResetModel()
 
         self._ngw_connection = ngw_connection
@@ -1016,9 +1016,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
     def is_connected(self) -> bool:
         return self.ngw_version is not None
 
-    def resetModel(self, ngw_connection: QgsNgwConnection):
+    def resetModel(self, ngw_connection: Optional[QgsNgwConnection]):
         self.reset_search()
-        self.connection_id_changed.emit(ngw_connection.connection_id)
+        self.connection_id_changed.emit(
+            ngw_connection.connection_id if ngw_connection is not None else ""
+        )
         super().resetModel(ngw_connection)
 
     def _nearest_ngw_group_resource_parent(self, index):

@@ -78,6 +78,7 @@ class TextSearchCompleterModel(QStringListModel):
     @pyqtSlot(str)
     def set_connection_id(self, connection_id: Optional[str]) -> None:
         """Update connection ID and reset suggestions"""
+        connection_id = connection_id if connection_id != "" else None
         self.__connection_id = connection_id
         self.__search_suggestions = []
         self.__combine()
