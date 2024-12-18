@@ -2280,15 +2280,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         # by_metadata_action.setDisabled(True)
 
         self.search_button = QToolButton()
-        self.search_button.setPopupMode(
-            QToolButton.ToolButtonPopupMode.MenuButtonPopup
-        )
         self.search_button.setIcon(
             QIcon(os.path.join(ICONS_PATH, "mActionFilter.svg"))
         )
         self.search_button.setToolTip(self.tr("Search"))
         self.search_button.setCheckable(True)
-        self.search_button.setMenu(menu)
+        if NgConnectSettings().is_developer_mode:
+            self.search_button.setPopupMode(
+                QToolButton.ToolButtonPopupMode.MenuButtonPopup
+            )
+            self.search_button.setMenu(menu)
         self.search_button.clicked.connect(self.__toggle_filter)
 
     @pyqtSlot(str)
