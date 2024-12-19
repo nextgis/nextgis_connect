@@ -215,7 +215,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionResourceProperties = QAction(
             self.tr("Resource Properties…"), self
         )
-        self.actionResourceProperties.triggered.connect(self.show_properties_dialog)
+        self.actionResourceProperties.setIcon(
+            QIcon(":images/themes/default/propertyicons/attributes.svg")
+        )
+        self.actionResourceProperties.triggered.connect(
+            self.show_properties_dialog
+        )
 
         self.menuUpload = QMenu(self.tr("Add to Web GIS"), self)
         self.menuUpload.setIcon(
@@ -1184,9 +1189,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         services_actions: List[QAction] = [
             self.actionOpenInNGW,
             self.actionRename,
-            self.actionResourceProperties,
             self.actionDeleteResource,
         ]
+        if NgConnectSettings().is_developer_mode:
+            services_actions.append(self.actionResourceProperties)
 
         if any(
             isinstance(
