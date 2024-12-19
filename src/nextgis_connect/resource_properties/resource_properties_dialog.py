@@ -7,6 +7,7 @@ from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QLabel,
     QTabWidget,
@@ -21,6 +22,7 @@ class ResourcePropertiesDialog(QDialog):
     json_editor: QgsCodeEditorJson
     resource_icon: QLabel
     info_layout: QFormLayout
+    button_box: QDialogButtonBox
 
     def __init__(self, resource: NGWResource, parent=None):
         super().__init__(parent)
@@ -34,6 +36,9 @@ class ResourcePropertiesDialog(QDialog):
         self.progress_bar.hide()
         self.external_access_group.hide()
         self.json_editor.setReadOnly(True)
+        self.button_box.button(
+            QDialogButtonBox.StandardButton.Save
+        ).setDisabled(True)
 
         icon = QIcon(resource.icon_path)
         pixmap = icon.pixmap(icon.actualSize(QSize(32, 32)))
