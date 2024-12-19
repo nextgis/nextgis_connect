@@ -219,7 +219,7 @@ class NgwError(NgConnectError):
             code=code,
         )
 
-        error.add_note(f"Status code: {status_code}")
+        error.add_note(f"Http status code: {status_code}")
 
         if ngw_exception_name is not None:
             error.add_note(f"NGW exception: {json.get('exception')}")
