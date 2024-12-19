@@ -306,13 +306,25 @@
        <string>JSON</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_7">
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
        <item>
-        <widget class="QsciScintilla" name="json_field">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+        <widget class="QgsCodeEditorJson" name="json_editor">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
          </property>
         </widget>
        </item>
@@ -370,9 +382,10 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QsciScintilla</class>
+   <class>QgsCodeEditorJson</class>
    <extends>QFrame</extends>
-   <header>Qsci/qsciscintilla.h</header>
+   <header location="global">qgis.gui</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
