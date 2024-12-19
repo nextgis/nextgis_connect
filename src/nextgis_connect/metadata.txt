@@ -22,6 +22,7 @@ deprecated=False
 changelog=
 	2.5.0
 		* Added search
+		* Add the ability to update layer style by layer
 		* Cache clearing optimization
 		* Enhance network error logging
 		! Supported NGW versions: 4.8.0 - 5.1.0
