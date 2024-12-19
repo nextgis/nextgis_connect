@@ -27,6 +27,8 @@ from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
     NgConnectError,
+    NgConnectException,
+    SynchronizationError,
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -73,7 +75,7 @@ class DetachedContainer(QObject):
     __versioning_state: VersioningSynchronizationState
     __changes: DetachedContainerChangesInfo
 
-    __error: Optional[NgConnectError]
+    __error: Optional[NgConnectException]
 
     __indicator: Optional[DetachedLayerIndicator]
     __sync_task: Optional[DetachedEditingTask]
@@ -143,7 +145,7 @@ class DetachedContainer(QObject):
         return self.__state == DetachedLayerState.NotInitialized
 
     @property
-    def error(self) -> Optional[NgConnectError]:
+    def error(self) -> Optional[NgConnectException]:
         return self.__error
 
     @property
@@ -291,9 +293,9 @@ class DetachedContainer(QObject):
                 if datetime.now() - self.check_date < period:
                     return False
 
-        self.__init_sync_task()
+        sync_task = self.__init_sync_task()
 
-        if self.__sync_task is None:
+        if sync_task is None:
             self.__check_date = datetime.now()
             return False
 
@@ -302,10 +304,7 @@ class DetachedContainer(QObject):
         self.__state = DetachedLayerState.Synchronization
         self.state_changed.emit(self.__state)
 
-        # task_manager = QgsApplication.taskManager()
-        task_manager = NgConnectInterface.instance().task_manager
-        assert task_manager is not None
-        task_manager.addTask(self.__sync_task)
+        self.__start_sync(sync_task)
 
         return True
 
@@ -455,62 +454,62 @@ class DetachedContainer(QObject):
 
         self.state_changed.emit(self.__state)
 
-    def __init_sync_task(self) -> None:
-        if self.metadata.is_versioning_enabled:
-            self.__init_versioning_task()
-        else:
-            self.__init_ordinary_task()
+    def __init_sync_task(self) -> Optional[DetachedEditingTask]:
+        sync_task = None
 
-        if self.__sync_task is None and (
+        if self.metadata.is_versioning_enabled:
+            sync_task = self.__init_versioning_task()
+        else:
+            sync_task = self.__init_ordinary_task()
+
+        if sync_task is None and (
             self.__additional_data_fetch_date is None
             or datetime.now() - self.__additional_data_fetch_date
             > timedelta(hours=1)
         ):
-            self.__sync_task = FetchAdditionalDataTask(
+            sync_task = FetchAdditionalDataTask(
                 self.path, need_update_structure=True
             )
-            self.__sync_task.taskCompleted.connect(
-                lambda: self.__on_additional_data_fetched(True)
-            )
-            self.__sync_task.taskTerminated.connect(
-                lambda: self.__on_additional_data_fetched(False)
-            )
+            sync_task.taskCompleted.connect(self.__on_additional_data_fetched)
+            sync_task.taskTerminated.connect(self.__on_additional_data_fetched)
 
-    def __init_ordinary_task(self) -> None:
+        return sync_task
+
+    def __init_ordinary_task(self) -> Optional[DetachedEditingTask]:
+        sync_task = None
         if self.is_not_initialized:
-            self.__sync_task = DownloadGpkgTask(self.path)
+            sync_task = DownloadGpkgTask(self.path)
         elif self.metadata.has_changes:
-            self.__sync_task = UploadChangesTask(self.path)
+            sync_task = UploadChangesTask(self.path)
 
-        if self.__sync_task is not None:
-            self.__sync_task.taskCompleted.connect(
+        if sync_task is not None:
+            sync_task.taskCompleted.connect(
                 lambda: self.__on_synchronization_finished(True)
             )
-            self.__sync_task.taskTerminated.connect(
+            sync_task.taskTerminated.connect(
                 lambda: self.__on_synchronization_finished(False)
             )
 
-    def __init_versioning_task(self) -> None:
+        return sync_task
+
+    def __init_versioning_task(self) -> Optional[DetachedEditingTask]:
         State = VersioningSynchronizationState
         self.__versioning_state = State.FetchingChanges
 
         if self.is_not_initialized:
-            self.__sync_task = FillLayerWithVersioning(self.path)
-            self.__sync_task.taskCompleted.connect(
+            sync_task = FillLayerWithVersioning(self.path)
+            sync_task.taskCompleted.connect(
                 lambda: self.__on_synchronization_finished(True)
             )
-            self.__sync_task.taskTerminated.connect(
+            sync_task.taskTerminated.connect(
                 lambda: self.__on_synchronization_finished(False)
             )
-            return
+            return sync_task
 
-        self.__sync_task = FetchDeltaTask(self.path)
-        self.__sync_task.taskCompleted.connect(
-            lambda: self.__on_fetch_finished(True)
-        )
-        self.__sync_task.taskTerminated.connect(
-            lambda: self.__on_fetch_finished(False)
-        )
+        sync_task = FetchDeltaTask(self.path)
+        sync_task.taskCompleted.connect(self.__on_fetch_finished)
+        sync_task.taskTerminated.connect(self.__on_fetch_finished)
+        return sync_task
 
     @pyqtSlot(bool)
     def __on_synchronization_finished(self, result: bool) -> None:
@@ -538,19 +537,14 @@ class DetachedContainer(QObject):
             return
 
         # After first sync
-        self.__sync_task = FetchAdditionalDataTask(
-            self.path, need_update_structure=False
-        )
-        self.__sync_task.taskCompleted.connect(
-            lambda: self.__on_additional_data_fetched(True)
-        )
-        self.__sync_task.taskTerminated.connect(
-            lambda: self.__on_additional_data_fetched(False)
-        )
-        self.__start_sync(self.__sync_task)
+        task = FetchAdditionalDataTask(self.path, need_update_structure=False)
+        task.taskCompleted.connect(self.__on_additional_data_fetched)
+        task.taskTerminated.connect(self.__on_additional_data_fetched)
+        self.__start_sync(task)
 
-    @pyqtSlot(bool)
-    def __on_additional_data_fetched(self, result: bool) -> None:
+    @pyqtSlot()
+    def __on_additional_data_fetched(self) -> None:
+        result = self.__sync_task.status() == QgsTask.TaskStatus.Complete
         assert isinstance(self.__sync_task, FetchAdditionalDataTask)
         if result:
             self.__additional_data_fetch_date = datetime.now()
@@ -570,8 +564,9 @@ class DetachedContainer(QObject):
 
         self.__finish_sync()
 
-    @pyqtSlot(bool)
-    def __on_fetch_finished(self, result: bool) -> None:
+    @pyqtSlot()
+    def __on_fetch_finished(self) -> None:
+        result = self.__sync_task.status() == QgsTask.TaskStatus.Complete
         if not result:
             self.__on_synchronization_finished(False)
             return
@@ -580,7 +575,11 @@ class DetachedContainer(QObject):
 
         if len(self.__sync_task.delta) > 0:
             try:
-                self.__has_conflicts(self.__sync_task.delta)
+                self.__check_conflicts(self.__sync_task.delta)
+            except SynchronizationError as error:
+                self.__process_sync_error(error)
+                self.__finish_sync()
+                return
             except Exception as error:
                 ng_error = NgConnectError()
                 ng_error.__cause__ = error
@@ -588,22 +587,20 @@ class DetachedContainer(QObject):
                 self.__finish_sync()
                 return
 
+            fetch_delta_task = self.__sync_task
+
             self.__versioning_state = (
                 VersioningSynchronizationState.ChangesApplying
             )
-            sync_task = ApplyDeltaTask(
+            task = ApplyDeltaTask(
                 self.path,
-                self.__sync_task.target,
-                self.__sync_task.timestamp,
-                self.__sync_task.delta,
+                fetch_delta_task.target,
+                fetch_delta_task.timestamp,
+                fetch_delta_task.delta,
             )
-            sync_task.taskCompleted.connect(
-                lambda: self.__on_apply_finished(True)
-            )
-            sync_task.taskTerminated.connect(
-                lambda: self.__on_apply_finished(False)
-            )
-            self.__start_sync(sync_task)
+            task.taskCompleted.connect(self.__on_apply_finished)
+            task.taskTerminated.connect(self.__on_apply_finished)
+            self.__start_sync(task)
             return
 
         if self.metadata.has_changes:
@@ -611,19 +608,16 @@ class DetachedContainer(QObject):
                 VersioningSynchronizationState.UploadingChanges
             )
             task = UploadChangesTask(self.path)
-            task.taskCompleted.connect(
-                lambda: self.__on_versioned_uploading_finished(True)
-            )
-            task.taskTerminated.connect(
-                lambda: self.__on_versioned_uploading_finished(False)
-            )
+            task.taskCompleted.connect(self.__on_versioned_uploading_finished)
+            task.taskTerminated.connect(self.__on_versioned_uploading_finished)
             self.__start_sync(task)
             return
 
         self.__on_synchronization_finished(True)
 
-    @pyqtSlot(bool)
-    def __on_apply_finished(self, result: bool) -> None:
+    @pyqtSlot()
+    def __on_apply_finished(self) -> None:
+        result = self.__sync_task.status() == QgsTask.TaskStatus.Complete
         if not result:
             self.__on_synchronization_finished(False)
             return
@@ -639,27 +633,20 @@ class DetachedContainer(QObject):
             VersioningSynchronizationState.UploadingChanges
         )
         task = UploadChangesTask(self.path)
-        task.taskCompleted.connect(
-            lambda: self.__on_versioned_uploading_finished(True)
-        )
-        task.taskTerminated.connect(
-            lambda: self.__on_versioned_uploading_finished(False)
-        )
+        task.taskCompleted.connect(self.__on_versioned_uploading_finished)
+        task.taskTerminated.connect(self.__on_versioned_uploading_finished)
         self.__start_sync(task)
 
-    @pyqtSlot(bool)
-    def __on_versioned_uploading_finished(self, result: bool) -> None:
+    @pyqtSlot()
+    def __on_versioned_uploading_finished(self) -> None:
+        result = self.__sync_task.status() == QgsTask.TaskStatus.Complete
         if not result:
             self.__on_synchronization_finished(False)
             return
 
         task = FetchDeltaTask(self.path)
-        self.__sync_task.taskCompleted.connect(
-            lambda: self.__on_fetch_finished(True)
-        )
-        self.__sync_task.taskTerminated.connect(
-            lambda: self.__on_fetch_finished(False)
-        )
+        task.taskCompleted.connect(self.__on_fetch_finished)
+        task.taskTerminated.connect(self.__on_fetch_finished)
         self.__versioning_state = (
             VersioningSynchronizationState.FetchingChanges
         )
@@ -669,7 +656,6 @@ class DetachedContainer(QObject):
         self.__sync_task = task
 
         task_manager = NgConnectInterface.instance().task_manager
-        # task_manager = QgsApplication.taskManager()
         assert task_manager is not None
         task_manager.addTask(self.__sync_task)
 
@@ -757,7 +743,7 @@ class DetachedContainer(QObject):
         for detached_layer in self.__detached_layers.values():
             detached_layer.update()
 
-    def __process_sync_error(self, error: NgConnectError) -> None:
+    def __process_sync_error(self, error: NgConnectException) -> None:
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__error = error
@@ -798,7 +784,7 @@ class DetachedContainer(QObject):
         self.__update_layers_properties()
         self.synchronize(is_manual=True)
 
-    def __has_conflicts(self, actions: List[VersioningAction]) -> bool:
+    def __check_conflicts(self, actions: List[VersioningAction]) -> None:
         delta_fids = set(
             action.fid
             for action in actions
@@ -813,4 +799,5 @@ class DetachedContainer(QObject):
             and not isinstance(action, FeatureCreateAction)
         )
 
-        return len(delta_fids.intersection(local_changes_fids)) > 0
+        if len(delta_fids.intersection(local_changes_fids)) > 0:
+            raise SynchronizationError("Delta has conflicts")
