@@ -1,3 +1,4 @@
+import html
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union, cast
 
@@ -859,7 +860,10 @@ class NgwResourcesAdder(QObject):
         if isinstance(resource, TmsLayerResources):
             return resource.layer_params
 
-        raise NgConnectError(f"Unsupported type: {resource.common.cls}")
+        raise NgConnectError(
+            html.escape(f"Unsupported resource: {resource!r}"),
+            code=ErrorCode.AddingError,
+        )
 
     def __collect_params_for_webmap(self, index: QModelIndex) -> None:
         webmap: NGWWebMap = index.data(QNGWResourceItem.NGWResourceRole)
@@ -887,7 +891,12 @@ class NgwResourcesAdder(QObject):
             params = self.__collect_params_for_layer_resource(style_resource)
 
         else:
-            raise NgConnectError
+            error = NgConnectError(
+                "Unsupported resources", code=ErrorCode.AddingError
+            )
+            error.add_note(html.escape(f"Style parent: {layer_resource!r}"))
+            error.add_note(html.escape(f"Style: {style_resource!r}"))
+            raise error
 
         self.__layers_params[id(webmap_layer)] = params
 
