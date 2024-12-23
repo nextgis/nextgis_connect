@@ -70,6 +70,10 @@ class DetachedEditingTask(NgConnectTask):
         self.__check_connection()
 
         if self._error is not None:
+            self._error.add_note(
+                f"Connection id: {self._metadata.connection_id}"
+            )
+            self._error.add_note(f"Resource id: {self._metadata.resource_id}")
             return False
 
         return True
@@ -209,7 +213,6 @@ class DetachedEditingTask(NgConnectTask):
                 + self.tr("Please check layer connection settings.")
             )
             self._error = SynchronizationError(user_message=user_message)
-            self._error.add_note(f"Connection id = {connection_id}")
             return
 
         connection = connection_manager.connection(connection_id)

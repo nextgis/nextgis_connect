@@ -30,7 +30,7 @@ class NgConnectTask(QgsTask):
     @_error.setter
     def _error(self, error: Exception) -> None:
         if isinstance(error, NgConnectException):
-            error = deepcopy(error)
+            self.__error = deepcopy(error)
         else:
             self.__error = NgConnectError()
             self.__error.__cause__ = deepcopy(error)

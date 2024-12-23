@@ -106,6 +106,9 @@ class NgConnectException(Exception):
 
         super().__init__(f"<b>{self.__log_message}</b>")
 
+        if self.code != ErrorCode.PluginError:
+            self.add_note(f"Internal code: {self.code.name}")
+
         self.__user_message = (
             user_message
             if user_message is not None
@@ -113,15 +116,14 @@ class NgConnectException(Exception):
         )
         if self.__user_message is not None:
             self.__user_message = self.__user_message.strip()
+            self.add_note("User message: " + self.__user_message)
 
         self.__detail = (
             detail if detail is not None else default_detail(self.code)
         )
         if self.__detail is not None:
             self.__detail = self.__detail.strip()
-
-        if self.code != ErrorCode.PluginError:
-            self.add_note(f"Internal code: {self.code.name}")
+            self.add_note("Detail: " + self.__detail)
 
     @property
     def log_message(self) -> str:
