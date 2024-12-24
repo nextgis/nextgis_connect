@@ -5,7 +5,7 @@ import tempfile
 import uuid
 from enum import Enum, auto
 from pathlib import Path
-from typing import ClassVar, Dict
+from typing import Any, ClassVar, Dict, Union
 from unittest.mock import MagicMock
 
 from qgis.core import (
@@ -99,15 +99,29 @@ class NgConnectTestCase(QgisTestCase):
         raise NotImplementedError
 
     @staticmethod
-    def resource(
+    def resource_json(
         test_data: TestData,
-        test_connection: TestConnection = TestConnection.SandboxGuest,
-    ) -> NGWResource:
+    ) -> Dict[str, Any]:
         data_path = NgConnectTestCase.data_path(test_data)
         json_path = data_path.with_suffix(".json")
-        resource_json = json.loads(json_path.read_text())
+        return json.loads(json_path.read_text())
 
-        connection = NgConnectTestCase.connection(test_connection)
+    @staticmethod
+    def resource(
+        test_data: Union[TestData, Dict[str, Any]],
+        test_connection: Union[
+            TestConnection, NgwConnection
+        ] = TestConnection.SandboxGuest,
+    ) -> NGWResource:
+        if isinstance(test_data, TestData):
+            resource_json = NgConnectTestCase.resource_json(test_data)
+        else:
+            resource_json = test_data
+
+        if isinstance(test_connection, TestConnection):
+            connection = NgConnectTestCase.connection(test_connection)
+        else:
+            connection = test_connection
 
         ngw_connection = MagicMock(spec=QgsNgwConnection)
         ngw_connection.connection_id = connection.id
