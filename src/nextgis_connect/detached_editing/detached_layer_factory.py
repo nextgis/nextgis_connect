@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 
 # isort: off
-from qgis.core import QgsVectorFileWriter, QgsProject
+from qgis.core import QgsVectorFileWriter, QgsProject, QgsVectorLayer
 # isort: on
 
 from nextgis_connect.exceptions import (
@@ -32,6 +32,7 @@ class DetachedLayerFactory:
         )
         try:
             self.__create_container(ngw_layer, container_path)
+            self.__check_fields(ngw_layer, container_path)
 
             with closing(
                 sqlite3.connect(str(container_path))
@@ -63,6 +64,8 @@ class DetachedLayerFactory:
         )
 
         try:
+            self.__check_fields(ngw_layer, container_path)
+
             with closing(
                 sqlite3.connect(str(container_path))
             ) as connection, closing(connection.cursor()) as cursor:
@@ -290,3 +293,19 @@ class DetachedLayerFactory:
                 SELECT fid, fid, NULL, NULL FROM '{table_name}'
             """
         )
+
+    def __check_fields(
+        self, ngw_layer: NGWVectorLayer, container_path: Path
+    ) -> None:
+        layer = QgsVectorLayer(str(container_path), "", "ogr")
+        if not layer.isValid():
+            message = "Container is not valid"
+            code = ErrorCode.ContainerIsInvalid
+            raise ContainerError(message, code=code)
+
+        fid_field = layer.fields().at(layer.primaryKeyAttributes()[0]).name()
+        if not ngw_layer.fields.is_compatible(
+            layer.fields(), fid_field=fid_field
+        ):
+            code = ErrorCode.ContainerFieldsMismatch
+            raise ContainerError(code=code)

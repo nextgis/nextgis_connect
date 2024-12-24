@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from dataclasses import field as dataclass_field
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 
 from qgis.core import QgsField, QgsFields
 from qgis.PyQt.QtCore import QVariant
@@ -41,7 +41,11 @@ class NgwField:
                 and self.keyname == rhs.keyname
             )
         else:
-            return self.datatype == rhs.type() and self.keyname == rhs.name()
+            datatype = self.datatype
+            if datatype == QVariant.Type.Time:
+                datatype = QVariant.Type.String
+
+            return datatype == rhs.type() and self.keyname == rhs.name()
 
     def to_qgsfield(self) -> QgsField:
         return QgsField(self.keyname, self.datatype)
@@ -116,8 +120,18 @@ class NgwFields(Sequence):
         return field
 
     def is_compatible(
-        self, rhs: Union["NgwFields", List[Union[NgwField, QgsField]]]
+        self,
+        rhs: Union["NgwFields", QgsFields, List[NgwField], List[QgsField]],
+        *,
+        fid_field: Optional[str] = None,
     ) -> bool:
+        if isinstance(rhs, QgsFields):
+            rhs = [
+                field
+                for field in cast(List[QgsField], rhs.toList())
+                if field.name() != fid_field
+            ]
+
         if len(self._fields) != len(rhs):
             return False
 
