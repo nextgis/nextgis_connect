@@ -64,7 +64,7 @@ class NgwField:
             datatype_name=json["datatype"],
             keyname=json["keyname"],
             display_name=json["display_name"],
-            is_label=json["label_field"],
+            is_label=json.get("label_field", False),
             lookup_table=get_lookup_table(json),
         )
 
