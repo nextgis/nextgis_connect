@@ -60,6 +60,8 @@ class DetachedContainerMetaData:
     sync_date: Optional[datetime]
     is_auto_sync_enabled: bool
     fields: NgwFields
+    fid_field: str
+    geom_field: str
     features_count: int
     has_changes: bool
     srs_id: int
@@ -246,6 +248,14 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         for row in cursor.execute(fields_query)
     )
 
+    cursor.execute(
+        f"SELECT name from pragma_table_info('{table_name}') WHERE pk = 1"
+    )
+    fid_field = cursor.fetchone()[0]
+
+    cursor.execute("SELECT column_name from gpkg_geometry_columns")
+    geom_field = cursor.fetchone()[0]
+
     cursor.execute(f"SELECT COUNT(*) FROM '{table_name}'")
     features_count = cursor.fetchone()[0]
     if features_count is None:
@@ -263,23 +273,25 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     has_changes = bool(cursor.fetchone()[0])
 
     return DetachedContainerMetaData(
-        container_version,
-        connection_id,
-        instance_id,
-        resource_id,
-        table_name,
-        layer_name,
-        description,
-        geometry_name,
-        transaction_id,
-        epoch,
-        version,
-        sync_date,
-        is_auto_sync_enabled,
-        fields,
-        features_count,
-        has_changes,
-        srs_id,
+        container_version=container_version,
+        connection_id=connection_id,
+        instance_id=instance_id,
+        resource_id=resource_id,
+        table_name=table_name,
+        layer_name=layer_name,
+        description=description,
+        geometry_name=geometry_name,
+        transaction_id=transaction_id,
+        epoch=epoch,
+        version=version,
+        sync_date=sync_date,
+        is_auto_sync_enabled=is_auto_sync_enabled,
+        fields=fields,
+        fid_field=fid_field,
+        geom_field=geom_field,
+        features_count=features_count,
+        has_changes=has_changes,
+        srs_id=srs_id,
     )
 
 

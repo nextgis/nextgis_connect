@@ -756,11 +756,12 @@ class DetachedContainer(QObject):
             connection.cursor()
         ) as cursor:
             container_fields_name = set(
-                row[1]
+                row[0]
                 for row in cursor.execute(
-                    f"PRAGMA table_info('{self.metadata.table_name}')"
+                    f"SELECT name FROM pragma_table_info('{self.metadata.table_name}')"
                 )
-                if row[1] not in ("fid", "geom")
+                if row[0]
+                not in (self.metadata.fid_field, self.metadata.geom_field)
             )
 
         if all(
