@@ -6,6 +6,8 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 from qgis.core import QgsField, QgsFields
 from qgis.PyQt.QtCore import QVariant
 
+from nextgis_connect.compat import FieldType
+
 FieldId = int
 
 
@@ -42,8 +44,16 @@ class NgwField:
             )
         else:
             datatype = self.datatype
+
             if datatype == QVariant.Type.Time:
+                # GPKG does not have Time type
                 datatype = QVariant.Type.String
+
+            if self.keyname == "fid":
+                # Workaround for NGW-1326
+                return (
+                    datatype == rhs.type() or FieldType.LongLong == rhs.type()
+                )
 
             return datatype == rhs.type() and self.keyname == rhs.name()
 

@@ -44,9 +44,9 @@ from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.tasks.detached_editing import (
     ApplyDeltaTask,
     DetachedEditingTask,
-    DownloadGpkgTask,
     FetchAdditionalDataTask,
     FetchDeltaTask,
+    FillLayerWithoutVersioningTask,
     FillLayerWithVersioning,
     UploadChangesTask,
 )
@@ -338,7 +338,9 @@ class DetachedContainer(QObject):
 
         detached_factory = DetachedLayerFactory()
         try:
-            detached_factory.create_container(ngw_layer, Path(temp_file_path))
+            detached_factory.create_initial_container(
+                ngw_layer, Path(temp_file_path)
+            )
         except ContainerError as error:
             logger.exception("Failed to force synchronization")
             self.__error = error
@@ -478,7 +480,7 @@ class DetachedContainer(QObject):
     def __init_ordinary_task(self) -> Optional[DetachedEditingTask]:
         sync_task = None
         if self.is_not_initialized:
-            sync_task = DownloadGpkgTask(self.path)
+            sync_task = FillLayerWithoutVersioningTask(self.path)
         elif self.metadata.has_changes:
             sync_task = UploadChangesTask(self.path)
 

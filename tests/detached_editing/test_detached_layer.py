@@ -1,5 +1,3 @@
-import shutil
-import tempfile
 import unittest
 from contextlib import closing
 from dataclasses import replace
@@ -161,12 +159,15 @@ class TestDetachedLayer(NgConnectTestCase):
         qgs_layer = self.layer(TestData.Points)
         assert isinstance(qgs_layer, QgsVectorLayer)
 
-        factory = DetachedLayerFactory()
-        self.container_path = Path(tempfile.mktemp(suffix=".gpkg"))
-        self.addCleanup(lambda: self.gpkg_cleanup(self.container_path))
-        shutil.copy(self.data_path(TestData.Points), self.container_path)
+        self.container_path = self.create_temp_file(".gpkg")
 
-        factory.update_container(ngw_layer, self.container_path)
+        factory = DetachedLayerFactory()
+        factory.create_initial_container(ngw_layer, self.container_path)
+        factory.fill_container(
+            ngw_layer,
+            source_path=self.data_path(TestData.Points),
+            container_path=self.container_path,
+        )
 
         metadata = container_metadata(self.container_path)
 

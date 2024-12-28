@@ -24,10 +24,6 @@ from nextgis_connect.ngw_api.core.ngw_resource_factory import (
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection import NgwConnection, NgwConnectionsManager
 
-QGIS_AUTH_DB_DIR_PATH = tempfile.mkdtemp()
-
-os.environ["QGIS_AUTH_DB_DIR_PATH"] = QGIS_AUTH_DB_DIR_PATH
-
 
 class TestData(str, Enum):
     Points = "layers/points_layer.gpkg"
@@ -45,6 +41,11 @@ class TestConnection(Enum):
 
 
 class NgConnectTestCase(QgisTestCase):
+    APPLICATION_NAME = "TestNextGISConnect"
+    ORGANIZATION_NAME = "NextGIS_Test"
+    ORGANIZATION_DOMAIN = "TestNextGISConnect.com"
+
+    _application: ClassVar[QgsApplication]
     _connections_id: ClassVar[Dict[TestConnection, str]] = {}
 
     @classmethod
@@ -52,26 +53,53 @@ class NgConnectTestCase(QgisTestCase):
         super().setUpClass()
 
         # Setup settings
-        QgsApplication.setOrganizationName("NextGIS_Test")
-        QgsApplication.setOrganizationDomain("TestNextGISConnect.com")
-        QgsApplication.setApplicationName("TestNextGISConnect")
+        cls.QGIS_AUTH_DB_DIR_PATH = tempfile.mkdtemp(
+            prefix=f"{cls.APPLICATION_NAME}-authdb-"
+        )
+        os.environ["QGIS_AUTH_DB_DIR_PATH"] = cls.QGIS_AUTH_DB_DIR_PATH
+
+        QgsApplication.setOrganizationName(cls.ORGANIZATION_NAME)
+        QgsApplication.setOrganizationDomain(cls.ORGANIZATION_DOMAIN)
+        QgsApplication.setApplicationName(cls.APPLICATION_NAME)
         QgsSettings().clear()
-        start_app()
+        cls._application = start_app(cleanup=False)
+
+        cls.QGIS_CUSTOM_CONFIG_PATH = os.environ["QGIS_CUSTOM_CONFIG_PATH"]
 
         # Setup auth manager
         auth_manager = QgsApplication.authManager()
         assert not auth_manager.isDisabled(), auth_manager.disabledMessage()
         assert (
             Path(auth_manager.authenticationDatabasePath())
-            == Path(QGIS_AUTH_DB_DIR_PATH) / "qgis-auth.db"
+            == Path(cls.QGIS_AUTH_DB_DIR_PATH) / "qgis-auth.db"
         )
         assert auth_manager.setMasterPassword("masterpassword", True)
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(QGIS_AUTH_DB_DIR_PATH)
         QgsSettings().clear()
+
+        cls._application.exitQgis()
+
+        shutil.rmtree(cls.QGIS_AUTH_DB_DIR_PATH)
+        shutil.rmtree(cls.QGIS_CUSTOM_CONFIG_PATH)
+
+        for temp_file in Path(tempfile.gettempdir()).glob(
+            f"{cls.APPLICATION_NAME}*"
+        ):
+            if temp_file.is_dir():
+                shutil.rmtree(str(temp_file))
+            else:
+                temp_file.unlink(missing_ok=True)
+
         super().tearDownClass()
+
+    @classmethod
+    def create_temp_file(cls, suffix: str = "") -> Path:
+        path = Path(
+            tempfile.mktemp(prefix=f"{cls.APPLICATION_NAME}-", suffix=suffix)
+        )
+        return path
 
     @staticmethod
     def data_path(test_data: TestData) -> Path:
@@ -183,8 +211,3 @@ class NgConnectTestCase(QgisTestCase):
         cls._connections_id[TestConnection.SandboxWithLogin] = (
             basic_connection_id
         )
-
-    @staticmethod
-    def gpkg_cleanup(path: Path) -> None:
-        for file in path.parent.glob(f"{path.name}*"):
-            file.unlink(missing_ok=True)

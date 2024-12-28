@@ -2,11 +2,22 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
+from typing import Optional, Tuple
 
-# isort: off
-from qgis.core import QgsVectorFileWriter, QgsProject, QgsVectorLayer
-# isort: on
+from qgis.core import (
+    QgsField,
+    QgsFields,
+    QgsProject,
+    QgsVectorFileWriter,
+    QgsVectorLayer,
+    edit,
+)
 
+from nextgis_connect.compat import FieldType
+from nextgis_connect.detached_editing.utils import (
+    container_metadata,
+    detached_layer_uri,
+)
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
@@ -16,19 +27,20 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnectionsManager
 
-# TODO (ivanbarsukov): rename in v3.0
-
 
 class DetachedLayerFactory:
-    def create_container(
+    def create_initial_container(
         self, ngw_layer: NGWVectorLayer, container_path: Path
     ) -> None:
         container_type = (
-            "initial" if ngw_layer.is_versioning_enabled else "stub"
+            "with versioning"
+            if ngw_layer.is_versioning_enabled
+            else "without versioning"
         )
         logger.debug(
-            f"<b>Start creating {container_type} container</b> for layer "
-            f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
+            "<b>Start creating initial container</b> for layer "
+            + container_type
+            + f' "{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
         )
         try:
             self.__create_container(ngw_layer, container_path)
@@ -55,24 +67,30 @@ class DetachedLayerFactory:
         else:
             logger.debug("Container successfuly created")
 
-    def update_container(
-        self, ngw_layer: NGWVectorLayer, container_path: Path
+    def fill_container(
+        self,
+        ngw_layer: NGWVectorLayer,
+        *,
+        source_path: Path,
+        container_path: Path,
     ) -> None:
         logger.debug(
-            f"<b>Start updating container</b> for layer "
+            f"<b>Start filling container</b> for layer "
             f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
         )
 
         try:
-            self.__check_fields(ngw_layer, container_path)
+            fid_field = container_metadata(container_path).fid_field
+            self.__check_fields(ngw_layer, source_path, fid_field=fid_field)
+            self.__check_fields(ngw_layer, container_path, fid_field=fid_field)
+
+            self.__copy_features(source_path, container_path)
 
             with closing(
                 sqlite3.connect(str(container_path))
             ) as connection, closing(connection.cursor()) as cursor:
-                self.__initialize_container_settings(cursor)
-                self.__create_container_tables(cursor)
-                self.__insert_metadata(ngw_layer, cursor, is_update=True)
                 self.__insert_ngw_ids(cursor)
+                self.__update_sync_date(cursor)
 
                 connection.commit()
 
@@ -100,10 +118,15 @@ class DetachedLayerFactory:
         options.driverName = "GPKG"
         options.layerName = ngw_layer.display_name
         options.fileEncoding = "UTF-8"
+        fid_field, fields = self.__prepare_fields(ngw_layer.qgs_fields)
+        options.layerOptions = [
+            *QgsVectorFileWriter.defaultDatasetOptions("GPKG"),
+            f"FID={fid_field}",
+        ]
 
         writer = QgsVectorFileWriter.create(
             fileName=str(container_path),
-            fields=ngw_layer.qgs_fields,
+            fields=fields,
             geometryType=ngw_layer.wkb_geom_type,
             transformContext=project.transformContext(),
             srs=ngw_layer.qgs_srs,
@@ -214,8 +237,6 @@ class DetachedLayerFactory:
         self,
         ngw_layer: NGWVectorLayer,
         cursor: sqlite3.Cursor,
-        *,
-        is_update: bool = False,
     ) -> None:
         if ngw_layer.geom_name is None:
             pass
@@ -242,8 +263,6 @@ class DetachedLayerFactory:
         if ngw_layer.is_versioning_enabled:
             metadata["epoch"] = str(ngw_layer.epoch)
             metadata["version"] = str(ngw_layer.version)
-        elif is_update:
-            metadata["sync_date"] = f"'{datetime.now().isoformat()}'"
 
         fields_name = ", ".join(metadata.keys())
         values = ", ".join(metadata.values())
@@ -279,33 +298,82 @@ class DetachedLayerFactory:
             fields_tuple_generator,
         )
 
-    def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:
-        cursor.execute(
-            """
-            SELECT table_name FROM gpkg_contents
-            WHERE data_type='features'
-            """
+    def __copy_features(
+        self,
+        source_path: Path,
+        container_path: Path,
+    ) -> None:
+        source_layer = QgsVectorLayer(
+            detached_layer_uri(source_path), "", "ogr"
         )
-        table_name = cursor.fetchone()[0]
+        target_layer = QgsVectorLayer(
+            detached_layer_uri(container_path), "", "ogr"
+        )
+
+        try:
+            with edit(target_layer):
+                for feature in source_layer.getFeatures():  # type: ignore
+                    feature.setId(-1)
+                    target_layer.addFeature(feature)
+
+        except Exception as error:
+            ng_error = ContainerError(log_message="Features was not copied")
+            ng_error.add_note("Layer error: " + target_layer.lastError())
+            raise ng_error from error
+
+    def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:
+        metadata = container_metadata(cursor)
+        table_name = metadata.table_name
+        fid_field = metadata.fid_field
         cursor.execute(
             f"""
             INSERT INTO ngw_features_metadata
-                SELECT fid, fid, NULL, NULL FROM '{table_name}'
+                SELECT {fid_field}, {fid_field}, NULL, NULL FROM '{table_name}'
             """
         )
 
+    def __update_sync_date(self, cursor: sqlite3.Cursor) -> None:
+        cursor.execute(
+            f"UPDATE ngw_metadata SET sync_date='{datetime.now().isoformat()}'"
+        )
+
     def __check_fields(
-        self, ngw_layer: NGWVectorLayer, container_path: Path
+        self,
+        ngw_layer: NGWVectorLayer,
+        container_path: Path,
+        *,
+        fid_field: Optional[str] = None,
     ) -> None:
-        layer = QgsVectorLayer(str(container_path), "", "ogr")
+        layer = QgsVectorLayer(detached_layer_uri(container_path), "", "ogr")
         if not layer.isValid():
             message = "Container is not valid"
             code = ErrorCode.ContainerIsInvalid
             raise ContainerError(message, code=code)
 
-        fid_field = layer.fields().at(layer.primaryKeyAttributes()[0]).name()
+        if fid_field is None:
+            fid_field = (
+                layer.fields().at(layer.primaryKeyAttributes()[0]).name()
+            )
+
         if not ngw_layer.fields.is_compatible(
             layer.fields(), fid_field=fid_field
         ):
             code = ErrorCode.ContainerFieldsMismatch
             raise ContainerError(code=code)
+
+    def __prepare_fields(self, fields: QgsFields) -> Tuple[str, QgsFields]:
+        FID_PREFIX = "fid"
+        fid_field = FID_PREFIX
+        index = 0
+
+        result_fields = QgsFields()
+        while fields.indexOf(fid_field) != -1:
+            index += 1
+            fid_field = f"{FID_PREFIX}_{index}"
+
+        result_fields.append(QgsField(fid_field, FieldType.LongLong))
+
+        for field in fields.toList():
+            result_fields.append(field)
+
+        return fid_field, result_fields

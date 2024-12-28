@@ -1,4 +1,3 @@
-import shutil
 import sqlite3
 import tempfile
 import urllib.parse
@@ -15,8 +14,6 @@ from nextgis_connect.detached_editing.utils import (
     container_metadata,
 )
 from nextgis_connect.exceptions import (
-    ContainerError,
-    ErrorCode,
     SynchronizationError,
 )
 from nextgis_connect.logging import logger
@@ -30,7 +27,7 @@ from nextgis_connect.tasks.detached_editing.detached_editing_task import (
 )
 
 
-class DownloadGpkgTask(DetachedEditingTask):
+class FillLayerWithoutVersioningTask(DetachedEditingTask):
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
         if self._error is not None:
@@ -52,9 +49,11 @@ class DownloadGpkgTask(DetachedEditingTask):
         self.__temp_path = Path(tempfile.mktemp(suffix=".gpkg"))
 
         try:
-            self.__download_layer()
-            self.__download_extensions()
-            self.__replace_container()
+            connection_id = self._metadata.connection_id
+            ngw_connection = QgsNgwConnection(connection_id)
+
+            self.__download_layer(ngw_connection)
+            self.__copy_features(ngw_connection)
 
         except SynchronizationError as error:
             self._error = error
@@ -74,15 +73,14 @@ class DownloadGpkgTask(DetachedEditingTask):
 
         return True
 
-    def __download_layer(self) -> None:
-        connection_id = self._metadata.connection_id
+    def __download_layer(self, ngw_connection: QgsNgwConnection) -> None:
         resource_id = self._metadata.resource_id
         srs_id = self._metadata.srs_id
 
         export_params = {
             "format": "GPKG",
             "srs": srs_id,
-            "fid": "",
+            "fid": self._metadata.fid_field,
             "zipped": "false",
         }
         export_url = (
@@ -90,17 +88,19 @@ class DownloadGpkgTask(DetachedEditingTask):
             + urllib.parse.urlencode(export_params)
         )
 
-        ngw_connection = QgsNgwConnection(connection_id)
-        resources_factory = NGWResourceFactory(ngw_connection)
-        ngw_layer = resources_factory.get_resource(resource_id)
-
         logger.debug("Downloading layer")
         ngw_connection.download(export_url, str(self.__temp_path))
         logger.debug("Downloading completed")
 
+    def __copy_features(self, ngw_connection: QgsNgwConnection) -> None:
+        resources_factory = NGWResourceFactory(ngw_connection)
+        ngw_layer = resources_factory.get_resource(self._metadata.resource_id)
+
         detached_factory = DetachedLayerFactory()
-        detached_factory.update_container(
-            cast(NGWVectorLayer, ngw_layer), self.__temp_path
+        detached_factory.fill_container(
+            cast(NGWVectorLayer, ngw_layer),
+            source_path=self.__temp_path,
+            container_path=self._container_path,
         )
 
     def __download_extensions(self) -> None:
@@ -138,12 +138,3 @@ class DownloadGpkgTask(DetachedEditingTask):
             connection.commit()
 
         logger.debug("Features extensions added")
-
-    def __replace_container(self) -> None:
-        try:
-            shutil.move(str(self.__temp_path), str(self._container_path))
-        except Exception as error:
-            message = "Can't replace stub file"
-            raise ContainerError(
-                message, code=ErrorCode.ContainerCreationError
-            ) from error

@@ -193,7 +193,8 @@ class DetachedEditingTask(NgConnectTask):
                 for row in cursor.execute(
                     f"PRAGMA table_info('{self._metadata.table_name}')"
                 )
-                if row[1] not in ("fid", "geom")
+                if row[1]
+                not in (self._metadata.fid_field, self._metadata.geom_field)
             )
 
         return any(

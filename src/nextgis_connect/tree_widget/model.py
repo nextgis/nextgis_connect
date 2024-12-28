@@ -227,7 +227,7 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
             gpkg_path = (
                 instance_cache_path / f"{ngw_resource.resource_id}.gpkg"
             )
-            detached_factory.create_container(ngw_resource, gpkg_path)
+            detached_factory.create_initial_container(ngw_resource, gpkg_path)
 
 
 class NgwSearch(NGWResourceModelJob):
