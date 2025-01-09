@@ -101,6 +101,21 @@ class NgConnectSettings:
         self.__settings.endGroup()
 
     @property
+    def upload_vector_with_versioning(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/vectorWithVersioning", defaultValue=False, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @upload_vector_with_versioning.setter
+    def upload_vector_with_versioning(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/vectorWithVersioning", value)
+        self.__settings.endGroup()
+
+    @property
     def open_web_map_after_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(

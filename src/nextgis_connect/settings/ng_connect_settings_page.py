@@ -9,7 +9,7 @@ from qgis.gui import (
     QgsOptionsWidgetFactory,
 )
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import Qt, pyqtSlot
+from qgis.PyQt.QtCore import QSize, Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QComboBox,
@@ -88,6 +88,23 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.connections_widget = NgwConnectionsWidget(self.__widget)
         self.__widget.connectionsGroupBox.layout().addWidget(
             self.connections_widget
+        )
+
+        icon_path = Path(__file__).parents[1] / "icons" / "experimental.svg"
+        warning_icon = QIcon(str(icon_path))
+        size = int(
+            max(18.0, self.__widget.versioningCheckBox.minimumSize().height())
+        )
+        pixmap = warning_icon.pixmap(
+            warning_icon.actualSize(QSize(size, size))
+        )
+
+        self.__widget.versioningIcon.setPixmap(pixmap)
+        self.__widget.versioningIcon.setToolTip(
+            self.tr(
+                "Experimental feature. Some operations may not work if feature"
+                " versioning is enabled."
+            )
         )
 
         unit = self.tr("GiB")
@@ -196,6 +213,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             settings.open_web_map_after_creation
         )
         self.__widget.cogCheckBox.setChecked(settings.upload_raster_as_cog)
+        self.__widget.versioningCheckBox.setChecked(
+            settings.upload_vector_with_versioning
+        )
 
     def __init_resources_settings(self, settings: NgConnectSettings) -> None:
         self.__widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
@@ -407,6 +427,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
         settings.upload_raster_as_cog = self.__widget.cogCheckBox.isChecked()
+        settings.upload_vector_with_versioning = (
+            self.__widget.versioningCheckBox.isChecked()
+        )
 
         settings.open_web_map_after_creation = (
             self.__widget.openWebMapAfterCreationCheckBox.isChecked()
