@@ -26,6 +26,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
+from nextgis_connect.exceptions import ErrorCode, NgwError
 from nextgis_connect.logging import logger
 
 from .ngw_connection import NgwConnection
@@ -264,7 +265,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 self.authWidget.configId()
             )
 
-            endpoint = NGAccess.instance().endPoint()
+            endpoint = NGAccess.instance().endPoint()  # type: ignore
             domain = urlparse(endpoint).netloc
             is_my = method == "NextGIS" and domain.startswith("my.nextgis")
 
@@ -285,17 +286,19 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     def __send_test_request(self):
         self.__lock_gui()
 
-        test_connection = NgwConnection(
+        self.__temp_connection = NgwConnection(
             str(uuid.uuid4()),
             "TEST_CONNECTION",
             self.__make_valid_url(self.urlLineEdit.text()),
             self.authWidget.configId(),
         )
 
-        url = urljoin(test_connection.url, "api/component/auth/current_user")
+        url = urljoin(
+            self.__temp_connection.url, "api/component/auth/current_user"
+        )
         request = QNetworkRequest(QUrl(url))
         try:
-            test_connection.update_network_request(request)
+            self.__temp_connection.update_network_request(request)
         except Exception:
             self.messageBar.clearWidgets()
             self.messageBar.pushMessage(
@@ -312,20 +315,46 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.__reply = self.__network_manager.get(request)
         assert self.__reply is not None
         self.__timer.timeout.connect(self.__reply.abort)
-        self.__reply.finished.connect(self.__process_test_reply)
+        self.__reply.finished.connect(self.__process_test_instance_reply)
         self.__timer.start()
 
-    def __process_test_reply(self):
+    def __process_test_instance_reply(self):
         assert self.__timer is not None
         assert self.__reply is not None
 
         is_timeout = not self.__timer.isActive()
-        if not is_timeout:
-            self.__timer.stop()
+        self.__timer.stop()
         self.__timer = None
 
         if self.__reply.error() != QNetworkReply.NetworkError.NoError:
             self.__process_request_error(is_timeout)
+            self.__reply = None
+            return
+
+        url = urljoin(self.__temp_connection.url, "api/resource/0")
+        request = QNetworkRequest(QUrl(url))
+        self.__temp_connection.update_network_request(request)
+
+        self.__timer = QTimer(self)
+        self.__timer.setSingleShot(True)
+        self.__timer.setInterval(15000)
+
+        self.__reply = self.__network_manager.get(request)
+        assert self.__reply is not None
+        self.__timer.timeout.connect(self.__reply.abort)
+        self.__reply.finished.connect(self.__process_test_user_reply)
+        self.__timer.start()
+
+    def __process_test_user_reply(self):
+        assert self.__timer is not None
+        assert self.__reply is not None
+
+        is_timeout = not self.__timer.isActive()
+        self.__timer.stop()
+        self.__timer = None
+
+        if self.__reply.error() != QNetworkReply.NetworkError.NoError:
+            self.__process_request_error(is_timeout, True)
             self.__reply = None
             return
 
@@ -344,25 +373,48 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__reply = None
 
-    def __process_request_error(self, is_timeout: bool = False):
+    def __process_request_error(
+        self, is_timeout: bool = False, is_user_check: bool = False
+    ):
         assert self.__reply is not None
 
         self.__is_save_clicked = False
 
         message_title = self.tr("Connection failed")
         message = None
+
         if is_timeout:
             message = self.tr("Request timeout")
         else:
-            content = bytes(self.__reply.readAll())
+            error = None
+
+            content = self.__reply.readAll().data()
             if len(content) > 0:
                 try:
                     json_content = json.loads(content)
-                    message = json_content.get("title", None)
+                    error = NgwError.from_json(json_content)
                 except Exception:
                     logger.exception(
                         "An error occured while testing connection"
                     )
+
+            if error is not None:
+                if not is_user_check:
+                    message = error.user_message
+                elif error.code != ErrorCode.PermissionsError:
+                    message = error.user_message
+                    logger.exception(
+                        "An error occured while testing connection",
+                        exc_info=error,
+                    )
+                else:
+                    message = self.tr("Web GIS access was not granted for the")
+                    if not self.__temp_connection.auth_config_id:
+                        message += self.tr(" guest users.")
+                    else:
+                        message += self.tr(
+                            " selected authentication parameters."
+                        )
 
         arguments = (
             (message_title,) if message is None else (message_title, message)
