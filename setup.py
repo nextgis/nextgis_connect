@@ -615,9 +615,19 @@ class QgisPluginBuilder:
         launch_file = self.current_directory / ".vscode" / "launch.json"
 
         launch_content = {}
+        need_fill = True
         if launch_file.exists():
-            launch_content = json.loads(self.__read_json(launch_file))
-        else:
+            try:
+                launch_content = json.loads(self.__read_json(launch_file))
+                need_fill = False
+            except Exception:
+                print(
+                    f"An error occured while reading {launch_file}. This file"
+                    " will be overwrited"
+                )
+                pass
+
+        if need_fill:
             launch_content["version"] = "0.2.0"
             launch_content["configurations"] = []
 
@@ -775,7 +785,9 @@ class QgisPluginBuilder:
 
     def __read_json(self, json_path: Path) -> str:
         text = json_path.read_text()
-        return re.sub(r",(\s*)(\]|\})", r"\1\2", text, flags=re.MULTILINE)
+        text = re.sub(r",(\s*)(\]|\})", r"\1\2", text, flags=re.MULTILINE)
+        text = re.sub(r"^(\s*)\/\/.*\n", r"", text, flags=re.MULTILINE)
+        return text
 
 
 def create_parser():
