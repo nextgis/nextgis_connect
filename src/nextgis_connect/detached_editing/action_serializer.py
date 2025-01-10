@@ -1,7 +1,7 @@
 import json
 from typing import Any, ClassVar, Dict, Iterable, List, Type, Union
 
-from qgis.PyQt.QtCore import QDate, QDateTime, QTime
+from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime
 
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
 from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
@@ -166,6 +166,9 @@ class ActionSerializer:
     def __serialize_date_and_time(
         self, date_object: Union[QDateTime, QDate, QTime]
     ) -> Any:
+        if self.__layer_metadata.is_versioning_enabled:
+            return date_object.toString(Qt.DateFormat.ISODate)
+
         date = None
         time = None
         if isinstance(date_object, QDateTime):
@@ -186,7 +189,5 @@ class ActionSerializer:
             result["hour"] = time.hour()
             result["minute"] = time.minute()
             result["second"] = time.second()
-
-        # return date_object.toString(Qt.DateFormat.ISODate)
 
         return result
