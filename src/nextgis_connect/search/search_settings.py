@@ -21,6 +21,14 @@ class SearchSettings:
 
     @property
     def last_used_type(self) -> SearchType:
+        is_developer_mode = self.__settings.value(
+            "NextGIS/Connect/other/developerMode",
+            defaultValue=False,
+            type=bool,
+        )
+        if not is_developer_mode:
+            return SearchType.ByDisplayName
+
         return SearchType(
             self.__settings.value(
                 self.__group + "/lastUsedType", str(SearchType.ByDisplayName)
