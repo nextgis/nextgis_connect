@@ -44,7 +44,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import LayerType
 from nextgis_connect.detached_editing import DetachedEditing
-from nextgis_connect.exceptions import NgConnectError
+from nextgis_connect.exceptions import NgConnectError, NgConnectWarning
 from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -226,7 +226,13 @@ class NgConnectPlugin(NgConnectInterface):
             button.pressed.connect(contact_us)
             widget.layout().addWidget(button)
 
-        message_bar.pushWidget(widget, Qgis.MessageLevel.Critical)
+        level = (
+            Qgis.MessageLevel.Critical
+            if not isinstance(error, NgConnectWarning)
+            else Qgis.MessageLevel.Warning
+        )
+
+        message_bar.pushWidget(widget, level)
 
         logger.exception(error.log_message, exc_info=error)
 

@@ -22,7 +22,7 @@ class ErrorCode(IntEnum):
     PermissionsError = 403
     NotFound = 404
 
-    AddingError = 497
+    AddingError = 480
     UnsupportedRasterType = 497
     InvalidResource = 498
     InvalidConnection = 499
@@ -34,6 +34,8 @@ class ErrorCode(IntEnum):
 
     ContainerError = 1100
     ContainerCreationError = auto()
+    ContainerIsInvalid = auto()
+    ContainerFieldsMismatch = auto()
     ContainerVersionIsOutdated = auto()
     DeletedContainer = auto()
     NotCompletedFetch = auto()
@@ -45,6 +47,8 @@ class ErrorCode(IntEnum):
     EpochChanged = auto()
     VersioningEnabled = auto()
     VersioningDisabled = auto()
+
+    PluginWarning = 10000
 
     @property
     def is_plugin_error(self) -> bool:
@@ -157,7 +161,17 @@ class NgConnectError(NgConnectException):
 
 
 class NgConnectWarning(NgConnectException):
-    pass
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        code: ErrorCode = ErrorCode.PluginWarning,
+    ) -> None:
+        super().__init__(
+            log_message, user_message=user_message, detail=detail, code=code
+        )
 
 
 class NgwError(NgConnectError):
