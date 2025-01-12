@@ -26,7 +26,7 @@ from .tree_widget import QNGWResourceItem
 
 
 class NGWResourcesTreeView(QTreeView):
-    itemDoubleClicked = pyqtSignal(object)
+    itemDoubleClicked = pyqtSignal(QModelIndex)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -35,8 +35,15 @@ class NGWResourcesTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         header = self.header()
-        header.setStretchLastSection(False)
+        header.setStretchLastSection(True)
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
+
+    def mouseDoubleClickEvent(self, e):
+        index = self.indexAt(e.pos())
+        if index.isValid():
+            self.itemDoubleClicked.emit(index)
+
+        super().mouseDoubleClickEvent(e)
 
 
 class StyleFilterProxyModel(QSortFilterProxyModel):
@@ -84,6 +91,8 @@ class NGWLayerStyleChooserDialog(QDialog):
         )
         self.btn_box.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
         self.__layout.addWidget(self.btn_box)
+
+        self.tree.itemDoubleClicked.connect(self.accept)
 
         self.validate()
 
