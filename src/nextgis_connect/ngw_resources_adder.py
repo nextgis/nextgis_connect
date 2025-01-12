@@ -388,7 +388,7 @@ class NgwResourcesAdder(QObject):
 
         layer.setName(ngw_resource.display_name)
 
-        self.__add_all_styles_to_layer(ngw_resource, layer)
+        self.__add_all_styles_to_layer(layer_index, layer)
         if isinstance(ngw_resource, NGWAbstractVectorResource):
             assert isinstance(layer, QgsVectorLayer)
             self.__add_fields_aliases(ngw_resource, layer)
