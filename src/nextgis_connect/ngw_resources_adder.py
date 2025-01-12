@@ -24,7 +24,12 @@ from qgis.utils import iface
 
 from nextgis_connect.detached_editing.utils import detached_layer_uri
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
-from nextgis_connect.exceptions import ErrorCode, NgConnectError, NgwError
+from nextgis_connect.exceptions import (
+    ErrorCode,
+    NgConnectError,
+    NgConnectWarning,
+    NgwError,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import (
@@ -34,6 +39,7 @@ from nextgis_connect.ngw_api.core import (
     NGWPostgisLayer,
     NGWQGISStyle,
     NGWRasterLayer,
+    NGWRasterMosaic,
     NGWResource,
     NGWVectorLayer,
     NGWWebMap,
@@ -188,6 +194,7 @@ class NgwResourcesAdder(QObject):
     __skip_wfs_with_z: Optional[bool]
     __skipped_resources: Set[InsertionId]
     __insertion_stack: List[InsertionPoint]
+    __warnings: List[NgConnectWarning]
 
     def __init__(
         self,
@@ -215,6 +222,7 @@ class NgwResourcesAdder(QObject):
         self.__skipped_resources = set()
         self.__insertion_stack = []
         self.__insertion_stack.append(insertion_point)
+        self.__warnings = []
 
     def missing_resources(self) -> Tuple[bool, List[int]]:
         """Extract resources needed for layers to add to QGIS"""
@@ -260,6 +268,10 @@ class NgwResourcesAdder(QObject):
             logger.debug(f"{len(result)} styles will be downloaded")
 
         return (True, result)
+
+    @property
+    def warnings(self) -> List[NgConnectWarning]:
+        return self.__warnings
 
     def run(self) -> bool:
         indices = self.__indices
@@ -890,6 +902,11 @@ class NgwResourcesAdder(QObject):
             assert style_resource is not None
             params = self.__collect_params_for_layer_resource(style_resource)
 
+        elif isinstance(layer_resource, NGWRasterMosaic):
+            assert webmap_layer.style_parent_id is not None
+            self.__skipped_resources.add(webmap_layer.style_parent_id)
+            return
+
         else:
             error = NgConnectError(
                 "Unsupported resources", code=ErrorCode.AddingError
@@ -988,8 +1005,19 @@ class NgwResourcesAdder(QObject):
         connection = connections_manager.connection(raster_layer.connection_id)
         assert connection is not None
         if connection.method not in ("", "Basic"):
-            logger.warning(f'Layer "{raster_layer.display_name}" was skipped')
             self.__skipped_resources.add(raster_layer.resource_id)
+
+            user_message = self.tr(
+                f'Layer "{raster_layer.display_name}" was not added to the map'
+            )
+            detail = self.tr(
+                "Currently adding raster layers is not available for OAuth"
+                " connections. Please use Basic authentication."
+            )
+            self.__warnings.append(
+                NgConnectWarning(user_message=user_message, detail=detail)
+            )
+            logger.warning(user_message)
             return ("", "", "")
 
         return raster_layer.layer_params
