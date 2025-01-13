@@ -28,6 +28,10 @@ class DetachedEditingPathPreprocessor:
         return path
 
     def __create_container_if_needed(self, path: str) -> None:
+        path = path.split("|")[0]
+        if not path.endswith(".gpkg"):
+            return
+
         cache_directory = Path(NgConnectCacheManager().cache_directory)
         layer_path = self.__absolute_layer_path(path)
 
