@@ -12,19 +12,28 @@ email=info@nextgis.com
 
 tags=nextgis, web, tool, server
 
-homepage=https://github.com/nextgis/qgis_wurman_dots
-tracker=https://github.com/nextgis/qgis_wurman_dots/issues
-repository=https://github.com/nextgis/qgis_wurman_dots
+homepage=https://github.com/nextgis/nextgis_connect
+tracker=https://github.com/nextgis/nextgis_connect/issues
+repository=https://github.com/nextgis/nextgis_connect
 icon=icons/connect_logo.svg
 experimental=False
 deprecated=False
 
 changelog=
 	2.5.0
-		* Added search
-		* Add the ability to update layer style by layer
-		* Cache clearing optimization
+		* Added resource search functionality
+		* Added restoration of layers that were deleted from the cache
+		* Added the ability to update layer style for the selected layer resource
+		* Added support for uploading vector layers with feature versioning enabled (experimental)
+		* Added user permissions checks during connection creation
+		* Added style selection on double-click in the style selection dialog
+		* Optimized cache clearing process
 		* Enhance network error logging
+		* Fixed issues with detached layers using the FID field
+		* Fixed extent calculation errors
+		* Fixed resource counter inaccuracies for quota checks
+		* Fixed QML style cache updates
+		* Fixed style selection functionality
 		! Supported NGW versions: 4.8.0 - 5.1.0
 	2.4.0
 		* Updated NGW version
