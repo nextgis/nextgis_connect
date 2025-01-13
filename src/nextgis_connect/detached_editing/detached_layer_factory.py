@@ -67,7 +67,9 @@ class DetachedLayerFactory:
             raise ContainerError(message, code=code) from error
 
         else:
-            logger.debug("Container successfuly created")
+            logger.debug(
+                "Container successfully created and filled with metadata"
+            )
 
     def fill_container(
         self,
@@ -106,7 +108,7 @@ class DetachedLayerFactory:
 
         else:
             logger.debug(
-                f'Container for layer "{ngw_layer.display_name}" successfuly '
+                f'Container for layer "{ngw_layer.display_name}" successfully '
                 "updated"
             )
 

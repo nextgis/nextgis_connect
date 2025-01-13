@@ -5,6 +5,7 @@ from qgis.core import (
     QgsLayerTreeLayer,
     QgsLayerTreeNode,
     QgsMapLayer,
+    QgsPathResolver,
     QgsProject,
     QgsVectorLayer,
 )
@@ -12,6 +13,9 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
+from nextgis_connect.detached_editing.path_preprocessor import (
+    DetachedEditingPathPreprocessor,
+)
 from nextgis_connect.logging import logger
 from nextgis_connect.settings import NgConnectSettings
 
@@ -29,6 +33,9 @@ class DetachedEditing(QObject):
 
     __timer: QTimer
     __properties_factory: DetachedLayerConfigWidgetFactory
+
+    __path_preprocessor: DetachedEditingPathPreprocessor
+    __path_preprocessor_id: str
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -55,6 +62,11 @@ class DetachedEditing(QObject):
         root.addedChildren.connect(self.__on_added_children)
         root.willRemoveChildren.connect(self.__on_will_remove_children)
 
+        self.__path_preprocessor = DetachedEditingPathPreprocessor()
+        self.__path_preprocessor_id = QgsPathResolver.setPathPreprocessor(
+            self.__path_preprocessor  # type: ignore
+        )
+
         QTimer.singleShot(0, self.__setup_layers)
 
     def unload(self) -> None:
@@ -67,6 +79,8 @@ class DetachedEditing(QObject):
 
         for container in containers:
             container.clear()
+
+        QgsPathResolver.removePathPreprocessor(self.__path_preprocessor_id)
 
         iface.unregisterMapLayerConfigWidgetFactory(self.__properties_factory)
         del self.__properties_factory
