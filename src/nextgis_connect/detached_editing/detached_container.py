@@ -320,7 +320,10 @@ class DetachedContainer(QObject):
             resource_id = self.__property("ngw_resource_id")
 
         if connection_id is None or resource_id is None:
-            logger.error("Can't force synchronization")
+            error = NgConnectException(
+                "An error occured while resetting layer. Empty ids"
+            )
+            NgConnectInterface.instance().show_error(error)
             return
 
         connections_manager = NgwConnectionsManager()
@@ -329,7 +332,20 @@ class DetachedContainer(QObject):
         ngw_connection = QgsNgwConnection(connection_id)
 
         resources_factory = NGWResourceFactory(ngw_connection)
-        ngw_layer = resources_factory.get_resource(resource_id)
+        try:
+            ngw_layer = resources_factory.get_resource(resource_id)
+        except Exception as error:
+            ng_error = SynchronizationError(code=ErrorCode.NetworkError)
+            ng_error.__cause__ = error
+
+            self.__error = ng_error
+            self.__state = DetachedLayerState.Error
+            self.__versioning_state = VersioningSynchronizationState.Error
+            self.__additional_data_fetch_date = None
+
+            NgConnectInterface.instance().show_error(ng_error)
+            return
+
         assert isinstance(ngw_layer, NGWVectorLayer)
 
         # Create stub
@@ -342,18 +358,20 @@ class DetachedContainer(QObject):
                 ngw_layer, Path(temp_file_path)
             )
         except ContainerError as error:
-            logger.exception("Failed to force synchronization")
             self.__error = error
             self.__state = DetachedLayerState.Error
             self.__versioning_state = VersioningSynchronizationState.Error
             self.__additional_data_fetch_date = None
 
+            NgConnectInterface.instance().show_error(error)
+            return
+
         # Replace container with stub
 
         try:
-            shutil.move(str(temp_file_path), str(self.path))
-            for service_file in self.path.parent.glob(f"{self.path.name}-*"):
+            for service_file in self.path.parent.glob(f"{self.path.name}*"):
                 service_file.unlink(missing_ok=True)
+            shutil.move(str(temp_file_path), str(self.path))
 
         except Exception as os_error:
             message = "Can't replace stub file"
@@ -362,7 +380,14 @@ class DetachedContainer(QObject):
             )
             error.__cause__ = os_error
 
+            self.__error = error
+            self.__state = DetachedLayerState.Error
+            self.__versioning_state = VersioningSynchronizationState.Error
+            self.__additional_data_fetch_date = None
+
             NgConnectInterface.instance().show_error(error)
+
+            return
 
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized

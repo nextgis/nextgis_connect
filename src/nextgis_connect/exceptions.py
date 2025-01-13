@@ -41,6 +41,8 @@ class ErrorCode(IntEnum):
     NotCompletedFetch = auto()
     LayerEditError = auto()
 
+    NetworkError = auto()
+
     SynchronizationError = 1200
     NotVersionedContentChanged = auto()
     DomainChanged = auto()
