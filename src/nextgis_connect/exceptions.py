@@ -4,7 +4,7 @@ from functools import lru_cache
 from http import HTTPStatus
 from typing import Any, Dict, Optional
 
-from qgis.core import QgsApplication
+from qgis.core import QgsApplication, QgsEditError
 
 
 class ErrorCode(IntEnum):
@@ -39,6 +39,7 @@ class ErrorCode(IntEnum):
     ContainerVersionIsOutdated = auto()
     DeletedContainer = auto()
     NotCompletedFetch = auto()
+    LayerEditError = auto()
 
     SynchronizationError = 1200
     NotVersionedContentChanged = auto()
@@ -285,6 +286,63 @@ class ContainerError(DetachedEditingError):
         super().__init__(
             log_message, user_message=user_message, detail=detail, code=code
         )
+
+
+class LayerEditError(DetachedEditingError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        code: ErrorCode = ErrorCode.LayerEditError,
+    ) -> None:
+        super().__init__(
+            log_message, user_message=user_message, detail=detail, code=code
+        )
+
+    @staticmethod
+    def from_qgis_error(
+        error: QgsEditError,
+        *,
+        log_message: Optional[str] = None,
+    ) -> "LayerEditError":
+        ng_error = LayerEditError(
+            log_message="Layer edit error"
+            if log_message is None
+            else log_message
+        )
+
+        layer_errors = []
+        provider_errors = []
+        layer_errors_added = False
+
+        ERROR_PREFIX = "ERROR:"
+
+        for error_message in error.args[0]:
+            if "Provider errors" in error_message:
+                layer_errors_added = True
+                continue
+
+            error_message: str = error_message.strip()
+
+            if error_message.startswith(ERROR_PREFIX):
+                error_message = error_message[len(ERROR_PREFIX) :].strip()
+
+            if layer_errors_added:
+                provider_errors.append(error_message)
+            else:
+                layer_errors.append(error_message)
+
+        if len(layer_errors) > 0:
+            ng_error.add_note("Layer errors: " + "\n  - ".join(layer_errors))
+
+        if len(provider_errors) > 0:
+            ng_error.add_note(
+                "Provider errors: " + "\n  - ".join(provider_errors)
+            )
+
+        return ng_error
 
 
 class SynchronizationError(DetachedEditingError):

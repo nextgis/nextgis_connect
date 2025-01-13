@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 from qgis.core import (
+    QgsEditError,
     QgsField,
     QgsFields,
     QgsProject,
@@ -21,6 +22,7 @@ from nextgis_connect.detached_editing.utils import (
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
+    LayerEditError,
     NgConnectError,
 )
 from nextgis_connect.logging import logger
@@ -316,9 +318,13 @@ class DetachedLayerFactory:
                     feature.setId(-1)
                     target_layer.addFeature(feature)
 
+        except QgsEditError as error:
+            raise LayerEditError.from_qgis_error(
+                error, log_message="Features was not copied"
+            ) from None
+
         except Exception as error:
             ng_error = ContainerError(log_message="Features was not copied")
-            ng_error.add_note("Layer error: " + target_layer.lastError())
             raise ng_error from error
 
     def __insert_ngw_ids(self, cursor: sqlite3.Cursor) -> None:
