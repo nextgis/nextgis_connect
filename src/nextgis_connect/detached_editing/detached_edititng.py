@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, cast
 
 from qgis.core import (
+    Qgis,
     QgsLayerTreeLayer,
     QgsLayerTreeNode,
     QgsMapLayer,
@@ -13,6 +14,7 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
+from nextgis_connect.compat import QGIS_3_34
 from nextgis_connect.detached_editing.path_preprocessor import (
     DetachedEditingPathPreprocessor,
 )
@@ -34,8 +36,8 @@ class DetachedEditing(QObject):
     __timer: QTimer
     __properties_factory: DetachedLayerConfigWidgetFactory
 
-    __path_preprocessor: DetachedEditingPathPreprocessor
-    __path_preprocessor_id: str
+    __path_preprocessor: Optional[DetachedEditingPathPreprocessor]
+    __path_preprocessor_id: Optional[str]
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -62,10 +64,19 @@ class DetachedEditing(QObject):
         root.addedChildren.connect(self.__on_added_children)
         root.willRemoveChildren.connect(self.__on_will_remove_children)
 
-        self.__path_preprocessor = DetachedEditingPathPreprocessor()
-        self.__path_preprocessor_id = QgsPathResolver.setPathPreprocessor(
-            self.__path_preprocessor  # type: ignore
-        )
+        self.__path_preprocessor = None
+        self.__path_preprocessor_id = None
+        if Qgis.versionInt() // 100 * 100 == QGIS_3_34:
+            # BUG in QGIS 3.34: https://github.com/qgis/QGIS/issues/58112
+            logger.warning(
+                "There is a bug in QGIS 3.34. Restoration of layers will be"
+                " disabled"
+            )
+        else:
+            self.__path_preprocessor = DetachedEditingPathPreprocessor()
+            self.__path_preprocessor_id = QgsPathResolver.setPathPreprocessor(
+                self.__path_preprocessor  # type: ignore
+            )
 
         QTimer.singleShot(0, self.__setup_layers)
 
@@ -80,7 +91,9 @@ class DetachedEditing(QObject):
         for container in containers:
             container.clear()
 
-        QgsPathResolver.removePathPreprocessor(self.__path_preprocessor_id)
+        if self.__path_preprocessor_id is not None:
+            QgsPathResolver.removePathPreprocessor(self.__path_preprocessor_id)
+            del self.__path_preprocessor
 
         iface.unregisterMapLayerConfigWidgetFactory(self.__properties_factory)
         del self.__properties_factory
