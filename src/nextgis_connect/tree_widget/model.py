@@ -248,6 +248,7 @@ class NgwSearch(NGWResourceModelJob):
         Tag("name", "display_name"),
         Tag("keyname", "keyname"),
         Tag("description", "description"),
+        Tag("owner", "owner_user_id"),
     ]
 
     def __init__(
@@ -257,6 +258,8 @@ class NgwSearch(NGWResourceModelJob):
         self.result.found_resources = []
         self.search_string = search_string.strip()
         self.populated_resources = populated_resources
+        self.users_keyname = {}
+        self.users_username = {}
         self.parents = []
 
     def _do(self):
@@ -417,6 +420,10 @@ class NgwSearch(NGWResourceModelJob):
                     match for pair in matches for match in pair if match
                 )
 
+        if tag_name == "owner":
+            values = self.__extract_user_ids(operator, values)
+            operator = "__eq"
+
         logger.debug(f"Found {tag.name} queries: {values}")
 
         return list(
@@ -435,6 +442,55 @@ class NgwSearch(NGWResourceModelJob):
         )
 
         return [f"{key}={value}"]
+
+    def __fetch_users(self) -> None:
+        if len(self.users_keyname) > 0:
+            return
+
+        connections_manager = NgwConnectionsManager()
+        connection_id = connections_manager.current_connection_id
+        try:
+            assert connection_id is not None
+            ngw_connection = QgsNgwConnection(connection_id)
+            result = ngw_connection.get("api/component/auth/user/")
+            for user in result:
+                self.users_keyname[user["keyname"]] = user["id"]
+                self.users_username[user["display_name"]] = user["id"]
+        except Exception:
+            logger.exception("Can't fetch users")
+
+    def __extract_user_ids(
+        self, operator: str, values: List[str]
+    ) -> List[int]:
+        self.__fetch_users()
+
+        ids = set()
+
+        if operator == "__eq":
+            ids.update(
+                map(
+                    lambda value: self.users_keyname.get(
+                        value, self.users_username.get(value, -1)
+                    ),
+                    values,
+                )
+            )
+
+        elif operator == "__ilike":
+            regex_pattern = values[0].replace("%", ".*").replace("_", ".")
+            regex = re.compile(f"^{regex_pattern}$", re.IGNORECASE)
+            ids.update(
+                value
+                for key, value in self.users_keyname.items()
+                if regex.match(key)
+            )
+            ids.update(
+                value
+                for key, value in self.users_username.items()
+                if regex.match(key)
+            )
+
+        return list(ids)
 
     def __fetch_parents(self, resources_factory: NGWResourceFactory) -> None:
         logger.debug("Fetching intermediate resources")
