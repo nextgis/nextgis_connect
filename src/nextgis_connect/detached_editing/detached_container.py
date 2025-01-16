@@ -369,7 +369,7 @@ class DetachedContainer(QObject):
         # Replace container with stub
 
         try:
-            for service_file in self.path.parent.glob(f"{self.path.name}*"):
+            for service_file in self.path.parent.glob(f"{self.path.name}-*"):
                 service_file.unlink(missing_ok=True)
             shutil.move(str(temp_file_path), str(self.path))
 
