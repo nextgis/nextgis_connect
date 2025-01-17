@@ -79,7 +79,7 @@ class NgConnectProxyModel(QSortFilterProxyModel):
 
         for resource_id in closest_to_root:
             index = model.index_from_id(resource_id)
-            while index.isValid():
+            while index and index.isValid():
                 parent = index.parent()
                 if not parent.isValid():
                     break
@@ -99,13 +99,13 @@ class NgConnectProxyModel(QSortFilterProxyModel):
 
             has_parent_in_found_list = False
 
-            while index.isValid():
+            while index and index.isValid():
                 parent = index.parent()
                 if not parent.isValid():
                     break
 
                 parent_id = model.resource(parent).resource_id
-                if parent_id in self.__resources_id:
+                if parent_id != 0 and parent_id in self.__resources_id:
                     has_parent_in_found_list = True
                     break
 

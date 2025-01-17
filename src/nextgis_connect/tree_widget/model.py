@@ -298,10 +298,12 @@ class NgwSearch(NGWResourceModelJob):
         self.result.found_resources.extend(
             resource_json["resource"]["id"] for resource_json in resources
         )
-        self.parents.extend(
-            resource_json["resource"]["parent"]["id"]
-            for resource_json in resources
-        )
+        for resource_json in resources:
+            parent = resource_json["resource"].get("parent")
+            parent_id = 0
+            if parent is not None:
+                parent_id = parent["id"]
+            self.parents.append(parent_id)
 
     def __queries(self) -> List[str]:
         if not self.search_string.startswith("@"):
