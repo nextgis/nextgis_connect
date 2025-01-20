@@ -1,9 +1,13 @@
+import re
 from typing import Optional
 
 from qgis.PyQt.QtCore import Qt, pyqtSlot
 from qgis.PyQt.QtGui import QIcon, QMovie
 from qgis.PyQt.QtWidgets import QAction, QLineEdit, QWidget
 
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
+)
 from nextgis_connect.search.abstract_search_line_edit import (
     AbstractSearchLineEdit,
 )
@@ -19,11 +23,14 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
     __loading_action: Optional[QAction]
     __loading_icon_movie: QMovie
 
+    __connection_id: Optional[str]
+
     def __init__(
         self, connection_id: Optional[str], parent: Optional[QWidget] = None
     ) -> None:
         super().__init__(parent)
         self.setPlaceholderText(self.tr("Resource name…"))
+        self.__connection_id = connection_id
 
         # Animation
         self.__loading_action = None
@@ -55,6 +62,7 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
 
     @pyqtSlot(str)
     def set_connection_id(self, connection_id: str) -> None:
+        self.__connection_id = connection_id
         self.__completer_model.set_connection_id(connection_id)
 
     @pyqtSlot()
@@ -71,6 +79,16 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
 
         settings = SearchSettings()
         settings.add_text_query_to_history(search_string)
+
+        if self.__connection_id is not None:
+            connection = NgwConnectionsManager().connection(
+                self.__connection_id
+            )
+            match = re.search(
+                rf"{connection.url}/resource/(\d+)", search_string
+            )
+            if match:
+                search_string = f"@id = {match.group(1)}"
 
         self.search_requested.emit(search_string)
 
