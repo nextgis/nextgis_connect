@@ -69,6 +69,8 @@ class QNGWResourceItem(QModelItem):
             return self._title
         if role == Qt.ItemDataRole.DecorationRole:
             return self._icon
+        if role == Qt.ItemDataRole.ToolTipRole and self.ngw_resource_id() == 0:
+            return self._ngw_resource.connection.server_url
         if role == QNGWResourceItem.NGWResourceRole:
             return self._ngw_resource
         if role == QNGWResourceItem.NGWResourceIdRole:
