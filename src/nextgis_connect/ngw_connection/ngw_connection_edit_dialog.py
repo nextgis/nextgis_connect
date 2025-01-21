@@ -11,23 +11,27 @@ from qgis.PyQt.QtCore import (
     QMetaObject,
     QSize,
     QStringListModel,
+    Qt,
     QTimer,
     QUrl,
     pyqtSlot,
 )
+from qgis.PyQt.QtGui import QDesktopServices
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QCompleter,
     QDialog,
     QDialogButtonBox,
-    QLineEdit,
     QToolButton,
     QWidget,
 )
 
 from nextgis_connect.exceptions import ErrorCode, NgwError
 from nextgis_connect.logging import logger
+from nextgis_connect.ngw_connection.auth_config_edit_dialog import (
+    AuthConfigEditDialog,
+)
 
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
@@ -99,12 +103,10 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__is_save_clicked = False
         self.__name_was_manually_changed = False
-
-        # TODO
-        # accessLinkHtml = u'<a href="{}"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>'.format(
-        #     self.tr('https://docs.nextgis.com/docs_ngcom/source/ngqgis_connect.html#ngcom-ngqgis-connect-connection'),
-        #     self.tr('Where do I get these?')
-        # )
+        help_button = self.buttonBox.button(
+            QDialogButtonBox.StandardButton.Help
+        )
+        help_button.clicked.connect(self.__open_help)
 
         # Url field settings
         self.urlRequiredLabel.hide()
@@ -153,6 +155,13 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         if add_config_button is not None:
             add_config_button.clicked.disconnect()
             add_config_button.clicked.connect(self.__on_add_config_clicked)
+
+        edit_config_button: Optional[QToolButton] = self.authWidget.findChild(
+            QToolButton, "btnConfigEdit"
+        )
+        if edit_config_button is not None:
+            edit_config_button.clicked.disconnect()
+            edit_config_button.clicked.connect(self.__on_edit_config_clicked)
 
         self.__validate()
 
@@ -486,14 +495,38 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
     @pyqtSlot()
     def __on_add_config_clicked(self) -> None:
-        QgsApplication.instance().focusChanged.connect(self.__on_focus_changed)
-        QMetaObject.invokeMethod(self.authWidget, "btnConfigAdd_clicked")
+        if not QgsApplication.authManager().setMasterPassword(True):
+            return
+
+        dialog = AuthConfigEditDialog("", self)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        dialog.set_connection_name(
+            self.nameLineEdit.text()
+            if len(self.nameLineEdit.text()) > 0
+            else "NextGIS Web"
+        )
+
+        is_added = dialog.exec()
+        if is_added:
+            self.authWidget.setConfigId(dialog.config_id)
 
     @pyqtSlot()
-    def __on_focus_changed(self) -> None:
-        widget = QgsApplication.activeModalWidget()
-        if widget is not None and widget.objectName() == "QgsAuthConfigEdit":
-            self.__patch_auth_edit_dialog()
+    def __on_edit_config_clicked(self) -> None:
+        if not QgsApplication.authManager().setMasterPassword(True):
+            return
+
+        method = QgsApplication.authManager().configAuthMethodKey(
+            self.authWidget.configId()
+        )
+        if method != "Basic":
+            QMetaObject.invokeMethod(self.authWidget, "btnConfigEdit_clicked")
+            return
+
+        dialog = AuthConfigEditDialog(self.authWidget.configId(), self)
+        dialog.setWindowModality(Qt.WindowModality.WindowModal)
+        is_edited = dialog.exec()
+        if is_edited:
+            self.authWidget.setConfigId(dialog.config_id)
 
     @pyqtSlot()
     def __patch_auth_config_selector(self) -> None:
@@ -506,21 +539,9 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         combobox.setItemText(index, self.tr("As guest"))
 
     @pyqtSlot()
-    def __patch_auth_edit_dialog(self) -> None:
-        QgsApplication.instance().focusChanged.disconnect(
-            self.__on_focus_changed
+    def __open_help(self) -> None:
+        QDesktopServices.openUrl(
+            QUrl(
+                "https://docs.nextgis.com/docs_ngcom/source/ngqgis_connect.html#ngcom-ngqgis-connect-connection"
+            )
         )
-
-        edit_dialog = QgsApplication.activeModalWidget()
-        if edit_dialog is None:
-            return
-
-        name_lineedit = edit_dialog.findChild(QLineEdit, "leName")
-        if name_lineedit is not None and len(self.nameLineEdit.text()) != 0:
-            name_lineedit.setText(self.nameLineEdit.text())
-
-        method_combobox = edit_dialog.findChild(QComboBox, "cmbAuthMethods")
-        if method_combobox is not None:
-            basic_index = method_combobox.findData("Basic")
-            if basic_index != -1:
-                method_combobox.setCurrentIndex(basic_index)
