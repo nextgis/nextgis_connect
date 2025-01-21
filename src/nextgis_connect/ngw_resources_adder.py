@@ -362,43 +362,46 @@ class NgwResourcesAdder(QObject):
 
         self.__insertion_stack.pop()
 
-    def __add_layer(
-        self, layer_index: QModelIndex
-    ) -> Optional[QgsLayerTreeLayer]:
-        ngw_resource = layer_index.data(QNGWResourceItem.NGWResourceRole)
-        if is_style(ngw_resource):
-            ngw_resource = self.__model.resource(layer_index.parent())
-        assert ngw_resource is not None
+    def __add_layer(self, index: QModelIndex) -> Optional[QgsLayerTreeLayer]:
+        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        layer_resource = (
+            self.__model.resource(index.parent())
+            if is_style(ngw_resource)
+            else ngw_resource
+        )
+        assert isinstance(layer_resource, NGWResource)
 
         if (
-            layer_index in self.__skipped_resources
+            index in self.__skipped_resources
             or ngw_resource.resource_id in self.__skipped_resources
+            or layer_resource.resource_id in self.__skipped_resources
         ):
             return
 
         insertion_point = self.__insertion_stack[-1]
 
-        if layer_index not in self.__layers:
+        if index not in self.__layers:
             logger.debug(
-                f"Layer {ngw_resource.resource_id} was not added to QGIS"
+                f"Layer {layer_resource.resource_id} was not added to QGIS"
             )
             raise RuntimeError
 
-        layer = self.__layers[layer_index]
+        layer = self.__layers[index]
 
-        layer.setName(ngw_resource.display_name)
+        layer.setName(layer_resource.display_name)
 
-        self.__add_all_styles_to_layer(layer_index, layer)
-        if isinstance(ngw_resource, NGWAbstractVectorResource):
+        # TODO: it's not obvious that default style attached to style_index
+        self.__add_all_styles_to_layer(index, layer)
+        if isinstance(layer_resource, NGWAbstractVectorResource):
             assert isinstance(layer, QgsVectorLayer)
-            self.__add_fields_aliases(ngw_resource, layer)
-            self.__add_lookup_tables(ngw_resource, layer)
-            self.__set_display_field(ngw_resource, layer)
+            self.__add_fields_aliases(layer_resource, layer)
+            self.__add_lookup_tables(layer_resource, layer)
+            self.__set_display_field(layer_resource, layer)
 
         layer.setCustomProperty(
-            "ngw_connection_id", ngw_resource.connection_id
+            "ngw_connection_id", layer_resource.connection_id
         )
-        layer.setCustomProperty("ngw_resource_id", ngw_resource.resource_id)
+        layer.setCustomProperty("ngw_resource_id", layer_resource.resource_id)
 
         layer_node = insertion_point.group.insertLayer(
             insertion_point.position, layer
@@ -1096,6 +1099,9 @@ class NgwResourcesAdder(QObject):
     ) -> List[NGWQGISStyle]:
         styles: List[NGWQGISStyle] = []
         if isinstance(layer_index, QModelIndex):
+            if is_style(layer_index):
+                layer_index = layer_index.parent()
+
             for row in range(self.__model.rowCount(layer_index)):
                 style_index = self.__model.index(row, 0, layer_index)
                 style_resource = style_index.data(
@@ -1116,10 +1122,10 @@ class NgwResourcesAdder(QObject):
 
     def __add_all_styles_to_layer(
         self,
-        layer_index: Union[QModelIndex, NGWResource],
+        index: Union[QModelIndex, NGWResource],
         qgs_layer: QgsMapLayer,
     ) -> None:
-        styles = self.__extract_styles(layer_index)
+        styles = self.__extract_styles(index)
 
         if len(styles) == 0:
             return
@@ -1143,10 +1149,8 @@ class NgwResourcesAdder(QObject):
         # Set default style
         styles_name = style_manager.styles()
         name_to_find = qgs_layer.name()
-        if layer_index in self.__default_styles:
-            resource = self.__model.resource(
-                self.__default_styles[layer_index]
-            )
+        if index in self.__default_styles:
+            resource = self.__model.resource(self.__default_styles[index])
             assert resource is not None
             name_to_find = resource.display_name
 
