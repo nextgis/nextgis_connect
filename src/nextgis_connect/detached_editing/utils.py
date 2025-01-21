@@ -119,16 +119,19 @@ def make_connection(layer: Union[QgsMapLayer, Path]) -> sqlite3.Connection:
 
 
 def detached_layer_uri(path: Path) -> str:
-    with closing(sqlite3.connect(str(path))) as connection, closing(
-        connection.cursor()
-    ) as cursor:
-        cursor.execute(
-            """
-            SELECT table_name FROM gpkg_contents
-            WHERE data_type='features'
-            """
-        )
-        return f"{path}|layername={cursor.fetchone()[0]}"
+    try:
+        with closing(sqlite3.connect(str(path))) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            cursor.execute(
+                """
+                SELECT table_name FROM gpkg_contents
+                WHERE data_type='features'
+                """
+            )
+            return f"{path}|layername={cursor.fetchone()[0]}"
+    except Exception as error:
+        raise ContainerError from error
 
 
 def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
