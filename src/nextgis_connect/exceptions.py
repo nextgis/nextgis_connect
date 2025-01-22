@@ -375,6 +375,7 @@ def _default_log_message(code: ErrorCode) -> str:
         ErrorCode.AuthorizationError: "Authorization error",
         ErrorCode.PermissionsError: "Permissions error",
         ErrorCode.NotFound: "Not found url error",
+        ErrorCode.QuotaExceeded: "You have reached the limit of layers allowed",
         ErrorCode.InvalidConnection: "Invalid connection",
         ErrorCode.ServerError: "Server error",
         ErrorCode.IncorrectAnswer: "Incorrect answer",
@@ -418,11 +419,13 @@ def default_user_message(code: ErrorCode) -> str:
             "To continue working, please restart QGIS."
         ),
         ErrorCode.UnsupportedRasterType: QgsApplication.translate(
-            "Errors",
-            "Resource can't be added to the map."
+            "Errors", "Resource can't be added to the map."
         ),
         ErrorCode.NgwError: QgsApplication.translate(
             "Errors", "Error occurred while communicating with Web GIS."
+        ),
+        ErrorCode.QuotaExceeded: QgsApplication.translate(
+            "Errors", "You have reached the limit of layers allowed."
         ),
         ErrorCode.InvalidConnection: QgsApplication.translate(
             "Errors", "Invalid NextGIS Web connection."

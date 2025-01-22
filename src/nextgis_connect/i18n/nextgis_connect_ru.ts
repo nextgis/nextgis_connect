@@ -115,6 +115,90 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>AuthConfigEditDialog</name>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.py" line="140"/>
+        <source>Authentication</source>
+        <translation>Аутентификация</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.py" line="211"/>
+        <source>Authentication config id is not loaded: {}</source>
+        <translation>Параметры аутентификации не были загружены: {}</translation>
+    </message>
+</context>
+<context>
+    <name>AuthConfigEditDialogBase</name>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="82"/>
+        <source>Login</source>
+        <translation>Логин</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="96"/>
+        <source>Password</source>
+        <translation>Пароль</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="119"/>
+        <source>Additional params</source>
+        <translation>Дополнительные параметры</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="128"/>
+        <source>Name</source>
+        <translation>Имя</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="135"/>
+        <source>Resource</source>
+        <translation>Ресурс</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="145"/>
+        <source>Realm</source>
+        <translation>Область действия</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="168"/>
+        <source>Id</source>
+        <translation>ID</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="206"/>
+        <source>Note: Saving writes directly to authentication database</source>
+        <translation>Внимание: сохраняется прямо в базу аутентификации</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="89"/>
+        <source>●●●●●●</source>
+        <translation></translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="103"/>
+        <source>username@example.com</source>
+        <translation></translation>
+    </message>
+</context>
+<context>
+    <name>AuthConfigIdEdit</name>
+    <message>
+        <location filename="../ngw_connection/auth_config_id_edit.ui" line="47"/>
+        <source>Generated</source>
+        <translation>Создано</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_id_edit.ui" line="60"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Unlock to edit the ID&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;7-character alphanumeric only&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#a80b0a;&quot;&gt;Editing may break things!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Разблокируйте для редактирования ID&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;7-значный, только буквы и цифры&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; color:#a80b0a;&quot;&gt;Редактирование может привести к поломке!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_id_edit.ui" line="63"/>
+        <source>…</source>
+        <translation>…</translation>
+    </message>
+</context>
+<context>
     <name>ClearNgConnectCacheTask</name>
     <message>
         <location filename="../tasks/cache/clear_ng_connect_cache_task.py" line="11"/>
@@ -414,37 +498,37 @@ Are you sure you want to continue?</source>
 <context>
     <name>Errors</name>
     <message>
-        <location filename="../exceptions.py" line="409"/>
+        <location filename="../exceptions.py" line="413"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="421"/>
+        <location filename="../exceptions.py" line="424"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="424"/>
+        <location filename="../exceptions.py" line="430"/>
         <source>Invalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="430"/>
+        <location filename="../exceptions.py" line="436"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="433"/>
+        <location filename="../exceptions.py" line="439"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="447"/>
+        <location filename="../exceptions.py" line="453"/>
         <source>An error occured while layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="491"/>
+        <location filename="../exceptions.py" line="497"/>
         <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
 
 To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
@@ -457,74 +541,79 @@ If a layer contains important changes that were not sent to the server, they wil
 Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="436"/>
+        <location filename="../exceptions.py" line="442"/>
         <source>An error occurred while creating the container for the layer.</source>
         <translation>Произошла ошибка при создании контейнера для слоя.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="443"/>
+        <location filename="../exceptions.py" line="449"/>
         <source>The container could not be found. It may have been deleted.</source>
         <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="440"/>
+        <location filename="../exceptions.py" line="446"/>
         <source>The container version is out of date.</source>
         <translation>Версия контейнера устарела.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="450"/>
+        <location filename="../exceptions.py" line="456"/>
         <source>Layer features have been modified outside of QGIS.</source>
         <translation>Объекты слоя были изменены вне QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="453"/>
+        <location filename="../exceptions.py" line="459"/>
         <source>Invalid NextGIS Web address.</source>
         <translation>Неверный адрес NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="457"/>
+        <location filename="../exceptions.py" line="463"/>
         <source>The layer structure is different from the structure on the server.</source>
         <translation>Структура слоя отличается от той, что на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="461"/>
+        <location filename="../exceptions.py" line="467"/>
         <source>Versioning state has been changed on ther server multiple times.</source>
         <translation>Состояние версионирования на сервере было изменено несколько раз.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="465"/>
+        <location filename="../exceptions.py" line="471"/>
         <source>Versioning has been enabled on the server.</source>
         <translation>Версионирование было включено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="468"/>
+        <location filename="../exceptions.py" line="474"/>
         <source>Versioning has been disabled on the server.</source>
         <translation>Версионирование было выключено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="427"/>
+        <location filename="../exceptions.py" line="433"/>
         <source>Invalid permissions.</source>
         <translation>Неверные разрешения.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="412"/>
+        <location filename="../exceptions.py" line="416"/>
         <source>The plugin has been updated successfully. To continue working, please restart QGIS.</source>
         <translation>Плагин успешно обновлён. Для продолжения работы, пожалуйста, презапустите QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="417"/>
+        <location filename="../exceptions.py" line="421"/>
         <source>Resource can&apos;t be added to the map.</source>
         <translation>Ресурс не можнт быть добавлен на карту.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="505"/>
+        <location filename="../exceptions.py" line="511"/>
         <source>This type of raster is not supported anymore</source>
         <translation>Данный тип растра больше не поддерживается</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="505"/>
+        <location filename="../exceptions.py" line="511"/>
         <source>Please add COG support</source>
         <translation>Добавьте поддержку COG</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="427"/>
+        <source>You have reached the limit of layers allowed.</source>
+        <translation>Вы достигли лимита на количество слоёв.</translation>
     </message>
 </context>
 <context>
@@ -1287,50 +1376,55 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgConnectPlugin</name>
     <message>
-        <location filename="../ng_connect_plugin.py" line="329"/>
+        <location filename="../ng_connect_plugin.py" line="343"/>
         <source>Show/Hide NextGIS Connect panel</source>
         <translation>Показать/Скрыть панель NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="325"/>
+        <location filename="../ng_connect_plugin.py" line="339"/>
         <source>NextGIS Connect Toolbar</source>
         <translation>Инструменты NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="207"/>
+        <location filename="../ng_connect_plugin.py" line="213"/>
         <source>Details</source>
         <translation>Подробнее</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="211"/>
+        <location filename="../ng_connect_plugin.py" line="217"/>
         <source>Open logs</source>
         <translation>Открыть отладочные сообщения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="216"/>
+        <location filename="../ng_connect_plugin.py" line="230"/>
         <source>Open settings</source>
         <translation>Открыть настройки</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="225"/>
+        <location filename="../ng_connect_plugin.py" line="239"/>
         <source>Let us know</source>
         <translation>Сообщить об ошибке</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin.py" line="351"/>
+        <location filename="../ng_connect_plugin.py" line="365"/>
         <source>About plugin…</source>
         <translation>О модуле…</translation>
+    </message>
+    <message>
+        <location filename="../ng_connect_plugin.py" line="222"/>
+        <source>Upgrade your plan</source>
+        <translation>Улучшить план</translation>
     </message>
 </context>
 <context>
     <name>NgConnectPluginStub</name>
     <message>
-        <location filename="../ng_connect_plugin_stub.py" line="111"/>
+        <location filename="../ng_connect_plugin_stub.py" line="107"/>
         <source>Open logs</source>
         <translation>Открыть отладочные сообщения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_plugin_stub.py" line="115"/>
+        <location filename="../ng_connect_plugin_stub.py" line="111"/>
         <source>Let us know</source>
         <translation>Сообщить об ошибке</translation>
     </message>
@@ -1491,52 +1585,52 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgwConnectionEditDialog</name>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="92"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="96"/>
         <source>Edit the NextGIS Web Connection</source>
         <translation>Редактирование подключения NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="383"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="392"/>
         <source>Connection failed</source>
         <translation>Ошибка подключения</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="304"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="313"/>
         <source>Authentication error</source>
         <translation>Ошибка аутентификации</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="368"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="377"/>
         <source>Connection successful</source>
         <translation>Подключение успешно</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="387"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="396"/>
         <source>Request timeout</source>
         <translation>Время ожидания запроса истекло</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="75"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="79"/>
         <source>NextGIS authentication is not supported for my.nextgis.com yet. Please choose Basic authentication or change authentication endpoint.</source>
         <translation>Аутентификация NextGIS пока не поддерживается для my.nextgis.com. Пожалуйста, выберите аутентификацию типа Basic или измените сервер аутентификации.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="506"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="539"/>
         <source>As guest</source>
         <translation>Как гость</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="411"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="420"/>
         <source>Web GIS access was not granted for the</source>
         <translation>Доступ к Веб ГИС не был предоставлен для</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="413"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="422"/>
         <source> guest users.</source>
         <translation> гостевых пользователей.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="415"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="424"/>
         <source> selected authentication parameters.</source>
         <translation> выбранных параметров аутентификации.</translation>
     </message>
@@ -1562,34 +1656,34 @@ Are you sure you want to continue?</source>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="568"/>
+        <location filename="../ngw_resources_adder.py" line="571"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="841"/>
+        <location filename="../ngw_resources_adder.py" line="844"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1249"/>
+        <location filename="../ngw_resources_adder.py" line="1253"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1250"/>
+        <location filename="../ngw_resources_adder.py" line="1254"/>
         <source>You are trying to add a WFS service containing a layer with Z dimension. WFS in QGIS doesn&apos;t fully support editing such geometries. You won&apos;t be able to edit and create new features. You will only be able to delete features.
 To fix this, change geometry type of your layer(s) and recreate WFS service.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается.
 Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1266"/>
+        <location filename="../ngw_resources_adder.py" line="1270"/>
         <source>Add anyway</source>
         <translation>Добавить всё равно</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1269"/>
+        <location filename="../ngw_resources_adder.py" line="1273"/>
         <source>Skip</source>
         <translation>Пропустить</translation>
     </message>
@@ -1604,12 +1698,12 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1010"/>
+        <location filename="../ngw_resources_adder.py" line="1013"/>
         <source>Layer &quot;{raster_layer.display_name}&quot; was not added to the map</source>
         <translation>Слой &quot;{raster_layer.display_name}&quot; не был добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1013"/>
+        <location filename="../ngw_resources_adder.py" line="1016"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
@@ -1640,11 +1734,6 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>QNGWResourceTreeView</name>
     <message>
-        <location filename="../tree_widget/view.py" line="306"/>
-        <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</source>
-        <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&quot;https://my.nextgis.com/&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
-    </message>
-    <message>
         <location filename="../tree_widget/view.py" line="441"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
@@ -1663,6 +1752,11 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <location filename="../tree_widget/view.py" line="327"/>
         <source>No resources were found matching your search query</source>
         <translation>Не найдены ресурсы, соответствующие вашему запросу</translation>
+    </message>
+    <message>
+        <location filename="../tree_widget/view.py" line="306"/>
+        <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</source>
+        <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на  &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
 </context>
 <context>
@@ -1690,7 +1784,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     <message>
         <location filename="../resource_properties/resource_properties_dialog_base.ui" line="121"/>
         <source>Resource</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">Ресурс</translation>
     </message>
     <message>
         <location filename="../resource_properties/resource_properties_dialog_base.ui" line="148"/>
@@ -1746,7 +1840,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>Tag</name>
     <message>
-        <location filename="../tree_widget/model.py" line="355"/>
+        <location filename="../tree_widget/model.py" line="360"/>
         <source>Unknown search tag. Possible values: </source>
         <translation>Неизвестные теги поиска. Возможные значения: </translation>
     </message>
@@ -1754,7 +1848,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>TextSearchLineEdit</name>
     <message>
-        <location filename="../search/text_search_line_edit.py" line="26"/>
+        <location filename="../search/text_search_line_edit.py" line="32"/>
         <source>Resource name…</source>
         <translation>Название ресурса…</translation>
     </message>

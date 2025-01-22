@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>265</height>
+    <height>300</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -70,11 +70,11 @@
    <item>
     <widget class="QWidget" name="body" native="true">
      <layout class="QVBoxLayout" name="verticalLayout_2">
+      <property name="topMargin">
+       <number>3</number>
+      </property>
       <item>
        <widget class="QGroupBox" name="auth_params_groupbox">
-        <property name="title">
-         <string/>
-        </property>
         <layout class="QFormLayout" name="formLayout">
          <item row="0" column="0">
           <widget class="QLabel" name="login_label">
