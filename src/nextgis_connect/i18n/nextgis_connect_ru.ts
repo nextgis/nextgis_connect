@@ -167,7 +167,7 @@ p, li { white-space: pre-wrap; }
     <message>
         <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="206"/>
         <source>Note: Saving writes directly to authentication database</source>
-        <translation>Внимание: сохраняется прямо в базу аутентификации</translation>
+        <translation>Внимание: сохраняется прямо в базу данных аутентификации</translation>
     </message>
     <message>
         <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="89"/>
