@@ -1,10 +1,10 @@
 from pathlib import Path
 from typing import Dict, Optional, cast
 
-from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsSettings
+from qgis.core import QgsApplication, QgsAuthMethodConfig
 from qgis.gui import QgsCollapsibleGroupBox
 from qgis.PyQt import uic
-from qgis.PyQt.QtCore import QLocale, QSize, QTimer, QUrl, pyqtSlot
+from qgis.PyQt.QtCore import QSize, QTimer, QUrl, pyqtSlot
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import (
@@ -17,7 +17,7 @@ from qgis.PyQt.QtWidgets import (
 
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_connection.auth_config_id_edit import AuthConfigIdEdit
-from nextgis_connect.ngw_connection.ngw_button import NgwButton
+from nextgis_connect.utils import utm_tags
 
 WIDGET, _ = uic.loadUiType(
     str(Path(__file__).parent / "auth_config_edit_dialog.ui")
@@ -151,9 +151,9 @@ class AuthConfigEditDialog(QDialog, WIDGET):
         self.logo_label.setPixmap(pixmap)
 
         # Sign up button
-        ngw_button = NgwButton(self.tr("Sign Up"), self)
-        ngw_button.clicked.connect(self.__sign_up)
-        self.header.layout().addWidget(ngw_button)
+        # ngw_button = NgwButton(self.tr("Sign Up"), self)
+        # ngw_button.clicked.connect(self.__sign_up)
+        # self.header.layout().addWidget(ngw_button)
 
         # Auth id widget
         self.__auth_config_id_edit = AuthConfigIdEdit(self)
@@ -314,19 +314,6 @@ class AuthConfigEditDialog(QDialog, WIDGET):
 
     @pyqtSlot()
     def __sign_up(self) -> None:
-        override_locale = QgsSettings().value(
-            "locale/overrideFlag", defaultValue=False, type=bool
-        )
-        if not override_locale:
-            locale_full_name = QLocale.system().name()
-        else:
-            locale_full_name = QgsSettings().value("locale/userLocale", "")
-        locale = locale_full_name[0:2]
-
-        utm = (
-            "utm_source=qgis_plugin&utm_medium=auth_config"
-            "&utm_campaign=constant&utm_term=nextgis_connect"
-            f"&utm_content={locale}"
-        )
+        utm = utm_tags("authentication")
         signup_url = f"https://my.nextgis.com/signup/?{utm}"
         QDesktopServices.openUrl(QUrl(signup_url))

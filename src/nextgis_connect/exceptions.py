@@ -6,6 +6,8 @@ from typing import Any, Dict, Optional
 
 from qgis.core import QgsApplication, QgsEditError
 
+from nextgis_connect.utils import nextgis_domain
+
 
 class ErrorCode(IntEnum):
     NoError = -1
@@ -23,9 +25,10 @@ class ErrorCode(IntEnum):
     NotFound = 404
 
     AddingError = 480
-    UnsupportedRasterType = 497
-    InvalidResource = 498
-    InvalidConnection = 499
+    QuotaExceeded = auto()
+    UnsupportedRasterType = auto()
+    InvalidResource = auto()
+    InvalidConnection = auto()
 
     ServerError = 500
     IncorrectAnswer = 599
@@ -500,10 +503,11 @@ def default_detail(code: ErrorCode) -> Optional[str]:
     )
     unsupported_cog_detail = (
         """
-        {}. <a href="https://docs.nextgis.com/docs_ngcom/source/data_upload.html#ngcom-raster-layer"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>
+        {}. <a href="{}/docs_ngcom/source/data_upload.html#ngcom-raster-layer"><span style=" text-decoration: underline; color:#0000ff;">{}</span></a>
         """
     ).format(
         QgsApplication.translate("Errors", "This type of raster is not supported anymore"),
+        nextgis_domain("docs"),
         QgsApplication.translate("Errors", "Please add COG support"),
     )
     # fmt: on

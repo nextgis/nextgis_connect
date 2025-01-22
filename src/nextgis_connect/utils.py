@@ -6,9 +6,10 @@ from typing import Optional, Tuple, Union, cast
 from qgis.core import (
     Qgis,
     QgsApplication,
+    QgsSettings,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QByteArray, QMimeData, Qt, QUrl
+from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, Qt, QUrl
 from qgis.PyQt.QtGui import QClipboard, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -162,3 +163,33 @@ def add_project_export_action(project_export_action: QAction) -> None:
                 )
             else:
                 import_export_menu.addAction(project_export_action)
+
+
+def locale() -> str:
+    override_locale = QgsSettings().value(
+        "locale/overrideFlag", defaultValue=False, type=bool
+    )
+    if not override_locale:
+        locale_full_name = QLocale.system().name()
+    else:
+        locale_full_name = QgsSettings().value("locale/userLocale", "")
+    locale = locale_full_name[0:2].lower()
+    return locale
+
+
+def nextgis_domain(subdomain: Optional[str] = None) -> str:
+    speaks_russian = locale() in ["be", "kk", "ky", "ru", "uk"]
+    if subdomain is None:
+        subdomain = ""
+    elif not subdomain.endswith("."):
+        subdomain += "."
+    return f"https://{subdomain}nextgis.{'ru' if speaks_russian else 'com'}"
+
+
+def utm_tags(utm_medium: str, *, utm_campaign: str = "constant") -> str:
+    utm = (
+        f"utm_source=qgis_plugin&utm_medium={utm_medium}"
+        f"&utm_campaign={utm_campaign}&utm_term=nextgis_connect"
+        f"&utm_content={locale()}"
+    )
+    return utm

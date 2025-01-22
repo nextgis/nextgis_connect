@@ -29,7 +29,7 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
 )
 from nextgis_connect.tree_widget.item import QNGWResourceItem
 from nextgis_connect.tree_widget.model import QNGWResourceTreeModel
-from nextgis_connect.utils import SupportStatus
+from nextgis_connect.utils import SupportStatus, utm_tags
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface
@@ -308,8 +308,8 @@ class QNGWResourceTreeView(QTreeView):
             self.tr(
                 "No connections to nextgis.com. Please create a connection. "
                 "You can get your free Web GIS at "
-                '<a href="https://my.nextgis.com/">nextgis.com</a>!'
-            ),
+                '<a href="https://my.nextgis.com/?{}">nextgis.com</a>!'
+            ).format(utm_tags("start")),
         )
         self.no_ngw_connections_overlay.hide()
 

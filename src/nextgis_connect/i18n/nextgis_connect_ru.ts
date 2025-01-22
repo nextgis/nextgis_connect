@@ -1298,7 +1298,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../ng_connect_plugin.py" line="207"/>
-        <source>Open details</source>
+        <source>Details</source>
         <translation>Подробнее</translation>
     </message>
     <message>

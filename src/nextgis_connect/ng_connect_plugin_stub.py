@@ -20,6 +20,7 @@ from nextgis_connect.exceptions import ErrorCode, NgConnectError
 from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
+from nextgis_connect.utils import nextgis_domain, utm_tags
 
 assert isinstance(iface, QgisInterface)
 
@@ -97,14 +98,9 @@ class NgConnectPluginStub(NgConnectInterface):
         )
 
         def contact_us():
-            locale = QgsApplication.instance().locale()
-            domain = "ru" if locale == "ru" else "com"
-            utm = (
-                "?utm_source=qgis_plugin&utm_medium=error"
-                f"&utm_campaign={self.PACKAGE_NAME}"
-            )
+            utm = utm_tags("error")
             QDesktopServices.openUrl(
-                QUrl(f"https://nextgis.{domain}/contact/{utm}")
+                QUrl(f"{nextgis_domain()}/contact/?{utm}")
             )
 
         if not pretend_is_not_a_error:

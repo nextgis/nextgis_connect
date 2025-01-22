@@ -44,7 +44,11 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import LayerType
 from nextgis_connect.detached_editing import DetachedEditing
-from nextgis_connect.exceptions import NgConnectError, NgConnectWarning
+from nextgis_connect.exceptions import (
+    ErrorCode,
+    NgConnectError,
+    NgConnectWarning,
+)
 from nextgis_connect.logging import logger, unload_logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -60,6 +64,7 @@ from nextgis_connect.tasks.cache.purge_ng_connect_cache_task import (
     PurgeNgConnectCacheTask,
 )
 from nextgis_connect.tasks.ng_connect_task_manager import NgConnectTaskManager
+from nextgis_connect.utils import nextgis_domain, utm_tags
 
 
 class NgConnectPlugin(NgConnectInterface):
@@ -180,14 +185,15 @@ class NgConnectPlugin(NgConnectInterface):
             )
 
         def contact_us():
-            locale = QgsApplication.instance().locale()
-            domain = "ru" if locale == "ru" else "com"
-            utm = (
-                "?utm_source=qgis_plugin&utm_medium=error"
-                f"&utm_campaign={self.PACKAGE_NAME}"
-            )
+            utm = utm_tags("error")
             QDesktopServices.openUrl(
-                QUrl(f"https://nextgis.{domain}/contact/{utm}")
+                QUrl(f"{nextgis_domain()}/contact/?{utm}")
+            )
+
+        def upgrade_plan():
+            utm = utm_tags("quota")
+            QDesktopServices.openUrl(
+                QUrl(f"{nextgis_domain()}/pricing-base/?{utm}")
             )
 
         message = error.user_message
@@ -204,7 +210,7 @@ class NgConnectPlugin(NgConnectInterface):
         )
 
         if error.detail is not None:
-            button = QPushButton(self.tr("Open details"))
+            button = QPushButton(self.tr("Details"))
             button.pressed.connect(show_details)
             widget.layout().addWidget(button)
         else:
@@ -212,7 +218,15 @@ class NgConnectPlugin(NgConnectInterface):
             button.pressed.connect(self.iface.openMessageLog)
             widget.layout().addWidget(button)
 
-        if error.code.is_connection_error:
+        if error.code == ErrorCode.QuotaExceeded:
+            button = QPushButton(self.tr("Upgrade your plan"))
+            button.setIcon(
+                QIcon(str(self.plugin_dir / "icons" / "upgrade.svg")),
+            )
+            button.pressed.connect(upgrade_plan)
+            widget.layout().addWidget(button)
+
+        elif error.code.is_connection_error:
             button = QPushButton(self.tr("Open settings"))
             button.pressed.connect(
                 lambda: self.iface.showOptionsDialog(
