@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>398</width>
+    <width>400</width>
     <height>265</height>
    </rect>
   </property>
@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Form</string>
+   <string/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
@@ -73,7 +73,7 @@
       <item>
        <widget class="QGroupBox" name="auth_params_groupbox">
         <property name="title">
-         <string>Authentication params</string>
+         <string/>
         </property>
         <layout class="QFormLayout" name="formLayout">
          <item row="0" column="0">
@@ -84,7 +84,11 @@
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QgsPasswordLineEdit" name="password_lineedit"/>
+          <widget class="QgsPasswordLineEdit" name="password_lineedit">
+           <property name="placeholderText">
+            <string>●●●●●●</string>
+           </property>
+          </widget>
          </item>
          <item row="1" column="0">
           <widget class="QLabel" name="password_label">
@@ -94,7 +98,11 @@
           </widget>
          </item>
          <item row="0" column="1">
-          <widget class="QLineEdit" name="username_lineedit"/>
+          <widget class="QLineEdit" name="username_lineedit">
+           <property name="placeholderText">
+            <string>username@example.com</string>
+           </property>
+          </widget>
          </item>
         </layout>
        </widget>
