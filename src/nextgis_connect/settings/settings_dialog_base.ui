@@ -60,16 +60,6 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
-       <widget class="QCheckBox" name="renameFieldsCheckBox">
-        <property name="text">
-         <string>Rename forbidden fields</string>
-        </property>
-        <property name="checked">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QCheckBox" name="fixGeometryCheckBox">
         <property name="text">
          <string>Fix incorrect geometries</string>

@@ -56,21 +56,6 @@ class NgConnectSettings:
         return self.__search_settings
 
     @property
-    def rename_forbidden_fields(self) -> bool:
-        self.__settings.beginGroup(self.__plugin_group)
-        result = self.__settings.value(
-            "uploading/renameForbiddenFields", defaultValue=True, type=bool
-        )
-        self.__settings.endGroup()
-        return result
-
-    @rename_forbidden_fields.setter
-    def rename_forbidden_fields(self, value: bool) -> None:
-        self.__settings.beginGroup(self.__plugin_group)
-        self.__settings.setValue("uploading/renameForbiddenFields", value)
-        self.__settings.endGroup()
-
-    @property
     def fix_incorrect_geometries(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
@@ -289,6 +274,8 @@ class NgConnectSettings:
         self.__migrate_ngw_api_settings()
         self.__migrate_keys_names()
 
+        self.__remove_old_settings()
+
         self.__settings.sync()
 
         self.__class__.__is_migrated = True
@@ -376,3 +363,8 @@ class NgConnectSettings:
             self.__settings.setValue(new_key, value)
             settings.remove(old_key)
         self.__settings.endGroup()
+
+    def __remove_old_settings(self) -> None:
+        self.__settings.value(
+            f"{self.__plugin_group}/uploading/renameForbiddenFields"
+        )

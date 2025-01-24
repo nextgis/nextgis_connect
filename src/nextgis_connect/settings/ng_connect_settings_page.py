@@ -200,10 +200,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             message_bar.pushWidget(widget, Qgis.MessageLevel.Warning)
 
     def __init_uploading_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.renameFieldsCheckBox.setChecked(
-            settings.rename_forbidden_fields
-        )
-
         self.__widget.fixGeometryCheckBox.setChecked(
             settings.fix_incorrect_geometries
         )
@@ -418,10 +414,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__widget.cacheDirectoryLineEdit.setText("")
 
     def __save_uploading_settings(self, settings: NgConnectSettings) -> None:
-        settings.rename_forbidden_fields = (
-            self.__widget.renameFieldsCheckBox.isChecked()
-        )
-
         settings.fix_incorrect_geometries = (
             self.__widget.fixGeometryCheckBox.isChecked()
         )
