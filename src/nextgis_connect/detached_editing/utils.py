@@ -134,7 +134,9 @@ def detached_layer_uri(path: Path) -> str:
         raise ContainerError from error
 
 
-def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
+def is_ngw_container(
+    layer: Union[QgsMapLayer, Path], *, check_metadata: bool = False
+) -> bool:
     def has_properties(layer: QgsMapLayer) -> bool:
         return layer.customProperty(
             "ngw_is_detached_layer", defaultValue=False
@@ -159,9 +161,13 @@ def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
         return False
 
     if isinstance(layer, QgsVectorLayer):
-        return layer.storageType() == "GPKG" and (
-            has_properties(layer) or has_metadata(layer)
-        )
+        if layer.storageType() != "GPKG":
+            return False
+
+        if check_metadata:
+            return has_metadata(layer)
+
+        return has_properties(layer) or has_metadata(layer)
 
     elif isinstance(layer, Path):
         return (
@@ -171,6 +177,12 @@ def is_ngw_container(layer: Union[QgsMapLayer, Path]) -> bool:
         )
 
     return False
+
+
+def reset_container_properties(layer: QgsMapLayer) -> None:
+    layer.removeCustomProperty("ngw_is_detached_layer")
+    layer.removeCustomProperty("ngw_connection_id")
+    layer.removeCustomProperty("ngw_resource_id")
 
 
 @singledispatch

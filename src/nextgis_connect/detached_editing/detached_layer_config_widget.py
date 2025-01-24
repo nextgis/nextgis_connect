@@ -155,7 +155,7 @@ class DetachedLayerConfigWidgetFactory(QgsMapLayerConfigWidgetFactory):
     def supportsLayer(self, layer: Optional[QgsMapLayer]) -> bool:
         if layer is None:
             return False
-        return utils.is_ngw_container(layer)
+        return utils.is_ngw_container(layer, check_metadata=True)
 
     def supportLayerPropertiesDialog(self) -> bool:
         return True

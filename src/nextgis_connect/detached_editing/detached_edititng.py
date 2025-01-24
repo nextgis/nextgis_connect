@@ -160,7 +160,7 @@ class DetachedEditing(QObject):
     def __setup_layer(self, layer: QgsMapLayer) -> bool:
         if (
             layer.id() in self.__containers_by_layer_id
-            or not utils.is_ngw_container(layer)
+            or not utils.is_ngw_container(layer, check_metadata=True)
         ):
             return False
 
