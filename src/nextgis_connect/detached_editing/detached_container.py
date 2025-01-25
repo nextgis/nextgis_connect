@@ -17,11 +17,14 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
-from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.actions import (
-    DataChangeAction,
-    FeatureCreateAction,
     VersioningAction,
+)
+from nextgis_connect.detached_editing.conflicts.deduplicator import (
+    ConflictsDeduplicator,
+)
+from nextgis_connect.detached_editing.conflicts.detector import (
+    ConflictsDetector,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -453,9 +456,17 @@ class DetachedContainer(QObject):
             self.state_changed.emit(self.__state)
             return
 
-        if self.__sync_task is not None and self.__sync_task.status() not in (
-            QgsTask.TaskStatus.Complete,
-            QgsTask.TaskStatus.Terminated,
+        if self.__sync_task is not None and (
+            self.__sync_task.status()
+            not in (
+                QgsTask.TaskStatus.Complete,
+                QgsTask.TaskStatus.Terminated,
+            )
+            or self.__versioning_state
+            in (
+                VersioningSynchronizationState.ConflictDetection,
+                VersioningSynchronizationState.ConflictSolving,
+            )
         ):
             self.__state = DetachedLayerState.Synchronization
         else:
@@ -602,7 +613,7 @@ class DetachedContainer(QObject):
 
         if len(self.__sync_task.delta) > 0:
             try:
-                self.__check_conflicts(self.__sync_task.delta)
+                delta = self.__process_delta(self.__sync_task)
             except SynchronizationError as error:
                 self.__process_sync_error(error)
                 self.__finish_sync()
@@ -623,7 +634,7 @@ class DetachedContainer(QObject):
                 self.path,
                 fetch_delta_task.target,
                 fetch_delta_task.timestamp,
-                fetch_delta_task.delta,
+                delta,
             )
             task.taskCompleted.connect(self.__on_apply_finished)
             task.taskTerminated.connect(self.__on_apply_finished)
@@ -812,20 +823,35 @@ class DetachedContainer(QObject):
         self.__update_layers_properties()
         self.synchronize(is_manual=True)
 
-    def __check_conflicts(self, actions: List[VersioningAction]) -> None:
-        delta_fids = set(
-            action.fid
-            for action in actions
-            if isinstance(action, DataChangeAction)
+    def __process_delta(
+        self, fetch_delta_task: FetchDeltaTask
+    ) -> List[VersioningAction]:
+        if len(fetch_delta_task.delta) == 0:
+            return []
+
+        self.__versioning_state = (
+            VersioningSynchronizationState.ConflictDetection
         )
 
-        extractor = ActionExtractor(self.path, self.metadata)
-        local_changes_fids = set(
-            action.fid
-            for action in extractor.extract_all()
-            if isinstance(action, DataChangeAction)
-            and not isinstance(action, FeatureCreateAction)
+        # Check conflicts
+        conflict_detector = ConflictsDetector(self.path, self.metadata)
+        conflicts = conflict_detector.detect(fetch_delta_task.delta)
+
+        # Find duplicates and remove it from actions and local changes
+        deduplicator = ConflictsDeduplicator(self.path, self.metadata)
+        need_update_state, delta, conflicts = deduplicator.deduplicate(
+            fetch_delta_task.delta, conflicts
         )
 
-        if len(delta_fids.intersection(local_changes_fids)) > 0:
+        if need_update_state:
+            if len(conflicts) > 0:
+                self.__versioning_state = (
+                    VersioningSynchronizationState.ConflictSolving
+                )
+
+            self.__update_state(is_full_update=True)
+
+        if len(conflicts) > 0:
             raise SynchronizationError("Delta has conflicts")
+
+        return delta

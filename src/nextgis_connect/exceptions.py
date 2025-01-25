@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional
 
 from qgis.core import QgsApplication, QgsEditError
 
-from nextgis_connect.utils import nextgis_domain
+from nextgis_connect.utils import locale, nextgis_domain
 
 
 class ErrorCode(IntEnum):
@@ -317,15 +317,19 @@ class LayerEditError(DetachedEditingError):
             if log_message is None
             else log_message
         )
+        ng_error.__cause__ = error
 
         layer_errors = []
         provider_errors = []
         layer_errors_added = False
 
-        ERROR_PREFIX = "ERROR:"
+        ERROR_PREFIX = "ОШИБКА:" if locale() == "ru" else "ERROR:"
+        PROVIDER_ERROR_PREFIX = (
+            "Ошибки провайдера" if locale() == "ru" else "Provider errors"
+        )
 
         for error_message in error.args[0]:
-            if "Provider errors" in error_message:
+            if PROVIDER_ERROR_PREFIX in error_message:
                 layer_errors_added = True
                 continue
 

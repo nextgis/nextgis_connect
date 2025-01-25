@@ -50,9 +50,6 @@ class ApplyDeltaTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        if len(self.__delta) == 0:
-            return True
-
         logger.debug(
             f"<b>Start changes applying</b> for layer {self._metadata}"
         )

@@ -9,6 +9,7 @@ class ActionType(str, Enum):
     FEATURE_CREATE = "feature.create"
     FEATURE_UPDATE = "feature.update"
     FEATURE_DELETE = "feature.delete"
+    FEATURE_RESTORE = "feature.restore"
     DESCRIPTION_PUT = "description.put"
     ATTACHMENT_CREATE = "attachment.create"
     ATTACHMENT_UPDATE = "attachment.update"
@@ -27,14 +28,14 @@ class VersioningAction:
         self.action = action
 
 
-class DataChangeAction(VersioningAction):
-    fid: Optional[FeatureId]
+class FeatureAction(VersioningAction):
+    fid: FeatureId
     vid: Optional[VersionId]
 
     def __init__(
         self,
         action: ActionType,
-        fid: Optional[FeatureId] = None,
+        fid: FeatureId,
         vid: Optional[VersionId] = None,
     ):
         super().__init__(action)
@@ -42,7 +43,7 @@ class DataChangeAction(VersioningAction):
         self.vid = vid
 
 
-class FeatureAction(DataChangeAction):
+class DataChangeAction(FeatureAction):
     geom: Optional[str]
     fields: List[Tuple[FieldId, Any]]
 
@@ -63,7 +64,7 @@ class FeatureAction(DataChangeAction):
         )
 
 
-class FeatureCreateAction(FeatureAction):
+class FeatureCreateAction(DataChangeAction):
     def __init__(
         self,
         fid: FeatureId,
@@ -74,9 +75,7 @@ class FeatureCreateAction(FeatureAction):
         super().__init__(ActionType.FEATURE_CREATE, fid, vid, geom, fields)
 
 
-class FeatureUpdateAction(FeatureAction):
-    fid: FeatureId
-
+class FeatureUpdateAction(DataChangeAction):
     def __init__(
         self,
         fid: FeatureId,
@@ -87,38 +86,34 @@ class FeatureUpdateAction(FeatureAction):
         super().__init__(ActionType.FEATURE_UPDATE, fid, vid, geom, fields)
 
 
-class FeatureDeleteAction(FeatureAction):
-    fid: FeatureId
-
+class FeatureDeleteAction(DataChangeAction):
     def __init__(self, fid: FeatureId, vid: Optional[VersionId] = None):
         super().__init__(ActionType.FEATURE_DELETE, fid, vid)
 
 
-class DescriptionPutAction(DataChangeAction):
-    fid: FeatureId
-
+class DescriptionPutAction(FeatureAction):
     def __init__(self, fid: FeatureId, vid: Optional[VersionId], value: str):
         super().__init__(ActionType.DESCRIPTION_PUT, fid, vid)
         self.value = value
 
 
-class AttachmentAction(VersioningAction):
+class AttachmentAction(FeatureAction):
     pass
 
 
 class AttachmentCreateAction(AttachmentAction):
     def __init__(self, **_):
-        super().__init__(ActionType.ATTACHMENT_CREATE)
+        super().__init__(ActionType.ATTACHMENT_CREATE, -1)
 
 
 class AttachmentUpdateAction(AttachmentAction):
     def __init__(self, **_):
-        super().__init__(ActionType.ATTACHMENT_UPDATE)
+        super().__init__(ActionType.ATTACHMENT_UPDATE, -1)
 
 
 class AttachmentDeleteAction(AttachmentAction):
     def __init__(self, **_):
-        super().__init__(ActionType.ATTACHMENT_DELETE)
+        super().__init__(ActionType.ATTACHMENT_DELETE, -1)
 
 
 class ContinueAction(VersioningAction):

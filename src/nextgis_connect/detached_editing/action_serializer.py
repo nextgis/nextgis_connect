@@ -14,7 +14,6 @@ from .actions import (
     ContinueAction,
     DataChangeAction,
     DescriptionPutAction,
-    FeatureAction,
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureUpdateAction,
@@ -101,7 +100,7 @@ class ActionSerializer:
         return result
 
     def __convert_action(self, action: VersioningAction) -> Any:
-        if not isinstance(action, FeatureAction):
+        if not isinstance(action, DataChangeAction):
             if isinstance(action, (QDate, QTime, QDateTime)):
                 return self.__serialize_date_and_time(action)
 
@@ -115,7 +114,7 @@ class ActionSerializer:
         if not isinstance(action, FeatureCreateAction):
             result["id"] = action.fid
 
-        if isinstance(action, FeatureAction):
+        if isinstance(action, DataChangeAction):
             fields = self.__layer_metadata.fields
             fields_values = {
                 fields.get_with(ngw_id=field_ngw_id).keyname: value

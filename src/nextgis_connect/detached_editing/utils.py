@@ -38,6 +38,7 @@ class VersioningSynchronizationState(Enum):
     Error = auto()
     NotSynchronized = auto()
     FetchingChanges = auto()
+    ConflictDetection = auto()
     ConflictSolving = auto()
     ChangesApplying = auto()
     UploadingChanges = auto()

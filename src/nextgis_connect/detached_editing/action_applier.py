@@ -4,7 +4,13 @@ from contextlib import closing
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
-from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer, edit
+from qgis.core import (
+    QgsEditError,
+    QgsFeature,
+    QgsGeometry,
+    QgsVectorLayer,
+    edit,
+)
 from qgis.PyQt.QtCore import QObject, pyqtSlot
 
 from nextgis_connect.detached_editing.utils import (
@@ -13,6 +19,7 @@ from nextgis_connect.detached_editing.utils import (
 )
 from nextgis_connect.exceptions import (
     ContainerError,
+    LayerEditError,
     NgConnectError,
     SynchronizationError,
 )
@@ -54,6 +61,9 @@ class ActionApplier(QObject):
         self.__create_command_ids = []
 
     def apply(self, actions: List[VersioningAction]) -> None:
+        if len(actions) == 0:
+            return
+
         try:
             self.__layer.committedFeaturesAdded.connect(
                 self.__update_create_commands
@@ -65,6 +75,11 @@ class ActionApplier(QObject):
 
         except sqlite3.Error as error:
             raise ContainerError from error
+
+        except QgsEditError as error:
+            raise SynchronizationError from LayerEditError.from_qgis_error(
+                error
+            )
 
         except Exception as error:
             raise SynchronizationError from error
