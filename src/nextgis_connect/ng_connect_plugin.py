@@ -27,7 +27,7 @@ from typing import cast
 from osgeo import gdal
 from qgis import utils as qgis_utils
 from qgis.core import Qgis, QgsApplication, QgsRuntimeProfiler, QgsTaskManager
-from qgis.gui import QgisInterface
+from qgis.gui import QgisInterface, QgsMessageBarItem
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
     QAbstractItemModel,
@@ -131,6 +131,7 @@ class NgConnectPlugin(NgConnectInterface):
         self.__unload_detached_editing()
         self.__unload_task_manger()
         self.__unload_translations()
+        self.__close_notifications()
 
         logger.debug("<b>End plugin unloading</b>")
 
@@ -246,7 +247,8 @@ class NgConnectPlugin(NgConnectInterface):
             else Qgis.MessageLevel.Warning
         )
 
-        message_bar.pushWidget(widget, level)
+        item = message_bar.pushWidget(widget, level)
+        item.setObjectName("NgConnectMessageBarItem")
 
         logger.exception(error.log_message, exc_info=error)
 
@@ -289,6 +291,13 @@ class NgConnectPlugin(NgConnectInterface):
             QgsApplication.removeTranslator(translator)
 
         self.__translators.clear()
+
+    def __close_notifications(self) -> None:
+        notifications = self.iface.mainWindow().findChildren(
+            QgsMessageBarItem, "NgConnectMessageBarItem"
+        )
+        for notification in notifications:
+            self.iface.messageBar().popWidget(notification)
 
     def __init_task_manager(self) -> None:
         self.__task_manager = NgConnectTaskManager()
