@@ -31,11 +31,11 @@ from .actions import (
     AttachmentUpdateAction,
     ContinueAction,
     DescriptionPutAction,
+    FeatureAction,
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureId,
     FeatureUpdateAction,
-    VersioningAction,
 )
 
 
@@ -60,7 +60,7 @@ class ActionApplier(QObject):
         self.__commands = []
         self.__create_command_ids = []
 
-    def apply(self, actions: List[VersioningAction]) -> None:
+    def apply(self, actions: List[FeatureAction]) -> None:
         if len(actions) == 0:
             return
 
@@ -92,7 +92,7 @@ class ActionApplier(QObject):
                 self.__update_create_commands
             )
 
-    def __apply_actions(self, actions: List[VersioningAction]) -> None:
+    def __apply_actions(self, actions: List[FeatureAction]) -> None:
         applier_for_action = {
             ActionType.FEATURE_CREATE: self.__create_feature,
             ActionType.FEATURE_UPDATE: self.__update_feature,
@@ -128,7 +128,7 @@ class ActionApplier(QObject):
             connection.commit()
 
     def __extract_previously_uploaded(
-        self, actions: List[VersioningAction]
+        self, actions: List[FeatureAction]
     ) -> Tuple[Set[FeatureId], Set[FeatureId]]:
         if not self.__metadata.is_versioning_enabled:
             return (set(), set())
@@ -183,7 +183,7 @@ class ActionApplier(QObject):
         action: FeatureCreateAction,
         previously_added: Set[FeatureId],
     ) -> None:
-        # Update version if feature was added in previous sync
+        # Update version if feature were added in previous sync
         if action.fid in previously_added:
             self.__commands.append(
                 (

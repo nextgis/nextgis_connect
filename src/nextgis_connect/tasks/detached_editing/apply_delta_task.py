@@ -6,7 +6,7 @@ from typing import List
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.actions import (
-    VersioningAction,
+    FeatureAction,
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
@@ -24,14 +24,14 @@ class ApplyDeltaTask(DetachedEditingTask):
 
     __target: int
     __timestamp: datetime
-    __delta: List[VersioningAction]
+    __delta: List[FeatureAction]
 
     def __init__(
         self,
         container_path: Path,
         target: int,
         timestamp: datetime,
-        delta: List[VersioningAction],
+        delta: List[FeatureAction],
     ) -> None:
         super().__init__(container_path)
         if self._error is not None:

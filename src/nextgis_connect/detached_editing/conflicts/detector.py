@@ -116,7 +116,7 @@ class ConflictsDetector:
         ):
             return False
 
-        if local_action.geom != remote_action.geom:
+        if local_action.geom is not None and remote_action.geom is not None:
             return True
 
         if not local_action.fields or not remote_action.fields:

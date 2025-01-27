@@ -4,7 +4,7 @@ import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence
 
 from qgis.core import (
     QgsEditorWidgetSetup,
@@ -25,6 +25,12 @@ from nextgis_connect.detached_editing.conflicts.deduplicator import (
 )
 from nextgis_connect.detached_editing.conflicts.detector import (
     ConflictsDetector,
+)
+from nextgis_connect.detached_editing.conflicts.resolver import (
+    ConflictsResolver,
+)
+from nextgis_connect.detached_editing.conflicts.resolving_dialog import (
+    ResolvingDialog,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -825,7 +831,7 @@ class DetachedContainer(QObject):
 
     def __process_delta(
         self, fetch_delta_task: FetchDeltaTask
-    ) -> List[VersioningAction]:
+    ) -> Sequence[VersioningAction]:
         if len(fetch_delta_task.delta) == 0:
             return []
 
@@ -851,7 +857,22 @@ class DetachedContainer(QObject):
 
             self.__update_state(is_full_update=True)
 
-        if len(conflicts) > 0:
+        if len(conflicts) == 0:
+            return delta
+
+        dialog = ResolvingDialog()
+        dialog.set_conflicts(conflicts)
+        result = dialog.exec()
+
+        if result != ResolvingDialog.DialogCode.Accepted:
             raise SynchronizationError("Delta has conflicts")
+
+        resolver = ConflictsResolver(self.path, self.metadata)
+        status, delta = resolver.resolve(delta, dialog.resolutions)
+
+        if status != ConflictsResolver.Status.Resolved:
+            raise SynchronizationError("Not all conflicts were solved")
+
+        self.__update_state(is_full_update=True)
 
         return delta

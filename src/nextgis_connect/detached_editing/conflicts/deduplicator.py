@@ -33,7 +33,7 @@ class ConflictsDeduplicator:
         self,
         remote_actions: List[VersioningAction],
         conflicts: List[VersioningConflict],
-    ) -> Tuple[bool, List[VersioningAction], List[VersioningConflict]]:
+    ) -> Tuple[bool, List[FeatureAction], List[VersioningConflict]]:
         self.__both_deleted = []
 
         # Process conflicts and collect info for container and actions changes
@@ -77,7 +77,7 @@ class ConflictsDeduplicator:
 
     def __process_actons(
         self, remote_actions: List[VersioningAction]
-    ) -> List[VersioningAction]:
+    ) -> List[FeatureAction]:
         return [
             action
             for action in remote_actions

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from nextgis_connect.resources.ngw_field import FieldId
 
@@ -44,8 +44,8 @@ class FeatureAction(VersioningAction):
 
 
 class DataChangeAction(FeatureAction):
-    geom: Optional[str]
     fields: List[Tuple[FieldId, Any]]
+    geom: Optional[str]
 
     def __init__(
         self,
@@ -62,6 +62,10 @@ class DataChangeAction(FeatureAction):
             if fields is not None
             else []
         )
+
+    @property
+    def fields_dict(self) -> Dict[FieldId, Any]:
+        return {field_data[0]: field_data[1] for field_data in self.fields}
 
 
 class FeatureCreateAction(DataChangeAction):
