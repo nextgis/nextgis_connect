@@ -30,6 +30,7 @@ from nextgis_connect.exceptions import (
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnectionsManager
+from nextgis_connect.settings import NgConnectSettings
 
 
 class DetachedLayerFactory:
@@ -160,6 +161,7 @@ class DetachedLayerFactory:
     def __create_container_tables(self, cursor: sqlite3.Cursor) -> None:
         cursor.executescript(
             """
+            -- Main metadata table
             CREATE TABLE ngw_metadata (
                 'container_version' TEXT,
                 'connection_id' TEXT,
@@ -173,29 +175,36 @@ class DetachedLayerFactory:
                 'version' INTEGER,
                 'sync_date' DATETIME,
                 'error_code' INTEGER,
-                'is_auto_sync_enabled' BOOLEAN
+                'is_auto_sync_enabled' BOOLEAN,
+                PRIMARY KEY ('instance_id', 'resource_id')
             );
+
+            -- Features metadata
             CREATE TABLE ngw_features_metadata (
-                'fid' INTEGER,
-                'ngw_fid' INTEGER,
+                'fid' INTEGER PRIMARY KEY, -- Feature ID in GPKG
+                'ngw_fid' INTEGER, -- Feature ID in NextGIS Web
                 'version' INTEGER,
                 'description' TEXT
             );
-            CREATE INDEX idx_features_fid ON ngw_features_metadata (fid);
+
+            -- Attachments metadata
             CREATE TABLE ngw_features_attachments (
                 'fid' INTEGER,
-                'aid' INTEGER,
-                'ngw_aid' INTEGER,
+                'aid' INTEGER PRIMARY KEY, -- Attachment ID in GPKG
+                'ngw_aid' INTEGER, -- Attachment ID in NextGIS Web
                 'name' TEXT,
                 'keyname' TEXT,
                 'description' TEXT,
                 'file_meta' TEXT,
                 'mime_type' TEXT,
-                'size' INTEGER
+                'size' INTEGER,
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
+
+            -- Fields metadata
             CREATE TABLE ngw_fields_metadata (
-                'attribute' INTEGER,
-                'ngw_id' INTEGER,
+                'attribute' INTEGER PRIMARY KEY, -- Field ID in QGIS
+                'ngw_id' INTEGER, -- Field ID in NextGIS Web
                 'datatype_name' TEXT,
                 'keyname' TEXT,
                 'display_name' TEXT,
@@ -203,40 +212,75 @@ class DetachedLayerFactory:
                 'lookup_table' INTEGER
             );
 
+            -- Added attributes
             CREATE TABLE ngw_added_attributes (
-                'cid' INTEGER
+                'cid' INTEGER PRIMARY KEY,
+                FOREIGN KEY (cid) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
             );
+
+            -- Removed attributes
             CREATE TABLE ngw_removed_attributes (
-                'cid' INTEGER
+                'cid' INTEGER PRIMARY KEY,
+                FOREIGN KEY (cid) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
             );
 
+            -- Added features
             CREATE TABLE ngw_added_features (
-                'fid' INTEGER
-            );
-            CREATE TABLE ngw_removed_features (
-                'fid' INTEGER
-            );
-            CREATE TABLE ngw_restored_features (
-                'fid' INTEGER
-            );
-            CREATE TABLE ngw_updated_attributes (
-                'fid' INTEGER,
-                'attribute' INTEGER
-            );
-            CREATE TABLE ngw_updated_geometries (
-                'fid' INTEGER
+                'fid' INTEGER PRIMARY KEY,
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
+            -- Removed features
+            CREATE TABLE ngw_removed_features (
+                'fid' INTEGER PRIMARY KEY, -- Unique removed feature ID
+                'backup' TEXT, -- Backup information
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
+            );
+
+            -- Restored features
+            CREATE TABLE ngw_restored_features (
+                'fid' INTEGER PRIMARY KEY, -- Unique restored feature ID
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
+            );
+
+            -- Updated attributes
+            CREATE TABLE ngw_updated_attributes (
+                'fid' INTEGER, -- Feature ID
+                'attribute' INTEGER, -- Attribute ID
+                'backup' TEXT, -- Field state before changes
+                PRIMARY KEY (fid, attribute),
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE,
+                FOREIGN KEY (attribute) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
+            );
+
+            -- Updated geometries
+            CREATE TABLE ngw_updated_geometries (
+                'fid' INTEGER PRIMARY KEY, -- Unique updated geometry ID
+                'backup' TEXT, -- Geometry before update
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
+            );
+
+            -- Added attachments
             CREATE TABLE ngw_added_attachments (
-                'aid' INTEGER
+                'aid' INTEGER PRIMARY KEY, -- Unique added attachment ID
+                FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
             );
+
+            -- Removed attachments
             CREATE TABLE ngw_removed_attachments (
-                'aid' INTEGER
+                'aid' INTEGER PRIMARY KEY, -- Unique removed attachment ID
+                FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
             );
+
+            -- Updated attachments
             CREATE TABLE ngw_updated_attachments (
-                'aid' INTEGER,
-                'data_has_changed' BOOLEAN
+                'aid' INTEGER PRIMARY KEY, -- Unique updated attachment ID
+                'data_has_changed' BOOLEAN, -- Indicates if the data has changed
+                FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
             );
+
+            -- Index to speed up searches by ngw_fid
+            CREATE INDEX idx_features_ngw_fid ON ngw_features_metadata (ngw_fid);
             """
         )
 
@@ -253,8 +297,9 @@ class DetachedLayerFactory:
         )
         assert connection is not None
 
+        settings = NgConnectSettings()
         metadata = {
-            "container_version": "'1.0.0'",
+            "container_version": f"'{settings.supported_container_version}'",
             "instance_id": f"'{connection.domain_uuid}'",
             "connection_id": f"'{ngw_layer.connection_id}'",
             "resource_id": str(ngw_layer.resource_id),

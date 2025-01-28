@@ -27,6 +27,7 @@ from nextgis_connect.detached_editing.utils import (
 from nextgis_connect.ngw_api.core import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnection
 from nextgis_connect.resources.ngw_field import NgwFields
+from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.utils import is_version_supported
 from tests.ng_connect_testcase import (
     NgConnectTestCase,
@@ -422,7 +423,10 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         ngw_layer: NGWVectorLayer,
         connection: NgwConnection,
     ) -> None:
-        self.assertEqual(metadata.container_version, "1.0.0")
+        settings = NgConnectSettings()
+        self.assertEqual(
+            metadata.container_version, settings.supported_container_version
+        )
         self.assertEqual(metadata.connection_id, connection.id)
         self.assertEqual(metadata.instance_id, connection.domain_uuid)
         self.assertEqual(metadata.resource_id, ngw_layer.resource_id)
