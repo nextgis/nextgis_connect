@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Dict, Set
 
 from qgis.core import (
     Qgis,
     QgsFeatureRequest,
+    QgsGeometry,
     QgsMapLayerProxyModel,
     QgsMapLayerType,
     QgsWkbTypes,
@@ -15,6 +16,15 @@ QGIS_3_34 = 33400
 QGIS_3_36 = 33600
 QGIS_3_38 = 33800
 QGIS_3_38 = 34000
+
+
+QgsFeatureId = int
+QgsFeatureIds = Set[QgsFeatureId]
+QgsAttributeMap = Dict[int, Any]
+QgsChangedAttributesMap = Dict[
+    QgsFeatureId, Dict[QgsFeatureId, QgsAttributeMap]
+]
+QgsGeometryMap = Dict[QgsFeatureId, QgsGeometry]
 
 
 if Qgis.versionInt() >= QGIS_3_30 or TYPE_CHECKING:
