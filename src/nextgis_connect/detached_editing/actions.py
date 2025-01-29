@@ -1,3 +1,4 @@
+from abc import ABC
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -22,8 +23,14 @@ class ActionType(str, Enum):
 FeatureId = int
 VersionId = int
 
+UnsetValue = None
 
-class VersioningAction:
+
+class VersioningAction(ABC):
+    """Base class for other actions"""
+
+    action: ActionType
+
     def __init__(self, action: ActionType):
         self.action = action
 
@@ -37,6 +44,7 @@ class FeatureAction(VersioningAction):
         action: ActionType,
         fid: FeatureId,
         vid: Optional[VersionId] = None,
+        **kwargs,
     ):
         super().__init__(action)
         self.fid = fid
@@ -54,6 +62,7 @@ class DataChangeAction(FeatureAction):
         vid: Optional[VersionId] = None,
         geom: Optional[str] = None,
         fields: Optional[List[List[Any]]] = None,
+        **kwargs,
     ):
         super().__init__(action, fid, vid)
         self.geom = geom
@@ -75,6 +84,7 @@ class FeatureCreateAction(DataChangeAction):
         vid: Optional[VersionId] = None,
         geom: Optional[str] = None,
         fields: Optional[List[List[Any]]] = None,
+        **kwargs,
     ):
         super().__init__(ActionType.FEATURE_CREATE, fid, vid, geom, fields)
 
@@ -86,43 +96,71 @@ class FeatureUpdateAction(DataChangeAction):
         vid: Optional[VersionId] = None,
         geom: Optional[str] = None,
         fields: Optional[List[List[Any]]] = None,
+        **kwargs,
     ):
         super().__init__(ActionType.FEATURE_UPDATE, fid, vid, geom, fields)
 
 
 class FeatureDeleteAction(DataChangeAction):
-    def __init__(self, fid: FeatureId, vid: Optional[VersionId] = None):
+    def __init__(
+        self,
+        fid: FeatureId,
+        vid: Optional[VersionId] = None,
+        **kwargs,
+    ):
         super().__init__(ActionType.FEATURE_DELETE, fid, vid)
 
 
+class FeatureRestoreAction(DataChangeAction):
+    def __init__(
+        self,
+        fid: FeatureId,
+        vid: Optional[VersionId] = None,
+        geom: Optional[str] = UnsetValue,
+        fields: Optional[List[List[Any]]] = UnsetValue,
+        **kwargs,
+    ):
+        super().__init__(ActionType.FEATURE_RESTORE, fid, vid, geom, fields)
+
+
 class DescriptionPutAction(FeatureAction):
-    def __init__(self, fid: FeatureId, vid: Optional[VersionId], value: str):
+    value: str
+
+    def __init__(
+        self,
+        fid: FeatureId,
+        vid: Optional[VersionId],
+        value: str,
+        **kwargs,
+    ):
         super().__init__(ActionType.DESCRIPTION_PUT, fid, vid)
         self.value = value
 
 
 class AttachmentAction(FeatureAction):
-    pass
+    """Base class for attachment actions"""
 
 
 class AttachmentCreateAction(AttachmentAction):
-    def __init__(self, **_):
+    def __init__(self, **kwargs):
         super().__init__(ActionType.ATTACHMENT_CREATE, -1)
 
 
 class AttachmentUpdateAction(AttachmentAction):
-    def __init__(self, **_):
+    def __init__(self, **kwargs):
         super().__init__(ActionType.ATTACHMENT_UPDATE, -1)
 
 
 class AttachmentDeleteAction(AttachmentAction):
-    def __init__(self, **_):
+    def __init__(self, **kwargs):
         super().__init__(ActionType.ATTACHMENT_DELETE, -1)
 
 
 class ContinueAction(VersioningAction):
+    """Action with url to next page with actions"""
+
     url: str
 
-    def __init__(self, url: str):
+    def __init__(self, url: str, **kwargs):
         super().__init__(ActionType.CONTINUE)
         self.url = url
