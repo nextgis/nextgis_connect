@@ -1,0 +1,2 @@
+NgwFeatureId = int
+NgwFieldId = int
