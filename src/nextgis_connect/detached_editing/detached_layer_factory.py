@@ -20,6 +20,7 @@ from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     container_metadata,
     detached_layer_uri,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -52,7 +53,7 @@ class DetachedLayerFactory:
             self.__check_fields(ngw_layer, container_path)
 
             with closing(
-                sqlite3.connect(str(container_path))
+                make_connection(container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 self.__initialize_container_settings(cursor)
                 self.__create_container_tables(cursor)
@@ -95,7 +96,7 @@ class DetachedLayerFactory:
             self.__copy_features(source_path, container_path, metadata)
 
             with closing(
-                sqlite3.connect(str(container_path))
+                make_connection(container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 self.__insert_ngw_ids(cursor)
                 self.__update_sync_date(cursor)
@@ -156,7 +157,7 @@ class DetachedLayerFactory:
         return is_success
 
     def __initialize_container_settings(self, cursor: sqlite3.Cursor) -> None:
-        cursor.execute("PRAGMA foreign_keys = 1")
+        pass
 
     def __create_container_tables(self, cursor: sqlite3.Cursor) -> None:
         cursor.executescript(

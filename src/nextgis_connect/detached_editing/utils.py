@@ -83,12 +83,17 @@ class DetachedContainerMetaData:
 class DetachedContainerChangesInfo:
     added_features_count: int = 0
     removed_features_count: int = 0
+    restored_features_count: int = 0
     updated_attributes_count: int = 0
     updated_geometries_count: int = 0
 
     @property
     def updated_features_count(self) -> int:
-        return self.updated_attributes_count + self.updated_geometries_count
+        return (
+            self.updated_attributes_count
+            + self.updated_geometries_count
+            + self.restored_features_count
+        )
 
 
 @dataclass(frozen=True)
@@ -115,11 +120,17 @@ def container_path(layer: Union[QgsMapLayer, Path]) -> Path:
 
 
 def make_connection(layer: Union[QgsMapLayer, Path]) -> sqlite3.Connection:
-    path = container_path(layer)
-    return sqlite3.connect(str(path))
+    connection = sqlite3.connect(str(container_path(layer)))
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
 
 
-def detached_layer_uri(path: Path) -> str:
+def detached_layer_uri(
+    path: Path, metadata: Optional[DetachedContainerMetaData] = None
+) -> str:
+    if metadata is not None:
+        return f"{path}|layername={metadata.table_name}"
+
     try:
         with closing(sqlite3.connect(str(path))) as connection, closing(
             connection.cursor()
@@ -282,6 +293,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         SELECT
             EXISTS(SELECT 1 FROM ngw_added_features)
             OR EXISTS(SELECT 1 FROM ngw_removed_features)
+            OR EXISTS(SELECT 1 FROM ngw_restored_features)
             OR EXISTS(SELECT 1 FROM ngw_updated_attributes)
             OR EXISTS(SELECT 1 FROM ngw_updated_geometries)
     """
@@ -320,13 +332,20 @@ def container_changes(path: Path) -> DetachedContainerChangesInfo:
             SELECT
               (SELECT COUNT(*) FROM ngw_added_features) added,
               (SELECT COUNT(*) FROM ngw_removed_features) removed,
+              (SELECT COUNT(*) FROM ngw_restored_features) restored,
               (SELECT COUNT(DISTINCT fid) FROM ngw_updated_attributes) attributes,
               (SELECT COUNT(*) FROM ngw_updated_geometries) geometries
             """
         )
         result = cursor.fetchone()
 
-        return DetachedContainerChangesInfo(*result)
+        return DetachedContainerChangesInfo(
+            added_features_count=result[0],
+            removed_features_count=result[1],
+            restored_features_count=result[2],
+            updated_attributes_count=result[3],
+            updated_geometries_count=result[4],
+        )
 
 
 @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
