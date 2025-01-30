@@ -21,6 +21,7 @@
 """
 
 import html
+import importlib.util
 import json
 import os
 import tempfile
@@ -151,12 +152,10 @@ from nextgis_connect.tree_widget import (
 from nextgis_connect.tree_widget.model import NGWResourceModelResponse
 from nextgis_connect.tree_widget.proxy_model import NgConnectProxyModel
 
-HAS_NGSTD = True
-try:
+HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
+if HAS_NGSTD:
     from ngstd.core import NGRequest  # type: ignore
     from ngstd.framework import NGAccess  # type: ignore
-except ImportError:
-    HAS_NGSTD = False
 
 
 this_dir = os.path.dirname(__file__)

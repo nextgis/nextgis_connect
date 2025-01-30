@@ -1,3 +1,4 @@
+import importlib.util
 import json
 import os.path
 import re
@@ -36,11 +37,9 @@ from nextgis_connect.ngw_connection.auth_config_edit_dialog import (
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
 
-HAS_NGSTD = True
-try:
+HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
+if HAS_NGSTD:
     from ngstd.framework import NGAccess  # type: ignore
-except ImportError:
-    HAS_NGSTD = False
 
 
 pluginPath = os.path.dirname(__file__)
