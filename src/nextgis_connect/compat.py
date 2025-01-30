@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Any, Dict, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Set
 
 from qgis.core import (
     Qgis,
+    QgsFeature,
     QgsFeatureRequest,
     QgsGeometry,
     QgsMapLayerProxyModel,
@@ -20,10 +21,14 @@ QGIS_3_38 = 34000
 
 QgsFeatureId = int
 QgsFeatureIds = Set[QgsFeatureId]
+QgsFeatureList = List[QgsFeature]
+
+QgsAttributeList = List[int]
 QgsAttributeMap = Dict[int, Any]
 QgsChangedAttributesMap = Dict[
     QgsFeatureId, Dict[QgsFeatureId, QgsAttributeMap]
 ]
+
 QgsGeometryMap = Dict[QgsFeatureId, QgsGeometry]
 
 
