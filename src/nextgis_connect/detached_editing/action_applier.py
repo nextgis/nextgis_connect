@@ -1,6 +1,6 @@
 import sqlite3
-from base64 import b64decode
 from contextlib import closing
+from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
@@ -13,9 +13,11 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QObject, pyqtSlot
 
+from nextgis_connect.detached_editing.serialization import deserialize_geometry
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
+    detached_layer_uri,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -54,8 +56,9 @@ class ActionApplier(QObject):
 
         self.__container_path = container_path
         self.__metadata = metadata
-        layer_path = f"{container_path}|layername={metadata.table_name}"
-        self.__layer = QgsVectorLayer(layer_path)
+        self.__layer = QgsVectorLayer(
+            detached_layer_uri(container_path, metadata)
+        )
 
         self.__commands = []
         self.__create_command_ids = []
@@ -63,6 +66,9 @@ class ActionApplier(QObject):
     def apply(self, actions: List[FeatureAction]) -> None:
         if len(actions) == 0:
             return
+
+        self.__commands = []
+        self.__create_command_ids = []
 
         try:
             self.__layer.committedFeaturesAdded.connect(
@@ -78,16 +84,13 @@ class ActionApplier(QObject):
 
         except QgsEditError as error:
             raise SynchronizationError from LayerEditError.from_qgis_error(
-                error
+                deepcopy(error)
             )
 
         except Exception as error:
             raise SynchronizationError from error
 
         finally:
-            self.__commands = []
-            self.__create_command_ids = []
-
             self.__layer.committedFeaturesAdded.disconnect(
                 self.__update_create_commands
             )
@@ -110,14 +113,23 @@ class ActionApplier(QObject):
 
         with edit(self.__layer):
             for action in actions:
+                action_type = action.action
                 params = (action,)
 
-                if action.action == ActionType.FEATURE_CREATE:
+                if action_type == ActionType.FEATURE_RESTORE:
+                    action_type = (
+                        ActionType.FEATURE_UPDATE
+                        if self.__get_feature_metadata(ngw_fid=action.fid)
+                        is not None
+                        else ActionType.FEATURE_CREATE
+                    )
+
+                if action_type == ActionType.FEATURE_CREATE:
                     params = (action, previously_added)
-                elif action.action == ActionType.FEATURE_DELETE:
+                elif action_type == ActionType.FEATURE_DELETE:
                     params = (action, previously_deleted)
 
-                applier_for_action[action.action](*params)
+                applier_for_action[action_type](*params)
 
         with closing(
             sqlite3.connect(str(self.__container_path))
@@ -308,16 +320,9 @@ class ActionApplier(QObject):
         pass
 
     def __deserialize_geometry(self, geom: Optional[str]) -> QgsGeometry:
-        if geom is None or geom == "":
-            return QgsGeometry()
-
-        if self.__metadata.is_versioning_enabled:
-            geometry = QgsGeometry()
-            geometry.fromWkb(b64decode(geom))
-        else:
-            geometry = QgsGeometry.fromWkt(geom)
-
-        return geometry
+        return deserialize_geometry(
+            geom, self.__metadata.is_versioning_enabled
+        )
 
     def __get_feature_metadata(
         self, *, ngw_fid: FeatureId
