@@ -1,3 +1,4 @@
+import json
 from base64 import b64decode, b64encode
 from typing import Any, Optional, Union
 
@@ -8,11 +9,12 @@ from nextgis_connect.compat import GeometryType
 from nextgis_connect.exceptions import NgConnectError
 
 
-def _serialize_date_and_time(
+def simplify_date_and_time(
     date_object: Union[QDateTime, QDate, QTime],
-    is_versioning_enabled: bool = False,
+    *,
+    iso_format: bool = False,
 ) -> Any:
-    if is_versioning_enabled:
+    if iso_format:
         return date_object.toString(Qt.DateFormat.ISODate)
 
     date = None
@@ -39,14 +41,22 @@ def _serialize_date_and_time(
     return result
 
 
-def serialize_value(value: Any, is_versioning_enabled: bool = False) -> Any:
+def simplify_value(value: Any) -> Any:
     if isinstance(value, QVariant) and value.isNull():
-        return None
+        value = None
 
-    if isinstance(value, (QDate, QTime, QDateTime)):
-        return _serialize_date_and_time(value)
+    elif isinstance(value, (QDate, QTime, QDateTime)):
+        value = simplify_date_and_time(value, iso_format=True)
 
     return value
+
+
+def serialize_value(value: Any) -> Any:
+    return json.dumps(simplify_value(value))
+
+
+def deserialize_value(value: str) -> Any:
+    return json.loads(value)
 
 
 def serialize_geometry(

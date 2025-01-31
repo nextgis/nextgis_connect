@@ -92,7 +92,7 @@ class UploadChangesTask(DetachedEditingTask):
         )
 
         resource_id = layer_metadata.resource_id
-        url = f"/api/resource/{resource_id}/feature/?geom_null=true"
+        url = f"/api/resource/{resource_id}/feature/?geom_null=true&dt_format=iso"
 
         iterator = iter(create_actions)
         batch = tuple(islice(iterator, self.BATCH_SIZE))
@@ -163,7 +163,7 @@ class UploadChangesTask(DetachedEditingTask):
         )
 
         resource_id = layer_metadata.resource_id
-        url = f"/api/resource/{resource_id}/feature/?geom_null=true"
+        url = f"/api/resource/{resource_id}/feature/?geom_null=true&dt_format=iso"
 
         iterator = iter(updated_actions)
         batch = tuple(islice(iterator, self.BATCH_SIZE))
