@@ -12,6 +12,7 @@ from nextgis_connect.exceptions import SynchronizationError
 from .actions import (
     FeatureCreateAction,
     FeatureDeleteAction,
+    FeatureRestoreAction,
     FeatureUpdateAction,
     VersioningAction,
 )
@@ -52,8 +53,10 @@ class TransactionApplier:
             raise SynchronizationError("Result length is not equal")
 
         added_features = []
-        delete_actions = []
         updated_features = []
+
+        delete_actions = []
+        restore_actions = []
 
         for action, (_, action_result) in zip(actions, operation_result):
             if str(action.action) != action_result["action"]:
@@ -65,8 +68,13 @@ class TransactionApplier:
                         fid=cast(int, action.fid), ngw_fid=action_result["fid"]
                     )
                 )
+
             elif isinstance(action, FeatureDeleteAction):
                 delete_actions.append(action)
+
+            elif isinstance(action, FeatureRestoreAction):
+                restore_actions.append(action)
+
             elif isinstance(action, FeatureUpdateAction):
                 updated_features.append(
                     FeatureMetaData(ngw_fid=cast(int, action.fid))
@@ -75,11 +83,14 @@ class TransactionApplier:
         if len(added_features) > 0:
             self.__process_added(added_features)
 
+        if len(updated_features) > 0:
+            self.__process_updated(updated_features)
+
         if len(delete_actions) > 0:
             self.__process_deleted(delete_actions)
 
-        if len(updated_features) > 0:
-            self.__process_updated(updated_features)
+        if len(restore_actions) > 0:
+            self.__process_restored(restore_actions)
 
     def __apply_not_versioned(
         self,
@@ -155,6 +166,25 @@ class TransactionApplier:
                     WHERE fid IN removed_fids;
                 DELETE FROM ngw_features_metadata
                     WHERE ngw_fid IN ({batch_ngw_fids});
+                """
+            )
+            connection.commit()
+
+    def __process_restored(
+        self, actions: Sequence[FeatureRestoreAction]
+    ) -> None:
+        batch_ngw_fids = ",".join(str(action.fid) for action in actions)
+
+        with closing(self.__make_connection()) as connection, closing(
+            connection.cursor()
+        ) as cursor:
+            cursor.executescript(
+                f"""
+                DELETE FROM ngw_restored_features
+                WHERE fid IN (
+                    SELECT fid FROM ngw_features_metadata
+                    WHERE ngw_fid IN ({batch_ngw_fids})
+                );
                 """
             )
             connection.commit()
