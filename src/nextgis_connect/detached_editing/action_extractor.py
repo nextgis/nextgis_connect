@@ -1,35 +1,41 @@
 import itertools
 import sqlite3
-from base64 import b64encode
 from contextlib import closing
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set
 
 from qgis.core import (
     QgsFeatureRequest,
     QgsGeometry,
     QgsVectorLayer,
-    QgsWkbTypes,
 )
-from qgis.PyQt.QtCore import QVariant
 
-from nextgis_connect.compat import GeometryType
+from nextgis_connect.detached_editing.serialization import (
+    serialize_geometry,
+    simplify_value,
+)
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
+    detached_layer_uri,
 )
-from nextgis_connect.exceptions import ContainerError, NgConnectError
+from nextgis_connect.exceptions import ContainerError
 
 from .actions import (
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureId,
+    FeatureRestoreAction,
     FeatureUpdateAction,
     VersioningAction,
 )
 
 
 class ActionExtractor:
+    """
+    Extracts various types of actions from a detached editing container.
+    """
+
     __container_path: Path
     __metadata: DetachedContainerMetaData
     __layer: QgsVectorLayer
@@ -39,16 +45,22 @@ class ActionExtractor:
     ) -> None:
         self.__container_path = container_path
         self.__metadata = metadata
-        layer_path = f"{container_path}|layername={metadata.table_name}"
-        self.__layer = QgsVectorLayer(layer_path)
+        self.__layer = QgsVectorLayer(
+            detached_layer_uri(container_path, metadata)
+        )
 
     def extract_all(self) -> List[VersioningAction]:
         added_features = self.extract_added_features()
         deleted_features = self.extract_deleted_features()
+        restored_features = self.extract_restored_features()
+        restored_features = self.extract_restored_features()
         updated_features = self.extract_updated_features()
 
         actions = itertools.chain(
-            added_features, deleted_features, updated_features
+            added_features,
+            deleted_features,
+            restored_features,
+            updated_features,
         )
         return list(actions)
 
@@ -73,9 +85,7 @@ class ActionExtractor:
             geom = self.__serialize_geometry(feature.geometry())
             fields_values = []
             for field in self.__metadata.fields:
-                value = self.__serialize_value(
-                    feature.attribute(field.attribute)
-                )
+                value = simplify_value(feature.attribute(field.attribute))
                 if value is None:
                     continue
                 fields_values.append([field.ngw_id, value])
@@ -115,22 +125,9 @@ class ActionExtractor:
                 if len(all_updated_fids) == 0:
                     return []
 
-                all_updated_fids_joined = ", ".join(
-                    str(fid) for fid in all_updated_fids
+                features_metadata = self.__features_metadata(
+                    cursor, all_updated_fids
                 )
-
-                features_metadata = {
-                    row[0]: FeatureMetaData(
-                        fid=row[0], ngw_fid=row[1], version=row[2]
-                    )
-                    for row in cursor.execute(
-                        f"""
-                            SELECT fid, ngw_fid, version
-                            FROM ngw_features_metadata
-                            WHERE fid IN ({all_updated_fids_joined})
-                        """
-                    )
-                }
 
         except Exception as error:
             raise ContainerError from error
@@ -159,9 +156,7 @@ class ActionExtractor:
                 fields_values.append(
                     [
                         fields.get_with(attribute=attribute_id).ngw_id,
-                        self.__serialize_value(
-                            feature.attribute(attribute_id)
-                        ),
+                        simplify_value(feature.attribute(attribute_id)),
                     ]
                 )
 
@@ -191,38 +186,63 @@ class ActionExtractor:
         except Exception as error:
             raise ContainerError from error
 
+    def extract_restored_features(self) -> List[FeatureRestoreAction]:
+        try:
+            with closing(
+                sqlite3.connect(str(self.__container_path))
+            ) as connection, closing(connection.cursor()) as cursor:
+                restored_features_id = [
+                    row[0]
+                    for row in cursor.execute(
+                        "SELECT fid from ngw_restored_features"
+                    )
+                ]
+                features_metadata = self.__features_metadata(
+                    cursor, restored_features_id
+                )
+        except Exception as error:
+            raise ContainerError from error
+
+        restore_actions = []
+        request = QgsFeatureRequest(restored_features_id)
+        for feature in self.__layer.getFeatures(request):  # type: ignore
+            fid = feature.id()
+            geom = self.__serialize_geometry(feature.geometry())
+            fields_values = []
+            for field in self.__metadata.fields:
+                value = simplify_value(feature.attribute(field.attribute))
+                if value is None:
+                    continue
+                fields_values.append([field.ngw_id, value])
+
+            ngw_fid = features_metadata[fid].ngw_fid
+            version = features_metadata[fid].version
+            assert ngw_fid is not None
+
+            restore_actions.append(
+                FeatureRestoreAction(ngw_fid, version, geom, fields_values)
+            )
+
+        return restore_actions
+
+    def __features_metadata(
+        self, cursor: sqlite3.Cursor, fids: Iterable[FeatureId]
+    ) -> Dict[FeatureId, FeatureMetaData]:
+        all_fids_joined = ",".join(str(fid) for fid in fids)
+
+        features_metadata = {
+            row[0]: FeatureMetaData(fid=row[0], ngw_fid=row[1], version=row[2])
+            for row in cursor.execute(
+                f"""
+                    SELECT fid, ngw_fid, version
+                    FROM ngw_features_metadata
+                    WHERE fid IN ({all_fids_joined})
+                """
+            )
+        }
+        return features_metadata
+
     def __serialize_geometry(self, geometry: Optional[QgsGeometry]) -> str:
-        if geometry is None or geometry.isEmpty():
-            return ""
-
-        def as_wkt(geometry: QgsGeometry) -> str:
-            wkt = geometry.asWkt()
-
-            if not QgsWkbTypes.hasZ(geometry.wkbType()):
-                return wkt
-
-            geometry_type = geometry.type()
-            if geometry_type == GeometryType.Point:
-                replacement = ("tZ", "t Z")
-            elif geometry_type == GeometryType.Line:
-                replacement = ("gZ", "g Z")
-            elif geometry_type == GeometryType.Polygon:
-                replacement = ("nZ", "n Z")
-            else:
-                raise NgConnectError("Unknown geometry")
-
-            return wkt.replace(*replacement)
-
-        def as_wkb64(geometry: QgsGeometry) -> str:
-            return b64encode(geometry.asWkb().data()).decode("ascii")
-
-        return (
-            as_wkb64(geometry)
-            if self.__metadata.is_versioning_enabled
-            else as_wkt(geometry)
+        return serialize_geometry(
+            geometry, self.__metadata.is_versioning_enabled
         )
-
-    def __serialize_value(self, value: Any) -> Any:
-        if isinstance(value, QVariant) and value.isNull():
-            return None
-        return value
