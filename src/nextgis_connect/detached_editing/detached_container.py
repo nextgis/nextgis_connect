@@ -29,7 +29,7 @@ from nextgis_connect.detached_editing.conflicts.detector import (
 from nextgis_connect.detached_editing.conflicts.resolver import (
     ConflictsResolver,
 )
-from nextgis_connect.detached_editing.conflicts.resolving_dialog import (
+from nextgis_connect.detached_editing.conflicts.ui.resolving_dialog import (
     ResolvingDialog,
 )
 from nextgis_connect.exceptions import (
@@ -462,18 +462,7 @@ class DetachedContainer(QObject):
             self.state_changed.emit(self.__state)
             return
 
-        if self.__sync_task is not None and (
-            self.__sync_task.status()
-            not in (
-                QgsTask.TaskStatus.Complete,
-                QgsTask.TaskStatus.Terminated,
-            )
-            or self.__versioning_state
-            in (
-                VersioningSynchronizationState.ConflictDetection,
-                VersioningSynchronizationState.ConflictSolving,
-            )
-        ):
+        if self.__sync_task is not None:
             self.__state = DetachedLayerState.Synchronization
         else:
             is_not_synchronized = (
@@ -610,12 +599,13 @@ class DetachedContainer(QObject):
 
     @pyqtSlot()
     def __on_fetch_finished(self) -> None:
+        assert isinstance(self.__sync_task, FetchDeltaTask)
         result = self.__sync_task.status() == QgsTask.TaskStatus.Complete
         if not result:
             self.__on_synchronization_finished(False)
             return
 
-        assert isinstance(self.__sync_task, FetchDeltaTask)
+        self.__update_state()
 
         if len(self.__sync_task.delta) > 0:
             try:
@@ -630,6 +620,9 @@ class DetachedContainer(QObject):
                 self.__process_sync_error(ng_error)
                 self.__finish_sync()
                 return
+
+            # Even if delta is empty after conflicts resolution we should
+            # update layer metadata
 
             fetch_delta_task = self.__sync_task
 
@@ -666,7 +659,6 @@ class DetachedContainer(QObject):
             self.__on_synchronization_finished(False)
             return
 
-        # TODO: why?
         self.__update_state()
 
         if not self.metadata.has_changes:
@@ -687,6 +679,8 @@ class DetachedContainer(QObject):
         if not result:
             self.__on_synchronization_finished(False)
             return
+
+        self.__update_state()
 
         task = FetchDeltaTask(self.path)
         task.taskCompleted.connect(self.__on_fetch_finished)
