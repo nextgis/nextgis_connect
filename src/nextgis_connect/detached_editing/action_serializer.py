@@ -1,12 +1,7 @@
 import json
 from typing import Any, ClassVar, Dict, Iterable, List, Type, Union
 
-from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime
-
-from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
-from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
-
-from .actions import (
+from nextgis_connect.detached_editing.actions import (
     ActionType,
     AttachmentCreateAction,
     AttachmentDeleteAction,
@@ -16,9 +11,12 @@ from .actions import (
     DescriptionPutAction,
     FeatureCreateAction,
     FeatureDeleteAction,
+    FeatureRestoreAction,
     FeatureUpdateAction,
     VersioningAction,
 )
+from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
+from nextgis_connect.exceptions import DetachedEditingError, ErrorCode
 
 
 class ActionSerializer:
@@ -27,6 +25,7 @@ class ActionSerializer:
         ActionType.FEATURE_CREATE: FeatureCreateAction,
         ActionType.FEATURE_UPDATE: FeatureUpdateAction,
         ActionType.FEATURE_DELETE: FeatureDeleteAction,
+        ActionType.FEATURE_RESTORE: FeatureRestoreAction,
         ActionType.DESCRIPTION_PUT: DescriptionPutAction,
         ActionType.ATTACHMENT_CREATE: AttachmentCreateAction,
         ActionType.ATTACHMENT_UPDATE: AttachmentUpdateAction,
@@ -74,9 +73,6 @@ class ActionSerializer:
 
     def __convert_versioning_action(self, action: VersioningAction) -> Any:
         if not isinstance(action, DataChangeAction):
-            if isinstance(action, (QDate, QTime, QDateTime)):
-                return self.__serialize_date_and_time(action)
-
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
             code = ErrorCode.SynchronizationError
@@ -101,9 +97,6 @@ class ActionSerializer:
 
     def __convert_action(self, action: VersioningAction) -> Any:
         if not isinstance(action, DataChangeAction):
-            if isinstance(action, (QDate, QTime, QDateTime)):
-                return self.__serialize_date_and_time(action)
-
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
             code = ErrorCode.SynchronizationError
@@ -153,40 +146,11 @@ class ActionSerializer:
         return result
 
     def __deserialize_actions(
-        self, actions: Iterable[Dict[str, Any]]
+        self, actions_json: Iterable[Dict[str, Any]]
     ) -> List[VersioningAction]:
         def json_to_action(action_dict: Dict[str, Any]) -> VersioningAction:
-            action_type = action_dict.pop("action")
+            action_type = action_dict["action"]
             action_class = ActionSerializer.action_classes[action_type]
             return action_class(**action_dict)
 
-        return [json_to_action(item.copy()) for item in actions]
-
-    def __serialize_date_and_time(
-        self, date_object: Union[QDateTime, QDate, QTime]
-    ) -> Any:
-        if self.__layer_metadata.is_versioning_enabled:
-            return date_object.toString(Qt.DateFormat.ISODate)
-
-        date = None
-        time = None
-        if isinstance(date_object, QDateTime):
-            date = date_object.date()
-            time = date_object.time()
-        elif isinstance(date_object, QDate):
-            date = date_object
-        elif isinstance(date_object, QTime):
-            time = date_object
-
-        result = {}
-        if date is not None:
-            result["year"] = date.year()
-            result["month"] = date.month()
-            result["day"] = date.day()
-
-        if time is not None:
-            result["hour"] = time.hour()
-            result["minute"] = time.minute()
-            result["second"] = time.second()
-
-        return result
+        return [json_to_action(action_json) for action_json in actions_json]
