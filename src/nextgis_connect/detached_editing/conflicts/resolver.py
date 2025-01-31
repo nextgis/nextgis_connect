@@ -1,9 +1,12 @@
+import json
 from contextlib import closing
 from copy import deepcopy
 from enum import Enum, auto
 from pathlib import Path
 from textwrap import dedent
 from typing import Any, Dict, Iterable, List, Set, Tuple
+
+from qgis.core import QgsFeature, QgsVectorLayer, edit
 
 from nextgis_connect.detached_editing.actions import (
     ActionType,
@@ -16,8 +19,10 @@ from nextgis_connect.detached_editing.conflicts.conflict_resolution import (
     ConflictResolution,
     ResolutionType,
 )
+from nextgis_connect.detached_editing.serialization import deserialize_geometry
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
+    detached_layer_uri,
     make_connection,
 )
 from nextgis_connect.exceptions import DetachedEditingError
@@ -37,6 +42,9 @@ class ConflictsResolver:
 
     __local_geometry_changes_for_add: List[FeatureId]
     __local_geometry_changes_for_delete: List[FeatureId]
+
+    __local_features_to_restore: List[FeatureId]
+    __remote_features_to_restore: List[FeatureId]
 
     class Status(Enum):
         NotResolved = auto()
@@ -74,6 +82,8 @@ class ConflictsResolver:
         self.__local_fields_changes_for_delete = dict()
         self.__local_geometry_changes_for_add = list()
         self.__local_geometry_changes_for_delete = list()
+        self.__local_features_to_restore = list()
+        self.__remote_features_to_restore = list()
 
     def __resolve(
         self,
@@ -236,10 +246,14 @@ class ConflictsResolver:
             self.__local_geometry_changes_for_delete.append(fid)
 
     def __restore_local(self, resolution: ConflictResolution) -> None:
-        raise NotImplementedError
+        self.__local_features_to_restore.append(resolution.conflict.local.fid)
 
     def __restore_remote(self, resolution: ConflictResolution) -> None:
-        raise NotImplementedError
+        self.__remove_local_actions(resolution)
+
+        remote = resolution.conflict.remote
+        self.__deleted_actions.add((remote.fid, remote.action))
+        self.__remote_features_to_restore.append(remote.fid)
 
     def __remove_local_actions(self, resolution: ConflictResolution) -> None:
         local = resolution.conflict.local
@@ -420,6 +434,70 @@ class ConflictsResolver:
                     SELECT fid FROM ngw_features_metadata
                     WHERE ngw_fid IN ({ngw_fids})
                 );
+            """)
+
+        if self.__local_features_to_restore:
+            ngw_fid_to_fid = self.__ngw_fid_to_fid_dict(
+                self.__local_features_to_restore
+            )
+
+            fids_str = ",".join(map(str, ngw_fid_to_fid.values()))
+            with closing(
+                make_connection(self.__container_path)
+            ) as connection, closing(connection.cursor()) as cursor:
+                backups = {
+                    row[0]: row[1]
+                    for row in cursor.execute(f"""
+                        SELECT fid, backup FROM ngw_removed_features
+                        WHERE fid IN ({fids_str});
+                    """)
+                }
+
+            layer = QgsVectorLayer(
+                detached_layer_uri(self.__container_path, self.__metadata)
+            )
+            restored_features = []
+            for fid in ngw_fid_to_fid.values():
+                feature_backup = json.loads(backups[fid])
+                after_sync = feature_backup["after_sync"]
+
+                feature = QgsFeature(layer.fields(), fid)
+                feature.setAttribute(self.__metadata.fid_field, fid)
+                for field_ngw_id, value in after_sync["fields"]:
+                    attribute = self.__metadata.fields.get_with(
+                        ngw_id=field_ngw_id
+                    ).attribute
+                    feature.setAttribute(attribute, value)
+
+                feature.setGeometry(
+                    deserialize_geometry(
+                        after_sync["geom"],
+                        self.__metadata.is_versioning_enabled,
+                    )
+                )
+                restored_features.append(feature)
+
+            with edit(layer):
+                layer.addFeatures(restored_features)
+
+            script += dedent(f"""
+                DELETE FROM ngw_removed_features
+                WHERE fid IN ({fids_str});
+            """)
+
+        if self.__remote_features_to_restore:
+            ngw_fid_to_fid = self.__ngw_fid_to_fid_dict(
+                self.__remote_features_to_restore
+            )
+            values = ",".join(
+                map(
+                    lambda fid: f"({ngw_fid_to_fid[fid]})",
+                    self.__remote_features_to_restore,
+                )
+            )
+            script += dedent(f"""
+                INSERT INTO ngw_restored_features (fid)
+                VALUES {values};
             """)
 
         if len(script) == 0:
