@@ -220,8 +220,11 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
                 ngw_resource.connection_id
             )
             assert connection is not None
-            instance_subdir = connection.domain_uuid
 
+            # TODO: optimizations. e.g. fetch common dir for resources
+            ngw_resource.update(skip_children=True)
+
+            instance_subdir = connection.domain_uuid
             instance_cache_path = cache_directory / instance_subdir
             instance_cache_path.mkdir(parents=True, exist_ok=True)
             gpkg_path = (
