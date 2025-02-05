@@ -2,10 +2,11 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Iterable, Optional, Tuple, cast
 
 from qgis.core import (
     QgsEditError,
+    QgsFeature,
     QgsField,
     QgsFields,
     QgsProject,
@@ -16,6 +17,7 @@ from qgis.core import (
 
 from nextgis_connect.compat import FieldType
 from nextgis_connect.detached_editing.utils import (
+    DetachedContainerMetaData,
     container_metadata,
     detached_layer_uri,
 )
@@ -84,11 +86,12 @@ class DetachedLayerFactory:
         )
 
         try:
-            fid_field = container_metadata(container_path).fid_field
+            metadata = container_metadata(container_path)
+            fid_field = metadata.fid_field
             self.__check_fields(ngw_layer, source_path, fid_field=fid_field)
             self.__check_fields(ngw_layer, container_path, fid_field=fid_field)
 
-            self.__copy_features(source_path, container_path)
+            self.__copy_features(source_path, container_path, metadata)
 
             with closing(
                 sqlite3.connect(str(container_path))
@@ -306,6 +309,7 @@ class DetachedLayerFactory:
         self,
         source_path: Path,
         container_path: Path,
+        metadata: DetachedContainerMetaData,
     ) -> None:
         source_layer = QgsVectorLayer(
             detached_layer_uri(source_path), "", "ogr"
@@ -315,10 +319,35 @@ class DetachedLayerFactory:
         )
 
         try:
+            target_fields = target_layer.fields()
+            fid_attribute = target_layer.fields().indexOf(metadata.fid_field)
+
             with edit(target_layer):
-                for feature in source_layer.getFeatures():  # type: ignore
-                    feature.setId(-1)
-                    target_layer.addFeature(feature)
+                for source_feature in cast(
+                    Iterable[QgsFeature], source_layer.getFeatures()
+                ):
+                    source_atributes = source_feature.attributeMap()
+
+                    # Create feature
+                    target_feature = QgsFeature(target_fields)
+
+                    # Set fid
+                    ngw_fid = source_atributes[metadata.fid_field]
+                    assert isinstance(ngw_fid, int)
+                    target_feature.setId(ngw_fid)
+                    target_feature.setAttribute(fid_attribute, ngw_fid)
+
+                    # Set attributes
+                    for field in metadata.fields:
+                        target_feature.setAttribute(
+                            field.attribute, source_atributes[field.keyname]
+                        )
+
+                    # Set geometry
+                    target_feature.setGeometry(source_feature.geometry())
+
+                    # Add feature
+                    target_layer.addFeature(target_feature)
 
         except QgsEditError as error:
             raise LayerEditError.from_qgis_error(
@@ -358,13 +387,20 @@ class DetachedLayerFactory:
             code = ErrorCode.ContainerIsInvalid
             raise ContainerError(message, code=code)
 
-        if fid_field is None:
-            fid_field = (
-                layer.fields().at(layer.primaryKeyAttributes()[0]).name()
-            )
+        skip_fields = [
+            layer.fields().at(layer.primaryKeyAttributes()[0]).name()
+        ]
+        if fid_field is not None:
+            skip_fields.append(fid_field)
+
+        skip_fields = [
+            skip_field
+            for skip_field in skip_fields
+            if ngw_layer.fields.find_with(keyname=skip_field) is None
+        ]
 
         if not ngw_layer.fields.is_compatible(
-            layer.fields(), fid_field=fid_field
+            layer.fields(), skip_fields=skip_fields
         ):
             code = ErrorCode.ContainerFieldsMismatch
             raise ContainerError(code=code)

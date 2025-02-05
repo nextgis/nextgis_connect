@@ -181,7 +181,9 @@ class DetachedEditingTask(NgConnectTask):
                 raise error
 
     def __is_fields_compatible(self, rhs: NgwFields) -> bool:
-        return self._metadata.fields.is_compatible(rhs)
+        return self._metadata.fields.is_compatible(
+            rhs, skip_fields=self._metadata.fid_field
+        )
 
     def __is_container_fields_changed(self) -> bool:
         container_fields_name = set()

@@ -83,13 +83,13 @@ class NgwFields(Sequence):
     _fields: List[NgwField]
     _ngw_ids: Dict[FieldId, NgwField] = dataclass_field(init=False)
     _attributes: Dict[FieldId, NgwField] = dataclass_field(init=False)
-    _names: Dict[str, NgwField] = dataclass_field(init=False)
+    _keynames: Dict[str, NgwField] = dataclass_field(init=False)
 
     def __init__(self, fields: Iterable[NgwField]) -> None:
         self._fields = list(fields)
         self._ngw_ids = {field.ngw_id: field for field in self._fields}
         self._attributes = {field.attribute: field for field in self._fields}
-        self._names = {field.keyname: field for field in self._fields}
+        self._keynames = {field.keyname: field for field in self._fields}
 
     def __len__(self) -> int:
         return len(self._fields)
@@ -105,14 +105,14 @@ class NgwFields(Sequence):
         *,
         ngw_id: Optional[FieldId] = None,
         attribute: Optional[FieldId] = None,
-        name: Optional[str] = None,
+        keyname: Optional[str] = None,
     ) -> Optional[NgwField]:
         if ngw_id is not None:
             return self._ngw_ids.get(ngw_id)
         if attribute is not None:
             return self._attributes.get(attribute)
-        if name is not None:
-            return self._names.get(name)
+        if keyname is not None:
+            return self._keynames.get(keyname)
 
         raise AttributeError
 
@@ -121,9 +121,11 @@ class NgwFields(Sequence):
         *,
         ngw_id: Optional[FieldId] = None,
         attribute: Optional[FieldId] = None,
-        name: Optional[str] = None,
+        keyname: Optional[str] = None,
     ) -> NgwField:
-        field = self.find_with(ngw_id=ngw_id, attribute=attribute, name=name)
+        field = self.find_with(
+            ngw_id=ngw_id, attribute=attribute, keyname=keyname
+        )
         if field is None:
             raise KeyError
 
@@ -133,13 +135,18 @@ class NgwFields(Sequence):
         self,
         rhs: Union["NgwFields", QgsFields, List[NgwField], List[QgsField]],
         *,
-        fid_field: Optional[str] = None,
+        skip_fields: Union[str, List[str], None] = None,
     ) -> bool:
+        if skip_fields is None:
+            skip_fields = []
+        if isinstance(skip_fields, str):
+            skip_fields = [skip_fields]
+
         if isinstance(rhs, QgsFields):
             rhs = [
                 field
-                for field in cast(List[QgsField], rhs.toList())
-                if field.name() != fid_field
+                for field in cast(Iterable[QgsField], rhs.toList())
+                if field.name() not in skip_fields
             ]
 
         if len(self._fields) != len(rhs):
