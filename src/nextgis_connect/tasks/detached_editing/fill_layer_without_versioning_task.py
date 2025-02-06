@@ -1,4 +1,3 @@
-import sqlite3
 import tempfile
 import urllib.parse
 from contextlib import closing
@@ -12,6 +11,7 @@ from nextgis_connect.detached_editing.detached_layer_factory import (
 )
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     SynchronizationError,
@@ -124,9 +124,9 @@ class FillLayerWithoutVersioningTask(DetachedEditingTask):
         ngw_connection = QgsNgwConnection(connection_id)
         features_extensions = ngw_connection.get(extensions_url)
 
-        with closing(
-            sqlite3.connect(str(self.__temp_path))
-        ) as connection, closing(connection.cursor()) as cursor:
+        with closing(make_connection(self.__temp_path)) as connection, closing(
+            connection.cursor()
+        ) as cursor:
             metadata = container_metadata(cursor)
 
             serializer = ActionSerializer(metadata)

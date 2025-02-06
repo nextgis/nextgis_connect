@@ -132,7 +132,7 @@ def detached_layer_uri(
         return f"{path}|layername={metadata.table_name}"
 
     try:
-        with closing(sqlite3.connect(str(path))) as connection, closing(
+        with closing(make_connection(path)) as connection, closing(
             connection.cursor()
         ) as cursor:
             cursor.execute(
@@ -157,7 +157,7 @@ def is_ngw_container(
     def has_metadata(layer: Union[QgsMapLayer, Path]) -> bool:
         try:
             with closing(
-                sqlite3.connect(container_path(layer))
+                make_connection(container_path(layer))
             ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
                     """
@@ -215,7 +215,7 @@ def _(path: Path) -> DetachedContainerMetaData:
         error.add_note(f"Path: {path}")
         raise error
 
-    with closing(sqlite3.connect(str(path))) as connection, closing(
+    with closing(make_connection(path)) as connection, closing(
         connection.cursor()
     ) as cursor:
         return container_metadata(cursor)
@@ -324,7 +324,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
 
 
 def container_changes(path: Path) -> DetachedContainerChangesInfo:
-    with closing(sqlite3.connect(str(path))) as connection, closing(
+    with closing(make_connection(path)) as connection, closing(
         connection.cursor()
     ) as cursor:
         cursor.execute(
@@ -367,7 +367,7 @@ def ngw_feature_id(
 
     path = container_path(layer)
     try:
-        with closing(sqlite3.connect(str(path))) as connection, closing(
+        with closing(make_connection(path)) as connection, closing(
             connection.cursor()
         ) as cursor:
             cursor.execute(
@@ -402,7 +402,7 @@ def ngw_feature_description(
 
     path = container_path(layer)
     try:
-        with closing(sqlite3.connect(str(path))) as connection, closing(
+        with closing(make_connection(path)) as connection, closing(
             connection.cursor()
         ) as cursor:
             cursor.execute(

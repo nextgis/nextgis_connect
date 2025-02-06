@@ -18,6 +18,7 @@ from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
     detached_layer_uri,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -132,7 +133,7 @@ class ActionApplier(QObject):
                 applier_for_action[action_type](*params)
 
         with closing(
-            sqlite3.connect(str(self.__container_path))
+            make_connection(self.__container_path)
         ) as connection, closing(connection.cursor()) as cursor:
             for command in self.__commands:
                 cursor.execute(*command)
@@ -161,7 +162,7 @@ class ActionApplier(QObject):
         already_deleted = set()
 
         with closing(
-            sqlite3.connect(str(self.__container_path))
+            make_connection(self.__container_path)
         ) as connection, closing(connection.cursor()) as cursor:
             if len(added_ngw_fids) > 0:
                 added_fids = ",".join(str(fid) for fid in added_ngw_fids)
@@ -330,7 +331,7 @@ class ActionApplier(QObject):
         query = f"SELECT * FROM ngw_features_metadata WHERE ngw_fid={ngw_fid}"
         try:
             with closing(
-                sqlite3.connect(str(self.__container_path))
+                make_connection(self.__container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 result = [
                     FeatureMetaData(*row) for row in cursor.execute(query)

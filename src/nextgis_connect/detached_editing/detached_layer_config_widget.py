@@ -1,4 +1,3 @@
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Optional
@@ -89,9 +88,9 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
         if new_connection_id == self.__metadata.connection_id:
             return
 
-        with closing(sqlite3.connect(self.__path)) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            utils.make_connection(self.__path)
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.execute(
                 f'UPDATE ngw_metadata SET connection_id="{new_connection_id}"'
             )
