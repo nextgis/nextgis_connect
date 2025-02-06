@@ -1,10 +1,10 @@
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Dict, List, Set
 
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     SynchronizationError,
@@ -93,7 +93,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         )
 
         with closing(
-            sqlite3.connect(str(self._container_path))
+            make_connection(self._container_path)
         ) as connection, closing(connection.cursor()) as cursor:
             cursor.executemany(
                 """

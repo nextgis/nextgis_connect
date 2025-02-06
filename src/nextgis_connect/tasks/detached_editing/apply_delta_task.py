@@ -1,4 +1,3 @@
-import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +9,7 @@ from nextgis_connect.detached_editing.actions import (
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
+    make_connection,
 )
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
@@ -59,7 +59,7 @@ class ApplyDeltaTask(DetachedEditingTask):
             applier.apply(self.__delta)
 
             with closing(
-                sqlite3.connect(str(self._container_path))
+                make_connection(self._container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
                     "UPDATE ngw_metadata SET version=?, sync_date=?",

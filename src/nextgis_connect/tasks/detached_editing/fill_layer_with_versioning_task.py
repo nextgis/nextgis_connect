@@ -1,9 +1,11 @@
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 
 from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
+from nextgis_connect.detached_editing.utils import (
+    make_connection,
+)
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -57,7 +59,7 @@ class FillLayerWithVersioning(DetachedEditingTask):
 
             sync_date = check_result["tstamp"]
             with closing(
-                sqlite3.connect(str(self._container_path))
+                make_connection(self._container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 cursor.execute(
                     f"UPDATE ngw_metadata SET sync_date='{sync_date}'"

@@ -18,6 +18,7 @@ from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
     detached_layer_uri,
+    make_connection,
 )
 from nextgis_connect.exceptions import ContainerError
 
@@ -67,7 +68,7 @@ class ActionExtractor:
     def extract_added_features(self) -> List[FeatureCreateAction]:
         try:
             with closing(
-                sqlite3.connect(str(self.__container_path))
+                make_connection(self.__container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 added_features_id = [
                     row[0]
@@ -107,7 +108,7 @@ class ActionExtractor:
 
         try:
             with closing(
-                sqlite3.connect(str(self.__container_path))
+                make_connection(self.__container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 for fid, attribute in cursor.execute(attributes_query):
                     if fid not in updated_feature_attributes:
@@ -176,7 +177,7 @@ class ActionExtractor:
 
         try:
             with closing(
-                sqlite3.connect(str(self.__container_path))
+                make_connection(self.__container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 return [
                     FeatureDeleteAction(row[0])
@@ -189,7 +190,7 @@ class ActionExtractor:
     def extract_restored_features(self) -> List[FeatureRestoreAction]:
         try:
             with closing(
-                sqlite3.connect(str(self.__container_path))
+                make_connection(self.__container_path)
             ) as connection, closing(connection.cursor()) as cursor:
                 restored_features_id = [
                     row[0]
