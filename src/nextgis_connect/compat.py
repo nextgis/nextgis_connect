@@ -93,8 +93,12 @@ else:
     FieldType = QVariant.Type
     FieldType.QString = QVariant.Type.String
     FieldType.QString.is_monkey_patched = True
-    FieldType.LongLong = QVariant.Type.LongLong
-    FieldType.LongLong.is_monkey_patched = True
+    FieldType.QDate = QVariant.Type.Date
+    FieldType.QDate.is_monkey_patched = True
+    FieldType.QTime = QVariant.Type.Time
+    FieldType.QTime.is_monkey_patched = True
+    FieldType.QDateTime = QVariant.Type.DateTime
+    FieldType.QDateTime.is_monkey_patched = True
 
 try:
     from packaging import version

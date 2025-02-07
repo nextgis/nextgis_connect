@@ -2,8 +2,8 @@ import unittest
 from dataclasses import FrozenInstanceError
 
 from qgis.core import QgsField
-from qgis.PyQt.QtCore import QVariant
 
+from nextgis_connect.compat import FieldType
 from nextgis_connect.resources.ngw_field import NgwField, NgwFields
 from tests.ng_connect_testcase import NgConnectTestCase
 
@@ -21,15 +21,15 @@ class TestNgwField(NgConnectTestCase):
 
     def test_datatypes_serializing(self):
         field_types = {
-            "INTEGER": QVariant.Type.Int,
-            "BIGINT": QVariant.Type.LongLong,
-            "REAL": QVariant.Type.Double,
-            "STRING": QVariant.Type.String,
-            "DATE": QVariant.Type.Date,
-            "TIME": QVariant.Type.Time,
-            "DATETIME": QVariant.Type.DateTime,
+            "INTEGER": FieldType.Int,
+            "BIGINT": FieldType.LongLong,
+            "REAL": FieldType.Double,
+            "STRING": FieldType.QString,
+            "DATE": FieldType.QDate,
+            "TIME": FieldType.QTime,
+            "DATETIME": FieldType.QDateTime,
             # ---
-            "UNKNOWN": QVariant.Type.String,
+            "UNKNOWN": FieldType.QString,
         }
         for datatype_name, datatype in field_types.items():
             field = NgwField(
@@ -88,7 +88,7 @@ class TestNgwField(NgConnectTestCase):
             display_name="Name",
             is_label=True,
         )
-        qgs_field = QgsField("name", QVariant.Type.String)
+        qgs_field = QgsField("name", FieldType.QString)
         self.assertTrue(field.is_compatible(qgs_field))
 
         field = NgwField(
@@ -99,7 +99,7 @@ class TestNgwField(NgConnectTestCase):
             display_name="Name",
             is_label=True,
         )
-        qgs_field = QgsField("name", QVariant.Type.Int)
+        qgs_field = QgsField("name", FieldType.Int)
         self.assertFalse(field.is_compatible(qgs_field))
 
     def test_to_qgsfield(self):
@@ -113,7 +113,7 @@ class TestNgwField(NgConnectTestCase):
         )
         qgs_field = field.to_qgsfield()
         self.assertEqual(qgs_field.name(), "name")
-        self.assertEqual(qgs_field.type(), QVariant.Type.String)
+        self.assertEqual(qgs_field.type(), FieldType.QString)
 
     def test_from_json(self):
         field = NgwField.from_json(self.field_json)

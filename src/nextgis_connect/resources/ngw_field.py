@@ -4,7 +4,6 @@ from dataclasses import field as dataclass_field
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 
 from qgis.core import QgsField, QgsFields
-from qgis.PyQt.QtCore import QVariant
 
 from nextgis_connect.compat import FieldType
 
@@ -15,7 +14,7 @@ FieldId = int
 class NgwField:
     attribute: int
     ngw_id: FieldId
-    datatype: QVariant.Type = dataclass_field(init=False)
+    datatype: FieldType = dataclass_field(init=False)
     datatype_name: str
     keyname: str
     display_name: str
@@ -24,15 +23,15 @@ class NgwField:
 
     def __post_init__(self) -> None:
         field_types = {
-            "INTEGER": QVariant.Type.Int,
-            "BIGINT": QVariant.Type.LongLong,
-            "REAL": QVariant.Type.Double,
-            "STRING": QVariant.Type.String,
-            "DATE": QVariant.Type.Date,
-            "TIME": QVariant.Type.Time,
-            "DATETIME": QVariant.Type.DateTime,
+            "INTEGER": FieldType.Int,
+            "BIGINT": FieldType.LongLong,
+            "REAL": FieldType.Double,
+            "STRING": FieldType.QString,
+            "DATE": FieldType.QDate,
+            "TIME": FieldType.QTime,
+            "DATETIME": FieldType.QDateTime,
         }
-        datatype = field_types.get(self.datatype_name, QVariant.Type.String)
+        datatype = field_types.get(self.datatype_name, FieldType.QString)
         super().__setattr__("datatype", datatype)
 
     def is_compatible(self, rhs: Union["NgwField", QgsField]) -> bool:
@@ -45,9 +44,9 @@ class NgwField:
         else:
             datatype = self.datatype
 
-            if datatype == QVariant.Type.Time:
+            if datatype == FieldType.QTime:
                 # GPKG does not have Time type
-                datatype = QVariant.Type.String
+                datatype = FieldType.QString
 
             if self.keyname == "fid":
                 # Workaround for NGW-1326
