@@ -1,4 +1,3 @@
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Optional, cast
@@ -10,6 +9,7 @@ from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     container_changes,
     container_metadata,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -106,9 +106,6 @@ class DetachedEditingTask(NgConnectTask):
 
         return ngw_layer
 
-    def _make_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(str(self._container_path))
-
     def __check_container(self) -> None:
         container_version = parse_version(self._metadata.container_version)
         supported_version = parse_version(
@@ -187,9 +184,9 @@ class DetachedEditingTask(NgConnectTask):
 
     def __is_container_fields_changed(self) -> bool:
         container_fields_name = set()
-        with closing(self._make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self._container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             container_fields_name = set(
                 row[1]
                 for row in cursor.execute(

@@ -1,4 +1,3 @@
-import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import List, Optional, Sequence, cast
@@ -6,6 +5,7 @@ from typing import List, Optional, Sequence, cast
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     FeatureMetaData,
+    make_connection,
 )
 from nextgis_connect.exceptions import SynchronizationError
 
@@ -132,9 +132,9 @@ class TransactionApplier:
     ) -> None:
         added_fids = ",".join(str(action.fid) for action in features_metadata)
 
-        with closing(self.__make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self.__container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.executemany(
                 "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?",
                 (
@@ -153,9 +153,9 @@ class TransactionApplier:
     ) -> None:
         batch_ngw_fids = ",".join(str(action.fid) for action in actions)
 
-        with closing(self.__make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self.__container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.executescript(
                 f"""
                 WITH removed_fids AS (
@@ -175,9 +175,9 @@ class TransactionApplier:
     ) -> None:
         batch_ngw_fids = ",".join(str(action.fid) for action in actions)
 
-        with closing(self.__make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self.__container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.executescript(
                 f"""
                 DELETE FROM ngw_restored_features
@@ -195,9 +195,9 @@ class TransactionApplier:
         ngw_fids = ",".join(
             str(feature.ngw_fid) for feature in features_metadata
         )
-        with closing(self.__make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self.__container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             updated_fids = ",".join(
                 str(row[0])
                 for row in cursor.execute(
@@ -216,6 +216,3 @@ class TransactionApplier:
                 """
             )
             connection.commit()
-
-    def __make_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(str(self.__container_path))

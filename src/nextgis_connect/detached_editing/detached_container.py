@@ -1,5 +1,4 @@
 import shutil
-import sqlite3
 import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
@@ -69,6 +68,7 @@ from .utils import (
     DetachedContainerMetaData,
     DetachedLayerState,
     VersioningSynchronizationState,
+    make_connection,
 )
 
 if TYPE_CHECKING:
@@ -276,9 +276,6 @@ class DetachedContainer(QObject):
             return
 
         view.removeIndicator(node, self.__indicator)
-
-    def make_connection(self) -> sqlite3.Connection:
-        return sqlite3.connect(str(self.__path))
 
     def synchronize(self, *, is_manual: bool = False) -> bool:
         if (
@@ -790,7 +787,7 @@ class DetachedContainer(QObject):
 
     def __check_structure(self) -> None:
         container_fields_name = set()
-        with closing(self.make_connection()) as connection, closing(
+        with closing(make_connection(self.__path)) as connection, closing(
             connection.cursor()
         ) as cursor:
             container_fields_name = set(
