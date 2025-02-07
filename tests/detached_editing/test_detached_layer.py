@@ -43,7 +43,7 @@ def mock_layer_signals(layer: DetachedLayer) -> MagicMock:
     layer.editing_finished = signals_mock.editing_finished
     layer.layer_changed = signals_mock.layer_changed
     layer.settings_changed = signals_mock.settings_changed
-    layer.error_occured = signals_mock.error_occured
+    layer.error_occurred = signals_mock.error_occurred
     return signals_mock
 
 

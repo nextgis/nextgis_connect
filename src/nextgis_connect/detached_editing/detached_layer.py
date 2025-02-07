@@ -59,7 +59,7 @@ class DetachedLayer(QObject):
     structure_changed = pyqtSignal(name="structureChanged")
     settings_changed = pyqtSignal(name="settingsChanged")
 
-    error_occured = pyqtSignal(ContainerError, name="errorOccured")
+    error_occurred = pyqtSignal(ContainerError, name="errorOccured")
 
     def __init__(
         self,
@@ -70,6 +70,7 @@ class DetachedLayer(QObject):
 
         self.__container = container
         self.__qgs_layer = layer
+        self.__errors: List[ContainerError] = []
 
         self.__reset_backup()
 
@@ -204,7 +205,7 @@ class DetachedLayer(QObject):
             ng_error.__cause__ = deepcopy(error)
 
         if ng_error is not None:
-            self.error_occured.emit(ng_error)
+            self.__errors.append(ng_error)
             return
 
         metadata = self.__container.metadata
@@ -246,7 +247,7 @@ class DetachedLayer(QObject):
             ng_error.__cause__ = deepcopy(error)
 
         if ng_error is not None:
-            self.error_occured.emit(ng_error)
+            self.__errors.append(ng_error)
             return
 
         metadata = self.__container.metadata
@@ -299,7 +300,7 @@ class DetachedLayer(QObject):
             ng_error.__cause__ = deepcopy(error)
 
         if ng_error is not None:
-            self.error_occured.emit(ng_error)
+            self.__errors.append(ng_error)
             return
 
         metadata = self.__container.metadata
@@ -348,7 +349,7 @@ class DetachedLayer(QObject):
             ng_error.__cause__ = deepcopy(error)
 
         if ng_error is not None:
-            self.error_occured.emit(ng_error)
+            self.__errors.append(ng_error)
             return
 
         metadata = self.__container.metadata
@@ -438,7 +439,7 @@ class DetachedLayer(QObject):
             ng_error.__cause__ = deepcopy(error)
 
         if ng_error is not None:
-            self.error_occured.emit(ng_error)
+            self.__errors.append(ng_error)
 
     def __extract_intersection_with_added_fids(
         self, cursor: sqlite3.Cursor, feature_ids: QgsFeatureIds
@@ -650,4 +651,10 @@ class DetachedLayer(QObject):
     def __on_commit_changes(self) -> None:
         if self.__is_layer_changed:
             self.layer_changed.emit()
+
+        if self.__errors:
+            for ng_error in self.__errors:
+                self.error_occurred.emit(ng_error)
+            self.__errors.clear()
+
         self.__is_layer_changed = False
