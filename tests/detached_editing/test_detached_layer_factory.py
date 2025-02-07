@@ -354,12 +354,11 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             if not (ngw_field.keyname == fid_field == "fid")
         )
 
-        fields_list = [
-            QgsField(fid_field, FieldType.LongLong),
-            *ngw_fields.to_qgs_fields(),
-            QgsField(ngw_fid_field, FieldType.Int),
-        ]
-        fields = QgsFields(fields_list)
+        fields = QgsFields()
+        fields.append(QgsField(fid_field, FieldType.LongLong))
+        fields.extend(ngw_fields.to_qgs_fields())
+        fields.append(QgsField(ngw_fid_field, FieldType.Int))
+
         options.layerOptions = [
             *QgsVectorFileWriter.defaultDatasetOptions("GPKG"),
             f"FID={fid_field}",
