@@ -197,6 +197,7 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
     def tearDown(self) -> None:
+        self.container_mock.deleteLater()
         super().tearDown()
 
     def test_start_stop_signals(self) -> None:
@@ -583,7 +584,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
         new_feature.setAttribute(attribute_index, "a")
-        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0, 0)"))
+        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0 0)"))
 
         with edit(layer.qgs_layer):
             # Add feature
@@ -602,7 +603,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
             # Change geometry
             is_changed = self.qgs_layer.changeGeometry(
-                feature_id, QgsGeometry.fromWkt("POINT (1, 1)")
+                feature_id, QgsGeometry.fromWkt("POINT (1 1)")
             )
             self.assertTrue(is_changed)
             self.qgs_layer.commitChanges(stopEditing=False)
@@ -632,7 +633,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
         new_feature.setAttribute(attribute_index, "a")
-        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0, 0)"))
+        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0 0)"))
 
         try:
             with edit(layer.qgs_layer):
@@ -650,7 +651,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
                 # Change geometry
                 is_changed = self.qgs_layer.changeGeometry(
-                    feature_id, QgsGeometry.fromWkt("POINT (1, 1)")
+                    feature_id, QgsGeometry.fromWkt("POINT (1 1)")
                 )
                 self.assertTrue(is_changed)
 
@@ -689,7 +690,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
         new_feature.setAttribute(attribute_index, "a")
-        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0, 0)"))
+        new_feature.setGeometry(QgsGeometry.fromWkt("POINT (0 0)"))
 
         with edit(layer.qgs_layer):
             # Add feature
@@ -738,7 +739,7 @@ class TestDetachedLayer(NgConnectTestCase):
 
             # Change geometry
             is_changed = self.qgs_layer.changeGeometry(
-                feature_id, QgsGeometry.fromWkt("POINT (1, 1)")
+                feature_id, QgsGeometry.fromWkt("POINT (1 1)")
             )
             self.assertTrue(is_changed)
             self.qgs_layer.commitChanges(stopEditing=False)
