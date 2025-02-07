@@ -13,6 +13,7 @@ from qgis.core import (
     QgsMapLayerStyle,
     QgsMapLayerStyleManager,
     QgsProject,
+    QgsProviderRegistry,
     QgsRasterLayer,
     QgsReferencedRectangle,
     QgsVectorLayer,
@@ -131,9 +132,31 @@ class LayerCreatorTask(NgConnectTask):
                 error = layer.error().summary()
                 logger.warning(f'Layer "{layer_name}" is not valid: {error}')
 
+            self.__fix_crs(layer)
+
             self.__layers[insertion_id] = layer
 
         return True
+
+    def __fix_crs(self, layer: QgsMapLayer) -> None:
+        # Workaround for NGQ-202
+
+        if layer.dataProvider().name() != "wms":
+            return
+
+        provider_metadata = QgsProviderRegistry.instance().providerMetadata(
+            "wms"
+        )
+        params = provider_metadata.decodeUri(layer.source())
+        crs_id = params.get("crs")
+        if crs_id is None:
+            return
+
+        crs = QgsCoordinateReferenceSystem.fromOgcWmsCrs(crs_id)
+        if not crs.isValid():
+            return
+
+        layer.setCrs(crs)
 
 
 def is_layer(resource: Union[Optional[NGWResource], QModelIndex]) -> bool:
