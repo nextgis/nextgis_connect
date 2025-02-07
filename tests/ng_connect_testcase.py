@@ -1,11 +1,14 @@
+import atexit
 import json
 import os
 import shutil
+import sys
 import tempfile
 import uuid
+from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
-from typing import Any, ClassVar, Dict, Union
+from typing import Any, ClassVar, Dict, List, Optional, Union
 from unittest.mock import MagicMock
 
 from qgis.core import (
@@ -15,7 +18,8 @@ from qgis.core import (
     QgsSettings,
     QgsVectorLayer,
 )
-from qgis.testing import QgisTestCase, start_app
+from qgis.PyQt.QtCore import Qt
+from qgis.testing import QgisTestCase
 
 from nextgis_connect.ngw_api.core import NGWResource
 from nextgis_connect.ngw_api.core.ngw_resource_factory import (
@@ -40,65 +44,60 @@ class TestConnection(Enum):
     # UserWithNgStd = auto()
 
 
-class NgConnectTestCase(QgisTestCase):
+@dataclass
+class ApplicationInfo:
     APPLICATION_NAME = "TestNextGISConnect"
     ORGANIZATION_NAME = "NextGIS_Test"
     ORGANIZATION_DOMAIN = "TestNextGISConnect.com"
 
-    _application: ClassVar[QgsApplication]
+    application: QgsApplication
+    qgis_custom_config_path: Path
+    qgis_auth_db_path: Path
+
+
+APPLICATION_INFO: Optional[ApplicationInfo] = None
+
+
+class NgConnectTestCase(QgisTestCase):
     _connections_id: ClassVar[Dict[TestConnection, str]] = {}
+    _temp_paths: ClassVar[List[Path]]
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
-
-        # Setup settings
-        cls.QGIS_AUTH_DB_DIR_PATH = tempfile.mkdtemp(
-            prefix=f"{cls.APPLICATION_NAME}-authdb-"
-        )
-        os.environ["QGIS_AUTH_DB_DIR_PATH"] = cls.QGIS_AUTH_DB_DIR_PATH
-
-        QgsApplication.setOrganizationName(cls.ORGANIZATION_NAME)
-        QgsApplication.setOrganizationDomain(cls.ORGANIZATION_DOMAIN)
-        QgsApplication.setApplicationName(cls.APPLICATION_NAME)
-        QgsSettings().clear()
-        cls._application = start_app(cleanup=False)
-
-        cls.QGIS_CUSTOM_CONFIG_PATH = os.environ["QGIS_CUSTOM_CONFIG_PATH"]
-
-        # Setup auth manager
-        auth_manager = QgsApplication.authManager()
-        assert not auth_manager.isDisabled(), auth_manager.disabledMessage()
-        assert (
-            Path(auth_manager.authenticationDatabasePath())
-            == Path(cls.QGIS_AUTH_DB_DIR_PATH) / "qgis-auth.db"
-        )
-        assert auth_manager.setMasterPassword("masterpassword", True)
+        cls._temp_paths = []
+        start_qgis()
 
     @classmethod
     def tearDownClass(cls):
         QgsSettings().clear()
 
-        cls._application.exitQgis()
-
-        shutil.rmtree(cls.QGIS_AUTH_DB_DIR_PATH)
-        shutil.rmtree(cls.QGIS_CUSTOM_CONFIG_PATH)
-
-        for temp_file in Path(tempfile.gettempdir()).glob(
-            f"{cls.APPLICATION_NAME}*"
-        ):
-            if temp_file.is_dir():
-                shutil.rmtree(str(temp_file))
+        for path in cls._temp_paths:
+            if path.is_dir():
+                shutil.rmtree(str(path))
             else:
-                temp_file.unlink(missing_ok=True)
+                path.unlink(missing_ok=True)
 
         super().tearDownClass()
 
     @classmethod
     def create_temp_file(cls, suffix: str = "") -> Path:
         path = Path(
-            tempfile.mktemp(prefix=f"{cls.APPLICATION_NAME}-", suffix=suffix)
+            tempfile.mktemp(
+                prefix=f"{ApplicationInfo.APPLICATION_NAME}-", suffix=suffix
+            )
         )
+        cls._temp_paths.append(path)
+        return path
+
+    @classmethod
+    def create_temp_dir(cls, suffix: str = "") -> Path:
+        path = Path(
+            tempfile.mkdtemp(
+                prefix=f"{ApplicationInfo.APPLICATION_NAME}-", suffix=suffix
+            )
+        )
+        cls._temp_paths.append(path)
         return path
 
     @staticmethod
@@ -211,3 +210,102 @@ class NgConnectTestCase(QgisTestCase):
         cls._connections_id[TestConnection.SandboxWithLogin] = (
             basic_connection_id
         )
+
+
+def start_qgis() -> None:
+    """
+    Will start a QgsApplication and call all initialization code like
+    registering the providers and other infrastructure. It will not load
+    any plugins.
+
+    You can always get the reference to a running app by calling `QgsApplication.instance()`.
+
+    The initialization will only happen once, so it is safe to call this method repeatedly.
+    """
+    global APPLICATION_INFO
+
+    if APPLICATION_INFO is not None:
+        return
+
+    # Application params
+    QgsApplication.setAttribute(
+        Qt.ApplicationAttribute.AA_ShareOpenGLContexts, True
+    )
+
+    # Tests params
+    QgsApplication.setOrganizationName(ApplicationInfo.ORGANIZATION_NAME)
+    QgsApplication.setOrganizationDomain(ApplicationInfo.ORGANIZATION_DOMAIN)
+    QgsApplication.setApplicationName(ApplicationInfo.APPLICATION_NAME)
+    QgsSettings().clear()
+
+    # In python3 we need to convert to a bytes object (or should
+    # QgsApplication accept a QString instead of const char* ?)
+    argvb = list(map(os.fsencode, sys.argv))
+
+    # Note: QGIS_PREFIX_PATH is evaluated in QgsApplication -
+    # no need to mess with it here.
+    application = QgsApplication(argvb, GUIenabled=True)
+
+    # Setup paths
+    qgis_custom_config_path = tempfile.mkdtemp(
+        prefix=f"{ApplicationInfo.APPLICATION_NAME}-config-"
+    )
+    qgis_auth_db_path = tempfile.mkdtemp(
+        prefix=f"{ApplicationInfo.APPLICATION_NAME}-authdb-"
+    )
+    os.environ["QGIS_CUSTOM_CONFIG_PATH"] = qgis_custom_config_path
+    os.environ["QGIS_AUTH_DB_DIR_PATH"] = qgis_auth_db_path
+
+    # Save application info
+    APPLICATION_INFO = ApplicationInfo(
+        application=application,
+        qgis_custom_config_path=Path(qgis_custom_config_path),
+        qgis_auth_db_path=Path(qgis_auth_db_path),
+    )
+
+    # Initialize qgis
+    application.initQgis()
+
+    # Setup logging
+    def print_log_message(message, tag, level):
+        print(f"{tag}({level}): {message}")  # noqa: T201
+
+    QgsApplication.instance().messageLog().messageReceived.connect(
+        print_log_message
+    )
+
+    # Setup auth manager
+    auth_manager = QgsApplication.authManager()
+    assert not auth_manager.isDisabled(), auth_manager.disabledMessage()
+    assert (
+        Path(auth_manager.authenticationDatabasePath())
+        == APPLICATION_INFO.qgis_auth_db_path / "qgis-auth.db"
+    )
+    assert auth_manager.setMasterPassword("masterpassword", True)
+
+    # print(QGISAPP.showSettings())
+
+    atexit.register(stop_qgis)
+
+
+def stop_qgis() -> None:
+    """
+    Cleans up and exits QGIS
+    """
+
+    if APPLICATION_INFO is None:
+        return
+
+    APPLICATION_INFO.application.exitQgis()
+    del APPLICATION_INFO.application
+
+    shutil.rmtree(APPLICATION_INFO.qgis_custom_config_path)
+    shutil.rmtree(APPLICATION_INFO.qgis_auth_db_path)
+
+    for temp_file in Path(tempfile.gettempdir()).glob(
+        f"{ApplicationInfo.APPLICATION_NAME}*"
+    ):
+        if temp_file.is_dir():
+            shutil.rmtree(str(temp_file))
+        else:
+            temp_file.unlink(missing_ok=True)
