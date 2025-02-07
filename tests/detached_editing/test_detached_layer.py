@@ -370,7 +370,6 @@ class TestDetachedLayer(NgConnectTestCase):
             [
                 call.editing_started.emit(),
                 call.layer_changed.emit(),
-                call.layer_changed.emit(),
                 call.editing_finished.emit(),
                 call.editing_started.emit(),
                 call.layer_changed.emit(),
