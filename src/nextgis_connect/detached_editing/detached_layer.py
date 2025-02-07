@@ -51,6 +51,8 @@ class DetachedLayer(QObject):
     __updated_geometries: Dict[QgsFeatureId, str]
     __deleted_features: Dict[QgsFeatureId, QgsFeature]
 
+    __is_layer_changed: bool = False
+
     editing_started = pyqtSignal(name="editingStarted")
     editing_finished = pyqtSignal(name="editingFinished")
     layer_changed = pyqtSignal(name="layerChanged")
@@ -77,6 +79,7 @@ class DetachedLayer(QObject):
         self.__qgs_layer.customPropertyChanged.connect(
             self.__on_custom_property_changed
         )
+        self.__qgs_layer.afterCommitChanges.connect(self.__on_commit_changes)
 
         self.update()
 
@@ -207,7 +210,7 @@ class DetachedLayer(QObject):
         metadata = self.__container.metadata
         logger.debug(f"Added {len(features)} features in layer {metadata}")
 
-        self.layer_changed.emit()
+        self.__is_layer_changed = True
 
     @pyqtSlot(str, "QgsFeatureIds")
     def __log_removed_features(
@@ -251,7 +254,7 @@ class DetachedLayer(QObject):
             f"Removed {len(removed_feature_ids)} features in layer {metadata}"
         )
 
-        self.layer_changed.emit()
+        self.__is_layer_changed = True
 
     @pyqtSlot(str, "QgsChangedAttributesMap")
     def __log_attribute_values_changes(
@@ -305,7 +308,7 @@ class DetachedLayer(QObject):
             f"{metadata}"
         )
 
-        self.layer_changed.emit()
+        self.__is_layer_changed = True
 
     @pyqtSlot(str, "QgsGeometryMap")
     def __log_geometry_changes(
@@ -354,7 +357,7 @@ class DetachedLayer(QObject):
             f"{metadata}"
         )
 
-        self.layer_changed.emit()
+        self.__is_layer_changed = True
 
     @pyqtSlot(str, "QList<QgsField>")
     def __on_attribute_added(
@@ -643,3 +646,8 @@ class DetachedLayer(QObject):
             result[fid] = feature_record
 
         return result
+    
+    def __on_commit_changes(self) -> None:
+        if self.__is_layer_changed:
+            self.layer_changed.emit()
+        self.__is_layer_changed = False
