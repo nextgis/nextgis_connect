@@ -506,7 +506,7 @@ class QgisPluginBuilder:
     def __profile_path(self, qgis: str, profile: Optional[str]) -> Path:
         system = platform.system()
 
-        if qgis == "Vanilla":
+        if qgis in ("Vanilla", "VanillaFlatpak"):
             qgis_profiles = Path("QGIS/QGIS3/profiles")
         elif qgis == "NextGIS":
             qgis_profiles = Path("NextGIS/ngqgis/profiles")
@@ -514,9 +514,15 @@ class QgisPluginBuilder:
             raise RuntimeError(f"Unknown QGIS: {qgis}")
 
         if system == "Linux":
-            profiles_path = (
-                Path("~/.local/share/").expanduser() / qgis_profiles
-            )
+            if qgis in ("Vanilla", "NextGIS"):
+                profiles_path = (
+                    Path("~/.local/share/").expanduser() / qgis_profiles
+                )
+            else:
+                profiles_path = (
+                    Path("~/.var/app/org.qgis.qgis/data/").expanduser()
+                    / qgis_profiles
+                )
 
         elif system == "Windows":
             appdata = os.getenv("APPDATA")
@@ -681,7 +687,7 @@ class QgisPluginBuilder:
                 "id": "qgis",
                 "description": "QGIS build",
                 "type": "pickString",
-                "options": ["Vanilla", "NextGIS"],
+                "options": ["Vanilla", "NextGIS", "VanillaFlatpak"],
             }
         ]
         for new_input in new_inputs:
@@ -972,7 +978,7 @@ def create_parser():
     parser_install.add_argument(
         "--qgis",
         default="Vanilla",
-        choices=["Vanilla", "NextGIS"],
+        choices=["Vanilla", "NextGIS", "VanillaFlatpak"],
         help="QGIS build",
     )
     parser_install.add_argument(
@@ -992,7 +998,7 @@ def create_parser():
     parser_uninstall.add_argument(
         "--qgis",
         default="Vanilla",
-        choices=["Vanilla", "NextGIS"],
+        choices=["Vanilla", "NextGIS", "VanillaFlatpak"],
         help="QGIS build",
     )
     parser_uninstall.add_argument(
@@ -1018,7 +1024,7 @@ def create_parser():
     parser_config.add_argument(
         "--qgis",
         default="Vanilla",
-        choices=["Vanilla", "NextGIS"],
+        choices=["Vanilla", "NextGIS", "VanillaFlatpak"],
         help="QGIS build",
     )
     parser_config.add_argument(
