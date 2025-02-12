@@ -223,6 +223,7 @@ class DetachedContainer(QObject):
             self.__on_settings_changed,
             type=Qt.ConnectionType.QueuedConnection,  # type: ignore
         )
+        detached_layer.error_occurred.connect(self.__process_error)
 
         layer.setReadOnly(not self.__is_edit_allowed)
 
@@ -546,7 +547,7 @@ class DetachedContainer(QObject):
         assert self.__sync_task is not None
         if not result:
             assert self.__sync_task.error is not None
-            self.__process_sync_error(self.__sync_task.error)
+            self.__process_error(self.__sync_task.error)
             self.__finish_sync()
             return
 
@@ -587,7 +588,7 @@ class DetachedContainer(QObject):
             )
         else:
             assert self.__sync_task.error is not None
-            self.__process_sync_error(self.__sync_task.error)
+            self.__process_error(self.__sync_task.error)
 
             self.__is_edit_allowed = False
             self.__additional_data_fetch_date = None
@@ -608,13 +609,13 @@ class DetachedContainer(QObject):
             try:
                 delta = self.__process_delta(self.__sync_task)
             except SynchronizationError as error:
-                self.__process_sync_error(error)
+                self.__process_error(error)
                 self.__finish_sync()
                 return
             except Exception as error:
                 ng_error = NgConnectError()
                 ng_error.__cause__ = error
-                self.__process_sync_error(ng_error)
+                self.__process_error(ng_error)
                 self.__finish_sync()
                 return
 
@@ -778,7 +779,7 @@ class DetachedContainer(QObject):
         for detached_layer in self.__detached_layers.values():
             detached_layer.update()
 
-    def __process_sync_error(self, error: NgConnectException) -> None:
+    def __process_error(self, error: NgConnectException) -> None:
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__error = error
