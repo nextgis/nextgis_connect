@@ -9,6 +9,7 @@ from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.detached_editing.transaction_applier import (
     TransactionApplier,
 )
+from nextgis_connect.detached_editing.utils import make_connection
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
@@ -264,8 +265,8 @@ class UploadChangesTask(DetachedEditingTask):
         else:
             sync_date = commit_datetime
 
-        with closing(self._make_connection()) as connection, closing(
-            connection.cursor()
-        ) as cursor:
+        with closing(
+            make_connection(self._container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
             cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")
             connection.commit()
