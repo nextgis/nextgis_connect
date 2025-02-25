@@ -525,6 +525,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.checkImportActionsAvailability
         )
 
+        project = QgsProject.instance()
+        assert project is not None
+        project.layersRemoved.connect(self.checkImportActionsAvailability)
+
         self.checkImportActionsAvailability()
 
     def close(self) -> bool:
