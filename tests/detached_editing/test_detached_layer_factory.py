@@ -68,6 +68,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             check_test_metadata(metadata)
             self.assertEqual(metadata.fid_field, "fid")
             self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
 
         with self.subTest("2. Layer with fid field"):
             layer_json["feature_layer"]["fields"].append(
@@ -91,6 +92,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             check_test_metadata(metadata)
             self.assertEqual(metadata.fid_field, "fid_1")
             self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
 
         with self.subTest("3. Layer with fid fields"):
             for i in range(1, 11):
@@ -115,6 +117,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 check_test_metadata(metadata)
                 self.assertEqual(metadata.fid_field, f"fid_{i + 1}")
                 self.assertEqual(metadata.geom_field, "geom")
+                self._check_fields(metadata, container_path)
 
     @mock.patch(
         "nextgis_connect.ngw_api.core.NGWVectorLayer.is_versioning_enabled",
@@ -160,6 +163,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             check_test_metadata(metadata)
             self.assertEqual(metadata.fid_field, "fid")
             self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
 
         with self.subTest("2. Layer with fid field"):
             layer_json["feature_layer"]["fields"].append(
@@ -183,6 +187,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             check_test_metadata(metadata)
             self.assertEqual(metadata.fid_field, "fid_1")
             self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
 
         with self.subTest("3. Layer with fid fields"):
             for i in range(1, 11):
@@ -207,6 +212,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 check_test_metadata(metadata)
                 self.assertEqual(metadata.fid_field, f"fid_{i + 1}")
                 self.assertEqual(metadata.geom_field, "geom")
+                self._check_fields(metadata, container_path)
 
     @mock.patch(
         "nextgis_connect.detached_editing.detached_layer_factory.datetime"
@@ -511,6 +517,15 @@ class TestDetachedLayerFactory(NgConnectTestCase):
 
         for fid, ngw_fid in fid_to_ngw_fid.items():
             self.assertEqual(fid, ngw_fid)
+
+    def _check_fields(
+        self, metadata: DetachedContainerMetaData, layer_path: Path
+    ) -> None:
+        layer = QgsVectorLayer(detached_layer_uri(layer_path), "", "ogr")
+        for field in metadata.fields:
+            self.assertEqual(
+                layer.fields().at(field.attribute).name(), field.keyname
+            )
 
 
 if __name__ == "__main__":
