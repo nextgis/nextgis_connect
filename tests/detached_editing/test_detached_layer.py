@@ -6,31 +6,27 @@ from pathlib import Path
 from typing import Iterable, Set, Tuple
 from unittest.mock import MagicMock, call, patch, sentinel
 
-from qgis.core import QgsFeature, QgsGeometry, QgsVectorLayer, edit
+from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsVectorLayer, edit
 from qgis.PyQt.QtCore import QObject, pyqtSlot
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from nextgis_connect.compat import (
+    FieldType,
     QgsChangedAttributesMap,
     QgsFeatureIds,
     QgsFeatureList,
     QgsGeometryMap,
 )
 from nextgis_connect.detached_editing.detached_layer import DetachedLayer
-from nextgis_connect.detached_editing.detached_layer_factory import (
-    DetachedLayerFactory,
-)
 from nextgis_connect.detached_editing.serialization import (
     deserialize_geometry,
     deserialize_value,
     simplify_value,
 )
 from nextgis_connect.detached_editing.utils import (
-    container_metadata,
-    detached_layer_uri,
     make_connection,
 )
-from nextgis_connect.ngw_api.core import NGWVectorLayer
-from tests.magic_qobject_mock import MagicQObjectMock
+from tests.detached_editing.utils import mock_container
 from tests.ng_connect_testcase import (
     NgConnectTestCase,
     TestData,
@@ -42,6 +38,7 @@ def mock_layer_signals(layer: DetachedLayer) -> MagicMock:
     layer.editing_started = signals_mock.editing_started
     layer.editing_finished = signals_mock.editing_finished
     layer.layer_changed = signals_mock.layer_changed
+    layer.structure_changed = signals_mock.structure_changed
     layer.settings_changed = signals_mock.settings_changed
     layer.error_occurred = signals_mock.error_occurred
     return signals_mock
@@ -167,60 +164,33 @@ class ChangesChecker:
 
 
 class TestDetachedLayer(NgConnectTestCase):
-    def setUp(self):
-        super().setUp()
-
-        ngw_layer = self.resource(TestData.Points)
-        assert isinstance(ngw_layer, NGWVectorLayer)
-        qgs_layer = self.layer(TestData.Points)
-        assert isinstance(qgs_layer, QgsVectorLayer)
-
-        self.container_path = self.create_temp_file(".gpkg")
-
-        factory = DetachedLayerFactory()
-        factory.create_initial_container(ngw_layer, self.container_path)
-        factory.fill_container(
-            ngw_layer,
-            source_path=self.data_path(TestData.Points),
-            container_path=self.container_path,
-        )
-
-        self.container_metadata = container_metadata(self.container_path)
-
-        self.container_mock = MagicQObjectMock()
-        self.container_mock.metadata = self.container_metadata
-
-        self.qgs_layer = QgsVectorLayer(
-            detached_layer_uri(self.container_path, self.container_metadata),
-            self.container_metadata.layer_name,
-            "ogr",
-        )
-
-    def tearDown(self) -> None:
-        self.container_mock.deleteLater()
-        super().tearDown()
-
-    def test_start_stop_signals(self) -> None:
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+    @mock_container(TestData.Points)
+    def test_start_stop_signals(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
-        self.assertTrue(self.qgs_layer.startEditing())
+        self.assertTrue(qgs_layer.startEditing())
         self.assertTrue(layer.is_edit_mode_enabled)
-        self.assertTrue(self.qgs_layer.rollBack())
+        self.assertTrue(qgs_layer.rollBack())
 
-        self.assertTrue(self.qgs_layer.startEditing())
+        self.assertTrue(qgs_layer.startEditing())
         self.assertTrue(layer.is_edit_mode_enabled)
-        self.assertTrue(self.qgs_layer.commitChanges())
+        self.assertTrue(qgs_layer.commitChanges())
 
         self.assertEqual(
             signals_mock.mock_calls,
             2 * [call.editing_started.emit(), call.editing_finished.emit()],
         )
 
-    def test_start_stop_signals_with_started_editing(self) -> None:
+    @mock_container(TestData.Points)
+    def test_start_stop_signals_with_started_editing(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
         signals_mock = MagicMock()
 
-        self.qgs_layer.startEditing()
+        qgs_layer.startEditing()
 
         module = "nextgis_connect.detached_editing.detached_layer"
         with patch(
@@ -231,72 +201,77 @@ class TestDetachedLayer(NgConnectTestCase):
             signals_mock.attach_mock(editing_started_mock, "editing_started")
             signals_mock.attach_mock(editing_finished_mock, "editing_finished")
 
-            layer = DetachedLayer(self.container_mock, self.qgs_layer)
+            layer = DetachedLayer(container_mock, qgs_layer)
             self.assertTrue(layer.is_edit_mode_enabled)
 
-            self.qgs_layer.commitChanges()
+            qgs_layer.commitChanges()
 
         self.assertEqual(
             signals_mock.mock_calls,
             [call.editing_started.emit(), call.editing_finished.emit()],
         )
 
-    def test_ngw_properties(self) -> None:
-        self.qgs_layer.setCustomProperty("not_ngw_property_is_same", True)
+    @mock_container(TestData.Points)
+    def test_ngw_properties(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        qgs_layer.setCustomProperty("not_ngw_property_is_same", True)
 
         def check_properties():
             self.assertTrue(
-                self.qgs_layer.customProperty("not_ngw_property_is_same")
+                qgs_layer.customProperty("not_ngw_property_is_same")
             )
-            self.assertTrue(
-                self.qgs_layer.customProperty("ngw_is_detached_layer")
+            self.assertTrue(qgs_layer.customProperty("ngw_is_detached_layer"))
+            self.assertEqual(
+                qgs_layer.customProperty("ngw_connection_id"),
+                container_mock.metadata.connection_id,
             )
             self.assertEqual(
-                self.qgs_layer.customProperty("ngw_connection_id"),
-                self.container_mock.metadata.connection_id,
-            )
-            self.assertEqual(
-                self.qgs_layer.customProperty("ngw_resource_id"),
-                self.container_mock.metadata.resource_id,
+                qgs_layer.customProperty("ngw_resource_id"),
+                container_mock.metadata.resource_id,
             )
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         check_properties()
 
-        self.container_mock.metadata = replace(
-            self.container_mock.metadata,
+        container_mock.metadata = replace(
+            container_mock.metadata,
             connection_id=sentinel.NGW_CONNECTION_ID,
         )
 
         layer.update()
         check_properties()
 
-    def test_settings_changed_signal(self) -> None:
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+    @mock_container(TestData.Points)
+    def test_settings_changed_signal(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         # Check not emmitted when not ngw properties set
-        self.qgs_layer.setCustomProperty("not_ngw_property", True)
+        qgs_layer.setCustomProperty("not_ngw_property", True)
         signals_mock.assert_not_called()
 
         # Check not emmitted when ngw properties set
-        self.container_mock.metadata = replace(
-            self.container_mock.metadata,
+        container_mock.metadata = replace(
+            container_mock.metadata,
             connection_id=sentinel.NGW_CONNECTION_ID,
         )
         layer.update()
 
         signals_mock.assert_not_called()
 
-        self.qgs_layer.setCustomProperty(
-            DetachedLayer.UPDATE_STATE_PROPERTY, True
-        )
+        qgs_layer.setCustomProperty(DetachedLayer.UPDATE_STATE_PROPERTY, True)
         signals_mock.settings_changed.emit.assert_called_once()
 
-    def test_adding_features(self) -> None:
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+    @mock_container(TestData.Points)
+    def test_adding_features(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        changes_logger = LayerChangesLogger(qgs_layer)
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
@@ -319,50 +294,51 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
         self.assertTrue(len(changes_logger.added_fids) == 3)
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         changes_checker.assert_changes_equal(changes_logger)
 
-    def test_deleting_features(self) -> None:
-        STRING_FIELD = self.qgs_layer.fields().indexOf("STRING")
+    @mock_container(TestData.Points)
+    def test_deleting_features(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        STRING_FIELD = qgs_layer.fields().indexOf("STRING")
         INITIAL_STRING_VALUE = "TEST"
         INITIAL_GEOMETRY = QgsGeometry.fromWkt("POINT (0 0)")
         self.assertFalse(INITIAL_GEOMETRY.isNull())
 
-        feature_id = next(iter(sorted(self.qgs_layer.allFeatureIds())))
+        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
         self.assertTrue(
-            self.qgs_layer.dataProvider().changeGeometryValues(
+            qgs_layer.dataProvider().changeGeometryValues(
                 {feature_id: INITIAL_GEOMETRY}
             )
         )
         self.assertTrue(
-            self.qgs_layer.dataProvider().changeAttributeValues(
+            qgs_layer.dataProvider().changeAttributeValues(
                 {feature_id: {STRING_FIELD: INITIAL_STRING_VALUE}}
             )
         )
 
-        feature = self.qgs_layer.getFeature(feature_id)
+        feature = qgs_layer.getFeature(feature_id)
 
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+        changes_logger = LayerChangesLogger(qgs_layer)
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         NEW_STRING_VALUE = INITIAL_STRING_VALUE + "_1"
         NEW_GEOMETRY = QgsGeometry.fromWkt("POINT (1 1)")
-        with edit(self.qgs_layer):
+        with edit(qgs_layer):
             self.assertTrue(
-                self.qgs_layer.changeAttributeValue(
+                qgs_layer.changeAttributeValue(
                     feature_id, STRING_FIELD, NEW_STRING_VALUE
                 )
             )
-            self.assertTrue(
-                self.qgs_layer.changeGeometry(feature_id, NEW_GEOMETRY)
-            )
+            self.assertTrue(qgs_layer.changeGeometry(feature_id, NEW_GEOMETRY))
 
-        edited_feature = self.qgs_layer.getFeature(feature_id)
+        edited_feature = qgs_layer.getFeature(feature_id)
 
-        with edit(self.qgs_layer):
-            is_removed = self.qgs_layer.deleteFeature(feature_id)
+        with edit(qgs_layer):
+            is_removed = qgs_layer.deleteFeature(feature_id)
             self.assertTrue(is_removed)
 
         self.assertEqual(
@@ -378,7 +354,7 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
         self.assertTrue(len(changes_logger.removed_fids) == 1)
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         self.assertTrue(
             changes_checker.added_is_equal(changes_logger.added_fids)
         )
@@ -389,7 +365,7 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
 
         with closing(
-            make_connection(self.container_path)
+            make_connection(container_mock.path)
         ) as connection, closing(connection.cursor()) as cursor:
             deleted_features = list(
                 cursor.execute("SELECT fid, backup FROM ngw_removed_features")
@@ -408,7 +384,7 @@ class TestDetachedLayer(NgConnectTestCase):
         before_deletion_fields = {
             field[0]: field[1] for field in backup["before_deletion"]["fields"]
         }
-        for field in self.container_metadata.fields:
+        for field in container_mock.metadata.fields:
             self.assertEqual(
                 simplify_value(feature.attribute(field.attribute)),
                 after_sync_fields.get(field.ngw_id),
@@ -424,26 +400,29 @@ class TestDetachedLayer(NgConnectTestCase):
             INITIAL_GEOMETRY.asWkt(),
             deserialize_geometry(
                 backup["after_sync"]["geom"],
-                self.container_metadata.is_versioning_enabled,
+                container_mock.metadata.is_versioning_enabled,
             ).asWkt(),
         )
         self.assertEqual(
             NEW_GEOMETRY.asWkt(),
             deserialize_geometry(
                 backup["before_deletion"]["geom"],
-                self.container_metadata.is_versioning_enabled,
+                container_mock.metadata.is_versioning_enabled,
             ).asWkt(),
         )
 
-    def test_updating_fields(self) -> None:
-        INTEGER_FIELD = self.qgs_layer.fields().indexOf("INTEGER")
+    @mock_container(TestData.Points)
+    def test_updating_fields(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        INTEGER_FIELD = qgs_layer.fields().indexOf("INTEGER")
         INITIAL_INTEGER_VALUE = 123
-        STRING_FIELD = self.qgs_layer.fields().indexOf("STRING")
+        STRING_FIELD = qgs_layer.fields().indexOf("STRING")
         INITIAL_STRING_VALUE = "TEST"
 
-        feature_id = list(sorted(self.qgs_layer.allFeatureIds()))[1]
+        feature_id = list(sorted(qgs_layer.allFeatureIds()))[1]
         self.assertTrue(
-            self.qgs_layer.dataProvider().changeAttributeValues(
+            qgs_layer.dataProvider().changeAttributeValues(
                 {
                     feature_id: {
                         STRING_FIELD: INITIAL_STRING_VALUE,
@@ -453,30 +432,30 @@ class TestDetachedLayer(NgConnectTestCase):
             )
         )
 
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+        changes_logger = LayerChangesLogger(qgs_layer)
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         NEW_INTEGER_VALUE = INITIAL_INTEGER_VALUE + 1
         NEW_STRING_VALUE = INITIAL_STRING_VALUE + "_1"
-        with edit(self.qgs_layer):
+        with edit(qgs_layer):
             self.assertTrue(
-                self.qgs_layer.changeAttributeValue(
+                qgs_layer.changeAttributeValue(
                     feature_id, INTEGER_FIELD, NEW_INTEGER_VALUE
                 )
             )
             self.assertTrue(
-                self.qgs_layer.changeAttributeValue(
+                qgs_layer.changeAttributeValue(
                     feature_id, STRING_FIELD, NEW_STRING_VALUE
                 )
             )
 
         VERY_NEW_INTEGER_VALUE = NEW_INTEGER_VALUE + 1
-        with edit(self.qgs_layer):
+        with edit(qgs_layer):
             # Check PK constraints
             self.assertTrue(
-                self.qgs_layer.changeAttributeValue(
+                qgs_layer.changeAttributeValue(
                     feature_id, STRING_FIELD, VERY_NEW_INTEGER_VALUE
                 )
             )
@@ -492,11 +471,11 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
         self.assertTrue(len(changes_logger.updated_attribute_fids) == 2)
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         changes_checker.assert_changes_equal(changes_logger)
 
         with closing(
-            make_connection(self.container_path)
+            make_connection(container_mock.path)
         ) as connection, closing(connection.cursor()) as cursor:
             backup = {
                 (row[0], row[1]): deserialize_value(row[2])
@@ -515,29 +494,32 @@ class TestDetachedLayer(NgConnectTestCase):
             backup[(feature_id, STRING_FIELD)], INITIAL_STRING_VALUE
         )
 
-    def test_updating_geometry(self) -> None:
+    @mock_container(TestData.Points)
+    def test_updating_geometry(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
         INITIAL_GEOMETRY = QgsGeometry.fromWkt("POINT (0 0)")
         self.assertFalse(INITIAL_GEOMETRY.isNull())
 
-        feature_id = next(iter(sorted(self.qgs_layer.allFeatureIds())))
-        self.qgs_layer.dataProvider().changeGeometryValues(
+        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
+        qgs_layer.dataProvider().changeGeometryValues(
             {feature_id: INITIAL_GEOMETRY}
         )
 
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+        changes_logger = LayerChangesLogger(qgs_layer)
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
-        with edit(self.qgs_layer):
-            is_changed = self.qgs_layer.changeGeometry(
+        with edit(qgs_layer):
+            is_changed = qgs_layer.changeGeometry(
                 feature_id, QgsGeometry.fromWkt("POINT (1 1)")
             )
             self.assertTrue(is_changed)
 
-        with edit(self.qgs_layer):
+        with edit(qgs_layer):
             # Check PK constraints
-            is_changed = self.qgs_layer.changeGeometry(
+            is_changed = qgs_layer.changeGeometry(
                 feature_id, QgsGeometry.fromWkt("POINT (2 2)")
             )
             self.assertTrue(is_changed)
@@ -553,15 +535,15 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
         self.assertTrue(len(changes_logger.updated_geometry_fids) == 1)
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         changes_checker.assert_changes_equal(changes_logger)
 
         with closing(
-            make_connection(self.container_path)
+            make_connection(container_mock.path)
         ) as connection, closing(connection.cursor()) as cursor:
             backup = {
                 row[0]: deserialize_geometry(
-                    row[1], self.container_mock.metadata.is_versioning_enabled
+                    row[1], container_mock.metadata.is_versioning_enabled
                 )
                 for row in cursor.execute(
                     f"""
@@ -573,13 +555,16 @@ class TestDetachedLayer(NgConnectTestCase):
 
         self.assertEqual(backup[feature_id].asWkt(), INITIAL_GEOMETRY.asWkt())
 
-    def test_updating_new_feature(self) -> None:
-        attribute_index = self.qgs_layer.fields().indexOf("STRING")
+    @mock_container(TestData.Points)
+    def test_updating_new_feature(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+        changes_logger = LayerChangesLogger(qgs_layer)
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
         new_feature.setAttribute(attribute_index, "a")
@@ -589,23 +574,23 @@ class TestDetachedLayer(NgConnectTestCase):
             # Add feature
             is_added = layer.qgs_layer.addFeature(new_feature)
             self.assertTrue(is_added)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
             feature_id = next(iter(changes_logger.added_fids))
 
             # Update fields
-            is_changed = self.qgs_layer.changeAttributeValue(
+            is_changed = qgs_layer.changeAttributeValue(
                 feature_id, attribute_index, "b"
             )
             self.assertTrue(is_changed)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
             # Change geometry
-            is_changed = self.qgs_layer.changeGeometry(
+            is_changed = qgs_layer.changeGeometry(
                 feature_id, QgsGeometry.fromWkt("POINT (1 1)")
             )
             self.assertTrue(is_changed)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
         self.assertEqual(
             signals_mock.mock_calls,
@@ -618,16 +603,19 @@ class TestDetachedLayer(NgConnectTestCase):
             ],
         )
 
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         self.assertTrue(changes_checker.added_is_equal({feature_id}))
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
 
-    def test_rollback(self) -> None:
-        attribute_index = self.qgs_layer.fields().indexOf("STRING")
+    @mock_container(TestData.Points)
+    def test_rollback(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
@@ -640,24 +628,24 @@ class TestDetachedLayer(NgConnectTestCase):
                 is_added = layer.qgs_layer.addFeature(new_feature)
                 self.assertTrue(is_added)
 
-                feature_id = self.qgs_layer.allFeatureIds()[0]
+                feature_id = qgs_layer.allFeatureIds()[0]
 
                 # Update fields
-                is_changed = self.qgs_layer.changeAttributeValue(
+                is_changed = qgs_layer.changeAttributeValue(
                     feature_id, attribute_index, "b"
                 )
                 self.assertTrue(is_changed)
 
                 # Change geometry
-                is_changed = self.qgs_layer.changeGeometry(
+                is_changed = qgs_layer.changeGeometry(
                     feature_id, QgsGeometry.fromWkt("POINT (1 1)")
                 )
                 self.assertTrue(is_changed)
 
-                feature_id = self.qgs_layer.allFeatureIds()[1]
+                feature_id = qgs_layer.allFeatureIds()[1]
 
                 # Remove feature
-                is_removed = self.qgs_layer.deleteFeature(feature_id)
+                is_removed = qgs_layer.deleteFeature(feature_id)
                 self.assertTrue(is_removed)
 
                 raise RuntimeError
@@ -673,19 +661,22 @@ class TestDetachedLayer(NgConnectTestCase):
             ],
         )
 
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         self.assertTrue(changes_checker.added_is_equal({}))
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
 
-    def test_deleting_new_feature(self) -> None:
-        attribute_index = self.qgs_layer.fields().indexOf("STRING")
+    @mock_container(TestData.Points)
+    def test_deleting_new_feature(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
-        changes_logger = LayerChangesLogger(self.qgs_layer)
+        changes_logger = LayerChangesLogger(qgs_layer)
 
         new_feature = QgsFeature(layer.qgs_layer.fields())
         new_feature.setAttribute(attribute_index, "a")
@@ -695,14 +686,14 @@ class TestDetachedLayer(NgConnectTestCase):
             # Add feature
             is_added = layer.qgs_layer.addFeature(new_feature)
             self.assertTrue(is_added)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
             feature_id = next(iter(changes_logger.added_fids))
 
-            is_removed = self.qgs_layer.deleteFeature(feature_id)
+            is_removed = qgs_layer.deleteFeature(feature_id)
             self.assertTrue(is_removed)
 
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
         self.assertEqual(
             signals_mock.mock_calls,
@@ -714,36 +705,39 @@ class TestDetachedLayer(NgConnectTestCase):
             ],
         )
 
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         self.assertTrue(changes_checker.added_is_equal({}))
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
 
-    def test_deleting_updated_feature(self) -> None:
-        attribute_index = self.qgs_layer.fields().indexOf("STRING")
+    @mock_container(TestData.Points)
+    def test_deleting_updated_feature(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
 
-        layer = DetachedLayer(self.container_mock, self.qgs_layer)
+        layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
         with edit(layer.qgs_layer):
-            feature_id = self.qgs_layer.allFeatureIds()[0]
+            feature_id = qgs_layer.allFeatureIds()[0]
 
             # Update fields
-            is_changed = self.qgs_layer.changeAttributeValue(
+            is_changed = qgs_layer.changeAttributeValue(
                 feature_id, attribute_index, "b"
             )
             self.assertTrue(is_changed)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
             # Change geometry
-            is_changed = self.qgs_layer.changeGeometry(
+            is_changed = qgs_layer.changeGeometry(
                 feature_id, QgsGeometry.fromWkt("POINT (1 1)")
             )
             self.assertTrue(is_changed)
-            self.qgs_layer.commitChanges(stopEditing=False)
+            qgs_layer.commitChanges(stopEditing=False)
 
-            is_removed = self.qgs_layer.deleteFeature(feature_id)
+            is_removed = qgs_layer.deleteFeature(feature_id)
             self.assertTrue(is_removed)
 
         self.assertEqual(
@@ -757,11 +751,133 @@ class TestDetachedLayer(NgConnectTestCase):
             ],
         )
 
-        changes_checker = ChangesChecker(self.container_path)
+        changes_checker = ChangesChecker(container_mock.path)
         self.assertTrue(changes_checker.added_is_equal({}))
         self.assertTrue(changes_checker.removed_is_equal({feature_id}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+
+    # todo: add and remove without sync, remove and add with same name, virtual field
+
+    @mock_container(TestData.Points)
+    @patch(
+        "qgis.PyQt.QtWidgets.QMessageBox.warning",
+        return_value=QMessageBox.StandardButton.Ok,
+    )
+    def test_add_atttribute_for_not_versioned(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+        message_box_mock: MagicMock,
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(
+                layer.qgs_layer.addAttribute(
+                    QgsField("NEW_FIELD", FieldType.QString)
+                )
+            )
+
+        self.assertEqual(len(message_box_mock.mock_calls), 1)
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.structure_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+    @mock_container(TestData.Points)
+    @patch(
+        "qgis.PyQt.QtWidgets.QMessageBox.warning",
+        return_value=QMessageBox.StandardButton.Ok,
+    )
+    def test_remove_atttribute_for_not_versioned(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+        message_box_mock: MagicMock,
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(layer.qgs_layer.deleteAttribute(attribute_index))
+
+        self.assertEqual(len(message_box_mock.mock_calls), 1)
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.structure_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+    @mock_container(TestData.Points, is_versioning_enabled=True)
+    @patch(
+        "qgis.PyQt.QtWidgets.QMessageBox.warning",
+        return_value=QMessageBox.StandardButton.Ok,
+    )
+    def test_add_atttribute_for_versioned(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+        message_box_mock: MagicMock,
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(
+                layer.qgs_layer.addAttribute(
+                    QgsField("NEW_FIELD", FieldType.QString)
+                )
+            )
+
+        self.assertEqual(len(message_box_mock.mock_calls), 1)
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.structure_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+    @mock_container(TestData.Points, is_versioning_enabled=True)
+    @patch(
+        "qgis.PyQt.QtWidgets.QMessageBox.warning",
+        return_value=QMessageBox.StandardButton.Ok,
+    )
+    def test_remove_atttribute_for_versioned(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+        message_box_mock: MagicMock,
+    ) -> None:
+        attribute_index = qgs_layer.fields().indexOf("STRING")
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(layer.qgs_layer.deleteAttribute(attribute_index))
+
+        self.assertEqual(len(message_box_mock.mock_calls), 1)
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.structure_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
 
 
 if __name__ == "__main__":

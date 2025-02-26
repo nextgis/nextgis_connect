@@ -46,6 +46,7 @@ class DetachedLayer(QObject):
 
     __container: "DetachedContainer"
     __qgs_layer: QgsVectorLayer
+    __is_structure_changed: bool
     __is_layer_changed: bool
     __errors: List[ContainerError]
 
@@ -70,14 +71,14 @@ class DetachedLayer(QObject):
 
         self.__container = container
         self.__qgs_layer = layer
+        self.__is_structure_changed = False
         self.__is_layer_changed = False
         self.__errors = []
 
         self.__reset_backup()
 
-        # TODO (PyQt6): remove type ignore
-        self.__qgs_layer.editingStarted.connect(self.__start_listen_changes)  # type: ignore
-        self.__qgs_layer.editingStopped.connect(self.__stop_listen_changes)  # type: ignore
+        self.__qgs_layer.editingStarted.connect(self.__start_listen_changes)
+        self.__qgs_layer.editingStopped.connect(self.__stop_listen_changes)
         self.__qgs_layer.customPropertyChanged.connect(
             self.__on_custom_property_changed
         )
@@ -370,7 +371,7 @@ class DetachedLayer(QObject):
             f"Added {len(added_attributes)} attributes in layer {metadata}"
         )
 
-        self.structure_changed.emit()
+        self.__is_structure_changed = True
 
         QMessageBox.warning(
             None,
@@ -392,6 +393,8 @@ class DetachedLayer(QObject):
             f"Removed {len(deleted_attributes)} attributes in layer {metadata}"
         )
 
+        self.__is_structure_changed = True
+
         container_fields_name = set(
             field.name() for field in self.__qgs_layer.fields()
         )
@@ -400,8 +403,6 @@ class DetachedLayer(QObject):
             for ngw_field in metadata.fields
         ):
             return
-
-        self.structure_changed.emit()
 
         QMessageBox.warning(
             None,
@@ -650,6 +651,10 @@ class DetachedLayer(QObject):
         return result
 
     def __on_commit_changes(self) -> None:
+        if self.__is_structure_changed:
+            self.structure_changed.emit()
+            self.__is_structure_changed = False
+
         if self.__is_layer_changed:
             self.layer_changed.emit()
             self.__is_layer_changed = False
