@@ -6,6 +6,9 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 from qgis.core import QgsField, QgsFields
 
 from nextgis_connect.compat import FieldType
+from nextgis_connect.detached_editing.serialization import (
+    deserialize_field_type,
+)
 
 FieldId = int
 
@@ -22,17 +25,9 @@ class NgwField:
     lookup_table: Optional[int] = None
 
     def __post_init__(self) -> None:
-        field_types = {
-            "INTEGER": FieldType.Int,
-            "BIGINT": FieldType.LongLong,
-            "REAL": FieldType.Double,
-            "STRING": FieldType.QString,
-            "DATE": FieldType.QDate,
-            "TIME": FieldType.QTime,
-            "DATETIME": FieldType.QDateTime,
-        }
-        datatype = field_types.get(self.datatype_name, FieldType.QString)
-        super().__setattr__("datatype", datatype)
+        super().__setattr__(
+            "datatype", deserialize_field_type(self.datatype_name)
+        )
 
     def is_compatible(self, rhs: Union["NgwField", QgsField]) -> bool:
         if isinstance(rhs, NgwField):

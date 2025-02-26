@@ -43,7 +43,7 @@ from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 
 from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import LayerType
-from nextgis_connect.detached_editing import DetachedEditing
+from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
 from nextgis_connect.exceptions import (
     ErrorCode,
     NgConnectError,
