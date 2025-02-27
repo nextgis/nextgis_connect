@@ -180,6 +180,17 @@ class DetachedLayerFactory:
                 PRIMARY KEY ('instance_id', 'resource_id')
             );
 
+            -- Fields metadata
+            CREATE TABLE ngw_fields_metadata (
+                'attribute' INTEGER PRIMARY KEY, -- Field ID in QGIS
+                'ngw_id' INTEGER, -- Field ID in NextGIS Web
+                'datatype_name' TEXT,
+                'keyname' TEXT,
+                'display_name' TEXT,
+                'is_label' BOOLEAN,
+                'lookup_table' INTEGER
+            );
+
             -- Features metadata
             CREATE TABLE ngw_features_metadata (
                 'fid' INTEGER PRIMARY KEY, -- Feature ID in GPKG
@@ -202,27 +213,17 @@ class DetachedLayerFactory:
                 FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
-            -- Fields metadata
-            CREATE TABLE ngw_fields_metadata (
-                'attribute' INTEGER PRIMARY KEY, -- Field ID in QGIS
-                'ngw_id' INTEGER, -- Field ID in NextGIS Web
-                'datatype_name' TEXT,
-                'keyname' TEXT,
-                'display_name' TEXT,
-                'is_label' BOOLEAN,
-                'lookup_table' INTEGER
-            );
-
             -- Added attributes
             CREATE TABLE ngw_added_attributes (
-                'cid' INTEGER PRIMARY KEY,
-                FOREIGN KEY (cid) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
+                'attribute' INTEGER PRIMARY KEY,
+                FOREIGN KEY (attribute) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
             );
 
             -- Removed attributes
             CREATE TABLE ngw_removed_attributes (
-                'cid' INTEGER PRIMARY KEY,
-                FOREIGN KEY (cid) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
+                'attribute' INTEGER PRIMARY KEY,
+                'backup' TEXT, -- Backup information
+                FOREIGN KEY (attribute) REFERENCES ngw_fields_metadata(attribute) ON DELETE CASCADE
             );
 
             -- Added features

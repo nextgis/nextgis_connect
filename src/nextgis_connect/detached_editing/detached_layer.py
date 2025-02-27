@@ -364,11 +364,11 @@ class DetachedLayer(QObject):
 
     @pyqtSlot(str, "QList<QgsField>")
     def __on_attribute_added(
-        self, layer_id: str, added_attributes: List[QgsField]
+        self, layer_id: str, added_fields: List[QgsField]
     ) -> None:
         metadata = self.__container.metadata
         logger.debug(
-            f"Added {len(added_attributes)} attributes in layer {metadata}"
+            f"Added {len(added_fields)} attributes in layer {metadata}"
         )
 
         self.__is_structure_changed = True

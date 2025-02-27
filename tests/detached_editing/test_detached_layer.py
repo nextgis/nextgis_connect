@@ -774,11 +774,9 @@ class TestDetachedLayer(NgConnectTestCase):
         signals_mock = mock_layer_signals(layer)
 
         with edit(layer.qgs_layer):
-            self.assertTrue(
-                layer.qgs_layer.addAttribute(
-                    QgsField("NEW_FIELD", FieldType.QString)
-                )
-            )
+            field = QgsField("NEW_FIELD", FieldType.QString)
+            field.setAlias("NEW FIELD")
+            self.assertTrue(layer.qgs_layer.addAttribute(field))
 
         self.assertEqual(len(message_box_mock.mock_calls), 1)
         self.assertEqual(
@@ -834,11 +832,9 @@ class TestDetachedLayer(NgConnectTestCase):
         signals_mock = mock_layer_signals(layer)
 
         with edit(layer.qgs_layer):
-            self.assertTrue(
-                layer.qgs_layer.addAttribute(
-                    QgsField("NEW_FIELD", FieldType.QString)
-                )
-            )
+            field = QgsField("NEW_FIELD", FieldType.QString)
+            field.setAlias("NEW FIELD")
+            self.assertTrue(layer.qgs_layer.addAttribute(field))
 
         self.assertEqual(len(message_box_mock.mock_calls), 1)
         self.assertEqual(
