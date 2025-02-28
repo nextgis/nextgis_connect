@@ -6,6 +6,7 @@ from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
 from typing import Optional, Union
+from urllib.parse import quote
 
 from qgis.core import (
     QgsExpressionContext,
@@ -276,7 +277,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     )
 
     cursor.execute(
-        f"SELECT name from pragma_table_info('{table_name}') WHERE pk = 1"
+        f"SELECT name from pragma_table_info('{quote(table_name)}') WHERE pk = 1"
     )
     fid_field = cursor.fetchone()[0]
 

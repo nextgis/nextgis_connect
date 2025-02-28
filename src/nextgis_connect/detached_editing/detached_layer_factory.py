@@ -3,6 +3,7 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Optional, Tuple, cast
+from urllib.parse import quote
 
 from qgis.core import (
     QgsEditError,
@@ -304,7 +305,7 @@ class DetachedLayerFactory:
             "instance_id": f"'{connection.domain_uuid}'",
             "connection_id": f"'{ngw_layer.connection_id}'",
             "resource_id": str(ngw_layer.resource_id),
-            "display_name": f"'{ngw_layer.display_name}'",
+            "display_name": f"'{quote(ngw_layer.display_name)}'",
             "description": f"'{ngw_layer.description}'"
             if ngw_layer.description is not None
             else "NULL",
