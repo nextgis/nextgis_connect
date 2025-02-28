@@ -36,11 +36,13 @@ from nextgis_connect.exceptions import (
     ErrorCode,
     NgConnectError,
     NgConnectException,
+    NgwError,
     SynchronizationError,
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import NGWVectorLayer
+from nextgis_connect.ngw_api.core.ngw_error import NGWError
 from nextgis_connect.ngw_api.core.ngw_resource_factory import (
     NGWResourceFactory,
 )
@@ -89,6 +91,7 @@ class DetachedContainer(QObject):
 
     __indicator: Optional[DetachedLayerIndicator]
     __sync_task: Optional[DetachedEditingTask]
+    __is_silent_sync: bool
 
     __check_date: Optional[datetime]
     __additional_data_fetch_date: Optional[datetime]
@@ -118,6 +121,7 @@ class DetachedContainer(QObject):
 
         self.__indicator = None
         self.__sync_task = None
+        self.__is_silent_sync = False
 
         self.__check_date = None
         self.__additional_data_fetch_date = None
@@ -294,7 +298,10 @@ class DetachedContainer(QObject):
             self.__additional_data_fetch_date = None
         else:
             if self.state == DetachedLayerState.Error:
-                return False
+                if self.__is_network_error(self.error):
+                    self.__is_silent_sync = True
+                else:
+                    return False
 
             if self.check_date is not None and not self.metadata.has_changes:
                 period = NgConnectSettings().synchronizatin_period
@@ -344,10 +351,13 @@ class DetachedContainer(QObject):
         resources_factory = NGWResourceFactory(ngw_connection)
         try:
             ngw_layer = resources_factory.get_resource(resource_id)
+        except NgwError as error:
+            error.try_again = self.reset_container
+            self.__process_error(error)
+            return
         except Exception as error:
-            ng_error = SynchronizationError(
+            ng_error = NgConnectError(
                 "An error occured while resetting layer",
-                code=ErrorCode.NetworkError,
             )
             ng_error.__cause__ = error
             ng_error.try_again = self.reset_container
@@ -538,6 +548,8 @@ class DetachedContainer(QObject):
 
     @pyqtSlot(bool)
     def __on_synchronization_finished(self, result: bool) -> None:
+        self.__check_date = datetime.now()
+
         assert self.__sync_task is not None
         if not result:
             assert self.__sync_task.error is not None
@@ -548,7 +560,6 @@ class DetachedContainer(QObject):
             self.__finish_sync()
             return
 
-        self.__check_date = datetime.now()
         self.__state = DetachedLayerState.Synchronized
         self.__versioning_state = VersioningSynchronizationState.Synchronized
 
@@ -585,6 +596,7 @@ class DetachedContainer(QObject):
             )
         else:
             assert self.__sync_task.error is not None
+            self.__check_date = datetime.now()
             self.__sync_task.error.try_again = lambda: self.synchronize(
                 is_manual=True
             )
@@ -698,6 +710,7 @@ class DetachedContainer(QObject):
 
     def __finish_sync(self) -> None:
         self.__sync_task = None
+        self.__is_silent_sync = False
 
         self.__update_state(is_full_update=True)
         self.__unlock_layers()
@@ -784,6 +797,10 @@ class DetachedContainer(QObject):
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__additional_data_fetch_date = None
+
+        if self.__is_silent_sync and self.__is_network_error(error):
+            return
+
         self.__error = error
 
         NgConnectInterface.instance().show_error(error)
@@ -875,8 +892,13 @@ class DetachedContainer(QObject):
         return delta
 
     def __reset_error(self) -> None:
-        if self.__error is None:
+        if self.__error is None or self.__is_silent_sync:
             return
 
         NgConnectInterface.instance().close_error(self.__error)
         self.__error = None
+
+    def __is_network_error(self, error: Optional[Exception]) -> bool:
+        return error is not None and isinstance(
+            error.__cause__, (NgwError, NGWError)
+        )
