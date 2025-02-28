@@ -119,6 +119,21 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.geom_field, "geom")
                 self._check_fields(metadata, container_path)
 
+        with self.subTest("4. Layer with apostrophe in filename"):
+            layer_json["resource"]["display_name"] = "point's_layer"
+
+            ngw_layer = cast(
+                NGWVectorLayer, self.resource(layer_json, connection)
+            )
+
+            container_path = self.create_temp_file(".gpkg")
+            factory.create_initial_container(ngw_layer, container_path)
+
+            metadata = container_metadata(container_path)
+            self._check_common_metadata(metadata, ngw_layer, connection)
+            check_test_metadata(metadata)
+            self.assertIsNone(metadata.layer_name)
+
     @mock.patch(
         "nextgis_connect.ngw_api.core.NGWVectorLayer.is_versioning_enabled",
         new_callable=mock.PropertyMock,
@@ -213,6 +228,21 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.fid_field, f"fid_{i + 1}")
                 self.assertEqual(metadata.geom_field, "geom")
                 self._check_fields(metadata, container_path)
+
+        with self.subTest("4. Layer with apostrophe in filename"):
+            layer_json["resource"]["display_name"] = "point's_layer"
+
+            ngw_layer = cast(
+                NGWVectorLayer, self.resource(layer_json, connection)
+            )
+
+            container_path = self.create_temp_file(".gpkg")
+            factory.create_initial_container(ngw_layer, container_path)
+
+            metadata = container_metadata(container_path)
+            self._check_common_metadata(metadata, ngw_layer, connection)
+            check_test_metadata(metadata)
+            self.assertIsNone(metadata.layer_name)
 
     @mock.patch(
         "nextgis_connect.detached_editing.detached_layer_factory.datetime"
