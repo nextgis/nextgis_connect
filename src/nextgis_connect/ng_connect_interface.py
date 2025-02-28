@@ -1,6 +1,6 @@
 import configparser
 from abc import ABCMeta, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
 
 from qgis import utils
 from qgis.PyQt.QtCore import QObject, pyqtSignal
@@ -69,4 +69,7 @@ class NgConnectInterface(QObject, metaclass=_NgConnectInterfaceMetaClass):
     def disable_synchronization(self) -> None: ...
 
     @abstractmethod
-    def show_error(self, error: Exception) -> None: ...
+    def show_error(self, error: Exception) -> str: ...
+
+    @abstractmethod
+    def close_error(self, error: Union[Exception, str]) -> None: ...

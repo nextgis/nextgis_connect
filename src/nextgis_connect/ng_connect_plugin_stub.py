@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+from typing import Union
 
 from osgeo import gdal
 from qgis.core import Qgis, QgsApplication, QgsTaskManager
@@ -64,7 +65,7 @@ class NgConnectPluginStub(NgConnectInterface):
 
         unload_logger()
 
-    def show_error(self, error: Exception) -> None:
+    def show_error(self, error: Exception) -> str:
         settings = NgConnectSettings()
 
         pretend_is_not_a_error = False
@@ -121,6 +122,11 @@ class NgConnectPluginStub(NgConnectInterface):
         )
 
         logger.exception(error.log_message, exc_info=error)
+
+        return error.error_id
+
+    def close_error(self, error: Union[Exception, str]) -> None:
+        raise NotImplementedError
 
     @property
     def toolbar(self) -> QToolBar:

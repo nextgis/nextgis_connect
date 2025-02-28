@@ -530,6 +530,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project.layersRemoved.connect(self.checkImportActionsAvailability)
 
         self.__is_reinit_tree = False
+        self.__reinit_tree_error = None
 
         self.checkImportActionsAvailability()
 
@@ -891,7 +892,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if self.__is_reinit_tree:
                 exception.try_again = lambda: self.reinit_tree(force=True)
 
-        NgConnectInterface.instance().show_error(exception)
+        error_id = NgConnectInterface.instance().show_error(exception)
+        if self.__is_reinit_tree:
+            self.__reinit_tree_error = error_id
 
     def __get_model_exception_description(self, exception: Exception):
         msg = None
@@ -1037,6 +1040,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def reinit_tree(self, force=False):
         self.__is_reinit_tree = True
+        if self.__reinit_tree_error is not None:
+            NgConnectInterface.instance().close_error(self.__reinit_tree_error)
+            self.__reinit_tree_error = None
+
         # clear tree and states
         self.block_gui()
 

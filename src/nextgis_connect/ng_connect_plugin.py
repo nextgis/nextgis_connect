@@ -22,7 +22,7 @@
 
 import sys
 from pathlib import Path
-from typing import cast
+from typing import Union, cast
 
 from osgeo import gdal
 from qgis import utils as qgis_utils
@@ -172,7 +172,7 @@ class NgConnectPlugin(NgConnectInterface):
         assert self.__detached_editing is not None
         self.__detached_editing.disable_synchronization()
 
-    def show_error(self, error: Exception) -> None:
+    def show_error(self, error: Exception) -> str:
         if not isinstance(error, NgConnectError):
             old_error = error
             error = NgConnectError()
@@ -259,8 +259,24 @@ class NgConnectPlugin(NgConnectInterface):
 
         item = message_bar.pushWidget(widget, level)
         item.setObjectName("NgConnectMessageBarItem")
+        item.setProperty("NgConnectErrorId", error.error_id)
 
         logger.exception(error.log_message, exc_info=error)
+
+        return error.error_id
+
+    def close_error(self, error: Union[Exception, str]) -> None:
+        if not isinstance(error, (NgConnectError, str)):
+            return
+
+        error_id = error if isinstance(error, str) else error.error_id
+        notifications = self.iface.mainWindow().findChildren(
+            QgsMessageBarItem, "NgConnectMessageBarItem"
+        )
+        for notification in notifications:
+            if notification.property("NgConnectErrorId") != error_id:
+                continue
+            self.iface.messageBar().popWidget(notification)
 
     def __init_connections(self) -> None:
         connections_manager = NgwConnectionsManager()

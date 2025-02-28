@@ -1,4 +1,5 @@
 import sys
+import uuid
 from enum import IntEnum, auto
 from functools import lru_cache
 from http import HTTPStatus
@@ -95,6 +96,7 @@ class ErrorCode(IntEnum):
 
 
 class NgConnectException(Exception):
+    __error_id: str
     __log_message: str
     __user_message: str
     __detail: Optional[str]
@@ -110,6 +112,7 @@ class NgConnectException(Exception):
         code: ErrorCode = ErrorCode.PluginError,
         try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
+        self.__error_id = str(uuid.uuid4())
         self.__code = code
         self.__log_message = (
             log_message
@@ -139,6 +142,10 @@ class NgConnectException(Exception):
             self.add_note("Detail: " + self.__detail)
 
         self.__try_again = try_again
+
+    @property
+    def error_id(self) -> str:
+        return self.__error_id
 
     @property
     def log_message(self) -> str:
