@@ -529,6 +529,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         assert project is not None
         project.layersRemoved.connect(self.checkImportActionsAvailability)
 
+        self.__is_reinit_tree = False
+
         self.checkImportActionsAvailability()
 
     def close(self) -> bool:
@@ -882,6 +884,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.show_error(exception.user_msg)
             return
 
+        if (
+            isinstance(exception, NgConnectError)
+            and exception.try_again is None
+        ):
+            if self.__is_reinit_tree:
+                exception.try_again = lambda: self.reinit_tree(force=True)
+
         NgConnectInterface.instance().show_error(exception)
 
     def __get_model_exception_description(self, exception: Exception):
@@ -1027,6 +1036,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
 
     def reinit_tree(self, force=False):
+        self.__is_reinit_tree = True
         # clear tree and states
         self.block_gui()
 
@@ -1106,6 +1116,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             logger.exception("Model update error")
 
             NgConnectInterface.instance().show_error(error)
+
+        self.__is_reinit_tree = False
 
     @pyqtSlot()
     def __action_refresh_tree(self):

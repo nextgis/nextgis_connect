@@ -210,6 +210,16 @@ class NgConnectPlugin(NgConnectInterface):
             NgConnectInterface.PLUGIN_NAME, message
         )
 
+        if error.try_again is not None:
+
+            def try_again():
+                error.try_again()
+                message_bar.popWidget(widget)
+
+            button = QPushButton(self.tr("Try again"))
+            button.pressed.connect(try_again)
+            widget.layout().addWidget(button)
+
         if error.detail is not None:
             button = QPushButton(self.tr("Details"))
             button.pressed.connect(show_details)

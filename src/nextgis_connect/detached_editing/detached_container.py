@@ -317,7 +317,7 @@ class DetachedContainer(QObject):
         return True
 
     def reset_container(self) -> None:
-        logger.debug(f"Started layer {self.metadata} reset")
+        logger.debug(f"<b>Start layer {self.metadata} reset</b>")
 
         # Get resource
         if self.__metadata is not None:
@@ -343,7 +343,10 @@ class DetachedContainer(QObject):
         try:
             ngw_layer = resources_factory.get_resource(resource_id)
         except Exception as error:
-            ng_error = SynchronizationError(code=ErrorCode.NetworkError)
+            ng_error = SynchronizationError(
+                "An error occured while resetting layer",
+                code=ErrorCode.NetworkError,
+            )
             ng_error.__cause__ = error
 
             self.__error = ng_error
@@ -366,12 +369,7 @@ class DetachedContainer(QObject):
                 ngw_layer, Path(temp_file_path)
             )
         except ContainerError as error:
-            self.__error = error
-            self.__state = DetachedLayerState.Error
-            self.__versioning_state = VersioningSynchronizationState.Error
-            self.__additional_data_fetch_date = None
-
-            NgConnectInterface.instance().show_error(error)
+            self.__process_error(error)
             return
 
         # Replace container with stub
@@ -387,19 +385,17 @@ class DetachedContainer(QObject):
                 message, code=ErrorCode.ContainerCreationError
             )
             error.__cause__ = os_error
+            error.try_again = self.reset_container
 
-            self.__error = error
-            self.__state = DetachedLayerState.Error
-            self.__versioning_state = VersioningSynchronizationState.Error
-            self.__additional_data_fetch_date = None
-
-            NgConnectInterface.instance().show_error(error)
+            self.__process_error(error)
 
             return
 
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized
         self.__error = None
+
+        logger.debug(f"<b>End layer {self.metadata} reset</b>")
 
         # Update state and notify listeners
 
@@ -548,6 +544,9 @@ class DetachedContainer(QObject):
         assert self.__sync_task is not None
         if not result:
             assert self.__sync_task.error is not None
+            self.__sync_task.error.try_again = lambda: self.synchronize(
+                is_manual=True
+            )
             self.__process_error(self.__sync_task.error)
             self.__finish_sync()
             return
@@ -589,10 +588,12 @@ class DetachedContainer(QObject):
             )
         else:
             assert self.__sync_task.error is not None
+            self.__sync_task.error.try_again = lambda: self.synchronize(
+                is_manual=True
+            )
             self.__process_error(self.__sync_task.error)
 
             self.__is_edit_allowed = False
-            self.__additional_data_fetch_date = None
 
         self.__finish_sync()
 
@@ -610,6 +611,7 @@ class DetachedContainer(QObject):
             try:
                 delta = self.__process_delta(self.__sync_task)
             except SynchronizationError as error:
+                error.try_again = lambda: self.synchronize(is_manual=True)
                 self.__process_error(error)
                 self.__finish_sync()
                 return
@@ -783,6 +785,7 @@ class DetachedContainer(QObject):
     def __process_error(self, error: NgConnectException) -> None:
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
+        self.__additional_data_fetch_date = None
         self.__error = error
 
         NgConnectInterface.instance().show_error(error)

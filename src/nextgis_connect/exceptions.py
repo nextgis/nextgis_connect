@@ -2,7 +2,7 @@ import sys
 from enum import IntEnum, auto
 from functools import lru_cache
 from http import HTTPStatus
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 from qgis.core import QgsApplication, QgsEditError
 
@@ -99,6 +99,7 @@ class NgConnectException(Exception):
     __user_message: str
     __detail: Optional[str]
     __code: ErrorCode
+    __try_again: Optional[Callable[[], Any]]
 
     def __init__(
         self,
@@ -107,6 +108,7 @@ class NgConnectException(Exception):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.PluginError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         self.__code = code
         self.__log_message = (
@@ -136,6 +138,8 @@ class NgConnectException(Exception):
             self.__detail = self.__detail.strip()
             self.add_note("Detail: " + self.__detail)
 
+        self.__try_again = try_again
+
     @property
     def log_message(self) -> str:
         return self.__log_message
@@ -151,6 +155,14 @@ class NgConnectException(Exception):
     @property
     def code(self) -> ErrorCode:
         return self.__code
+
+    @property
+    def try_again(self) -> Optional[Callable[[], Any]]:
+        return self.__try_again
+
+    @try_again.setter
+    def try_again(self, try_again: Optional[Callable[[], Any]]) -> None:
+        self.__try_again = try_again
 
     if sys.version_info < (3, 11):
 
@@ -175,9 +187,14 @@ class NgConnectWarning(NgConnectException):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.PluginWarning,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
 
@@ -192,9 +209,14 @@ class NgwError(NgConnectError):
         detail: Optional[str] = None,
         try_reconnect: bool = False,
         code: ErrorCode = ErrorCode.NgwError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
         self._try_reconnect = try_reconnect
@@ -260,9 +282,14 @@ class NgwConnectionError(NgConnectError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.NgwConnectionError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
 
@@ -274,9 +301,14 @@ class DetachedEditingError(NgConnectError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.DetachedEditingError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
 
@@ -288,9 +320,14 @@ class ContainerError(DetachedEditingError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.ContainerError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
 
@@ -302,9 +339,14 @@ class LayerEditError(DetachedEditingError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.LayerEditError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
     @staticmethod
@@ -363,9 +405,14 @@ class SynchronizationError(DetachedEditingError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.SynchronizationError,
+        try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(
-            log_message, user_message=user_message, detail=detail, code=code
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
         )
 
 
