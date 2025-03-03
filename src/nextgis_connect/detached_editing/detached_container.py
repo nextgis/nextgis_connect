@@ -31,6 +31,15 @@ from nextgis_connect.detached_editing.conflicts.resolver import (
 from nextgis_connect.detached_editing.conflicts.ui.resolving_dialog import (
     ResolvingDialog,
 )
+from nextgis_connect.detached_editing.tasks import (
+    ApplyDeltaTask,
+    DetachedEditingTask,
+    FetchAdditionalDataTask,
+    FetchDeltaTask,
+    FillLayerWithoutVersioningTask,
+    FillLayerWithVersioning,
+    UploadChangesTask,
+)
 from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
@@ -51,15 +60,6 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
 from nextgis_connect.settings import NgConnectSettings
-from nextgis_connect.tasks.detached_editing import (
-    ApplyDeltaTask,
-    DetachedEditingTask,
-    FetchAdditionalDataTask,
-    FetchDeltaTask,
-    FillLayerWithoutVersioningTask,
-    FillLayerWithVersioning,
-    UploadChangesTask,
-)
 from nextgis_connect.utils import wrap_sql_value
 
 from . import utils

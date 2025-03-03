@@ -7,15 +7,15 @@ from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.actions import (
     FeatureAction,
 )
+from nextgis_connect.detached_editing.tasks.detached_editing_task import (
+    DetachedEditingTask,
+)
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     make_connection,
 )
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
-from nextgis_connect.tasks.detached_editing.detached_editing_task import (
-    DetachedEditingTask,
-)
 
 
 class ApplyDeltaTask(DetachedEditingTask):

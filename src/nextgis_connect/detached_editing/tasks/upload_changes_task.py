@@ -6,6 +6,9 @@ from typing import Optional
 
 from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.action_serializer import ActionSerializer
+from nextgis_connect.detached_editing.tasks.detached_editing_task import (
+    DetachedEditingTask,
+)
 from nextgis_connect.detached_editing.transaction_applier import (
     TransactionApplier,
 )
@@ -13,9 +16,6 @@ from nextgis_connect.detached_editing.utils import make_connection
 from nextgis_connect.exceptions import SynchronizationError
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-from nextgis_connect.tasks.detached_editing.detached_editing_task import (
-    DetachedEditingTask,
-)
 
 
 class UploadChangesTask(DetachedEditingTask):

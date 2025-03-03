@@ -25,13 +25,13 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from nextgis_connect.compat import FieldType, WkbType
-from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
-from nextgis_connect.resources.creation.checkbox_delegate import (
+from nextgis_connect.core.ui.checkbox_delegate import (
     CheckBoxDelegate,
 )
-from nextgis_connect.resources.creation.header_with_cenetered_icon_proxy_style import (
+from nextgis_connect.core.ui.header_with_cenetered_icon_proxy_style import (
     HeaderWithCenteredIconProxyStyle,
 )
+from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.resources.ngw_data_type_delegate import (
     NgwDataTypeDelegate,
 )

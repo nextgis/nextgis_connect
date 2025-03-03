@@ -25,6 +25,7 @@ from qgis.PyQt.QtWidgets import (
 from qgis.utils import iface
 
 from nextgis_connect import NgConnectInterface
+from nextgis_connect.core.ui.labeled_slider import LabeledSlider
 from nextgis_connect.logging import logger, update_level
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
@@ -41,7 +42,6 @@ from nextgis_connect.settings.ng_connect_cache_manager import (
 from nextgis_connect.tasks.cache.clear_ng_connect_cache_task import (
     ClearNgConnectCacheTask,
 )
-from nextgis_connect.widgets.labeled_slider import LabeledSlider
 
 
 class NgConnectOptionsPageWidget(QgsOptionsPageWidget):

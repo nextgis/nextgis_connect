@@ -9,6 +9,9 @@ from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
+from nextgis_connect.detached_editing.tasks.detached_editing_task import (
+    DetachedEditingTask,
+)
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
     make_connection,
@@ -22,9 +25,6 @@ from nextgis_connect.ngw_api.core.ngw_resource_factory import (
 )
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
-from nextgis_connect.tasks.detached_editing.detached_editing_task import (
-    DetachedEditingTask,
-)
 
 
 class FillLayerWithoutVersioningTask(DetachedEditingTask):

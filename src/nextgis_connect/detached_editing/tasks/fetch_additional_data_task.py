@@ -2,6 +2,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Dict, List, Set
 
+from nextgis_connect.detached_editing.tasks import DetachedEditingTask
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
     make_connection,
@@ -12,7 +13,6 @@ from nextgis_connect.exceptions import (
 from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.resources.ngw_field import FieldId
-from nextgis_connect.tasks.detached_editing import DetachedEditingTask
 
 
 class FetchAdditionalDataTask(DetachedEditingTask):
