@@ -721,6 +721,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         self.creation_button.setEnabled(is_one_ngw_selected)
+        self.actionCreateNgwVectorLayer.setEnabled(is_one_ngw_selected)
 
         self.actionDeleteResource.setEnabled(
             not is_multiple_ngw_selection
@@ -1009,6 +1010,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def block_gui(self):
         self.main_tool_bar.setEnabled(False)
+        self.actionCreateNgwVectorLayer.setEnabled(False)
         self.search_panel.setEnabled(False)
         # TODO (ivanbarsukov): Disable parent action
         for action in (
@@ -1163,6 +1165,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         for widget in (
             self.toolbuttonDownload,
             self.toolbuttonUpload,
+            self.actionCreateNgwVectorLayer,
             self.creation_button,
             self.search_button,
             self.search_panel,
@@ -2438,11 +2441,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         menu.addAction(self.actionCreateNewVectorLayer)
 
-        self.actionCreateNgwNewVectorLayer = QAction(
-            QIcon(os.path.join(ICONS_PATH, "mActionNewVectorLayer.svg")),
-            self.tr("Create NextGIS Web vector layer"),
+        text = self.tr("New NextGIS Web Vector Layer")
+        self.actionCreateNgwVectorLayer = QAction(
+            QIcon(os.path.join(ICONS_PATH, "mActionNewVectorLayerNative.svg")),
+            text,
             self,
         )
+        self.actionCreateNgwVectorLayer.setToolTip(f"<b>{text}</b>")
         self.actionCreateNgwVectorLayer.triggered.connect(
             self.create_vector_layer
         )

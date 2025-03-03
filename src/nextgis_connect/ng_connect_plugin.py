@@ -466,7 +466,21 @@ class NgConnectPlugin(NgConnectInterface):
                     allLayers=True,
                 )
 
+        self.iface.newLayerMenu().addAction(
+            self.__ng_resources_tree_dock.actionCreateNgwVectorLayer
+        )
+        self.iface.dataSourceManagerToolBar().addAction(
+            self.__ng_resources_tree_dock.actionCreateNgwVectorLayer
+        )
+
     def __unload_ng_layer_actions(self) -> None:
+        self.iface.dataSourceManagerToolBar().removeAction(
+            self.__ng_resources_tree_dock.actionCreateNgwVectorLayer
+        )
+        self.iface.newLayerMenu().removeAction(
+            self.__ng_resources_tree_dock.actionCreateNgwVectorLayer
+        )
+
         layer_actions = [
             self.__ng_resources_tree_dock.actionOpenInNGWFromLayer,
             self.__ng_resources_tree_dock.layer_menu_separator,
