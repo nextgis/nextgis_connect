@@ -1,7 +1,7 @@
 import platform
 from enum import Enum, auto
 from itertools import islice
-from typing import Optional, Tuple, Union, cast
+from typing import Any, Optional, Tuple, Union, cast
 
 from qgis.core import (
     Qgis,
@@ -193,3 +193,36 @@ def utm_tags(utm_medium: str, *, utm_campaign: str = "constant") -> str:
         f"&utm_content={locale()}"
     )
     return utm
+
+
+def wrap_sql_value(value: Any) -> str:
+    """
+    Converts a Python value to a SQL-compatible string representation.
+
+    :param value: The value to be converted.
+    :type value: Any
+    :return: The SQL-compatible string representation of the value.
+    :rtype: str
+    """
+    if isinstance(value, str):
+        value = value.replace("'", r"''")
+        return f"'{value}'"
+    if isinstance(value, bool):
+        return str(value).lower()
+    if value is None:
+        return "NULL"
+    return str(value)
+
+
+def wrap_sql_table_name(value: Any) -> str:
+    """
+    Wraps a given value in double quotes for use as an SQL table name,
+    escaping any existing double quotes within the value.
+
+    :param value: The value to be wrapped.
+    :type value: Any
+    :return: The value wrapped in double quotes.
+    :rtype: str
+    """
+    value = value.replace('"', r'""')
+    return f'"{value}"'

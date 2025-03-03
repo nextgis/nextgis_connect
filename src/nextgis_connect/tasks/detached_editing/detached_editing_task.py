@@ -28,6 +28,7 @@ from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.resources.ngw_field import NgwFields
 from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.tasks.ng_connect_task import NgConnectTask
+from nextgis_connect.utils import wrap_sql_value
 
 
 class DetachedEditingTask(NgConnectTask):
@@ -190,7 +191,7 @@ class DetachedEditingTask(NgConnectTask):
             container_fields_name = set(
                 row[1]
                 for row in cursor.execute(
-                    f"PRAGMA table_info('{self._metadata.table_name}')"
+                    f"PRAGMA table_info({wrap_sql_value(self._metadata.table_name)})"
                 )
                 if row[1]
                 not in (self._metadata.fid_field, self._metadata.geom_field)

@@ -3,7 +3,6 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 from typing import Iterable, Optional, Tuple, cast
-from urllib.parse import quote
 
 from qgis.core import (
     QgsEditError,
@@ -33,6 +32,7 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.settings import NgConnectSettings
+from nextgis_connect.utils import wrap_sql_table_name, wrap_sql_value
 
 
 class DetachedLayerFactory:
@@ -302,17 +302,18 @@ class DetachedLayerFactory:
 
         settings = NgConnectSettings()
         metadata = {
-            "container_version": f"'{settings.supported_container_version}'",
-            "instance_id": f"'{connection.domain_uuid}'",
-            "connection_id": f"'{ngw_layer.connection_id}'",
-            "resource_id": str(ngw_layer.resource_id),
-            "display_name": f"'{quote(ngw_layer.display_name)}'",
-            "description": f"'{ngw_layer.description}'"
-            if ngw_layer.description is not None
-            else "NULL",
-            "geometry_type": f"'{ngw_layer.geom_name}'",
-            "error_code": "NULL",
-            "is_auto_sync_enabled": "true",
+            "container_version": settings.supported_container_version,
+            "instance_id": connection.domain_uuid,
+            "connection_id": ngw_layer.connection_id,
+            "resource_id": ngw_layer.resource_id,
+            "display_name": ngw_layer.display_name,
+            "description": ngw_layer.description,
+            "geometry_type": ngw_layer.geom_name,
+            "error_code": None,
+            "is_auto_sync_enabled": True,
+        }
+        metadata = {
+            key: wrap_sql_value(value) for key, value in metadata.items()
         }
 
         if ngw_layer.is_versioning_enabled:
@@ -413,7 +414,8 @@ class DetachedLayerFactory:
         cursor.execute(
             f"""
             INSERT INTO ngw_features_metadata
-                SELECT {fid_field}, {fid_field}, NULL, NULL FROM '{table_name}'
+                SELECT {fid_field}, {fid_field}, NULL, NULL
+                FROM {wrap_sql_table_name(table_name)}
             """
         )
 

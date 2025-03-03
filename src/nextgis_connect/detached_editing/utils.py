@@ -6,7 +6,6 @@ from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
 from typing import Optional, Union
-from urllib.parse import quote
 
 from qgis.core import (
     QgsExpressionContext,
@@ -23,6 +22,7 @@ from nextgis_connect.exceptions import (
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.resources.ngw_field import NgwField, NgwFields
+from nextgis_connect.utils import wrap_sql_table_name, wrap_sql_value
 
 
 class DetachedLayerState(Enum):
@@ -277,14 +277,19 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     )
 
     cursor.execute(
-        f"SELECT name from pragma_table_info('{quote(table_name)}') WHERE pk = 1"
+        f"""
+        SELECT name FROM pragma_table_info({wrap_sql_value(table_name)})
+        WHERE pk = 1
+        """
     )
     fid_field = cursor.fetchone()[0]
 
-    cursor.execute("SELECT column_name from gpkg_geometry_columns")
+    cursor.execute("SELECT column_name FROM gpkg_geometry_columns")
     geom_field = cursor.fetchone()[0]
 
-    cursor.execute(f"SELECT COUNT(*) FROM '{table_name}'")
+    cursor.execute(
+        f"SELECT COUNT(*) FROM {wrap_sql_table_name(table_name)}",
+    )
     features_count = cursor.fetchone()[0]
     if features_count is None:
         features_count = 0

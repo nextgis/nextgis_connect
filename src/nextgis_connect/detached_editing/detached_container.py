@@ -58,6 +58,7 @@ from nextgis_connect.tasks.detached_editing import (
     FillLayerWithVersioning,
     UploadChangesTask,
 )
+from nextgis_connect.utils import wrap_sql_value
 
 from . import utils
 from .detached_layer import DetachedLayer
@@ -794,7 +795,10 @@ class DetachedContainer(QObject):
             container_fields_name = set(
                 row[0]
                 for row in cursor.execute(
-                    f"SELECT name FROM pragma_table_info('{self.metadata.table_name}')"
+                    f"""
+                    SELECT name
+                    FROM pragma_table_info({wrap_sql_value(self.metadata.table_name)})
+                    """
                 )
                 if row[0]
                 not in (self.metadata.fid_field, self.metadata.geom_field)
