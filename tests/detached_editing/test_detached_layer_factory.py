@@ -28,7 +28,7 @@ from nextgis_connect.ngw_api.core import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnection
 from nextgis_connect.resources.ngw_fields import NgwFields
 from nextgis_connect.settings import NgConnectSettings
-from nextgis_connect.utils import is_version_supported
+from nextgis_connect.utils import SupportStatus, is_version_supported
 from tests.ng_connect_testcase import (
     NgConnectTestCase,
     TestConnection,
@@ -267,7 +267,9 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         assert isinstance(ngw_layer, NGWVectorLayer)
 
         with self.subTest("1.0 Before 5.0"):
-            self.assertTrue(is_version_supported("4.9.0"))
+            self.assertEqual(
+                is_version_supported("4.9.0"), SupportStatus.SUPPORTED
+            )
             export_path = self._create_pseudo_export(
                 ngw_layer,
                 source_path=self.data_path(TestData.Points),
@@ -313,7 +315,9 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         assert isinstance(ngw_layer, NGWVectorLayer)
 
         with self.subTest("1.0 Before 5.0"):
-            self.assertTrue(is_version_supported("4.9.0"))
+            self.assertEqual(
+                is_version_supported("4.9.0"), SupportStatus.SUPPORTED
+            )
             source_layer = cast(QgsVectorLayer, self.layer(TestData.Points))
             export_path = self._create_pseudo_export(
                 ngw_layer,
