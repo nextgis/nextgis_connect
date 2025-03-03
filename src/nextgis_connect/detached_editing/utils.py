@@ -21,7 +21,8 @@ from nextgis_connect.exceptions import (
     NgConnectError,
 )
 from nextgis_connect.logging import logger
-from nextgis_connect.resources.ngw_field import NgwField, NgwFields
+from nextgis_connect.resources.ngw_field import NgwField
+from nextgis_connect.resources.ngw_fields import NgwFields
 from nextgis_connect.utils import wrap_sql_table_name, wrap_sql_value
 
 
@@ -267,7 +268,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         NgwField(
             attribute=row[0],
             ngw_id=row[1],
-            datatype_name=row[2],
+            datatype=row[2],
             keyname=row[3],
             display_name=row[4],
             is_label=bool(row[5]),

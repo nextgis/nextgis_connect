@@ -116,6 +116,25 @@ class NgConnectSettings:
         self.__settings.endGroup()
 
     @property
+    def add_vector_layer_after_creation(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "resources/addVectorLayerAfterCreation",
+            defaultValue=True,
+            type=bool,
+        )
+        self.__settings.endGroup()
+        return result
+
+    @add_vector_layer_after_creation.setter
+    def add_vector_layer_after_creation(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue(
+            "resources/addVectorLayerAfterCreation", value
+        )
+        self.__settings.endGroup()
+
+    @property
     def add_layer_after_service_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(

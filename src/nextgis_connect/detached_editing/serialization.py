@@ -5,7 +5,7 @@ from typing import Any, Optional, Union
 from qgis.core import QgsGeometry, QgsWkbTypes
 from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QVariant
 
-from nextgis_connect.compat import FieldType, GeometryType
+from nextgis_connect.compat import GeometryType
 from nextgis_connect.exceptions import NgConnectError
 
 
@@ -123,45 +123,3 @@ def deserialize_geometry(
         geometry = QgsGeometry.fromWkt(geometry_string)
 
     return geometry
-
-
-def serialize_field_type(field_type: FieldType) -> str:
-    """
-    Serialize a FieldType enum to its string representation.
-
-    :param field_type: The FieldType enum to serialize.
-    :type field_type: FieldType
-    :return: The string representation of the FieldType.
-    :rtype: str
-    """
-    field_types = {
-        FieldType.Int: "INTEGER",
-        FieldType.LongLong: "BIGINT",
-        FieldType.Double: "REAL",
-        FieldType.QString: "STRING",
-        FieldType.QDate: "DATE",
-        FieldType.QTime: "TIME",
-        FieldType.QDateTime: "DATETIME",
-    }
-    return field_types.get(field_type, "STRING")
-
-
-def deserialize_field_type(field_type: str) -> FieldType:
-    """
-    Deserialize a string representation of a FieldType to its enum.
-
-    :param field_type: The string representation of the FieldType.
-    :type field_type: str
-    :return: The FieldType enum.
-    :rtype: FieldType
-    """
-    field_types = {
-        "INTEGER": FieldType.Int,
-        "BIGINT": FieldType.LongLong,
-        "REAL": FieldType.Double,
-        "STRING": FieldType.QString,
-        "DATE": FieldType.QDate,
-        "TIME": FieldType.QTime,
-        "DATETIME": FieldType.QDateTime,
-    }
-    return field_types.get(field_type, FieldType.QString)

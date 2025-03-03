@@ -26,7 +26,7 @@ from nextgis_connect.detached_editing.utils import (
 )
 from nextgis_connect.ngw_api.core import NGWVectorLayer
 from nextgis_connect.ngw_connection import NgwConnection
-from nextgis_connect.resources.ngw_field import NgwFields
+from nextgis_connect.resources.ngw_fields import NgwFields
 from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.utils import is_version_supported
 from tests.ng_connect_testcase import (

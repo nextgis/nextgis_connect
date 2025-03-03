@@ -59,6 +59,7 @@ from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWCreateMapForStyle,
     NGWCreateOgcfService,
+    NGWCreateVectorLayer,
     NGWCreateWfsService,
     NGWGroupCreater,
     NGWMissingResourceUpdater,
@@ -1145,6 +1146,24 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         return self._startJob(
             job_type(ngw_resource, ngw_parent_resource, max_features)
+        )
+
+    @modelRequest
+    def createVectorLayer(
+        self,
+        parent_index: QModelIndex,
+        vector_layer: Dict[str, Any],
+    ):
+        if not parent_index.isValid():
+            parent_index = self.index(0, 0, parent_index)
+
+        parent_index = self._nearest_ngw_group_resource_parent(parent_index)
+
+        parent_item = parent_index.internalPointer()
+        parent_resource = parent_item.data(parent_item.NGWResourceRole)
+
+        return self._startJob(
+            NGWCreateVectorLayer(parent_resource, vector_layer)
         )
 
     @modelRequest

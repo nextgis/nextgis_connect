@@ -4,7 +4,8 @@ from dataclasses import FrozenInstanceError
 from qgis.core import QgsField
 
 from nextgis_connect.compat import FieldType
-from nextgis_connect.resources.ngw_field import NgwField, NgwFields
+from nextgis_connect.resources.ngw_field import NgwField
+from nextgis_connect.resources.ngw_fields import NgwFields
 from tests.ng_connect_testcase import NgConnectTestCase
 
 
@@ -35,18 +36,18 @@ class TestNgwField(NgConnectTestCase):
             field = NgwField(
                 attribute=0,
                 ngw_id=1,
-                datatype_name=datatype_name,
+                datatype=datatype_name,
                 keyname="name",
                 display_name="Name",
                 is_label=False,
             )
-            self.assertEqual(field.datatype, datatype)
+            self.assertEqual(field.datatype.qt_value, datatype)
 
     def test_is_compatible_with_ngwfield(self):
         field1 = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=False,
@@ -54,7 +55,7 @@ class TestNgwField(NgConnectTestCase):
         field2 = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=False,
@@ -64,7 +65,7 @@ class TestNgwField(NgConnectTestCase):
         field1 = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=False,
@@ -72,7 +73,7 @@ class TestNgwField(NgConnectTestCase):
         field2 = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="REAL",
+            datatype="REAL",
             keyname="name",
             display_name="Name",
             is_label=False,
@@ -83,7 +84,7 @@ class TestNgwField(NgConnectTestCase):
         field = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=True,
@@ -94,7 +95,7 @@ class TestNgwField(NgConnectTestCase):
         field = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=True,
@@ -106,7 +107,7 @@ class TestNgwField(NgConnectTestCase):
         field = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=True,
@@ -118,7 +119,7 @@ class TestNgwField(NgConnectTestCase):
     def test_from_json(self):
         field = NgwField.from_json(self.field_json)
         self.assertEqual(field.ngw_id, 1)
-        self.assertEqual(field.datatype_name, "STRING")
+        self.assertEqual(field.datatype.name, "STRING")
         self.assertEqual(field.keyname, "name")
         self.assertEqual(field.display_name, "Name")
         self.assertTrue(field.is_label)
@@ -128,7 +129,7 @@ class TestNgwField(NgConnectTestCase):
         field = NgwField(
             attribute=0,
             ngw_id=1,
-            datatype_name="STRING",
+            datatype="STRING",
             keyname="name",
             display_name="Name",
             is_label=True,

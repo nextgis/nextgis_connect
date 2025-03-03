@@ -140,6 +140,9 @@ from nextgis_connect.ngw_resources_adder import NgwResourcesAdder
 from nextgis_connect.resource_properties.resource_properties_dialog import (
     ResourcePropertiesDialog,
 )
+from nextgis_connect.resources.creation.vector_layer_creation_dialog import (
+    VectorLayerCreationDialog,
+)
 from nextgis_connect.search.search_panel import SearchPanel
 from nextgis_connect.search.search_settings import SearchSettings
 from nextgis_connect.search.utils import SearchType
@@ -283,13 +286,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.actionUpdateNGWVectorLayer.setEnabled(False)
 
-        self.actionCreateNewGroup = QAction(
-            QIcon(os.path.join(ICONS_PATH, "mActionNewFolder.svg")),
-            self.tr("Create resource group"),
-            self,
-        )
-        self.actionCreateNewGroup.triggered.connect(self.create_group)
-
         self.actionCreateWebMap4Layer = QAction(
             self.tr("Create Web map"), self
         )
@@ -408,7 +404,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.main_tool_bar.addSeparator()
 
-        self.main_tool_bar.addAction(self.actionCreateNewGroup)
+        self.__create_resource_creation_button()
+        self.main_tool_bar.addWidget(self.creation_button)
+
         self.__create_search_button()
         self.main_tool_bar.addWidget(self.search_button)
 
@@ -722,7 +720,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             and isinstance(ngw_resources[0], NGWWebMap)
         )
 
-        self.actionCreateNewGroup.setEnabled(is_one_ngw_selected)
+        self.creation_button.setEnabled(is_one_ngw_selected)
 
         self.actionDeleteResource.setEnabled(
             not is_multiple_ngw_selection
@@ -1165,7 +1163,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         for widget in (
             self.toolbuttonDownload,
             self.toolbuttonUpload,
-            self.actionCreateNewGroup,
+            self.creation_button,
             self.search_button,
             self.search_panel,
             self.actionOpenMapInBrowser,
@@ -1259,6 +1257,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ngw_resource, NGWGroupResource
         ):
             creating_actions.append(self.actionCreateNewGroup)
+            creating_actions.append(self.actionCreateNewVectorLayer)
 
         if not is_multiple_selection and isinstance(
             ngw_resource, (NGWVectorLayer, NGWPostgisLayer, NGWWfsLayer)
@@ -1482,6 +1481,47 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.proxy_model.mapFromSource(index)
             )
         )
+
+    @pyqtSlot()
+    def create_vector_layer(self) -> None:
+        parent_resource_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+
+        parent_resource = parent_resource_index.data(
+            QNGWResourceItem.NGWResourceRole
+        )
+        if not isinstance(parent_resource, NGWGroupResource):
+            parent_resource_index = parent_resource_index.parent()
+            parent_resource = parent_resource_index.data(
+                QNGWResourceItem.NGWResourceRole
+            )
+
+        self.__fetch_children_if_needed(parent_resource_index)
+        dialog = VectorLayerCreationDialog(
+            self.resource_model, parent_resource_index, self
+        )
+        result = dialog.exec()
+        if result != VectorLayerCreationDialog.DialogCode.Accepted:
+            return
+
+        resource = dialog.resource
+        add_to_project = dialog.add_to_project
+        self.create_vector_layer_responce = (
+            self.resource_model.createVectorLayer(
+                parent_resource_index, resource
+            )
+        )
+
+        self.create_vector_layer_responce.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
+        if add_to_project:
+            self.create_vector_layer_responce.done.connect(
+                lambda index: self.__download_indices([index])
+            )
 
     def upload_project_resources(self):
         """
@@ -2377,6 +2417,43 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.search_button.setMenu(menu)
         self.search_button.clicked.connect(self.__toggle_filter)
 
+    def __create_resource_creation_button(self) -> None:
+        menu = QMenu()
+
+        self.actionCreateNewGroup = QAction(
+            QIcon(os.path.join(ICONS_PATH, "mActionNewFolder.svg")),
+            self.tr("Create resource group"),
+            self,
+        )
+        self.actionCreateNewGroup.triggered.connect(self.create_group)
+        menu.addAction(self.actionCreateNewGroup)
+
+        self.actionCreateNewVectorLayer = QAction(
+            QIcon(os.path.join(ICONS_PATH, "mActionNewVectorLayer.svg")),
+            self.tr("Create vector layer"),
+            self,
+        )
+        self.actionCreateNewVectorLayer.triggered.connect(
+            self.create_vector_layer
+        )
+        menu.addAction(self.actionCreateNewVectorLayer)
+
+        self.actionCreateNgwNewVectorLayer = QAction(
+            QIcon(os.path.join(ICONS_PATH, "mActionNewVectorLayer.svg")),
+            self.tr("Create NextGIS Web vector layer"),
+            self,
+        )
+        self.actionCreateNgwVectorLayer.triggered.connect(
+            self.create_vector_layer
+        )
+
+        self.creation_button = QToolButton()
+        self.creation_button.setPopupMode(
+            QToolButton.ToolButtonPopupMode.MenuButtonPopup
+        )
+        self.creation_button.setMenu(menu)
+        self.creation_button.setDefaultAction(self.actionCreateNewGroup)
+
     @pyqtSlot(str)
     def __on_search_requested(self, search_string: str) -> None:
         if len(search_string) == 0:
@@ -2423,5 +2500,5 @@ class NGWPanelToolBar(QToolBar):
         a0.accept()
 
     def resizeEvent(self, a0: Optional[QResizeEvent]) -> None:
-        super().setIconSize(QSize(24, 24))
+        self.setIconSize(QSize(24, 24))
         a0.accept()
