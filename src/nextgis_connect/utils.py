@@ -1,6 +1,7 @@
 import platform
 from enum import Enum, auto
 from itertools import islice
+from pathlib import Path
 from typing import Any, Optional, Tuple, Union, cast
 
 from qgis.core import (
@@ -9,8 +10,8 @@ from qgis.core import (
     QgsSettings,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, Qt, QUrl
-from qgis.PyQt.QtGui import QClipboard, QDesktopServices
+from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, Qt
+from qgis.PyQt.QtGui import QClipboard
 from qgis.PyQt.QtWidgets import (
     QAction,
     QDialog,
@@ -22,6 +23,7 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import QGIS_3_30
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
@@ -70,10 +72,8 @@ class ChooserDialog(QDialog):
 
 
 def open_plugin_help():
-    domain = "ru" if QgsApplication.instance().locale() == "ru" else "com"
-    QDesktopServices.openUrl(
-        QUrl(f"https://docs.nextgis.{domain}/docs_ngconnect/source/toc.html")
-    )
+    dialog = AboutDialog(str(Path(__file__).parent.name))
+    dialog.exec()
 
 
 def set_clipboard_data(

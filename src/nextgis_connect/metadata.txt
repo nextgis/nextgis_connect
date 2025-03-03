@@ -13,6 +13,8 @@ email=info@nextgis.com
 tags=nextgis, web, tool, server
 
 homepage=https://github.com/nextgis/nextgis_connect
+user_guide=https://docs.nextgis.com/docs_ngconnect/source/toc.html
+user_guide[ru]=https://docs.nextgis.ru/docs_ngconnect/source/toc.html
 tracker=https://github.com/nextgis/nextgis_connect/issues
 repository=https://github.com/nextgis/nextgis_connect
 icon=icons/connect_logo.svg
