@@ -116,20 +116,26 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.fid_field, f"fid_{i + 1}")
                 self.assertEqual(metadata.geom_field, "geom")
 
-        with self.subTest("4. Layer with apostrophe in filename"):
-            layer_json["resource"]["display_name"] = "point's_layer"
+        with self.subTest("4. Special symbols in layer name"):
+            for display_name in (
+                "point's_layer",
+                "point''s_layer",
+                'point"s_layer',
+                'point""s_layer',
+            ):
+                layer_json["resource"]["display_name"] = display_name
 
-            ngw_layer = cast(
-                NGWVectorLayer, self.resource(layer_json, connection)
-            )
+                ngw_layer = cast(
+                    NGWVectorLayer, self.resource(layer_json, connection)
+                )
 
-            container_path = self.create_temp_file(".gpkg")
-            factory.create_initial_container(ngw_layer, container_path)
+                container_path = self.create_temp_file(".gpkg")
+                factory.create_initial_container(ngw_layer, container_path)
 
-            metadata = container_metadata(container_path)
-            self._check_common_metadata(metadata, ngw_layer, connection)
-            check_test_metadata(metadata)
-            self.assertIsNone(metadata.layer_name)
+                metadata = container_metadata(container_path)
+                self._check_common_metadata(metadata, ngw_layer, connection)
+                check_test_metadata(metadata)
+                self.assertEqual(metadata.layer_name, display_name)
 
     @mock.patch(
         "nextgis_connect.ngw_api.core.NGWVectorLayer.is_versioning_enabled",
@@ -223,20 +229,26 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.fid_field, f"fid_{i + 1}")
                 self.assertEqual(metadata.geom_field, "geom")
 
-        with self.subTest("4. Layer with apostrophe in filename"):
-            layer_json["resource"]["display_name"] = "point's_layer"
+        with self.subTest("4. Special symbols in layer name"):
+            for display_name in (
+                "point's_layer",
+                "point''s_layer",
+                'point"s_layer',
+                'point""s_layer',
+            ):
+                layer_json["resource"]["display_name"] = display_name
 
-            ngw_layer = cast(
-                NGWVectorLayer, self.resource(layer_json, connection)
-            )
+                ngw_layer = cast(
+                    NGWVectorLayer, self.resource(layer_json, connection)
+                )
 
-            container_path = self.create_temp_file(".gpkg")
-            factory.create_initial_container(ngw_layer, container_path)
+                container_path = self.create_temp_file(".gpkg")
+                factory.create_initial_container(ngw_layer, container_path)
 
-            metadata = container_metadata(container_path)
-            self._check_common_metadata(metadata, ngw_layer, connection)
-            check_test_metadata(metadata)
-            self.assertIsNone(metadata.layer_name)
+                metadata = container_metadata(container_path)
+                self._check_common_metadata(metadata, ngw_layer, connection)
+                check_test_metadata(metadata)
+                self.assertEqual(metadata.layer_name, display_name)
 
     @mock.patch(
         "nextgis_connect.detached_editing.detached_layer_factory.datetime"
