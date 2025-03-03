@@ -99,9 +99,6 @@ class SearchPanel(QWidget):
         settings = SearchSettings()
         settings.last_used_type = search_type
 
-        self.show()
-        self.focus()
-
     @pyqtSlot()
     def __request_search(self) -> None:
         if self.__search_type == SearchType.ByDisplayName:

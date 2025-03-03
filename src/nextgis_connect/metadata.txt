@@ -30,6 +30,7 @@ changelog=
 		* Add CRS extraction from QMS basemaps
 		* Add try again for some errors
 		* Add removing error after fix
+		* Add search by metadata
 		* Removed obsolete renaming fields functionality
 		* Fixed detached container detection
 		* Fixed CRS for TMS from QMS

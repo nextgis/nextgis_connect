@@ -448,7 +448,7 @@ class NgwSearch(NGWResourceModelJob):
             match.group(2) if match.group(2) is not None else match.group(3)
         )
 
-        return [f"{key}={value}"]
+        return [f"resmeta__like[{key}]=%{value}%"]
 
     def __fetch_users(self) -> None:
         if len(self.users_keyname) > 0:

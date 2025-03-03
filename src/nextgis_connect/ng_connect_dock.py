@@ -86,7 +86,7 @@ from nextgis_connect import utils
 from nextgis_connect.action_style_import_or_update import (
     ActionStyleImportUpdate,
 )
-from nextgis_connect.compat import QGIS_3_32
+from nextgis_connect.compat import QGIS_3_32, parse_version
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.dialog_metadata import MetadataDialog
 from nextgis_connect.exceptions import (
@@ -191,6 +191,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
+        self.__search_menu = None
 
         self.actionOpenInNGW = QAction(self.tr("Open in Web GIS"), self)
         self.actionOpenInNGW.triggered.connect(self.open_ngw_resource_page)
@@ -1124,6 +1125,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             NgConnectInterface.instance().show_error(error)
 
+        self.__update_search_button()
         self.__is_reinit_tree = False
 
     @pyqtSlot()
@@ -2405,7 +2407,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         by_metadata_action.setCheckable(True)
         by_metadata_action.setChecked(last_type == SearchType.ByMetadata)
         by_metadata_action.triggered.connect(self.__on_search_type_changed)
-        # by_metadata_action.setDisabled(True)
 
         self.search_button = QToolButton()
         self.search_button.setIcon(
@@ -2413,12 +2414,29 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.search_button.setToolTip(self.tr("Search"))
         self.search_button.setCheckable(True)
-        if NgConnectSettings().is_developer_mode:
+        self.search_button.clicked.connect(self.__toggle_filter)
+
+        self.__search_menu = menu
+
+    def __update_search_button(self) -> None:
+        has_new_search_api = (
+            self.resource_model.ngw_version is not None
+            and parse_version(self.resource_model.ngw_version)
+            >= parse_version("5.0.0.dev13")
+        )
+
+        if has_new_search_api:
             self.search_button.setPopupMode(
                 QToolButton.ToolButtonPopupMode.MenuButtonPopup
             )
-            self.search_button.setMenu(menu)
-        self.search_button.clicked.connect(self.__toggle_filter)
+            self.search_button.setMenu(self.__search_menu)
+        else:
+            self.search_button.setPopupMode(
+                QToolButton.ToolButtonPopupMode.DelayedPopup
+            )
+            self.__search_menu.actions()[1].setChecked(True)
+            self.search_panel.set_type(SearchType.ByDisplayName)
+            self.search_button.setMenu(None)
 
     def __create_resource_creation_button(self) -> None:
         menu = QMenu()
@@ -2479,6 +2497,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         action = cast(QAction, self.sender())
         self.search_panel.set_type(action.data())
+        self.search_panel.show()
+        self.search_panel.focus()
         self.search_button.setChecked(True)
 
     @pyqtSlot()
