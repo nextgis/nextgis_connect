@@ -41,8 +41,11 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QDesktopServices, QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
 
-from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import LayerType
+from nextgis_connect.core.tasks.ng_connect_task_manager import (
+    NgConnectTaskManager,
+)
+from nextgis_connect.core.ui.about_dialog import AboutDialog
 from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
 from nextgis_connect.exceptions import (
     ErrorCode,
@@ -57,13 +60,12 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
-from nextgis_connect.settings.ng_connect_settings_page import (
-    NgConnectOptionsWidgetFactory,
-)
-from nextgis_connect.tasks.cache.purge_ng_connect_cache_task import (
+from nextgis_connect.settings.tasks.purge_ng_connect_cache_task import (
     PurgeNgConnectCacheTask,
 )
-from nextgis_connect.tasks.ng_connect_task_manager import NgConnectTaskManager
+from nextgis_connect.settings.ui.ng_connect_settings_page import (
+    NgConnectOptionsWidgetFactory,
+)
 from nextgis_connect.utils import nextgis_domain, utm_tags
 
 

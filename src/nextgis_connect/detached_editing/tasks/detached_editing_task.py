@@ -5,6 +5,7 @@ from typing import Optional, cast
 from qgis.core import QgsTask
 
 from nextgis_connect.compat import parse_version
+from nextgis_connect.core.tasks.ng_connect_task import NgConnectTask
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     container_changes,
@@ -27,7 +28,6 @@ from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.resources.ngw_fields import NgwFields
 from nextgis_connect.settings import NgConnectSettings
-from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 from nextgis_connect.utils import wrap_sql_value
 
 

@@ -23,8 +23,8 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
-from nextgis_connect.about_dialog import AboutDialog
 from nextgis_connect.compat import QGIS_3_30
+from nextgis_connect.core.ui.about_dialog import AboutDialog
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 iface = cast(QgisInterface, iface)

@@ -39,7 +39,7 @@ from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.settings.ng_connect_cache_manager import (
     NgConnectCacheManager,
 )
-from nextgis_connect.tasks.cache.clear_ng_connect_cache_task import (
+from nextgis_connect.settings.tasks.clear_ng_connect_cache_task import (
     ClearNgConnectCacheTask,
 )
 
@@ -90,7 +90,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.connections_widget
         )
 
-        icon_path = Path(__file__).parents[1] / "icons" / "experimental.svg"
+        icon_path = Path(__file__).parents[2] / "icons" / "experimental.svg"
         warning_icon = QIcon(str(icon_path))
         size = int(
             max(18.0, self.__widget.versioningCheckBox.minimumSize().height())
@@ -602,7 +602,7 @@ class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):
 
 class NgConnectOptionsWidgetFactory(QgsOptionsWidgetFactory):
     def __init__(self):
-        icons_path = Path(__file__).parents[1] / "icons"
+        icons_path = Path(__file__).parents[2] / "icons"
         super().__init__(
             "NextGIS Connect", QIcon(str(icons_path / "connect_logo.svg"))
         )

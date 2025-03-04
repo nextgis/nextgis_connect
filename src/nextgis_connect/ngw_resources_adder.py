@@ -23,6 +23,7 @@ from qgis.PyQt.QtCore import QEventLoop, QModelIndex, QObject, QTimer
 from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import iface
 
+from nextgis_connect.core.tasks.ng_connect_task import NgConnectTask
 from nextgis_connect.detached_editing.utils import detached_layer_uri
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.exceptions import (
@@ -65,7 +66,6 @@ from nextgis_connect.ngw_connection import NgwConnectionsManager
 from nextgis_connect.settings.ng_connect_cache_manager import (
     NgConnectCacheManager,
 )
-from nextgis_connect.tasks.ng_connect_task import NgConnectTask
 from nextgis_connect.tree_widget.item import QNGWResourceItem
 from nextgis_connect.tree_widget.model import QNGWResourceTreeModel
 
