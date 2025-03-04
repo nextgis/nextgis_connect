@@ -1,22 +1,18 @@
 from dataclasses import replace
 from enum import IntEnum, auto
-from pathlib import Path
 from typing import Any, Optional
 
-from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import (
     QAbstractTableModel,
-    QByteArray,
     QModelIndex,
     QObject,
     Qt,
     QVariant,
 )
-from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
-from qgis.PyQt.QtSvg import QSvgRenderer
 
 from nextgis_connect.resources.ngw_field import NgwDataType, NgwField
 from nextgis_connect.resources.ngw_fields import NgwFields
+from nextgis_connect.utils import material_icon
 
 
 class NgwFieldsModel(QAbstractTableModel):
@@ -38,16 +34,9 @@ class NgwFieldsModel(QAbstractTableModel):
         super().__init__(parent)
         self.__fields = NgwFields([]) if fields is None else fields
 
-        icon_path = Path(__file__).parents[1] / "icons" / "material"
-        self.__is_visible_icon = self.__colorized_qicon(
-            icon_path / "table_chart.svg"
-        )
-        self.__is_used_for_search_icon = self.__colorized_qicon(
-            icon_path / "manage_search.svg"
-        )
-        self.__is_label_icon = self.__colorized_qicon(
-            icon_path / "font_download.svg"
-        )
+        self.__is_visible_icon = material_icon("table_chart")
+        self.__is_used_for_search_icon = material_icon("manage_search")
+        self.__is_label_icon = material_icon("font_download")
 
     @property
     def fields(self) -> NgwFields:
@@ -242,35 +231,3 @@ class NgwFieldsModel(QAbstractTableModel):
 
     def has_field(self, keyname: str) -> bool:
         return self.__fields.find_with(keyname=keyname) is not None
-
-    def __colorized_qicon(
-        self, icon_path: Path, fill_color: str = ""
-    ) -> QIcon:
-        svg_path = Path(icon_path)
-
-        if not svg_path.exists():
-            raise FileNotFoundError(f"SVG file not found: {svg_path}")
-
-        with open(svg_path, encoding="utf-8") as file:
-            svg_content = file.read()
-
-        if not fill_color:
-            fill_color = QgsApplication.palette().text().color().name()
-
-        modified_svg = svg_content.replace(
-            'fill="#ffffff"', f'fill="{fill_color}"'
-        )
-
-        byte_array = QByteArray(modified_svg.encode("utf-8"))
-        renderer = QSvgRenderer()
-        if not renderer.load(byte_array):
-            raise ValueError("Failed to render modified SVG.")
-
-        pixmap = QPixmap(renderer.defaultSize())
-        pixmap.fill(Qt.GlobalColor.transparent)
-
-        painter = QPainter(pixmap)
-        renderer.render(painter)
-        painter.end()
-
-        return QIcon(pixmap)
