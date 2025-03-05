@@ -10,12 +10,20 @@ from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 class NgwFields(Sequence[NgwField]):
     _fields: List[NgwField]
+    _label_field: Optional[NgwField]
     _ngw_ids: Dict[FieldId, NgwField] = dataclass_field(init=False)
     _attributes: Dict[FieldId, NgwField] = dataclass_field(init=False)
     _keynames: Dict[str, NgwField] = dataclass_field(init=False)
 
     def __init__(self, fields: Iterable[NgwField]) -> None:
         self._fields = list(fields)
+
+        self._label_field = None
+        for field in self._fields:
+            if field.is_label:
+                self._label_field = field
+                break
+
         self._ngw_ids = {field.ngw_id: field for field in self._fields}
         self._attributes = {field.attribute: field for field in self._fields}
         self._keynames = {field.keyname: field for field in self._fields}
@@ -31,6 +39,7 @@ class NgwFields(Sequence[NgwField]):
 
         if not old_field.is_label and field.is_label:
             self.__reset_previous_label()
+            self._label_field = field
 
         self._fields[index] = field
         if field.ngw_id != -1:
@@ -54,11 +63,18 @@ class NgwFields(Sequence[NgwField]):
             del self._ngw_ids[field.ngw_id]
         if field.attribute in self._attributes:
             del self._attributes[field.attribute]
+        if field.is_label:
+            self._label_field = None
         del self._keynames[field.keyname]
+
+    @property
+    def label_field(self) -> Optional[NgwField]:
+        return self._label_field
 
     def append(self, field: NgwField) -> None:
         if field.is_label:
             self.__reset_previous_label()
+            self._label_field = field
 
         self._fields.append(field)
         if field.ngw_id != -1:
@@ -70,6 +86,7 @@ class NgwFields(Sequence[NgwField]):
     def insert(self, index: int, field: NgwField) -> None:
         if field.is_label:
             self.__reset_previous_label()
+            self._label_field = field
 
         self._fields.insert(index, field)
         if field.ngw_id != -1:

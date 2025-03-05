@@ -10,7 +10,7 @@ from qgis.core import (
     QgsSettings,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, Qt
+from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, QSize, Qt
 from qgis.PyQt.QtGui import QClipboard, QIcon, QPainter, QPixmap
 from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import (
@@ -229,8 +229,11 @@ def wrap_sql_table_name(value: Any) -> str:
     return f'"{value}"'
 
 
-def material_icon(name: str, color: str = "") -> QIcon:
-    svg_path = Path(__file__).parent / "icons" / "material" / f"{name}.svg"
+def material_icon(
+    name: str, *, color: str = "", size: Optional[int] = None
+) -> QIcon:
+    name = f"{name}.svg" if not name.endswith(".svg") else name
+    svg_path = Path(__file__).parent / "icons" / "material" / name
 
     if not svg_path.exists():
         raise FileNotFoundError(f"SVG file not found: {svg_path}")
@@ -248,7 +251,9 @@ def material_icon(name: str, color: str = "") -> QIcon:
     if not renderer.load(byte_array):
         raise ValueError("Failed to render modified SVG.")
 
-    pixmap = QPixmap(renderer.defaultSize())
+    pixmap = QPixmap(
+        renderer.defaultSize() if size is None else QSize(size, size)
+    )
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)

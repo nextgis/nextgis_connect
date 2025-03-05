@@ -576,7 +576,7 @@ class DetachedContainer(QObject):
             return
 
         # After first sync
-        task = FetchAdditionalDataTask(self.path, need_update_structure=False)
+        task = FetchAdditionalDataTask(self.path, need_update_structure=True)
         task.taskCompleted.connect(self.__on_additional_data_fetched)
         task.taskTerminated.connect(self.__on_additional_data_fetched)
         self.__start_sync(task)
@@ -588,6 +588,7 @@ class DetachedContainer(QObject):
         if result:
             self.__additional_data_fetch_date = datetime.now()
             self.__is_edit_allowed = self.__sync_task.is_edit_allowed
+            self.__apply_label_attribute()
             self.__apply_aliases()
             self.__apply_lookup_tables()
             self.__state = DetachedLayerState.Synchronized
@@ -755,6 +756,16 @@ class DetachedContainer(QObject):
         for detached_layer in self.__detached_layers.values():
             detached_layer.qgs_layer.setCustomProperty(name, value)
 
+    def __apply_label_attribute(self) -> None:
+        metadata = utils.container_metadata(self.path)
+        label_field = metadata.fields.label_field
+        if label_field is None:
+            return
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.qgs_layer.setDisplayExpression(
+                f'"{label_field.keyname}"'
+            )
+
     def __apply_aliases(self) -> None:
         for detached_layer in self.__detached_layers.values():
             for field in self.metadata.fields:
@@ -874,8 +885,7 @@ class DetachedContainer(QObject):
         if len(conflicts) == 0:
             return delta
 
-        dialog = ResolvingDialog()
-        dialog.set_conflicts(conflicts)
+        dialog = ResolvingDialog(self.path, self.metadata, conflicts)
         result = dialog.exec()
 
         if result != ResolvingDialog.DialogCode.Accepted:

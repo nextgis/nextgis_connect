@@ -123,8 +123,8 @@ class ConflictsResolver:
         return self.Status.Resolved, updated_actions
 
     def __resolve_local(self, resolution: ConflictResolution):
-        local_action_type = resolution.conflict.local.action
-        remote_action_type = resolution.conflict.remote.action
+        local_action_type = resolution.conflict.local_action.action
+        remote_action_type = resolution.conflict.remote_action.action
 
         if (
             local_action_type == ActionType.FEATURE_DELETE
@@ -150,8 +150,8 @@ class ConflictsResolver:
             raise NotImplementedError
 
     def __resolve_remote(self, resolution: ConflictResolution):
-        local_action_type = resolution.conflict.local.action
-        remote_action_type = resolution.conflict.remote.action
+        local_action_type = resolution.conflict.local_action.action
+        remote_action_type = resolution.conflict.remote_action.action
 
         if (
             local_action_type == ActionType.FEATURE_DELETE
@@ -177,8 +177,8 @@ class ConflictsResolver:
             raise NotImplementedError
 
     def __resolve_custom(self, resolution: ConflictResolution):
-        local_action_type = resolution.conflict.local.action
-        remote_action_type = resolution.conflict.local.action
+        local_action_type = resolution.conflict.local_action.action
+        remote_action_type = resolution.conflict.local_action.action
 
         if (
             local_action_type
@@ -192,11 +192,11 @@ class ConflictsResolver:
             raise NotImplementedError
 
     def __resolve_local_update(self, resolution: ConflictResolution):
-        fid = resolution.conflict.remote.fid
+        fid = resolution.conflict.remote_action.fid
 
-        local = resolution.conflict.local
+        local = resolution.conflict.local_action
         assert isinstance(local, FeatureUpdateAction)
-        remote = resolution.conflict.remote
+        remote = resolution.conflict.remote_action
         assert isinstance(remote, FeatureUpdateAction)
 
         updated_action = deepcopy(remote)
@@ -225,11 +225,11 @@ class ConflictsResolver:
         )
 
     def __resolve_remote_update(self, resolution: ConflictResolution):
-        fid = resolution.conflict.remote.fid
+        fid = resolution.conflict.remote_action.fid
 
-        local = resolution.conflict.local
+        local = resolution.conflict.local_action
         assert isinstance(local, FeatureUpdateAction)
-        remote = resolution.conflict.remote
+        remote = resolution.conflict.remote_action
         assert isinstance(remote, FeatureUpdateAction)
 
         if len(local.fields) > 0 and len(remote.fields) > 0:
@@ -246,17 +246,19 @@ class ConflictsResolver:
             self.__local_geometry_changes_for_delete.append(fid)
 
     def __restore_local(self, resolution: ConflictResolution) -> None:
-        self.__local_features_to_restore.append(resolution.conflict.local.fid)
+        self.__local_features_to_restore.append(
+            resolution.conflict.local_action.fid
+        )
 
     def __restore_remote(self, resolution: ConflictResolution) -> None:
         self.__remove_local_actions(resolution)
 
-        remote = resolution.conflict.remote
+        remote = resolution.conflict.remote_action
         self.__deleted_actions.add((remote.fid, remote.action))
         self.__remote_features_to_restore.append(remote.fid)
 
     def __remove_local_actions(self, resolution: ConflictResolution) -> None:
-        local = resolution.conflict.local
+        local = resolution.conflict.local_action
         fid = local.fid
         assert isinstance(local, FeatureUpdateAction)
 
@@ -271,7 +273,7 @@ class ConflictsResolver:
     def __prepare_remove_on_remote(
         self, resolution: ConflictResolution
     ) -> None:
-        remote = resolution.conflict.remote
+        remote = resolution.conflict.remote_action
         fid = remote.fid
 
         assert isinstance(remote, FeatureUpdateAction)
@@ -282,11 +284,11 @@ class ConflictsResolver:
         self.__modified_actions[(fid, updated_action.action)] = updated_action
 
     def __resolve_custom_update(self, resolution: ConflictResolution):
-        fid = resolution.conflict.remote.fid
+        fid = resolution.conflict.remote_action.fid
 
-        local = resolution.conflict.local
+        local = resolution.conflict.local_action
         assert isinstance(local, FeatureUpdateAction)
-        remote = resolution.conflict.remote
+        remote = resolution.conflict.remote_action
         assert isinstance(remote, FeatureUpdateAction)
 
         updated_action = deepcopy(remote)
@@ -520,7 +522,8 @@ class ConflictsResolver:
             return {
                 row[0]: row[1]
                 for row in cursor.execute(f"""
-                    SELECT ngw_fid, fid FROM ngw_features_metadata
+                    SELECT ngw_fid, fid
+                    FROM ngw_features_metadata
                     WHERE ngw_fid IN ({ngw_fids_str});
                 """)
             }

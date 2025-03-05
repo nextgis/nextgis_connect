@@ -63,8 +63,8 @@ class ConflictsDeduplicator:
         self, conflict: VersioningConflict
     ) -> Optional[VersioningConflict]:
         if (
-            conflict.local.action
-            == conflict.remote.action
+            conflict.local_action.action
+            == conflict.remote_action.action
             == ActionType.FEATURE_DELETE
         ):
             return self.__prorcess_deletion(conflict)
@@ -72,7 +72,7 @@ class ConflictsDeduplicator:
         return conflict
 
     def __prorcess_deletion(self, conflict: VersioningConflict) -> None:
-        self.__both_deleted.append(conflict.local.fid)
+        self.__both_deleted.append(conflict.local_action.fid)
         return None
 
     def __process_actons(

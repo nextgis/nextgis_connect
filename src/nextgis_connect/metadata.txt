@@ -37,6 +37,7 @@ changelog=
 		* Fixed active upload button with empty project
 		* Fixed quoted layer names
 		* Fixed uploading not GTiff rasters
+		* Fixed sync label attribute
 		! Supported NGW versions: 4.8.0 - 5.1.0
 	2.6.1
 		* Fixed filling of detached layers
