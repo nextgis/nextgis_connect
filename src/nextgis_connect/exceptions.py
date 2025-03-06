@@ -54,6 +54,7 @@ class ErrorCode(IntEnum):
     EpochChanged = auto()
     VersioningEnabled = auto()
     VersioningDisabled = auto()
+    ValueFormatError = auto()
     ConflictsNotResolved = auto()
 
     PluginWarning = 10000

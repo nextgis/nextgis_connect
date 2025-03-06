@@ -301,7 +301,10 @@ class DetachedContainer(QObject):
             self.__additional_data_fetch_date = None
         else:
             if self.state == DetachedLayerState.Error:
-                if self.__is_network_error(self.error):
+                if (
+                    self.__is_network_error(self.error)
+                    and not self.metadata.has_changes
+                ):
                     self.__is_silent_sync = True
                 else:
                     return False

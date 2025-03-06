@@ -2,13 +2,14 @@ import itertools
 import sqlite3
 from contextlib import closing
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 from qgis.core import (
     QgsFeatureRequest,
     QgsGeometry,
     QgsVectorLayer,
 )
+from qgis.PyQt.QtCore import Qt, QTime
 
 from nextgis_connect.detached_editing.serialization import (
     serialize_geometry,
@@ -20,7 +21,13 @@ from nextgis_connect.detached_editing.utils import (
     detached_layer_uri,
     make_connection,
 )
-from nextgis_connect.exceptions import ContainerError
+from nextgis_connect.exceptions import (
+    ContainerError,
+    ErrorCode,
+    SynchronizationError,
+)
+from nextgis_connect.resources.ngw_data_type import NgwDataType
+from nextgis_connect.resources.ngw_field import NgwField
 
 from .actions import (
     FeatureCreateAction,
@@ -89,6 +96,7 @@ class ActionExtractor:
                 value = simplify_value(feature.attribute(field.attribute))
                 if value is None:
                     continue
+                self.__check_value(field, value)
                 fields_values.append([field.ngw_id, value])
 
             create_actions.append(
@@ -154,12 +162,10 @@ class ActionExtractor:
             for attribute_id in updated_feature_attributes.get(
                 feature.id(), set()
             ):
-                fields_values.append(
-                    [
-                        fields.get_with(attribute=attribute_id).ngw_id,
-                        simplify_value(feature.attribute(attribute_id)),
-                    ]
-                )
+                field = fields.get_with(attribute=attribute_id)
+                value = simplify_value(feature.attribute(attribute_id))
+                self.__check_value(field, value)
+                fields_values.append([field.ngw_id, value])
 
             updated_actions.append(
                 FeatureUpdateAction(ngw_fid, vid, geom, fields_values)
@@ -214,6 +220,7 @@ class ActionExtractor:
                 value = simplify_value(feature.attribute(field.attribute))
                 if value is None:
                     continue
+                self.__check_value(field, value)
                 fields_values.append([field.ngw_id, value])
 
             ngw_fid = features_metadata[fid].ngw_fid
@@ -247,3 +254,18 @@ class ActionExtractor:
         return serialize_geometry(
             geometry, self.__metadata.is_versioning_enabled
         )
+
+    def __check_value(self, field: NgwField, value: Any) -> None:
+        if field.datatype != NgwDataType.TIME or value is None:
+            return
+
+        time = QTime.fromString(value, Qt.DateFormat.ISODate)
+        if time.isValid():
+            return
+
+        error = SynchronizationError(
+            "Invalid time format", code=ErrorCode.ValueFormatError
+        )
+        error.add_note(f"Field: {field.keyname}")
+        error.add_note(f"Value: {value}")
+        raise error
