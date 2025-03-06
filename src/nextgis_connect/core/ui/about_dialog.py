@@ -1,3 +1,4 @@
+import importlib.util
 from enum import Enum
 from pathlib import Path
 from typing import Dict, Optional
@@ -60,6 +61,12 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.setupUi(self)
         self.__package_name = package_name
 
+        module_spec = importlib.util.find_spec(self.__package_name)
+        if module_spec and module_spec.origin:
+            self.__package_path = Path(module_spec.origin).parent
+        else:
+            self.__package_path = Path(__file__).parent
+
         self.tab_widget.setCurrentIndex(0)
 
         metadata = self.__metadata()
@@ -91,7 +98,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
 
         header_size: QSize = self.info_layout.sizeHint()
 
-        icon_path = Path(__file__).parent / str(metadata.get("icon_path"))
+        icon_path = self.__package_path / str(metadata.get("icon_path"))
         svg_icon_path = icon_path.with_suffix(".svg")
 
         if svg_icon_path.exists():
@@ -121,8 +128,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.header_layout.insertWidget(0, icon_widget)
 
     def __fill_get_involved(self, metadata: Dict[str, Optional[str]]) -> None:
-        plugin_path = Path(__file__).parent
-        file_path = str(plugin_path / "icons" / "nextgis_logo.svg")
+        file_path = str(self.__package_path / "icons" / "nextgis_logo.svg")
         resources_path = (
             f":/plugins/{self.__package_name}/icons/nextgis_logo.svg"
         )
@@ -142,7 +148,7 @@ class AboutDialog(QDialog, Ui_AboutDialogBase):
         self.about_text_browser.setHtml(self.__html(metadata))
 
     def __fill_license(self) -> None:
-        license_path = Path(__file__).parent / "LICENSE"
+        license_path = self.__package_path / "LICENSE"
         if not license_path.exists():
             self.tab_widget.removeTab(self.__tab_to_index(AboutTab.License))
             return
