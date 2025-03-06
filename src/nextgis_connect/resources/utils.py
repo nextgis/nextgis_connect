@@ -2,7 +2,7 @@ import re
 from typing import Sequence
 
 
-def generate_unique_name(name: str, existing_names: Sequence[str]) -> str:
+def generate_unique_name(name: str, existing_names: Sequence) -> str:
     if name not in existing_names:
         return name
 

@@ -205,7 +205,7 @@ class ConflictResolvingItemExtractor:
         return result_feature
 
     def __extract_existed_features(
-        self, fids: Sequence[FeatureId]
+        self, fids: Sequence
     ) -> Dict[FeatureId, QgsFeature]:
         layer = QgsVectorLayer(
             detached_layer_uri(self.__container_path, self.__metadata),
@@ -224,7 +224,7 @@ class ConflictResolvingItemExtractor:
         }
 
     def __extract_deleted_features(
-        self, fids: Sequence[FeatureId]
+        self, fids: Sequence
     ) -> Dict[FeatureId, QgsFeature]:
         fids_str = ",".join(map(str, fids))
         with closing(

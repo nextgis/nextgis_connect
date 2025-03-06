@@ -16,9 +16,6 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
-from nextgis_connect.detached_editing.actions import (
-    VersioningAction,
-)
 from nextgis_connect.detached_editing.conflicts.deduplicator import (
     ConflictsDeduplicator,
 )
@@ -860,9 +857,7 @@ class DetachedContainer(QObject):
         self.__update_layers_properties()
         self.synchronize(is_manual=True)
 
-    def __process_delta(
-        self, fetch_delta_task: FetchDeltaTask
-    ) -> Sequence[VersioningAction]:
+    def __process_delta(self, fetch_delta_task: FetchDeltaTask) -> Sequence:
         if len(fetch_delta_task.delta) == 0:
             return []
 

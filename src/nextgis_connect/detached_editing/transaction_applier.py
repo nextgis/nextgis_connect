@@ -14,7 +14,6 @@ from .actions import (
     FeatureDeleteAction,
     FeatureRestoreAction,
     FeatureUpdateAction,
-    VersioningAction,
 )
 
 
@@ -30,7 +29,7 @@ class TransactionApplier:
 
     def apply(
         self,
-        actions: Sequence[VersioningAction],
+        actions: Sequence,
         operation_result: Optional[List] = None,
     ) -> None:
         if len(actions) == 0:
@@ -43,7 +42,7 @@ class TransactionApplier:
 
     def __apply_versioned(
         self,
-        actions: Sequence[VersioningAction],
+        actions: Sequence,
         operation_result: Optional[List],
     ) -> None:
         if not operation_result:
@@ -94,7 +93,7 @@ class TransactionApplier:
 
     def __apply_not_versioned(
         self,
-        actions: Sequence[VersioningAction],
+        actions: Sequence,
         operation_result: Optional[List],
     ) -> None:
         first_action_type = type(actions[0])
@@ -148,9 +147,7 @@ class TransactionApplier:
 
             connection.commit()
 
-    def __process_deleted(
-        self, actions: Sequence[FeatureDeleteAction]
-    ) -> None:
+    def __process_deleted(self, actions: Sequence) -> None:
         batch_ngw_fids = ",".join(str(action.fid) for action in actions)
 
         with closing(
@@ -170,9 +167,7 @@ class TransactionApplier:
             )
             connection.commit()
 
-    def __process_restored(
-        self, actions: Sequence[FeatureRestoreAction]
-    ) -> None:
+    def __process_restored(self, actions: Sequence) -> None:
         batch_ngw_fids = ",".join(str(action.fid) for action in actions)
 
         with closing(

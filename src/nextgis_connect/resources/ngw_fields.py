@@ -8,7 +8,7 @@ from qgis.core import QgsField, QgsFields
 from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 
-class NgwFields(Sequence[NgwField]):
+class NgwFields(Sequence):
     _fields: List[NgwField]
     _label_field: Optional[NgwField]
     _ngw_ids: Dict[FieldId, NgwField] = dataclass_field(init=False)
