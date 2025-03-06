@@ -25,12 +25,12 @@ changelog=
 	3.0.0
 		* Add conflict resolution
 		* Add new layer dialog
-		* Add recursive search with "@inside"
+		* Add search by metadata
+		* Add recursive search with "@root"
 		* Add sync layers after connection restore
 		* Add CRS extraction from QMS basemaps
 		* Add try again for some errors
 		* Add removing error after fix
-		* Add search by metadata
 		* Removed obsolete renaming fields functionality
 		* Fixed detached container detection
 		* Fixed CRS for TMS from QMS

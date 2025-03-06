@@ -244,7 +244,7 @@ class NgwSearch(NGWResourceModelJob):
     INT_TAGS: ClassVar[List[Tag]] = [
         Tag("id", "id"),
         Tag("parent", "parent_id"),
-        Tag("inside", "parent_id__recursive"),
+        Tag("root", "parent_id__recursive"),
         Tag("owner", "owner_user_id"),
     ]
 

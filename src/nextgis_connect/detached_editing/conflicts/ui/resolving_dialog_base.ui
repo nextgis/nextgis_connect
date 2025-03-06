@@ -127,7 +127,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QListView" name="features_view"/>
+           <widget class="QListView" name="features_view">
+            <property name="selectionMode">
+             <enum>QAbstractItemView::ExtendedSelection</enum>
+            </property>
+           </widget>
           </item>
           <item>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -337,7 +341,7 @@
               </item>
              </layout>
             </widget>
-            <widget class="QWidget" name="update_deletion_page">
+            <widget class="QWidget" name="update_delete_page">
              <layout class="QVBoxLayout" name="verticalLayout_15">
               <property name="leftMargin">
                <number>0</number>
@@ -352,10 +356,10 @@
                <number>0</number>
               </property>
               <item>
-               <widget class="QWidget" name="update_deletion_header" native="true">
+               <widget class="QWidget" name="update_delete_header" native="true">
                 <layout class="QHBoxLayout" name="horizontalLayout_4">
                  <item>
-                  <widget class="QLabel" name="update_deletion_label">
+                  <widget class="QLabel" name="update_delete_label">
                    <property name="text">
                     <string>Changes</string>
                    </property>
@@ -365,38 +369,40 @@
                </widget>
               </item>
               <item>
-               <layout class="QGridLayout" name="update_deletion_widget">
-                <item row="0" column="2">
-                 <widget class="QRadioButton" name="update_deletion_local_radiobutton">
-                  <property name="text">
-                   <string>Local</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QWidget" name="update_deletion_empty_widget_1" native="true">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="3">
-                 <widget class="QRadioButton" name="update_deletion_remote_radiobutton">
-                  <property name="layoutDirection">
+               <widget class="QWidget" name="update_delete_widget" native="true">
+                <layout class="QGridLayout" name="update_delete_widget_2">
+                 <item row="0" column="2">
+                  <widget class="QRadioButton" name="update_delete_local_radiobutton">
+                   <property name="text">
+                    <string>Local</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QWidget" name="update_delete_empty_widget_1" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QRadioButton" name="update_delete_remote_radiobutton">
+                   <property name="layoutDirection">
                    <enum>Qt::RightToLeft</enum>
-                  </property>
-                  <property name="text">
-                   <string>Remote</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="1">
-                 <widget class="QWidget" name="update_deletion_empty_widget_2" native="true"/>
-                </item>
-               </layout>
+                   </property>
+                   <property name="text">
+                    <string>Remote</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QWidget" name="update_delete_empty_widget_2" native="true"/>
+                 </item>
+                </layout>
+               </widget>
               </item>
               <item>
                <spacer name="verticalSpacer_2">
@@ -413,7 +419,7 @@
               </item>
              </layout>
             </widget>
-            <widget class="QWidget" name="deletion_update_page">
+            <widget class="QWidget" name="delete_update_page">
              <layout class="QVBoxLayout" name="verticalLayout_7">
               <property name="leftMargin">
                <number>0</number>
@@ -428,10 +434,10 @@
                <number>0</number>
               </property>
               <item>
-               <widget class="QWidget" name="deletion_header" native="true">
+               <widget class="QWidget" name="delete_update_header" native="true">
                 <layout class="QHBoxLayout" name="horizontalLayout_4">
                  <item>
-                  <widget class="QLabel" name="deletion_label">
+                  <widget class="QLabel" name="delete_update_label">
                    <property name="text">
                     <string>Changes</string>
                    </property>
@@ -441,38 +447,40 @@
                </widget>
               </item>
               <item>
-               <layout class="QGridLayout" name="deletion_widget">
-                <item row="0" column="2">
-                 <widget class="QRadioButton" name="deletion_local_radiobutton">
-                  <property name="text">
-                   <string>Local</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QWidget" name="deletion_empty_widget_1" native="true">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="3">
-                 <widget class="QRadioButton" name="deletion_remote_radiobutton">
-                  <property name="layoutDirection">
+               <widget class="QWidget" name="delete_update_widget" native="true">
+                <layout class="QGridLayout" name="delete_update_widget_2">
+                 <item row="0" column="2">
+                  <widget class="QRadioButton" name="delete_update_local_radiobutton">
+                   <property name="text">
+                    <string>Local</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QWidget" name="delete_update_empty_widget_1" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QRadioButton" name="delete_update_remote_radiobutton">
+                   <property name="layoutDirection">
                    <enum>Qt::RightToLeft</enum>
-                  </property>
-                  <property name="text">
-                   <string>Remote</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="1">
-                 <widget class="QWidget" name="deletion_empty_widget_2" native="true"/>
-                </item>
-               </layout>
+                   </property>
+                   <property name="text">
+                    <string>Remote</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QWidget" name="delete_update_empty_widget_2" native="true"/>
+                 </item>
+                </layout>
+               </widget>
               </item>
               <item>
                <spacer name="verticalSpacer_2">

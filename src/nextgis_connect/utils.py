@@ -17,6 +17,7 @@ from qgis.PyQt.QtWidgets import (
     QAction,
     QDialog,
     QDialogButtonBox,
+    QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -227,6 +228,12 @@ def wrap_sql_table_name(value: Any) -> str:
     """
     value = value.replace('"', r'""')
     return f'"{value}"'
+
+
+def draw_icon(label: QLabel, icon: QIcon, *, size: int = 24) -> None:
+    pixmap = icon.pixmap(icon.actualSize(QSize(size, size)))
+    label.setPixmap(pixmap)
+    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
 
 def material_icon(

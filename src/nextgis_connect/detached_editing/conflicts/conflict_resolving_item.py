@@ -30,9 +30,19 @@ class ConflictResolvingItem:
         return ResolutionType.Custom
 
     def resolve_as_local(self) -> None:
-        self.result_feature = self.local_feature
         self.is_resolved = True
 
+        if self.local_feature is None:
+            self.result_feature = None
+            return
+
+        self.result_feature = QgsFeature(self.local_feature)
+
     def resolve_as_remote(self) -> None:
-        self.result_feature = self.remote_feature
         self.is_resolved = True
+
+        if self.remote_feature is None:
+            self.result_feature = None
+            return
+
+        self.result_feature = QgsFeature(self.remote_feature)

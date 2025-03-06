@@ -531,7 +531,8 @@ class DetachedLayer(QObject):
         joined_fids = ",".join(map(str, fids))
         cursor.executescript(
             f"""
-            DELETE FROM ngw_features_metadata WHERE fid in ({joined_fids});
+            DELETE FROM ngw_features_metadata
+            WHERE fid IN ({joined_fids}) AND ngw_fid IS NULL;
             """
         )
 

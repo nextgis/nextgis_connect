@@ -70,6 +70,12 @@ class ConflictsResolvingModel(QAbstractListModel):
         )
 
     @property
+    def resolved_count(self) -> int:
+        return sum(
+            1 for item in self._conflict_resoving_items if item.is_resolved
+        )
+
+    @property
     def is_all_resolved(self) -> bool:
         return all(item.is_resolved for item in self._conflict_resoving_items)
 
@@ -132,6 +138,26 @@ class ConflictsResolvingModel(QAbstractListModel):
             return item
 
         return QVariant()
+
+    @pyqtSlot(QModelIndex)
+    def resolve_as_local(self, index: QModelIndex) -> None:
+        if not index.isValid() or index.row() >= len(
+            self._conflict_resoving_items
+        ):
+            return
+
+        self._conflict_resoving_items[index.row()].resolve_as_local()
+        self.dataChanged.emit(index, index)
+
+    @pyqtSlot(QModelIndex)
+    def resolve_as_remote(self, index: QModelIndex) -> None:
+        if not index.isValid() or index.row() >= len(
+            self._conflict_resoving_items
+        ):
+            return
+
+        self._conflict_resoving_items[index.row()].resolve_as_remote()
+        self.dataChanged.emit(index, index)
 
     @pyqtSlot()
     def resolve_all_as_local(self) -> None:

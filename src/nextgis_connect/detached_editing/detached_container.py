@@ -250,6 +250,9 @@ class DetachedContainer(QObject):
             self.__indicator.deleteLater()
             self.__indicator = None
 
+            if self.__error is not None:
+                NgConnectInterface.instance().close_error(self.__error)
+
         logger.debug(
             f'Layer "{layer_id}" detached from container "{self.__path.name}"'
         )

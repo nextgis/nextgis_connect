@@ -244,13 +244,15 @@ class ConflictResolvingItemExtractor:
             "ogr",
         ).fields()
 
+        deleted_features = {}
         for fid in fids:
             backup = json.loads(backups[fid])
             attributes_after_sync = backup["after_sync"]["fields"]
             feature = QgsFeature(fields, fid)
-            for field in self.__metadata.fields:
+            for field_id, value in attributes_after_sync:
                 feature.setAttribute(
-                    field.attribute, attributes_after_sync.get(field.ngw_id)
+                    self.__metadata.fields.get_with(ngw_id=field_id).attribute,
+                    value,
                 )
             feature.setGeometry(
                 deserialize_geometry(
@@ -258,8 +260,9 @@ class ConflictResolvingItemExtractor:
                     self.__metadata.is_versioning_enabled,
                 )
             )
+            deleted_features[feature.id()] = feature
 
-        return {}
+        return deleted_features
 
     def __extract_backups(
         self, locally_changed_fids: List[QgsFeatureId]
