@@ -122,10 +122,10 @@ class ResolvingDialog(QDialog, WIDGET):
                 f'Conflict resolution in layer "{self.__container_metadata.layer_name}"'
             )
         )
-        self.__setup_left_side()
         self.__setup_modified_modified()
         self.__setup_update_delete()
         self.__setup_delete_update()
+        self.__setup_left_side()
 
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -195,7 +195,9 @@ class ResolvingDialog(QDialog, WIDGET):
         deleted_groupbox.setSizePolicy(deleted_groupbox_size_policy)
         deleted_groupbox.setLayout(QVBoxLayout())
 
-        deleted_label = QLabel(self.tr("Feature was deleted"))
+        deleted_label = QLabel(
+            self.tr("Feature was deleted"), deleted_groupbox
+        )
         deleted_label.setAlignment(
             Qt.Alignment()
             | Qt.AlignmentFlag.AlignHCenter
@@ -215,7 +217,7 @@ class ResolvingDialog(QDialog, WIDGET):
             draw_icon(marker, marker_icon)
             grid_layout.addWidget(marker, i, 0)
 
-            field_name = QLabel(field.display_name, self.delete_update_widget)
+            field_name = QLabel(field.display_name, grid_widget)
             field_name.setToolTip(field.keyname)
             grid_layout.addWidget(field_name, i, 1)
 
@@ -374,6 +376,8 @@ class ResolvingDialog(QDialog, WIDGET):
             for index in selected_indexes:
                 self.__resolving_model.resolve_as_local(index)
 
+        self.__on_selection_changed(QItemSelection(), QItemSelection())
+
     @pyqtSlot()
     def __resolve_as_remote(self) -> None:
         selected_indexes = (
@@ -384,6 +388,8 @@ class ResolvingDialog(QDialog, WIDGET):
         else:
             for index in selected_indexes:
                 self.__resolving_model.resolve_as_remote(index)
+
+        self.__on_selection_changed(QItemSelection(), QItemSelection())
 
     @pyqtSlot()
     def __validate(self) -> None:
