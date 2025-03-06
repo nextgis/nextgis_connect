@@ -192,7 +192,7 @@ class ConflictResolvingItemExtractor:
         if len(conflict.conflicting_fields) > 0:
             fields = self.__metadata.fields
             for field_id in conflict.conflicting_fields:
-                feature.setAttribute(
+                result_feature.setAttribute(
                     fields.find_with(ngw_id=field_id).attribute, None
                 )
 

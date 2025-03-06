@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, auto
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -40,6 +40,7 @@ class ConflictsResolvingModel(QAbstractListModel):
 
     class Roles(IntEnum):
         RESOLVING_ITEM = Qt.ItemDataRole.UserRole + 1
+        RESOLVING_STATE = auto()
 
     _container_path: Path
     _container_metadata: DetachedContainerMetaData
@@ -127,6 +128,9 @@ class ConflictsResolvingModel(QAbstractListModel):
 
                 return feature.attribute(label_field.attribute)
 
+        if role == Qt.ItemDataRole.ToolTipRole:
+            return self.tr("Feature №") + str(item.conflict.fid)
+
         if role == Qt.ItemDataRole.DecorationRole:
             return (
                 self.__resolved_icon
@@ -137,7 +141,29 @@ class ConflictsResolvingModel(QAbstractListModel):
         if role == self.Roles.RESOLVING_ITEM:
             return item
 
+        if role == self.Roles.RESOLVING_STATE:
+            return item.is_resolved
+
         return QVariant()
+
+    def setData(
+        self,
+        index: QModelIndex,
+        value: Any,
+        role: int = Qt.ItemDataRole.EditRole,
+    ) -> bool:
+        if not index.isValid() or index.row() >= len(
+            self._conflict_resoving_items
+        ):
+            return False
+
+        if role == self.Roles.RESOLVING_STATE:
+            item = self._conflict_resoving_items[index.row()]
+            item.is_resolved = value
+            self.dataChanged.emit(index, index)
+            return True
+
+        return False
 
     @pyqtSlot(QModelIndex)
     def resolve_as_local(self, index: QModelIndex) -> None:

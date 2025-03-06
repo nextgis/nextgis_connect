@@ -41,6 +41,7 @@ from qgis.PyQt.QtWidgets import (
     QSpinBox,
     QStackedWidget,
     QTimeEdit,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -63,6 +64,7 @@ from nextgis_connect.detached_editing.conflicts.conflict_resolving_item import (
 from nextgis_connect.detached_editing.conflicts.conflicts_model import (
     ConflictsResolvingModel,
 )
+from nextgis_connect.detached_editing.serialization import simplify_value
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     detached_layer_uri,
@@ -122,7 +124,7 @@ class ResolvingDialog(QDialog, WIDGET):
                 f'Conflict resolution in layer "{self.__container_metadata.layer_name}"'
             )
         )
-        self.__setup_modified_modified()
+        self.__setup_update_update()
         self.__setup_update_delete()
         self.__setup_delete_update()
         self.__setup_left_side()
@@ -151,8 +153,103 @@ class ResolvingDialog(QDialog, WIDGET):
         self.apply_remote_button.setIcon(material_icon("cloud"))
         self.apply_remote_button.clicked.connect(self.__resolve_as_remote)
 
-    def __setup_modified_modified(self) -> None:
-        pass
+    def __setup_update_update(self) -> None:
+        self.updates_resolved_checkbox.toggled.connect(self.__toggle_resolved)
+
+        grid_widget = self.updates_widget
+        grid_layout = cast(QGridLayout, self.updates_widget.layout())
+
+        marker_icon = material_icon(
+            "fiber_manual_record", color="#f1ea64", size=16
+        )
+        left_arrow_icon = material_icon("keyboard_arrow_left")
+        right_arrow_icon = material_icon("keyboard_arrow_right")
+        for i, field in enumerate(self.__container_metadata.fields, start=1):
+            marker = QLabel(grid_widget)
+            marker.setToolTip(self.tr("Conflicting field"))
+            marker.setObjectName(f"FieldChangedMarker_{field.keyname}")
+            draw_icon(marker, marker_icon)
+            grid_layout.addWidget(marker, i, 0)
+
+            field_name = QLabel(field.display_name, grid_widget)
+            field_name.setToolTip(field.keyname)
+            grid_layout.addWidget(field_name, i, 1)
+
+            local_edit_widget = self.__create_field_widget(field, grid_widget)
+            local_edit_widget.setObjectName(
+                f"FieldEditWidget_local_{field.keyname}"
+            )
+            local_edit_widget.setReadOnly(True)
+            grid_layout.addWidget(local_edit_widget, i, 2)
+
+            local_button = QToolButton(grid_widget)
+            local_button.setObjectName(
+                f"ApplyLocalFieldButton_{field.keyname}"
+            )
+            local_button.setIcon(right_arrow_icon)
+            local_button.clicked.connect(
+                lambda _, field=field: self.__set_local_field_value(field)
+            )
+            grid_layout.addWidget(local_button, i, 3)
+
+            result_edit_widget = self.__create_field_widget(field, grid_widget)
+            result_edit_widget.setObjectName(
+                f"FieldEditWidget_result_{field.keyname}"
+            )
+            result_edit_widget.setReadOnly(True)
+            grid_layout.addWidget(result_edit_widget, i, 4)
+
+            remote_button = QToolButton(grid_widget)
+            remote_button.setObjectName(
+                f"ApplyRemoteFieldButton_{field.keyname}"
+            )
+            remote_button.setIcon(left_arrow_icon)
+            remote_button.clicked.connect(
+                lambda _, field=field: self.__set_remote_field_value(field)
+            )
+            grid_layout.addWidget(remote_button, i, 5)
+
+            remote_edit_widget = self.__create_field_widget(field, grid_widget)
+            remote_edit_widget.setObjectName(
+                f"FieldEditWidget_remote_{field.keyname}"
+            )
+            remote_edit_widget.setReadOnly(True)
+            grid_layout.addWidget(remote_edit_widget, i, 6)
+
+        geometry_row = len(self.__container_metadata.fields) + 1
+
+        marker = QLabel(grid_widget)
+        marker.setObjectName("GeometryChangedMarker")
+        marker.setToolTip(self.tr("Geometry changed"))
+        draw_icon(marker, marker_icon)
+        grid_layout.addWidget(marker, geometry_row, 0)
+
+        field_name = QLabel(self.tr("Geometry"), grid_widget)
+        grid_layout.addWidget(field_name, geometry_row, 1)
+
+        canvas_widget = self.__create_geometry_widget(grid_widget)
+        canvas_widget.setObjectName("CanvasWidget_local")
+        grid_layout.addWidget(canvas_widget, geometry_row, 2)
+
+        local_button = QToolButton(grid_widget)
+        local_button.setObjectName("ApplyLocalGeometryButton")
+        local_button.setIcon(right_arrow_icon)
+        local_button.clicked.connect(lambda _: self.__set_local_geometry())
+        grid_layout.addWidget(local_button, geometry_row, 3)
+
+        canvas_widget = self.__create_geometry_widget(grid_widget)
+        canvas_widget.setObjectName("CanvasWidget_result")
+        grid_layout.addWidget(canvas_widget, geometry_row, 4)
+
+        remote_button = QToolButton(grid_widget)
+        remote_button.setObjectName("ApplyRemoteGeometryButton")
+        remote_button.setIcon(left_arrow_icon)
+        remote_button.clicked.connect(lambda _: self.__set_remote_geometry())
+        grid_layout.addWidget(remote_button, geometry_row, 5)
+
+        canvas_widget = self.__create_geometry_widget(grid_widget)
+        canvas_widget.setObjectName("CanvasWidget_remote")
+        grid_layout.addWidget(canvas_widget, geometry_row, 6)
 
     def __setup_update_delete(self) -> None:
         self.update_delete_local_radiobutton.toggled.connect(
@@ -180,8 +277,6 @@ class ResolvingDialog(QDialog, WIDGET):
         self, grid_widget: QWidget, *, existed_column: int, deleted_column: int
     ) -> None:
         grid_layout = cast(QGridLayout, grid_widget.layout())
-
-        grid_layout.setContentsMargins(0, 0, 0, 0)
 
         deleted_groupbox = QGroupBox(grid_widget)
         deleted_groupbox.setTitle("")
@@ -241,6 +336,87 @@ class ResolvingDialog(QDialog, WIDGET):
         canvas_widget = self.__create_geometry_widget(grid_widget)
         canvas_widget.setObjectName("CanvasWidget")
         grid_layout.addWidget(canvas_widget, geometry_row, existed_column)
+
+    def __fill_update_update(self, item: ConflictResolvingItem) -> None:
+        with QSignalBlocker(self.updates_resolved_checkbox):
+            self.updates_resolved_checkbox.setChecked(item.is_resolved)
+
+        grid_widget = self.updates_widget
+
+        for field in self.__container_metadata.fields:
+            is_conflicting_field = (
+                field.ngw_id in item.conflict.conflicting_fields
+            )
+
+            marker = grid_widget.findChild(
+                QLabel, f"FieldChangedMarker_{field.keyname}"
+            )
+            marker.setVisible(is_conflicting_field)
+            edit_widget = grid_widget.findChild(
+                QWidget, f"FieldEditWidget_local_{field.keyname}"
+            )
+            self.__set_field_value(
+                edit_widget,
+                field,
+                item.local_feature.attribute(field.attribute),
+            )
+
+            button = grid_widget.findChild(
+                QToolButton, f"ApplyLocalFieldButton_{field.keyname}"
+            )
+            button.setEnabled(is_conflicting_field)
+
+            edit_widget = grid_widget.findChild(
+                QWidget, f"FieldEditWidget_result_{field.keyname}"
+            )
+            self.__set_field_value(
+                edit_widget,
+                field,
+                item.result_feature.attribute(field.attribute),
+            )
+
+            button = grid_widget.findChild(
+                QToolButton, f"ApplyRemoteFieldButton_{field.keyname}"
+            )
+            button.setEnabled(is_conflicting_field)
+
+            edit_widget = grid_widget.findChild(
+                QWidget, f"FieldEditWidget_remote_{field.keyname}"
+            )
+            self.__set_field_value(
+                edit_widget,
+                field,
+                item.remote_feature.attribute(field.attribute),
+            )
+
+        marker = grid_widget.findChild(QLabel, "GeometryChangedMarker")
+        marker.setVisible(item.conflict.has_geometry_conflict)
+
+        canvas_widget = grid_widget.findChild(
+            QStackedWidget, "CanvasWidget_local"
+        )
+        assert item.local_feature is not None
+        self.__set_feature_to_canvas(canvas_widget, item.local_feature)
+
+        button = grid_widget.findChild(QToolButton, "ApplyLocalGeometryButton")
+        button.setEnabled(item.conflict.has_geometry_conflict)
+
+        canvas_widget = grid_widget.findChild(
+            QStackedWidget, "CanvasWidget_result"
+        )
+        assert item.result_feature is not None
+        self.__set_feature_to_canvas(canvas_widget, item.result_feature)
+
+        button = grid_widget.findChild(
+            QToolButton, "ApplyRemoteGeometryButton"
+        )
+        button.setEnabled(item.conflict.has_geometry_conflict)
+
+        canvas_widget = grid_widget.findChild(
+            QStackedWidget, "CanvasWidget_remote"
+        )
+        assert item.remote_feature is not None
+        self.__set_feature_to_canvas(canvas_widget, item.remote_feature)
 
     def __fill_update_delete(self, item: ConflictResolvingItem) -> None:
         assert item.local_feature
@@ -315,9 +491,6 @@ class ResolvingDialog(QDialog, WIDGET):
         canvas_widget = grid_widget.findChild(QStackedWidget, "CanvasWidget")
         self.__set_feature_to_canvas(canvas_widget, feature)
 
-    def __fill_update_update(self, item: ConflictResolvingItem) -> None:
-        pass
-
     @pyqtSlot(QItemSelection, QItemSelection)
     def __on_selection_changed(
         self, selected: QItemSelection, deselected: QItemSelection
@@ -391,6 +564,16 @@ class ResolvingDialog(QDialog, WIDGET):
 
         self.__on_selection_changed(QItemSelection(), QItemSelection())
 
+    @pyqtSlot(bool)
+    def __toggle_resolved(self, state: bool) -> None:
+        selected_indexes = (
+            self.features_view.selectionModel().selectedIndexes()
+        )
+        for index in selected_indexes:
+            self.__resolving_model.setData(
+                index, state, ConflictsResolvingModel.Roles.RESOLVING_STATE
+            )
+
     @pyqtSlot()
     def __validate(self) -> None:
         resolved_count = self.__resolving_model.resolved_count
@@ -440,6 +623,26 @@ class ResolvingDialog(QDialog, WIDGET):
 
         return widget
 
+    def __get_field_value(self, edit_widget: QWidget, field: NgwField) -> Any:
+        value = None
+
+        if field.datatype in (
+            NgwDataType.INTEGER,
+            NgwDataType.BIGINT,
+            NgwDataType.REAL,
+        ):
+            value = edit_widget.value()
+        elif field.datatype == NgwDataType.DATE:
+            value = edit_widget.date()
+        elif field.datatype == NgwDataType.TIME:
+            value = edit_widget.time()
+        elif field.datatype == NgwDataType.DATETIME:
+            value = edit_widget.dateTime()
+        else:  # STRING
+            value = edit_widget.text()
+
+        return simplify_value(value)
+
     def __set_field_value(
         self, edit_widget: QWidget, field: NgwField, value: Any
     ) -> None:
@@ -455,31 +658,97 @@ class ResolvingDialog(QDialog, WIDGET):
             edit_widget.setValue(
                 value if not is_null else edit_widget.minimum()
             )
+
         elif field.datatype == NgwDataType.DATE:
-            time = (
-                QDate.fromString(value, Qt.DateFormat.ISODate)
-                if not is_null
-                else edit_widget.minimumDate()
-            )
-            edit_widget.setDate(time)
+            if isinstance(value, str):
+                date = QDate.fromString(value, Qt.DateFormat.ISODate)
+            elif isinstance(value, QDate):
+                date = value
+            else:
+                date = edit_widget.minimumDate()
+
+            edit_widget.setDate(date)
+
         elif field.datatype == NgwDataType.TIME:
-            date = (
-                QTime.fromString(value, Qt.DateFormat.ISODate)
-                if not is_null
-                else edit_widget.minimumTime()
-            )
-            edit_widget.setTime(date)
+            if isinstance(value, str):
+                time = QTime.fromString(value, Qt.DateFormat.ISODate)
+            elif isinstance(value, QTime):
+                time = value
+            else:
+                time = edit_widget.minimumTime()
+
+            edit_widget.setTime(time)
+
         elif field.datatype == NgwDataType.DATETIME:
-            date_time = (
-                QDateTime.fromString(value, Qt.DateFormat.ISODate)
-                if not is_null
-                else edit_widget.minimumDateTime()
-            )
+            if isinstance(value, str):
+                date_time = QDateTime.fromString(value, Qt.DateFormat.ISODate)
+            elif isinstance(value, QDateTime):
+                date_time = value
+            else:
+                date_time = edit_widget.minimumDateTime()
+
             edit_widget.setDateTime(date_time)
+
         else:  # STRING
             edit_widget.setText(str(value) if not is_null else "")
 
         edit_widget.blockSignals(False)
+
+    def __set_local_field_value(self, field: NgwField) -> None:
+        grid_widget = self.updates_widget
+
+        item = self.__selected_item()
+        assert item is not None
+
+        value = item.local_feature.attribute(field.attribute)
+        item.result_feature.setAttribute(field.attribute, value)
+
+        result_edit_widget = grid_widget.findChild(
+            QWidget, f"FieldEditWidget_result_{field.keyname}"
+        )
+        self.__set_field_value(result_edit_widget, field, value)
+
+    def __set_remote_field_value(self, field: NgwField) -> None:
+        grid_widget = self.updates_widget
+
+        item = self.__selected_item()
+        assert item is not None
+
+        value = item.remote_feature.attribute(field.attribute)
+        item.result_feature.setAttribute(field.attribute, value)
+
+        result_edit_widget = grid_widget.findChild(
+            QWidget, f"FieldEditWidget_result_{field.keyname}"
+        )
+        self.__set_field_value(result_edit_widget, field, value)
+
+    def __set_local_geometry(self) -> None:
+        grid_widget = self.updates_widget
+
+        item = self.__selected_item()
+        assert item is not None
+        assert item.result_feature is not None
+
+        item.result_feature.setGeometry(item.local_feature.geometry())
+
+        result_canvas_widget = grid_widget.findChild(
+            QWidget, "CanvasWidget_result"
+        )
+        self.__set_feature_to_canvas(result_canvas_widget, item.result_feature)
+
+    def __set_remote_geometry(self) -> None:
+        grid_widget = self.updates_widget
+
+        item = self.__selected_item()
+        assert item is not None
+        assert item.result_feature is not None
+
+        item.result_feature.setGeometry(item.remote_feature.geometry())
+
+        result_canvas_widget = grid_widget.findChild(
+            QWidget, "CanvasWidget_result"
+        )
+        self.__set_feature_to_canvas(result_canvas_widget, item.result_feature)
 
     def __create_geometry_widget(self, parent: QWidget) -> QWidget:
         widget = QStackedWidget(parent)
@@ -565,3 +834,10 @@ class ResolvingDialog(QDialog, WIDGET):
         else:
             canvas.setExtent(geometry.boundingBox())
             canvas.zoomOut()
+
+    def __selected_item(self) -> Optional[ConflictResolvingItem]:
+        indexes = self.features_view.selectedIndexes()
+        if len(indexes) != 1:
+            return None
+
+        return indexes[0].data(ConflictsResolvingModel.Roles.RESOLVING_ITEM)

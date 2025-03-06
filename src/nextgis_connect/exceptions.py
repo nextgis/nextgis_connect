@@ -534,6 +534,9 @@ def default_user_message(code: ErrorCode) -> str:
         ErrorCode.VersioningDisabled: QgsApplication.translate(
             "Errors", "Versioning has been disabled on the server."
         ),
+        ErrorCode.ConflictsNotResolved: QgsApplication.translate(
+            "Errors", "Conflicts were not resolved. Synchronization is not possible."
+        ),
     }
     # fmt: on
 

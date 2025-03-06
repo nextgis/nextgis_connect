@@ -15,9 +15,11 @@ class VersioningConflict:
     remote_action: FeatureAction
 
     conflicting_fields: List[FieldId] = field(init=False)
+    has_geometry_conflict: bool = field(init=False)
 
     def __post_init__(self) -> None:
         conflicting_fields = []
+        has_geometry_conflict = False
 
         if (
             isinstance(self.local_action, DataChangeAction)
@@ -31,7 +33,13 @@ class VersioningConflict:
             )
             conflicting_fields = list(local_fields.intersection(remote_fields))
 
+            has_geometry_conflict = (
+                self.local_action.geom is not None
+                and self.remote_action.geom is not None
+            )
+
         super().__setattr__("conflicting_fields", conflicting_fields)
+        super().__setattr__("has_geometry_conflict", has_geometry_conflict)
 
     @property
     def fid(self) -> FeatureId:

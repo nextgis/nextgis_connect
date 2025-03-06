@@ -895,7 +895,9 @@ class DetachedContainer(QObject):
         result = dialog.exec()
 
         if result != ResolvingDialog.DialogCode.Accepted:
-            raise SynchronizationError("Delta has conflicts")
+            raise SynchronizationError(
+                "Resolving cancelled", code=ErrorCode.ConflictsNotResolved
+            )
 
         resolver = ConflictsResolver(self.path, self.metadata)
         status, delta = resolver.resolve(delta, dialog.resolutions)
