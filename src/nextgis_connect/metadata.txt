@@ -28,16 +28,18 @@ changelog=
 		* Add search by metadata
 		* Add recursive search with "@root"
 		* Add sync layers after connection restore
-		* Add CRS extraction from QMS basemaps
 		* Add try again for some errors
 		* Add removing error after fix
 		* Removed obsolete renaming fields functionality
+		* Removed search by description
 		* Fixed detached container detection
 		* Fixed CRS for TMS from QMS
 		* Fixed active upload button with empty project
 		* Fixed quoted layer names
 		* Fixed uploading not GTiff rasters
 		* Fixed sync label attribute
+		* Fixed search with special symbols
+		* Fixed progress bar error in settings
 		! Supported NGW versions: 4.8.0 - 5.1.0
 	2.6.1
 		* Fixed filling of detached layers
