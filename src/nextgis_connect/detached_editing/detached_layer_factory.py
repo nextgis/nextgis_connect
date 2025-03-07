@@ -126,7 +126,7 @@ class DetachedLayerFactory:
 
         options = QgsVectorFileWriter.SaveVectorOptions()
         options.driverName = "GPKG"
-        options.layerName = ngw_layer.display_name
+        options.layerName = f"vector_layer_{ngw_layer.resource_id}"
         options.fileEncoding = "UTF-8"
         fid_field, fields = self.__prepare_fields(ngw_layer.qgs_fields)
         options.layerOptions = [

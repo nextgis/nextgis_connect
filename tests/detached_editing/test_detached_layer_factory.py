@@ -481,7 +481,9 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         self.assertEqual(metadata.connection_id, connection.id)
         self.assertEqual(metadata.instance_id, connection.domain_uuid)
         self.assertEqual(metadata.resource_id, ngw_layer.resource_id)
-        self.assertEqual(metadata.table_name, ngw_layer.display_name)
+        self.assertEqual(
+            metadata.table_name, f"vector_layer_{ngw_layer.resource_id}"
+        )
         self.assertEqual(metadata.layer_name, ngw_layer.display_name)
         self.assertEqual(metadata.description, ngw_layer.description)
         self.assertEqual(metadata.geometry_name, ngw_layer.geom_name)
