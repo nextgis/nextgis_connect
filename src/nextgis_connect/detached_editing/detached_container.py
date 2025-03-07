@@ -556,11 +556,26 @@ class DetachedContainer(QObject):
         assert self.__sync_task is not None
         if not result:
             assert self.__sync_task.error is not None
-            self.__sync_task.error.try_again = lambda: self.synchronize(
-                is_manual=True
+
+            error = self.__sync_task.error
+            if self.__is_network_error(error):
+                self.__sync_task.error.try_again = lambda: self.synchronize(
+                    is_manual=True
+                )
+
+            will_be_updated = (
+                error.code == ErrorCode.ContainerVersionIsOutdated
+                and not self.metadata.has_changes
             )
-            self.__process_error(self.__sync_task.error)
+
+            self.__process_error(
+                self.__sync_task.error, show_error=will_be_updated
+            )
             self.__finish_sync()
+
+            if will_be_updated:
+                self.reset_container()
+
             return
 
         self.__state = DetachedLayerState.Synchronized
@@ -807,7 +822,9 @@ class DetachedContainer(QObject):
         for detached_layer in self.__detached_layers.values():
             detached_layer.update()
 
-    def __process_error(self, error: NgConnectException) -> None:
+    def __process_error(
+        self, error: NgConnectException, *, show_error: bool = True
+    ) -> None:
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__additional_data_fetch_date = None
@@ -817,7 +834,8 @@ class DetachedContainer(QObject):
 
         self.__error = error
 
-        NgConnectInterface.instance().show_error(error)
+        if show_error:
+            NgConnectInterface.instance().show_error(error)
 
     def __check_structure(self) -> None:
         container_fields_name = set()
