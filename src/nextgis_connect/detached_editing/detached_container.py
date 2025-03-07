@@ -569,7 +569,7 @@ class DetachedContainer(QObject):
             )
 
             self.__process_error(
-                self.__sync_task.error, show_error=will_be_updated
+                self.__sync_task.error, show_error=not will_be_updated
             )
             self.__finish_sync()
 
