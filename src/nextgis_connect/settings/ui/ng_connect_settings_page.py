@@ -485,7 +485,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
                 message,
                 Qgis.MessageLevel.Warning,
             )
-
+            self.__widget.clearCacheProgressBar.hide()
+            self.__widget.clearCacheButton.show()
             return
 
         if cache_manager.has_containers_with_changes:
@@ -502,6 +503,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
                 | QMessageBox.StandardButton.No,
             )
             if answer != QMessageBox.StandardButton.Yes:
+                self.__widget.clearCacheProgressBar.hide()
+                self.__widget.clearCacheButton.show()
                 return
 
         self.__clear_task = ClearNgConnectCacheTask()
