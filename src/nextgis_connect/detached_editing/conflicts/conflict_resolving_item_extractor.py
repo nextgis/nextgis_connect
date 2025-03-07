@@ -163,12 +163,12 @@ class ConflictResolvingItemExtractor:
         result_feature = QgsFeature(feature)
         if action.fields:
             for field_id, value in action.fields:
-                feature.setAttribute(
+                result_feature.setAttribute(
                     fields.find_with(ngw_id=field_id).attribute, value
                 )
 
         if action.geom is not None:
-            feature.setGeometry(
+            result_feature.setGeometry(
                 deserialize_geometry(
                     action.geom,
                     self.__metadata.is_versioning_enabled,
