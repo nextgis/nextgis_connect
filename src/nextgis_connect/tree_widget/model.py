@@ -241,21 +241,22 @@ class NgwSearch(NGWResourceModelJob):
     class Tag:
         name: str
         query_name: str
+        old_query_name: str
+        in_supported: bool = True
         visible: bool = True
 
     INT_TAGS: ClassVar[List[Tag]] = [
-        Tag("id", "id"),
-        Tag("parent", "parent_id"),
-        Tag("root", "parent_id__recursive"),
-        Tag("owner", "owner_user_id"),
+        Tag("id", "id", "id"),
+        Tag("parent", "parent", "parent_id"),
+        Tag("root", "root", "parent_id__recursive", in_supported=False),
+        Tag("owner", "owner_user", "owner_user_id"),
     ]
 
     STR_TAGS: ClassVar[List[Tag]] = [
-        Tag("type", "cls"),
-        Tag("name", "display_name"),
-        Tag("keyname", "keyname"),
-        Tag("description", "description"),
-        Tag("owner", "owner_user_id"),
+        Tag("type", "cls", "cls"),
+        Tag("name", "display_name", "display_name"),
+        Tag("keyname", "keyname", "keyname"),
+        Tag("owner", "owner", "owner_user_id"),
     ]
 
     def __init__(
@@ -386,10 +387,11 @@ class NgwSearch(NGWResourceModelJob):
             '"'
         ):
             search_string = quote_plus(self.search_string[1:-1])
-            return f"display_name__eq={search_string}"
+            operator = "__eq" if not self.is_new_api else ""
+            return f"display_name{operator}={search_string}"
         else:
-            search_string = quote_plus(self.search_string)
-            return f"display_name__ilike=%{search_string}%"
+            search_string = quote_plus(f"%{self.search_string}%")
+            return f"display_name__ilike={search_string}"
 
     def __int_queries(self, search_string: str, tag: Tag) -> List[str]:
         tag_name = re.escape(tag.name)
@@ -410,7 +412,24 @@ class NgwSearch(NGWResourceModelJob):
 
         logger.debug(f"Found {tag.name} queries: {values}")
 
-        return list(map(lambda value: f"{tag.query_name}={value}", values))
+        if not self.is_new_api:
+            return list(
+                map(lambda value: f"{tag.old_query_name}={value}", values)
+            )
+        else:
+            values_count = len(values)
+            if values_count == 0:
+                return []
+            elif values_count == 1:
+                return [f"{tag.query_name}={values[0]}"]
+            else:
+                joined_values = ",".join(map(str, values))
+                if tag.in_supported:
+                    return [f"{tag.query_name}__in={joined_values}"]
+                else:
+                    return list(
+                        map(lambda value: f"{tag.query_name}={value}", values)
+                    )
 
     def __str_queries(self, search_string: str, tag: Tag) -> List[str]:
         tag_name = re.escape(tag.name)
@@ -444,12 +463,26 @@ class NgwSearch(NGWResourceModelJob):
 
         logger.debug(f"Found {tag.name} queries: {values}")
 
-        return list(
-            map(
-                lambda value: f"{tag.query_name}{operator}={quote_plus(str(value))}",
-                values,
+        if not self.is_new_api:
+            return list(
+                map(
+                    lambda value: f"{tag.old_query_name}{operator}={quote_plus(str(value))}",
+                    values,
+                )
             )
-        )
+        else:
+            operator = "" if operator == "__eq" else operator
+
+            values_count = len(values)
+            if values_count == 0:
+                return []
+            elif values_count == 1:
+                return [f"{tag.query_name}={quote_plus(str(values[0]))}"]
+            else:
+                joined_values = ",".join(
+                    map(lambda value: quote_plus(str(value)), values)
+                )
+                return [f"{tag.query_name}__in={joined_values}"]
 
     def __metadata_queries(self, search_string: str) -> List[str]:
         pattern = r'@metadata\["([^"]+)"\]\s*=\s*(?:"([^"]+)"|([^"]\S*))'
@@ -458,11 +491,24 @@ class NgwSearch(NGWResourceModelJob):
             return []
 
         key = quote_plus(match.group(1))
-        value = quote_plus(
+        value: str = (
             match.group(2) if match.group(2) is not None else match.group(3)
         )
+        ilike_value = quote_plus(f"%{value}%")
 
-        return [f"resmeta__ilike[{key}]=%{value}%"]
+        queries = [f"resmeta__ilike[{key}]={ilike_value}"]
+        if value.isnumeric():
+            queries.append(f"resmeta__json[{key}]={value}")
+        elif value.lower() in ("true", "false"):
+            queries.append(f"resmeta__json[{key}]={value.lower()}")
+        else:
+            try:
+                float_value = float(value)
+                queries.append(f"resmeta__json[{key}]={float_value}")
+            except ValueError:
+                pass
+
+        return queries
 
     def __fetch_users(self) -> None:
         if len(self.users_keyname) > 0:
