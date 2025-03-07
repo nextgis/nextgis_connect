@@ -20,13 +20,15 @@ from qgis.PyQt.QtCore import (
     QDate,
     QDateTime,
     QItemSelection,
+    QPoint,
     QSignalBlocker,
     Qt,
     QTime,
+    QUrl,
     QVariant,
     pyqtSlot,
 )
-from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtGui import QColor, QDesktopServices
 from qgis.PyQt.QtWidgets import (
     QDateEdit,
     QDateTimeEdit,
@@ -37,6 +39,7 @@ from qgis.PyQt.QtWidgets import (
     QGroupBox,
     QLabel,
     QLineEdit,
+    QMenu,
     QSizePolicy,
     QSpinBox,
     QStackedWidget,
@@ -50,6 +53,7 @@ from nextgis_connect.compat import GeometryType
 from nextgis_connect.detached_editing.actions import (
     ActionType,
     DataChangeAction,
+    FeatureId,
 )
 from nextgis_connect.detached_editing.conflicts.conflict import (
     VersioningConflict,
@@ -68,6 +72,9 @@ from nextgis_connect.detached_editing.serialization import simplify_value
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
     detached_layer_uri,
+)
+from nextgis_connect.ngw_connection.ngw_connections_manager import (
+    NgwConnectionsManager,
 )
 from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.resources.ngw_field import NgwField
@@ -145,6 +152,12 @@ class ResolvingDialog(QDialog, WIDGET):
         self.features_view.setModel(self.__resolving_model)
         self.features_view.selectionModel().selectionChanged.connect(
             self.__on_selection_changed
+        )
+        self.features_view.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        self.features_view.customContextMenuRequested.connect(
+            self.__open_context_menu
         )
         self.features_view.selectAll()
 
@@ -841,3 +854,36 @@ class ResolvingDialog(QDialog, WIDGET):
             return None
 
         return indexes[0].data(ConflictsResolvingModel.Roles.RESOLVING_ITEM)
+
+    @pyqtSlot(QPoint)
+    def __open_context_menu(self, point: QPoint) -> None:
+        indexes = self.features_view.selectedIndexes()
+
+        menu = QMenu(self)
+        if len(indexes) == 1:
+            webgis_action = menu.addAction(self.tr("Open in Web GIS"))
+            fid = (
+                indexes[0]
+                .data(ConflictsResolvingModel.Roles.RESOLVING_ITEM)
+                .conflict.fid
+            )
+            webgis_action.triggered.connect(
+                lambda _, fid=fid: self.__open_feature_in_web_gis(fid)
+            )
+
+            menu.addSeparator()
+
+        menu.exec(self.features_view.viewport().mapToGlobal(point))
+
+    def __open_feature_in_web_gis(self, feature_id: FeatureId) -> None:
+        connection_manager = NgwConnectionsManager()
+        connection = connection_manager.connection(
+            self.__container_metadata.connection_id
+        )
+        assert connection is not None
+
+        resource_id = self.__container_metadata.resource_id
+
+        url = QUrl(connection.url)
+        url.setPath(f"/resource/{resource_id}/feature/{feature_id}")
+        QDesktopServices.openUrl(url)
