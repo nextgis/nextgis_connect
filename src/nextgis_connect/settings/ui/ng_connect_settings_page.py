@@ -219,7 +219,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
     def __init_search_settings(self, settings: NgConnectSettings) -> None:
-        self.__widget.search_groupbox.setVisible(settings.is_developer_mode)
         self.__widget.metadataKeysLineEdit.setText(
             ", ".join(settings.search.metadata_keys)
         )

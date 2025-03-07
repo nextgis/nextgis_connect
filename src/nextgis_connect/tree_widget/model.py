@@ -16,6 +16,7 @@ from typing import (
     Union,
     cast,
 )
+from urllib.parse import quote_plus
 
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
@@ -29,6 +30,7 @@ from qgis.PyQt.QtCore import (
 from qgis.PyQt.QtGui import QFont
 
 from nextgis_connect import utils
+from nextgis_connect.compat import parse_version
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
@@ -257,12 +259,16 @@ class NgwSearch(NGWResourceModelJob):
     ]
 
     def __init__(
-        self, search_string: str, populated_resources: Set[int]
+        self,
+        search_string: str,
+        populated_resources: Set[int],
+        is_new_api: bool = False,
     ) -> None:
         super().__init__()
         self.result.found_resources = []
         self.search_string = search_string.strip()
         self.populated_resources = populated_resources
+        self.is_new_api = is_new_api
         self.users_keyname = {}
         self.users_username = {}
         self.parents = []
@@ -358,9 +364,10 @@ class NgwSearch(NGWResourceModelJob):
             if len(queries) != 0:
                 return queries
 
-        queries = self.__metadata_queries(search_string)
-        if len(queries) != 0:
-            return queries
+        if self.is_new_api:
+            queries = self.__metadata_queries(search_string)
+            if len(queries) != 0:
+                return queries
 
         logger.warning(
             self.tr("Unknown search tag. Possible values: ")
@@ -368,6 +375,8 @@ class NgwSearch(NGWResourceModelJob):
                 f"@{tag.name}" for tag in (*self.INT_TAGS, *self.STR_TAGS)
             )
             + ", @metadata"
+            if self.is_new_api
+            else ""
         )
 
         return []
@@ -376,9 +385,11 @@ class NgwSearch(NGWResourceModelJob):
         if self.search_string.startswith('"') and self.search_string.endswith(
             '"'
         ):
-            return f"display_name__eq={self.search_string[1:-1]}"
+            search_string = quote_plus(self.search_string[1:-1])
+            return f"display_name__eq={search_string}"
         else:
-            return f"display_name__ilike=%{self.search_string}%"
+            search_string = quote_plus(self.search_string)
+            return f"display_name__ilike=%{search_string}%"
 
     def __int_queries(self, search_string: str, tag: Tag) -> List[str]:
         tag_name = re.escape(tag.name)
@@ -434,7 +445,10 @@ class NgwSearch(NGWResourceModelJob):
         logger.debug(f"Found {tag.name} queries: {values}")
 
         return list(
-            map(lambda value: f"{tag.query_name}{operator}={value}", values)
+            map(
+                lambda value: f"{tag.query_name}{operator}={quote_plus(str(value))}",
+                values,
+            )
         )
 
     def __metadata_queries(self, search_string: str) -> List[str]:
@@ -443,12 +457,12 @@ class NgwSearch(NGWResourceModelJob):
         if not match:
             return []
 
-        key = match.group(1)
-        value = (
+        key = quote_plus(match.group(1))
+        value = quote_plus(
             match.group(2) if match.group(2) is not None else match.group(3)
         )
 
-        return [f"resmeta__like[{key}]=%{value}%"]
+        return [f"resmeta__ilike[{key}]=%{value}%"]
 
     def __fetch_users(self) -> None:
         if len(self.users_keyname) > 0:
@@ -1337,7 +1351,14 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
     @modelRequest
     def search(self, search_string) -> Optional[NGWResourcesModelJob]:
-        worker = NgwSearch(search_string, self.__collect_populated_resources())
+        has_new_search_api = self.ngw_version is not None and parse_version(
+            self.ngw_version
+        ) >= parse_version("5.0.0.dev13")
+        worker = NgwSearch(
+            search_string,
+            self.__collect_populated_resources(),
+            has_new_search_api,
+        )
         return self._startJob(worker)
 
     def reset_search(self) -> None:
