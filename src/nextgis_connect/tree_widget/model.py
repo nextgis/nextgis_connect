@@ -49,7 +49,7 @@ from nextgis_connect.ngw_api.core.ngw_resource_factory import (
 from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
-    NGWCreateWMSForVector,
+    NGWCreateWMSService,
     NGWUpdateVectorLayer,
     QGISProjectUploader,
     QGISResourcesUploader,
@@ -1310,7 +1310,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(MapForLayerCreater(ngw_resource, ngw_style_id))
 
     @modelRequest
-    def createWMSForVector(self, index, ngw_resource_style_id):
+    def createWMSService(self, index, ngw_resource_style_id):
         if not index.isValid():
             index = self.index(0, 0, index)
 
@@ -1325,7 +1325,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(
-            NGWCreateWMSForVector(
+            NGWCreateWMSService(
                 ngw_resource, ngw_parent_resource, ngw_resource_style_id
             )
         )

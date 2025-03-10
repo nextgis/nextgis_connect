@@ -1264,16 +1264,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             creating_actions.append(self.actionCreateNewGroup)
             creating_actions.append(self.actionCreateNewVectorLayer)
 
-        if not is_multiple_selection and isinstance(
-            ngw_resource, (NGWVectorLayer, NGWPostgisLayer, NGWWfsLayer)
-        ):
-            creating_actions.extend(
-                [
-                    self.actionCreateWFSService,
-                    self.actionCreateOgcService,
-                    self.actionCreateWMSService,
-                ]
-            )
+        if not is_multiple_selection:
+            if isinstance(
+                ngw_resource, (NGWVectorLayer, NGWPostgisLayer, NGWWfsLayer)
+            ):
+                creating_actions.extend(
+                    [
+                        self.actionCreateWFSService,
+                        self.actionCreateOgcService,
+                        self.actionCreateWMSService,
+                    ]
+                )
+            elif isinstance(ngw_resource, (NGWRasterLayer, NGWQGISStyle)):
+                creating_actions.append(self.actionCreateWMSService)
 
         if not is_multiple_selection and isinstance(
             ngw_resource, (NGWVectorLayer, NGWRasterLayer, NGWWmsLayer)
@@ -2032,11 +2035,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__fetch_children_if_needed(selected_index)
 
         style_resources = []
-        for row in range(self.resource_model.rowCount(selected_index)):
-            child_index = self.resource_model.index(row, 0, selected_index)
-            child = child_index.data(QNGWResourceItem.NGWResourceRole)
-            if isinstance(child, NGWQGISStyle):
-                style_resources.append(child)
+
+        selected_resource = selected_index.data(
+            QNGWResourceItem.NGWResourceRole
+        )
+        if isinstance(selected_resource, NGWQGISStyle):
+            selected_index = selected_index.parent()
+            style_resources = [selected_resource]
+        else:
+            for row in range(self.resource_model.rowCount(selected_index)):
+                child_index = self.resource_model.index(row, 0, selected_index)
+                child = child_index.data(QNGWResourceItem.NGWResourceRole)
+                if isinstance(child, NGWQGISStyle):
+                    style_resources.append(child)
 
         if len(style_resources) == 1:
             ngw_resource_style_id = style_resources[0].resource_id
@@ -2052,7 +2063,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 return
             ngw_resource_style_id = dlg.selectedStyleId()
 
-        responce = self.resource_model.createWMSForVector(
+        responce = self.resource_model.createWMSService(
             selected_index, ngw_resource_style_id
         )
         responce.done.connect(
@@ -2408,7 +2419,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         by_metadata_action.setChecked(last_type == SearchType.ByMetadata)
         by_metadata_action.triggered.connect(self.__on_search_type_changed)
 
-        self.search_button = QToolButton()
+        self.search_button = QToolButton(self.main_tool_bar)
         self.search_button.setIcon(
             QIcon(os.path.join(ICONS_PATH, "mActionFilter.svg"))
         )
