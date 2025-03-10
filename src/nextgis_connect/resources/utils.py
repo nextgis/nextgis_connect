@@ -7,7 +7,7 @@ def generate_unique_name(name: str, existing_names: Sequence) -> str:
         return name
 
     if re.search(r"\(\d\)$", name):
-        name = name[: name.rfind("(")]
+        name = name[: name.rfind("(")].rstrip()
 
     new_name = name.rstrip()
     new_name_with_space = None
