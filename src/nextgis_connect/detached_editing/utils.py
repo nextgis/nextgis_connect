@@ -112,6 +112,8 @@ def container_path(layer: Union[QgsMapLayer, Path]) -> Path:
         path = Path(layer.source().split("|")[0])
     elif isinstance(layer, Path):
         path = layer
+    elif isinstance(layer, str):
+        path = Path(layer.split("|")[0])
     else:
         raise TypeError
 
