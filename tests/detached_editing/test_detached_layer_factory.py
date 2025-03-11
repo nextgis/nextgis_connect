@@ -125,6 +125,9 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 "point''s_layer",
                 'point"s_layer',
                 'point""s_layer',
+                "@ layer",
+                "! layer",
+                "~ layer",
             ):
                 layer_json["resource"]["display_name"] = display_name
 
@@ -241,6 +244,9 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 "point''s_layer",
                 'point"s_layer',
                 'point""s_layer',
+                "@ layer",
+                "! layer",
+                "~ layer",
             ):
                 layer_json["resource"]["display_name"] = display_name
 
