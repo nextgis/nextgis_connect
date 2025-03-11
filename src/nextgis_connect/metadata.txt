@@ -30,8 +30,11 @@ changelog=
 		* Add sync layers after connection restore
 		* Add try again for some errors
 		* Add removing error after fix
+		* Add ability to create wms service from raster
+		* Add ability to create wms service from  styles
 		* Removed obsolete renaming fields functionality
 		* Removed search by description
+		* Fixed adding fid column from gpkg uploading
 		* Fixed detached container detection
 		* Fixed CRS for TMS from QMS
 		* Fixed active upload button with empty project
@@ -40,6 +43,8 @@ changelog=
 		* Fixed sync label attribute
 		* Fixed search with special symbols
 		* Fixed progress bar error in settings
+		* Fixed layer naming on duplicate
+		* Fixed uploaded resource selection
 		! Supported NGW versions: 4.8.0 - 5.1.0
 	2.6.1
 		* Fixed filling of detached layers
