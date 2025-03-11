@@ -21,20 +21,18 @@ class VersioningConflict:
         conflicting_fields = []
         has_geometry_conflict = False
 
-        if (
-            isinstance(self.local_action, DataChangeAction)
-            and isinstance(self.remote_action, DataChangeAction)
-            and self.local_action.fields
-            and self.remote_action.fields
+        if isinstance(self.local_action, DataChangeAction) and isinstance(
+            self.remote_action, DataChangeAction
         ):
-            local_fields = self.local_action.fields_dict
-            remote_fields = self.remote_action.fields_dict
+            if self.local_action.fields and self.remote_action.fields:
+                local_fields = self.local_action.fields_dict
+                remote_fields = self.remote_action.fields_dict
 
-            conflicting_fields = list(
-                field_id
-                for field_id, value in local_fields.items()
-                if remote_fields.get(field_id) != value
-            )
+                conflicting_fields = list(
+                    field_id
+                    for field_id, value in local_fields.items()
+                    if remote_fields.get(field_id) != value
+                )
 
             has_geometry_conflict = (
                 self.local_action.geom is not None
