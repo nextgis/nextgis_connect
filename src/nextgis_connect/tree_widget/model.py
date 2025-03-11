@@ -88,6 +88,7 @@ __all__ = ["QNGWResourceTreeModel"]
 
 class NGWResourceModelResponse(QObject):
     done = pyqtSignal(QModelIndex)
+    select = pyqtSignal(list)
 
     def __init__(self, parent: Optional[QObject] = None) -> None:
         super().__init__(parent)
@@ -1006,30 +1007,58 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return
 
         indexes = {}
+        added_resources_id = []
         for ngw_resource in job_result.added_resources:
             if ngw_resource.common.parent is None:
-                index = QModelIndex()
-                new_index = self.addNGWResourceToTree(index, ngw_resource)
+                resource_id = QModelIndex()
+                new_index = self.addNGWResourceToTree(
+                    resource_id, ngw_resource
+                )
             else:
                 parent_id = ngw_resource.parent_id
                 if parent_id not in indexes:
                     indexes[parent_id] = self.index_from_id(parent_id)
-                index = indexes[parent_id]
+                resource_id = indexes[parent_id]
 
-                item = index.internalPointer()
+                item = resource_id.internalPointer()
                 current_ids = [
                     item.child(i).ngw_resource_id()
                     for i in range(item.childCount())
                     if isinstance(item.child(i), QNGWResourceItem)
                 ]
                 if ngw_resource.resource_id not in current_ids:
-                    new_index = self.addNGWResourceToTree(index, ngw_resource)
+                    new_index = self.addNGWResourceToTree(
+                        resource_id, ngw_resource
+                    )
                 else:
                     continue
+
+            added_resources_id.append(ngw_resource.resource_id)
 
             if job_result.main_resource_id == ngw_resource.resource_id:
                 if job.model_response is not None:
                     job.model_response.done.emit(new_index)
+
+        if len(added_resources_id) > 0 and job.model_response is not None:
+            indexes_for_select = []
+
+            for resource_id in added_resources_id:
+                index = self.index_from_id(resource_id)
+                parent = index.parent()
+                parent_in_list = False
+                while parent.isValid():
+                    parent_id = parent.data(QNGWResourceItem.NGWResourceIdRole)
+                    if parent_id in added_resources_id:
+                        parent_in_list = True
+                        break
+                    parent = parent.parent()
+
+                if parent_in_list:
+                    continue
+
+                indexes_for_select.append(index)
+
+            job.model_response.select.emit(indexes_for_select)
 
         if len(indexes) == 0 and job.getJobId() == NGWResourceUpdater.__name__:
             ngw_index = self.index_from_id(job_result.main_resource_id)
@@ -1045,19 +1074,19 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         for ngw_resource in job_result.edited_resources:
             if ngw_resource.common.parent is None:
                 self.cleanModel()  # remove root item
-                index = QModelIndex()
+                resource_id = QModelIndex()
             else:
-                index = self.index_from_id(
+                resource_id = self.index_from_id(
                     ngw_resource.parent_id,
                 )
-                item = index.internalPointer()
+                item = resource_id.internalPointer()
 
                 for i in range(item.childCount()):
                     if (
                         item.child(i).ngw_resource_id()
                         == ngw_resource.resource_id
                     ):
-                        self.beginRemoveRows(index, i, i)
+                        self.beginRemoveRows(resource_id, i, i)
                         item.removeChild(item.child(i))
                         self.endRemoveRows()
                         break
@@ -1065,20 +1094,20 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
                     # TODO exception: not find deleted resource in corrent tree
                     return
 
-            new_index = self.addNGWResourceToTree(index, ngw_resource)
+            new_index = self.addNGWResourceToTree(resource_id, ngw_resource)
 
             if job.model_response is not None:
                 job.model_response.done.emit(new_index)
 
         for ngw_resource in job_result.deleted_resources:
-            index = self.index_from_id(
+            resource_id = self.index_from_id(
                 ngw_resource.parent_id,
             )
-            item = index.internalPointer()
+            item = resource_id.internalPointer()
 
             for i in range(item.childCount()):
                 if item.child(i).ngw_resource_id() == ngw_resource.resource_id:
-                    self.beginRemoveRows(index, i, i)
+                    self.beginRemoveRows(resource_id, i, i)
                     item.removeChild(item.child(i))
                     self.endRemoveRows()
                     break
@@ -1090,7 +1119,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             ngw_resource.update()
 
             if job.model_response is not None:
-                job.model_response.done.emit(index)
+                job.model_response.done.emit(resource_id)
 
         for ngw_resource in job_result.dangling_resources:
             self._dangling_resources[ngw_resource.resource_id] = ngw_resource

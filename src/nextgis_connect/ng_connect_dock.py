@@ -51,6 +51,8 @@ from qgis.PyQt.QtCore import (
     QFile,
     QFileInfo,
     QIODevice,
+    QItemSelection,
+    QItemSelectionModel,
     QModelIndex,
     QPoint,
     QSize,
@@ -1582,7 +1584,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def upload_selected_resources(self):
         ngw_current_index = self.proxy_model.mapToSource(
-            self.resources_tree_view.selectionModel().currentIndex()
+            self.resources_tree_view.selectedIndexes()[0]
         )
 
         qgs_layer_tree_nodes = self.iface.layerTreeView().selectedNodes(
@@ -1600,11 +1602,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.import_layer_response = self.resource_model.uploadResourcesList(
             qgs_layer_tree_nodes, ngw_current_index, self.iface
         )
-        self.import_layer_response.done.connect(
-            lambda index: self.resources_tree_view.setCurrentIndex(
-                self.proxy_model.mapFromSource(index)
-            )
-        )
+        self.import_layer_response.select.connect(self.__select_list)
         self.import_layer_response.done.connect(self.processWarnings)
 
     def overwrite_ngw_layer(self):
@@ -2523,6 +2521,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
         dialog = ResourcePropertiesDialog(resource)
         dialog.exec()
+
+    @pyqtSlot(list)
+    def __select_list(self, indexes: List[QModelIndex]) -> None:
+        selection = QItemSelection()
+        for index in indexes:
+            proxy_index = self.proxy_model.mapFromSource(index)
+            self.resources_tree_view.expand(proxy_index.parent())
+            selection.select(proxy_index, proxy_index)
+
+        self.resources_tree_view.selectionModel().clear()
+        self.resources_tree_view.selectionModel().select(
+            selection, QItemSelectionModel.SelectionFlag.SelectCurrent
+        )
 
 
 class NGWPanelToolBar(QToolBar):
