@@ -45,6 +45,8 @@ changelog=
 		* Fixed progress bar error in settings
 		* Fixed layer naming on duplicate
 		* Fixed uploaded resource selection
+		* Fixed search icon size
+		* Fixed layer reset
 		! Supported NGW versions: 4.8.0 - 5.1.0
 	2.6.1
 		* Fixed filling of detached layers
