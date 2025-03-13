@@ -26,6 +26,7 @@ from qgis.PyQt.QtCore import (
     QDate,
     QDateTime,
     QItemSelection,
+    QMetaObject,
     QPoint,
     QSignalBlocker,
     Qt,
@@ -171,7 +172,12 @@ class ResolvingDialog(QDialog, WIDGET):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
 
-        self.features_view.selectAll()
+        # Workaround for wrong scale on points at start
+        QMetaObject.invokeMethod(
+            self,
+            "updateSelection",
+            Qt.ConnectionType.QueuedConnection,
+        )
 
         self.__validate()
 
@@ -184,8 +190,9 @@ class ResolvingDialog(QDialog, WIDGET):
         )
         self.__resolving_model.dataChanged.connect(self.__validate)
         self.features_view.setModel(self.__resolving_model)
+        self.features_view.selectAll()
         self.features_view.selectionModel().selectionChanged.connect(
-            self.__on_selection_changed
+            self.__update_selection
         )
         self.features_view.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
@@ -523,7 +530,11 @@ class ResolvingDialog(QDialog, WIDGET):
         canvas_widget = grid_widget.findChild(QStackedWidget, "CanvasWidget")
         self.__set_feature_to_canvas(canvas_widget, feature)
 
-    @pyqtSlot(QItemSelection, QItemSelection)
+    @pyqtSlot(name="updateSelection")
+    def __update_selection(self) -> None:
+        self.__on_selection_changed(QItemSelection(), QItemSelection())
+
+    @pyqtSlot("QItemSelection", "QItemSelection", name="onSelectionChanged")
     def __on_selection_changed(
         self, selected: QItemSelection, deselected: QItemSelection
     ) -> None:
