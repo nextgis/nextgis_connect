@@ -153,8 +153,8 @@ class ResolvingDialog(QDialog, WIDGET):
     def __setup_ui(self) -> None:
         self.setupUi(self)
         self.setWindowTitle(
-            self.tr(
-                f'Conflict resolution in layer "{self.__container_metadata.layer_name}"'
+            self.tr('Conflict resolution in layer "{}"').format(
+                self.__container_metadata.layer_name
             )
         )
 

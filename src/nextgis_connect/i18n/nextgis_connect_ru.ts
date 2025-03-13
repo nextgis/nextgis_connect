@@ -1815,11 +1815,6 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>ResolvingDialog</name>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="155"/>
-        <source>Conflict resolution in layer &quot;{self.__container_metadata.layer_name}&quot;</source>
-        <translation>Решение конфликтов в слое &quot;{self.__container_metadata.layer_name}&quot;</translation>
-    </message>
-    <message>
         <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="916"/>
         <source>Unresolved conflict</source>
         <translation>Нерешённый конфликт</translation>
@@ -1863,6 +1858,11 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1102"/>
         <source>Open in Web GIS</source>
         <translation>Открыть в Веб ГИС</translation>
+    </message>
+    <message>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="155"/>
+        <source>Conflict resolution in layer &quot;{}&quot;</source>
+        <translation type="unfinished">Решение конфликтов в слое &quot;{}&quot;</translation>
     </message>
 </context>
 <context>
