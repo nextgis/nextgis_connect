@@ -1,8 +1,8 @@
 import json
 from base64 import b64decode, b64encode
-from typing import Any, Optional, Union
+from typing import Any, Dict, Optional, Union
 
-from qgis.core import QgsGeometry, QgsWkbTypes
+from qgis.core import QgsApplication, QgsGeometry, QgsWkbTypes
 from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QVariant
 
 from nextgis_connect.compat import GeometryType
@@ -13,7 +13,10 @@ def simplify_date_and_time(
     date_object: Union[QDateTime, QDate, QTime],
     *,
     iso_format: bool = False,
-) -> Any:
+) -> Union[str, Dict[str, int], None]:
+    if date_object.isNull():
+        return None
+
     if iso_format:
         return date_object.toString(Qt.DateFormat.ISODate)
 
@@ -42,7 +45,9 @@ def simplify_date_and_time(
 
 
 def simplify_value(value: Any) -> Any:
-    if isinstance(value, QVariant) and value.isNull():
+    if (
+        isinstance(value, QVariant) and value.isNull()
+    ) or value == QgsApplication.nullRepresentation():
         value = None
 
     elif isinstance(value, (QDate, QTime, QDateTime)):

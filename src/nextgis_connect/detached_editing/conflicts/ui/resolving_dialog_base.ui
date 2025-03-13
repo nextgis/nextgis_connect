@@ -255,19 +255,6 @@
                    </property>
                   </widget>
                  </item>
-                 <item>
-                  <widget class="QCheckBox" name="updates_resolved_checkbox">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Ignored">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>Resolved</string>
-                   </property>
-                  </widget>
-                 </item>
                 </layout>
                </widget>
               </item>
@@ -436,8 +423,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>783</width>
-                   <height>522</height>
+                   <width>178</width>
+                   <height>40</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -563,8 +550,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>783</width>
-                   <height>522</height>
+                   <width>178</width>
+                   <height>40</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_8">

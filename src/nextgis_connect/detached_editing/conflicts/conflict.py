@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import Set
 
 from nextgis_connect.detached_editing.actions import (
     DataChangeAction,
@@ -14,11 +14,11 @@ class VersioningConflict:
     local_action: FeatureAction
     remote_action: FeatureAction
 
-    conflicting_fields: List[FieldId] = field(init=False)
+    conflicting_fields: Set[FieldId] = field(init=False)
     has_geometry_conflict: bool = field(init=False)
 
     def __post_init__(self) -> None:
-        conflicting_fields = []
+        conflicting_fields = set()
         has_geometry_conflict = False
 
         if isinstance(self.local_action, DataChangeAction) and isinstance(
@@ -28,7 +28,7 @@ class VersioningConflict:
                 local_fields = self.local_action.fields_dict
                 remote_fields = self.remote_action.fields_dict
 
-                conflicting_fields = list(
+                conflicting_fields = set(
                     field_id
                     for field_id, value in local_fields.items()
                     if remote_fields.get(field_id) != value

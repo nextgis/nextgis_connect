@@ -1,4 +1,4 @@
-from enum import IntEnum, auto
+from enum import IntEnum
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -40,7 +40,6 @@ class ConflictsResolvingModel(QAbstractListModel):
 
     class Roles(IntEnum):
         RESOLVING_ITEM = Qt.ItemDataRole.UserRole + 1
-        RESOLVING_STATE = auto()
 
     _container_path: Path
     _container_metadata: DetachedContainerMetaData
@@ -141,9 +140,6 @@ class ConflictsResolvingModel(QAbstractListModel):
         if role == self.Roles.RESOLVING_ITEM:
             return item
 
-        if role == self.Roles.RESOLVING_STATE:
-            return item.is_resolved
-
         return QVariant()
 
     def setData(
@@ -156,12 +152,6 @@ class ConflictsResolvingModel(QAbstractListModel):
             self._conflict_resoving_items
         ):
             return False
-
-        if role == self.Roles.RESOLVING_STATE:
-            item = self._conflict_resoving_items[index.row()]
-            item.is_resolved = value
-            self.dataChanged.emit(index, index)
-            return True
 
         return False
 
@@ -202,6 +192,16 @@ class ConflictsResolvingModel(QAbstractListModel):
         self.dataChanged.emit(
             self.index(0, 0), self.index(self.rowCount() - 1, 0)
         )
+
+    @pyqtSlot(QModelIndex)
+    def update_state(self, index: QModelIndex) -> None:
+        if not index.isValid() or index.row() >= len(
+            self._conflict_resoving_items
+        ):
+            return
+
+        self._conflict_resoving_items[index.row()].update_state()
+        self.dataChanged.emit(index, index)
 
     def __convert_conflicts_to_items(
         self, conflicts: List[VersioningConflict]

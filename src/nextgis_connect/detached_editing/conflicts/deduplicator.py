@@ -100,7 +100,7 @@ class ConflictsDeduplicator:
         assert isinstance(conflict.remote_action, DataChangeAction)
 
         local_fields = conflict.local_action.fields_dict
-        remote_fields = conflict.local_action.fields_dict
+        remote_fields = conflict.remote_action.fields_dict
 
         local_geometry = conflict.local_action.geom
         remote_geometry = conflict.remote_action.geom
