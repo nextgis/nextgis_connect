@@ -383,7 +383,9 @@ class DetachedContainer(QObject):
             self.__process_error(error)
             return
 
-        # Replace container with stub
+        # Replace container with dummy
+        for layer in self.__detached_layers.values():
+            layer.enable_fake()
 
         try:
             for service_file in self.path.parent.glob(f"{self.path.name}-*"):
@@ -391,7 +393,7 @@ class DetachedContainer(QObject):
             shutil.move(str(temp_file_path), str(self.path))
 
         except Exception as os_error:
-            message = "Can't replace stub file"
+            message = "Can't replace container"
             error = ContainerError(
                 message, code=ErrorCode.ContainerCreationError
             )
@@ -401,6 +403,9 @@ class DetachedContainer(QObject):
             self.__process_error(error)
 
             return
+
+        for layer in self.__detached_layers.values():
+            layer.disable_fake()
 
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized

@@ -8,6 +8,7 @@ from qgis.core import (
     QgsFeature,
     QgsFeatureRequest,
     QgsField,
+    QgsMemoryProviderUtils,
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
@@ -28,6 +29,7 @@ from nextgis_connect.detached_editing.serialization import (
     simplify_value,
 )
 from nextgis_connect.detached_editing.utils import (
+    detached_layer_uri,
     make_connection,
 )
 from nextgis_connect.exceptions import ContainerError
@@ -120,6 +122,29 @@ class DetachedLayer(QObject):
         self.__qgs_layer.setCustomProperties(custom_properties)
         self.__qgs_layer.customPropertyChanged.connect(
             self.__on_custom_property_changed
+        )
+
+    @pyqtSlot()
+    def enable_fake(self) -> None:
+        memory_layer = QgsMemoryProviderUtils.createMemoryLayer(
+            self.qgs_layer.name(),
+            self.qgs_layer.fields(),
+            self.qgs_layer.wkbType(),
+            self.qgs_layer.crs(),
+        )
+        self.qgs_layer.setDataSource(
+            memory_layer.source(), self.qgs_layer.name(), "memory"
+        )
+        self.qgs_layer.setReadOnly(True)
+
+    @pyqtSlot()
+    def disable_fake(self) -> None:
+        self.qgs_layer.setDataSource(
+            detached_layer_uri(
+                self.__container.path, self.__container.metadata
+            ),
+            self.qgs_layer.name(),
+            "ogr",
         )
 
     @pyqtSlot()
