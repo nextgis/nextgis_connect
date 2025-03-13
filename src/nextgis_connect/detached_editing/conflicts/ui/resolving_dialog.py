@@ -92,13 +92,14 @@ GREEN_COLOR = "#7bab4d"
 MARKER_SIZE = 12
 
 
-class ResolvingDialog(QDialog, WIDGET):
-    class Page(IntEnum):
-        WELCOME = 0
-        UPDATE_UPDATE = auto()
-        UPDATE_DELETE = auto()
-        DELETE_UPDATE = auto()
+class Page(IntEnum):
+    WELCOME = 0
+    UPDATE_UPDATE = auto()
+    UPDATE_DELETE = auto()
+    DELETE_UPDATE = auto()
 
+
+class ResolvingDialog(QDialog, WIDGET):
     __container_path: Path
     __container_metadata: DetachedContainerMetaData
     __geometry_type: GeometryType
@@ -203,8 +204,24 @@ class ResolvingDialog(QDialog, WIDGET):
 
         self.apply_local_button.setIcon(material_icon("computer"))
         self.apply_local_button.clicked.connect(self.__resolve_as_local)
+
         self.apply_remote_button.setIcon(material_icon("cloud"))
         self.apply_remote_button.clicked.connect(self.__resolve_as_remote)
+
+        apply_local_text: str = self.apply_local_button.text()
+        apply_remote_text: str = self.apply_remote_button.text()
+        if len(apply_local_text) > 20 or len(apply_remote_text) > 20:
+            apply_remote_text = apply_remote_text.replace(" ", "\n", 2)
+            apply_local_text = apply_local_text.replace(" ", "\n", 2)
+
+            self.apply_remote_button.setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonTextUnderIcon
+            )
+            self.apply_local_button.setToolButtonStyle(
+                Qt.ToolButtonStyle.ToolButtonTextUnderIcon
+            )
+            self.apply_remote_button.setText(apply_remote_text)
+            self.apply_local_button.setText(apply_local_text)
 
     def __setup_update_update(self) -> None:
         left_arrow_icon = material_icon("keyboard_arrow_left")
@@ -549,7 +566,7 @@ class ResolvingDialog(QDialog, WIDGET):
         self.apply_remote_button.setEnabled(not is_empty)
 
         if selected_count != 1:
-            self.stacked_widget.setCurrentIndex(self.Page.WELCOME)
+            self.stacked_widget.setCurrentIndex(Page.WELCOME)
             return
 
         item = cast(
@@ -560,13 +577,13 @@ class ResolvingDialog(QDialog, WIDGET):
             ),
         )
         if item.conflict.local_action.action == ActionType.FEATURE_DELETE:
-            self.stacked_widget.setCurrentIndex(self.Page.DELETE_UPDATE)
+            self.stacked_widget.setCurrentIndex(Page.DELETE_UPDATE)
             self.__fill_delete_update(item)
         elif item.conflict.remote_action.action == ActionType.FEATURE_DELETE:
-            self.stacked_widget.setCurrentIndex(self.Page.UPDATE_DELETE)
+            self.stacked_widget.setCurrentIndex(Page.UPDATE_DELETE)
             self.__fill_update_delete(item)
         else:
-            self.stacked_widget.setCurrentIndex(self.Page.UPDATE_UPDATE)
+            self.stacked_widget.setCurrentIndex(Page.UPDATE_UPDATE)
             self.__fill_update_update(item)
 
     @pyqtSlot(bool)

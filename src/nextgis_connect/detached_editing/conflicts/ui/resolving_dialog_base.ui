@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>600</height>
+    <width>1010</width>
+    <height>553</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@
         <widget class="QWidget" name="left_side" native="true">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-           <horstretch>1</horstretch>
+           <horstretch>2</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
@@ -139,16 +139,34 @@
              <number>0</number>
             </property>
             <item>
-             <widget class="QPushButton" name="apply_local_button">
+             <widget class="QToolButton" name="apply_local_button">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>Aply local changes</string>
+              </property>
+              <property name="toolButtonStyle">
+               <enum>Qt::ToolButtonTextBesideIcon</enum>
               </property>
              </widget>
             </item>
             <item>
-             <widget class="QPushButton" name="apply_remote_button">
+             <widget class="QToolButton" name="apply_remote_button">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="text">
                <string>Apply remote changes</string>
+              </property>
+              <property name="toolButtonStyle">
+               <enum>Qt::ToolButtonTextBesideIcon</enum>
               </property>
              </widget>
             </item>
@@ -159,7 +177,7 @@
         <widget class="QWidget" name="right_side" native="true">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-           <horstretch>4</horstretch>
+           <horstretch>5</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
@@ -271,8 +289,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>783</width>
-                   <height>522</height>
+                   <width>683</width>
+                   <height>475</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_10">
@@ -297,7 +315,16 @@
                      </sizepolicy>
                     </property>
                     <layout class="QGridLayout" name="gridLayout">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
                      <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
                       <number>0</number>
                      </property>
                      <item row="0" column="3">
@@ -306,7 +333,7 @@
                      <item row="0" column="2">
                       <widget class="QLabel" name="local_label">
                        <property name="text">
-                        <string>Local</string>
+                        <string>Local version</string>
                        </property>
                        <property name="alignment">
                         <set>Qt::AlignCenter</set>
@@ -339,7 +366,7 @@
                      <item row="0" column="6">
                       <widget class="QLabel" name="remote_label">
                        <property name="text">
-                        <string>Remote</string>
+                        <string>Remote version</string>
                        </property>
                        <property name="alignment">
                         <set>Qt::AlignCenter</set>
@@ -423,8 +450,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>178</width>
-                   <height>40</height>
+                   <width>683</width>
+                   <height>475</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_9">
@@ -443,10 +470,28 @@
                   <item>
                    <widget class="QWidget" name="update_delete_widget" native="true">
                     <layout class="QGridLayout" name="update_delete_widget_2">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
                      <item row="0" column="2">
                       <widget class="QRadioButton" name="update_delete_local_radiobutton">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="text">
-                        <string>Local</string>
+                        <string>Local version</string>
                        </property>
                       </widget>
                      </item>
@@ -462,11 +507,17 @@
                      </item>
                      <item row="0" column="3">
                       <widget class="QRadioButton" name="update_delete_remote_radiobutton">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="layoutDirection">
                         <enum>Qt::RightToLeft</enum>
                        </property>
                        <property name="text">
-                        <string>Remote</string>
+                        <string>Remote version</string>
                        </property>
                       </widget>
                      </item>
@@ -550,8 +601,8 @@
                   <rect>
                    <x>0</x>
                    <y>0</y>
-                   <width>178</width>
-                   <height>40</height>
+                   <width>683</width>
+                   <height>475</height>
                   </rect>
                  </property>
                  <layout class="QVBoxLayout" name="verticalLayout_8">
@@ -570,10 +621,28 @@
                   <item>
                    <widget class="QWidget" name="delete_update_widget" native="true">
                     <layout class="QGridLayout" name="delete_update_widget_2">
+                     <property name="leftMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="topMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="rightMargin">
+                      <number>0</number>
+                     </property>
+                     <property name="bottomMargin">
+                      <number>0</number>
+                     </property>
                      <item row="0" column="2">
                       <widget class="QRadioButton" name="delete_update_local_radiobutton">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="text">
-                        <string>Local</string>
+                        <string>Local version</string>
                        </property>
                       </widget>
                      </item>
@@ -589,11 +658,17 @@
                      </item>
                      <item row="0" column="3">
                       <widget class="QRadioButton" name="delete_update_remote_radiobutton">
+                       <property name="sizePolicy">
+                        <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                         <horstretch>0</horstretch>
+                         <verstretch>0</verstretch>
+                        </sizepolicy>
+                       </property>
                        <property name="layoutDirection">
                         <enum>Qt::RightToLeft</enum>
                        </property>
                        <property name="text">
-                        <string>Remote</string>
+                        <string>Remote version</string>
                        </property>
                       </widget>
                      </item>
