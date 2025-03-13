@@ -63,7 +63,7 @@ class ConflictsResolvingModel(QAbstractListModel):
         )
 
         self.__not_resolved_icon = material_icon(
-            "question_mark.svg", color="#f1ea64", size=16
+            "question_mark.svg", color="#fbe94e", size=16
         )
         self.__resolved_icon = material_icon(
             "check.svg", color="#7bab4d", size=16

@@ -86,7 +86,7 @@ WIDGET, _ = uic.loadUiType(
 )
 
 RED_COLOR = "#d65252"
-YELLOW_COLOR = "#f1ea64"
+YELLOW_COLOR = "#fbe94e"
 GREEN_COLOR = "#7bab4d"
 
 MARKER_SIZE = 12
@@ -1043,7 +1043,9 @@ class ResolvingDialog(QDialog, WIDGET):
             return
 
         item = self.__selected_item()
-        assert item is not None
+        if item is None:
+            return
+
         assert item.result_feature is not None
 
         if (
