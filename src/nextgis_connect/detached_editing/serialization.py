@@ -1,5 +1,6 @@
 import json
 from base64 import b64decode, b64encode
+from datetime import date, datetime, time
 from typing import Any, Dict, Optional, Union
 
 from qgis.core import QgsApplication, QgsGeometry, QgsWkbTypes
@@ -10,36 +11,59 @@ from nextgis_connect.exceptions import NgConnectError
 
 
 def simplify_date_and_time(
-    date_object: Union[QDateTime, QDate, QTime],
+    date_object: Union[datetime, date, time, QDateTime, QDate, QTime],
     *,
     iso_format: bool = False,
 ) -> Union[str, Dict[str, int], None]:
-    if date_object.isNull() or not date_object.isValid():
+    if (isinstance(date_object, (QDateTime, QDate, QTime))) and (
+        date_object.isNull() or not date_object.isValid()
+    ):
         return None
 
     if iso_format:
+        if isinstance(date_object, (datetime, date, time)):
+            return date_object.isoformat()
         return date_object.toString(Qt.DateFormat.ISODate)
 
-    date = None
-    time = None
-    if isinstance(date_object, QDateTime):
-        date = date_object.date()
-        time = date_object.time()
+    extracted_date = None
+    extracted_time = None
+    if isinstance(date_object, datetime):
+        extracted_date = date_object.date()
+        extracted_time = date_object.time()
+    elif isinstance(date_object, date):
+        extracted_date = date_object
+    elif isinstance(date_object, time):
+        extracted_time = date_object
+    elif isinstance(date_object, QDateTime):
+        extracted_date = date_object.date()
+        extracted_time = date_object.time()
     elif isinstance(date_object, QDate):
-        date = date_object
+        extracted_date = date_object
     elif isinstance(date_object, QTime):
-        time = date_object
+        extracted_time = date_object
 
     result = {}
-    if date is not None:
-        result["year"] = date.year()
-        result["month"] = date.month()
-        result["day"] = date.day()
+    if extracted_date is not None:
+        get_value = (
+            (lambda attr: attr())
+            if isinstance(date_object, (QDate, QDateTime))
+            else (lambda attr: attr)
+        )
 
-    if time is not None:
-        result["hour"] = time.hour()
-        result["minute"] = time.minute()
-        result["second"] = time.second()
+        result["year"] = get_value(extracted_date.year)
+        result["month"] = get_value(extracted_date.month)
+        result["day"] = get_value(extracted_date.day)
+
+    if extracted_time is not None:
+        get_value = (
+            (lambda attr: attr())
+            if isinstance(date_object, (QTime, QDateTime))
+            else (lambda attr: attr)
+        )
+
+        result["hour"] = get_value(extracted_time.hour)
+        result["minute"] = get_value(extracted_time.minute)
+        result["second"] = get_value(extracted_time.second)
 
     return result
 
@@ -50,7 +74,7 @@ def simplify_value(value: Any) -> Any:
     ) or value == QgsApplication.nullRepresentation():
         value = None
 
-    elif isinstance(value, (QDate, QTime, QDateTime)):
+    elif isinstance(value, (datetime, date, time, QDate, QTime, QDateTime)):
         value = simplify_date_and_time(value, iso_format=True)
 
     return value
