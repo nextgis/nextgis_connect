@@ -37,6 +37,7 @@ from qgis.PyQt.QtCore import (
 )
 from qgis.PyQt.QtGui import QColor, QDesktopServices, QIcon, QKeyEvent
 from qgis.PyQt.QtWidgets import (
+    QAbstractSpinBox,
     QDialog,
     QDialogButtonBox,
     QGridLayout,
@@ -1063,6 +1064,27 @@ class ResolvingDialog(QDialog, WIDGET):
         if item is None:
             return
 
+        sender = cast(QAbstractSpinBox, self.sender())
+
+        if sender.isReadOnly():
+            if "Widget_local_" in sender.objectName():
+                feature = item.local_feature
+            elif "Widget_remote_" in sender.objectName():
+                feature = item.remote_feature
+            elif "Widget_result_" in sender.objectName():
+                feature = item.result_feature
+            elif (
+                item.conflict.local_action.action == ActionType.FEATURE_DELETE
+            ):
+                feature = item.remote_feature
+            else:
+                feature = item.local_feature
+
+            self.__set_field_value(
+                sender, field, feature.attribute(field.attribute)
+            )
+            return
+
         assert item.result_feature is not None
 
         if (
@@ -1072,8 +1094,8 @@ class ResolvingDialog(QDialog, WIDGET):
                 NgwDataType.BIGINT,
                 NgwDataType.REAL,
             )
-            and self.sender().clearValue() == value
-        ):  # type: ignore
+            and sender.clearValue() == value
+        ):
             value = None
 
         item.result_feature.setAttribute(
