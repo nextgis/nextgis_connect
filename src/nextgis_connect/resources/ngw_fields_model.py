@@ -2,6 +2,7 @@ from dataclasses import replace
 from enum import IntEnum, auto
 from typing import Any, Optional
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import (
     QAbstractTableModel,
     QModelIndex,
@@ -57,25 +58,38 @@ class NgwFieldsModel(QAbstractTableModel):
     def headerData(
         self, section, orientation, role=Qt.ItemDataRole.DisplayRole
     ):
+        # QgsApplication.translated due to incorrect handling of nested classes
+        # by pylupdate
+
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 if section == NgwFieldsModel.Column.DISPLAY_NAME:
-                    return self.tr("Display name")
+                    return QgsApplication.translate(
+                        "NgwFieldsModel", "Display name"
+                    )
                 elif section == NgwFieldsModel.Column.KEYNAME:
-                    return self.tr("Keyname")
+                    return QgsApplication.translate(
+                        "NgwFieldsModel", "Keyname"
+                    )
                 elif section == NgwFieldsModel.Column.DATATYPE:
-                    return self.tr("Type")
+                    return QgsApplication.translate("NgwFieldsModel", "Type")
             else:
                 return 1 + section
 
         elif role == Qt.ItemDataRole.ToolTipRole:
             if orientation == Qt.Orientation.Horizontal:
                 if section == NgwFieldsModel.Column.IS_VISIBLE:
-                    return self.tr("Feature table")
+                    return QgsApplication.translate(
+                        "NgwFieldsModel", "Feature table"
+                    )
                 elif section == NgwFieldsModel.Column.IS_USED_FOR_SEARCH:
-                    return self.tr("Text search")
+                    return QgsApplication.translate(
+                        "NgwFieldsModel", "Text search"
+                    )
                 elif section == NgwFieldsModel.Column.IS_LABEL:
-                    return self.tr("Label Attribute")
+                    return QgsApplication.translate(
+                        "NgwFieldsModel", "Label Attribute"
+                    )
 
         elif role == Qt.ItemDataRole.DecorationRole:
             if orientation == Qt.Orientation.Horizontal:

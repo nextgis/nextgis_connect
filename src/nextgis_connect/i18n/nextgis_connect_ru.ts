@@ -212,39 +212,6 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
-    <name>Column</name>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="63"/>
-        <source>Display name</source>
-        <translation>Наименование</translation>
-    </message>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="65"/>
-        <source>Keyname</source>
-        <translation>Ключ</translation>
-    </message>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="67"/>
-        <source>Type</source>
-        <translation>Тип</translation>
-    </message>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="74"/>
-        <source>Feature table</source>
-        <translation>Таблица объектов</translation>
-    </message>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="76"/>
-        <source>Text search</source>
-        <translation>Текстовый поиск</translation>
-    </message>
-    <message>
-        <location filename="../resources/ngw_fields_model.py" line="78"/>
-        <source>Label Attribute</source>
-        <translation>Атрибут наименование</translation>
-    </message>
-</context>
-<context>
     <name>DetachedEditingTask</name>
     <message>
         <location filename="../detached_editing/tasks/detached_editing_task.py" line="62"/>
@@ -943,7 +910,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Перезаписать выбранный слой</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2464"/>
+        <location filename="../ng_connect_dock.py" line="2462"/>
         <source>Create resource group</source>
         <translation>Создать группу ресурсов</translation>
     </message>
@@ -1298,12 +1265,12 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Поиск</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2472"/>
+        <location filename="../ng_connect_dock.py" line="2470"/>
         <source>Create vector layer</source>
         <translation>Создать векторный слой</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2482"/>
+        <location filename="../ng_connect_dock.py" line="2480"/>
         <source>New NextGIS Web Vector Layer</source>
         <translation>Новый векторный слой NextGIS Web</translation>
     </message>
@@ -1697,6 +1664,39 @@ Are you sure you want to continue?</source>
     </message>
 </context>
 <context>
+    <name>NgwFieldsModel</name>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="67"/>
+        <source>Display name</source>
+        <translation>Наименование</translation>
+    </message>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="71"/>
+        <source>Keyname</source>
+        <translation>Ключ</translation>
+    </message>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="75"/>
+        <source>Type</source>
+        <translation>Тип</translation>
+    </message>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="82"/>
+        <source>Feature table</source>
+        <translation>Таблица объектов</translation>
+    </message>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="86"/>
+        <source>Text search</source>
+        <translation>Текстовый поиск</translation>
+    </message>
+    <message>
+        <location filename="../resources/ngw_fields_model.py" line="90"/>
+        <source>Label Attribute</source>
+        <translation>Атрибут наименование</translation>
+    </message>
+</context>
+<context>
     <name>NgwResourcesAdder</name>
     <message>
         <location filename="../ngw_resources_adder.py" line="315"/>
@@ -1815,54 +1815,54 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>ResolvingDialog</name>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="916"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="917"/>
         <source>Unresolved conflict</source>
         <translation>Нерешённый конфликт</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="417"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="418"/>
         <source>Geometry</source>
         <translation>Геометрия</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="375"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="376"/>
         <source>Feature was deleted</source>
         <translation>Объект был удалён</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="391"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="392"/>
         <source>Field changed</source>
         <translation>Поле изменено</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="412"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="413"/>
         <source>Geometry changed</source>
         <translation>Геометрия изменена</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="916"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="917"/>
         <source>Resolved conflict</source>
         <translation>Решённый конфликт</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1030"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1031"/>
         <source>Geometry is not set</source>
         <translation>Геометрия не установлена</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1030"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1031"/>
         <source>Geometry conflict is not resolved</source>
         <translation>Конфликт геометрии не решён</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1102"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="1124"/>
         <source>Open in Web GIS</source>
         <translation>Открыть в Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="155"/>
+        <location filename="../detached_editing/conflicts/ui/resolving_dialog.py" line="156"/>
         <source>Conflict resolution in layer &quot;{}&quot;</source>
-        <translation type="unfinished">Решение конфликтов в слое &quot;{}&quot;</translation>
+        <translation>Решение конфликтов в слое &quot;{}&quot;</translation>
     </message>
 </context>
 <context>
