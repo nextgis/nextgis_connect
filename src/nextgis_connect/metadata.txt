@@ -48,7 +48,7 @@ changelog=
 		* Fixed resource selection on uploading
 		* Fixed incorrect icon size in toolbar
 		* Fixed upload statuses translation
-		! Supported NGW versions: 4.9.0 - 5.2.
+		! Supported NGW versions: 4.9.0 - 5.2.0
 	2.6.1
 		* Fixed filling of detached layers
 		! Supported NGW versions: 4.8.0 - 5.1.0
