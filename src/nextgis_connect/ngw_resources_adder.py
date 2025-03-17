@@ -24,7 +24,10 @@ from qgis.PyQt.QtWidgets import QMessageBox
 from qgis.utils import iface
 
 from nextgis_connect.core.tasks.ng_connect_task import NgConnectTask
-from nextgis_connect.detached_editing.utils import detached_layer_uri
+from nextgis_connect.detached_editing.utils import (
+    detached_layer_uri,
+    is_ngw_container,
+)
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.exceptions import (
     ErrorCode,
@@ -141,22 +144,30 @@ class LayerCreatorTask(NgConnectTask):
     def __fix_crs(self, layer: QgsMapLayer) -> None:
         # Workaround for NGQ-202
 
-        if layer.dataProvider().name() != "wms":
-            return
+        provider = layer.dataProvider().name()
 
-        provider_metadata = QgsProviderRegistry.instance().providerMetadata(
-            "wms"
-        )
-        params = provider_metadata.decodeUri(layer.source())
-        crs_id = params.get("crs")
-        if crs_id is None:
-            return
+        if provider == "wms":
+            provider_metadata = (
+                QgsProviderRegistry.instance().providerMetadata("wms")
+            )
+            params = provider_metadata.decodeUri(layer.source())
+            crs_id = params.get("crs")
+            if crs_id is None:
+                return
 
-        crs = QgsCoordinateReferenceSystem.fromOgcWmsCrs(crs_id)
-        if not crs.isValid():
-            return
+            crs = QgsCoordinateReferenceSystem.fromOgcWmsCrs(crs_id)
+            if not crs.isValid():
+                return
 
-        layer.setCrs(crs)
+            layer.setCrs(crs)
+
+        elif (
+            provider == "ogr"
+            and not layer.crs().isValid()
+            and is_ngw_container(layer)
+        ):
+            crs = QgsCoordinateReferenceSystem.fromEpsgId(3857)
+            layer.setCrs(crs)
 
 
 def is_layer(resource: Union[Optional[NGWResource], QModelIndex]) -> bool:
