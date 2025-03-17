@@ -404,6 +404,8 @@ class DetachedContainer(QObject):
 
             return
 
+        self.__metadata = utils.container_metadata(self.path)
+
         for layer in self.__detached_layers.values():
             layer.disable_fake()
 
@@ -618,17 +620,31 @@ class DetachedContainer(QObject):
             self.__versioning_state = (
                 VersioningSynchronizationState.Synchronized
             )
+            self.__finish_sync()
         else:
             assert self.__sync_task.error is not None
             self.__check_date = datetime.now()
-            self.__sync_task.error.try_again = lambda: self.synchronize(
-                is_manual=True
+
+            error = self.__sync_task.error
+            if self.__is_network_error(error):
+                self.__sync_task.error.try_again = lambda: self.synchronize(
+                    is_manual=True
+                )
+
+            will_be_updated = (
+                error.code == ErrorCode.ContainerVersionIsOutdated
+                and not self.metadata.has_changes
             )
-            self.__process_error(self.__sync_task.error)
+
+            self.__process_error(
+                self.__sync_task.error, show_error=not will_be_updated
+            )
+            self.__finish_sync()
+
+            if will_be_updated:
+                self.reset_container()
 
             self.__is_edit_allowed = False
-
-        self.__finish_sync()
 
     @pyqtSlot()
     def __on_fetch_finished(self) -> None:
