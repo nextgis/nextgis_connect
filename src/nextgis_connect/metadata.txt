@@ -31,7 +31,7 @@ changelog=
 		* Add try again for some errors
 		* Add removing error after fix
 		* Add ability to create wms service from raster
-		* Add ability to create wms service from  styles
+		* Add ability to create wms service from styles
 		* Removed obsolete renaming fields functionality
 		* Removed search by description
 		* Fixed adding fid column from gpkg uploading
@@ -39,7 +39,7 @@ changelog=
 		* Fixed CRS for TMS from QMS
 		* Fixed active upload button with empty project
 		* Fixed quoted layer names
-		* Fixed uploading not GTiff rasters
+		* Fixed uploading not GTiff rasters (included PostGIS)
 		* Fixed sync label attribute
 		* Fixed search with special symbols
 		* Fixed progress bar error in settings
@@ -47,7 +47,8 @@ changelog=
 		* Fixed uploaded resource selection
 		* Fixed search icon size
 		* Fixed layer reset
-		! Supported NGW versions: 4.8.0 - 5.1.0
+		* Fixed statuses translations
+		! Supported NGW versions: 4.9.0 - 5.2.0
 	2.6.1
 		* Fixed filling of detached layers
 		! Supported NGW versions: 4.8.0 - 5.1.0
