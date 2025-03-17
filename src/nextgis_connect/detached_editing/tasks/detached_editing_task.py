@@ -2,7 +2,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Optional, cast
 
-from qgis.core import QgsTask
+from qgis.core import QgsApplication, QgsTask
 
 from nextgis_connect.compat import parse_version
 from nextgis_connect.core.tasks.ng_connect_task import NgConnectTask
@@ -59,9 +59,9 @@ class DetachedEditingTask(NgConnectTask):
             self._error.__cause__ = error
             return
 
-        description = self.tr('"{layer_name}" layer synchronization').format(
-            layer_name=self._metadata.layer_name
-        )
+        description = QgsApplication.translate(
+            "DetachedEditingTask", '"{layer_name}" layer synchronization'
+        ).format(layer_name=self._metadata.layer_name)
         self.setDescription(description)
 
     def run(self) -> bool:
@@ -211,7 +211,10 @@ class DetachedEditingTask(NgConnectTask):
                 + " "
                 + default_user_message(ErrorCode.InvalidConnection)
                 + " "
-                + self.tr("Please check layer connection settings.")
+                + QgsApplication.translate(
+                    "DetachedEditingTask",
+                    "Please check layer connection settings.",
+                )
             )
             self._error = SynchronizationError(user_message=user_message)
             return
@@ -223,7 +226,10 @@ class DetachedEditingTask(NgConnectTask):
                 + " "
                 + default_user_message(ErrorCode.DomainChanged)
                 + " "
-                + self.tr("Please check layer connection settings.")
+                + QgsApplication.translate(
+                    "DetachedEditingTask",
+                    "Please check layer connection settings.",
+                )
             )
             self._error = SynchronizationError(
                 code=ErrorCode.DomainChanged, user_message=user_message
