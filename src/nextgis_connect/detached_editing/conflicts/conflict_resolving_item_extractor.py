@@ -138,12 +138,12 @@ class ConflictResolvingItemExtractor:
     ) -> QgsFeature:
         result_feature = QgsFeature(feature)
         for field in self.__metadata.fields:
-            key = (feature.id(), field.ngw_id)
+            key = (feature.id(), field.attribute)
             if key not in fields_backups:
                 continue
-            feature.setAttribute(field.attribute, fields_backups[key])
+            result_feature.setAttribute(field.attribute, fields_backups[key])
         if feature.id() in geometries_backups:
-            feature.setGeometry(
+            result_feature.setGeometry(
                 deserialize_geometry(
                     geometries_backups[feature.id()],
                     self.__metadata.is_versioning_enabled,
