@@ -110,6 +110,7 @@ class DetachedContainer(QObject):
         self.__detached_layers = {}
 
         self.__metadata = None
+        self.__is_not_initialized = True
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized
         self.__changes = DetachedContainerChangesInfo()
@@ -153,7 +154,7 @@ class DetachedContainer(QObject):
 
     @property
     def is_not_initialized(self) -> bool:
-        return self.__state == DetachedLayerState.NotInitialized
+        return self.__is_not_initialized
 
     @property
     def error(self) -> Optional[NgConnectException]:
@@ -294,6 +295,8 @@ class DetachedContainer(QObject):
         if self.metadata is None:
             return False
 
+        self.__is_silent_sync = False
+
         if is_manual:
             self.__additional_data_fetch_date = None
         else:
@@ -409,6 +412,7 @@ class DetachedContainer(QObject):
         for layer in self.__detached_layers.values():
             layer.disable_fake()
 
+        self.__is_not_initialized = True
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized
 
@@ -451,6 +455,8 @@ class DetachedContainer(QObject):
 
             self.state_changed.emit(self.__state)
             return
+
+        self.__is_not_initialized = self.__metadata.is_not_initialized
 
         self.__check_structure()
 
@@ -741,6 +747,8 @@ class DetachedContainer(QObject):
         self.__start_sync(task)
 
     def __start_sync(self, task: DetachedEditingTask) -> None:
+        if self.__is_silent_sync:
+            logger.debug("<b>Resync</b> attempt <b>started<b>")
         self.__sync_task = task
         self.__reset_error()
 
@@ -851,6 +859,7 @@ class DetachedContainer(QObject):
         self.__additional_data_fetch_date = None
 
         if self.__is_silent_sync and self.__is_network_error(error):
+            logger.debug("<b>Resync</b> attempt <b>failed</b>")
             return
 
         self.__error = error
@@ -951,6 +960,13 @@ class DetachedContainer(QObject):
         self.__error = None
 
     def __is_network_error(self, error: Optional[Exception]) -> bool:
-        return error is not None and isinstance(
-            error.__cause__, (NgwError, NGWError)
+        if error is None:
+            return False
+
+        if isinstance(error.__cause__, NGWError):
+            return True
+
+        return (
+            isinstance(error.__cause__, NgwError)
+            and error.__cause__.code != ErrorCode.ServerError
         )

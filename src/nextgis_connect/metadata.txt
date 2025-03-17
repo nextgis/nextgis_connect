@@ -23,6 +23,7 @@ deprecated=False
 
 changelog=
 	3.X.X
+		* Disabled retry of layer synchronization in case of server error
 		* Fixed local feature values displaying in conflict resolving dialog
 		* Fixed new vector layer dialog translations
 		! Supported NGW versions: 4.9.0 - 5.2.0

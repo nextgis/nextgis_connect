@@ -243,6 +243,8 @@ class NgwError(NgConnectError):
             code = ErrorCode.PermissionsError
         elif status_code == HTTPStatus.NOT_FOUND:
             code = ErrorCode.NotFound
+        elif status_code == HTTPStatus.INTERNAL_SERVER_ERROR:
+            code = ErrorCode.ServerError
         else:
             code = ErrorCode.NgwError
 
