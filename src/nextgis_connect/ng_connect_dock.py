@@ -2454,6 +2454,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.search_panel.set_type(SearchType.ByDisplayName)
             self.search_button.setMenu(None)
 
+        self.main_tool_bar.fix_icons_size()
+
     def __create_resource_creation_button(self) -> None:
         menu = QMenu()
 
@@ -2554,10 +2556,12 @@ class NGWPanelToolBar(QToolBar):
         a0.accept()
 
     def resizeEvent(self, a0: Optional[QResizeEvent]) -> None:
+        self.fix_icons_size()
+        a0.accept()
+
+    def fix_icons_size(self) -> None:
         self.setIconSize(QSize(24, 24))
 
         for button in self.findChildren(QToolButton):
             button.setIconSize(QSize(24, 24))
             button.setFixedSize(button.sizeHint())
-
-        a0.accept()
