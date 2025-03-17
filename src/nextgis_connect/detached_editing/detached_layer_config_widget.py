@@ -18,6 +18,7 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_connection.ngw_connections_widget import (
     NgwConnectionsWidget,
 )
+from nextgis_connect.utils import wrap_sql_value
 
 from . import utils
 
@@ -74,7 +75,9 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
             self.__connections_widget
         )
 
-        self.__widget.synchronizationGroupBox.hide()
+        self.__widget.autosync_checkbox.setChecked(
+            self.__metadata.is_auto_sync_enabled
+        )
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -85,14 +88,23 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
     def apply(self) -> None:
         """Called when changes to the layer need to be made"""
         new_connection_id = self.__connections_widget.connection_id()
-        if new_connection_id == self.__metadata.connection_id:
+        new_autosync_state = self.__widget.autosync_checkbox.isChecked()
+        if (
+            new_connection_id == self.__metadata.connection_id
+            and new_autosync_state == self.__metadata.is_auto_sync_enabled
+        ):
             return
 
         with closing(
             utils.make_connection(self.__path)
         ) as connection, closing(connection.cursor()) as cursor:
             cursor.execute(
-                f'UPDATE ngw_metadata SET connection_id="{new_connection_id}"'
+                f"""
+                UPDATE ngw_metadata
+                SET
+                    connection_id={wrap_sql_value(new_connection_id)},
+                    is_auto_sync_enabled={wrap_sql_value(new_autosync_state)}
+                """
             )
 
             connection.commit()

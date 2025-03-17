@@ -6,7 +6,7 @@ description=Create interactive web maps and manage your own fully-functional Web
 description[ru]=Создавайте интерактивные веб-карты и управляйте своей собственной полнофункциональной Веб ГИС на nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
 about[ru]=Создавайте интерактивные веб-карты и управляйте пространственными данными в своей Веб ГИС. Добавляйте слои, карты, сервисы WMS/WFS/TMS. Разработан компанией NextGIS. Любые отзывы приветствуются на https://nextgis.com/contact
-version=3.0.2
+version=3.1.0
 author=NextGIS
 email=info@nextgis.com
 
@@ -22,8 +22,10 @@ experimental=False
 deprecated=False
 
 changelog=
-	3.X.X
+	3.1.0
+		* Added ability to disable automatic synchronization
 		* Disabled retry of layer synchronization in case of server error
+		* Fixed layers locking in case of network error
 		* Fixed incorrect assignment of CRS when adding a detached layer
 		* Fixed local feature values displaying in conflict resolving dialog
 		* Fixed new vector layer dialog translations

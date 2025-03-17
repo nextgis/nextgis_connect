@@ -29,12 +29,12 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QCheckBox" name="checkBox">
+       <widget class="QCheckBox" name="autosync_checkbox">
         <property name="enabled">
          <bool>true</bool>
         </property>
         <property name="text">
-         <string>Synchronize on save</string>
+         <string>Automatic synchronization</string>
         </property>
         <property name="checked">
          <bool>true</bool>

@@ -129,7 +129,9 @@ class DetachedContainer(QObject):
         self.__update_state(is_full_update=True)
 
         if self.__is_project_container:
-            self.__is_edit_allowed = False
+            if self.metadata.is_auto_sync_enabled:
+                self.__is_edit_allowed = False
+
             logger.debug(
                 f'Detached container "{self.__path.name}" added to project'
             )
@@ -288,6 +290,7 @@ class DetachedContainer(QObject):
         if (
             self.is_edit_mode_enabled
             or self.state == DetachedLayerState.Synchronization
+            or (not is_manual and not self.metadata.is_auto_sync_enabled)
         ):
             return False
 
@@ -441,6 +444,7 @@ class DetachedContainer(QObject):
             self.__changes = DetachedContainerChangesInfo()
             self.__additional_data_fetch_date = None
             self.__is_edit_allowed = False
+            self.__lock_layers()
 
             self.state_changed.emit(self.__state)
             return
@@ -452,6 +456,7 @@ class DetachedContainer(QObject):
             self.__changes = DetachedContainerChangesInfo()
             self.__additional_data_fetch_date = None
             self.__is_edit_allowed = False
+            self.__lock_layers()
 
             self.state_changed.emit(self.__state)
             return
@@ -477,6 +482,7 @@ class DetachedContainer(QObject):
             self.__check_date = None
             self.__additional_data_fetch_date = None
             self.__is_edit_allowed = False
+            self.__lock_layers()
             self.state_changed.emit(self.__state)
             return
 
@@ -649,8 +655,6 @@ class DetachedContainer(QObject):
 
             if will_be_updated:
                 self.reset_container()
-
-            self.__is_edit_allowed = False
 
     @pyqtSlot()
     def __on_fetch_finished(self) -> None:
@@ -858,9 +862,17 @@ class DetachedContainer(QObject):
         self.__versioning_state = VersioningSynchronizationState.Error
         self.__additional_data_fetch_date = None
 
-        if self.__is_silent_sync and self.__is_network_error(error):
-            logger.debug("<b>Resync</b> attempt <b>failed</b>")
-            return
+        if self.__is_network_error(error):
+            if self.__additional_data_fetch_date is None:
+                self.__is_edit_allowed = True
+                self.__unlock_layers()
+
+            if self.__is_silent_sync:
+                logger.debug("<b>Resync</b> attempt <b>failed</b>")
+                return
+        else:
+            self.__is_edit_allowed = False
+            self.__lock_layers()
 
         self.__error = error
 
@@ -898,12 +910,18 @@ class DetachedContainer(QObject):
         self.__changes = DetachedContainerChangesInfo()
         self.__additional_data_fetch_date = None
         self.__is_edit_allowed = False
+        self.__lock_layers()
 
     @pyqtSlot()
     def __on_settings_changed(self) -> None:
+        old_connection_id = self.__metadata.connection_id
         self.__update_state(is_full_update=True)
+        is_connection_changed = (
+            old_connection_id != self.__metadata.connection_id
+        )
         self.__update_layers_properties()
-        self.synchronize(is_manual=True)
+        if is_connection_changed or self.__metadata.is_auto_sync_enabled:
+            self.synchronize(is_manual=True)
 
     def __process_delta(self, fetch_delta_task: FetchDeltaTask) -> Sequence:
         if len(fetch_delta_task.delta) == 0:
