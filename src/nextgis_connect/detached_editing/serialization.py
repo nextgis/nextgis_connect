@@ -14,7 +14,7 @@ def simplify_date_and_time(
     *,
     iso_format: bool = False,
 ) -> Union[str, Dict[str, int], None]:
-    if date_object.isNull():
+    if date_object.isNull() or not date_object.isValid():
         return None
 
     if iso_format:
