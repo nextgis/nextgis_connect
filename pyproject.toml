@@ -1,6 +1,6 @@
 [project]
 name = "nextgis_connect"
-version = "3.1.0"
+version = "3.1.1"
 readme = "README.md"
 license = { file = "LICENSE" }
 
