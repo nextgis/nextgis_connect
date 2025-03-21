@@ -2,6 +2,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any, List, Optional
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import (
     QAbstractListModel,
     QModelIndex,
@@ -115,7 +116,9 @@ class ConflictsResolvingModel(QAbstractListModel):
         if role == Qt.ItemDataRole.DisplayRole:
             label_field = self._container_metadata.fields.label_field
             if label_field is None:
-                return self.tr("Feature №") + str(item.conflict.fid)
+                return QgsApplication.translate(
+                    "ConflictsResolvingModel", "Feature №"
+                ) + str(item.conflict.fid)
 
             for feature in (
                 item.local_feature,
@@ -128,7 +131,9 @@ class ConflictsResolvingModel(QAbstractListModel):
                 return feature.attribute(label_field.attribute)
 
         if role == Qt.ItemDataRole.ToolTipRole:
-            return self.tr("Feature №") + str(item.conflict.fid)
+            return QgsApplication.translate(
+                "ConflictsResolvingModel", "Feature №"
+            ) + str(item.conflict.fid)
 
         if role == Qt.ItemDataRole.DecorationRole:
             return (

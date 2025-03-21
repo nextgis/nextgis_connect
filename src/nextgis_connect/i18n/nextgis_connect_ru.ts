@@ -212,16 +212,19 @@ p, li { white-space: pre-wrap; }
     </message>
 </context>
 <context>
+    <name>ConflictsResolvingModel</name>
+    <message>
+        <location filename="../detached_editing/conflicts/conflicts_model.py" line="134"/>
+        <source>Feature №</source>
+        <translation>Объект №</translation>
+    </message>
+</context>
+<context>
     <name>DetachedEditingTask</name>
     <message>
         <location filename="../detached_editing/tasks/detached_editing_task.py" line="62"/>
         <source>&quot;{layer_name}&quot; layer synchronization</source>
         <translation>Синхронизация слоя &quot;{layer_name}&quot;</translation>
-    </message>
-    <message>
-        <location filename="../detached_editing/tasks/detached_editing_task.py" line="221"/>
-        <source>Please check layer connection settings.</source>
-        <translation>Пожалуйста, проверьте настройки соединения в слое.</translation>
     </message>
 </context>
 <context>
@@ -1994,14 +1997,6 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <location filename="../resource_properties/resource_properties_dialog_base.ui" line="349"/>
         <source>%p%</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>Roles</name>
-    <message>
-        <location filename="../detached_editing/conflicts/conflicts_model.py" line="131"/>
-        <source>Feature №</source>
-        <translation>Объект №</translation>
     </message>
 </context>
 <context>
