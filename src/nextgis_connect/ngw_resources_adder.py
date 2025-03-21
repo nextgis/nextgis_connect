@@ -66,6 +66,7 @@ from nextgis_connect.ngw_api.core.ngw_webmap import (
     NGWWebMapLayer,
 )
 from nextgis_connect.ngw_connection import NgwConnectionsManager
+from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.settings.ng_connect_cache_manager import (
     NgConnectCacheManager,
 )
@@ -429,7 +430,7 @@ class NgwResourcesAdder(QObject):
         if isinstance(layer_resource, NGWAbstractVectorResource):
             assert isinstance(layer, QgsVectorLayer)
             self.__add_fields_aliases(layer_resource, layer)
-            self.__add_lookup_tables(layer_resource, layer)
+            self.__add_edit_widgets(layer_resource, layer)
             self.__set_display_field(layer_resource, layer)
 
         layer.setCustomProperty(
@@ -486,7 +487,7 @@ class NgwResourcesAdder(QObject):
             assert isinstance(layer_resource, NGWAbstractVectorResource)
             self.__add_all_styles_to_layer(layer_resource, layer)
             self.__add_fields_aliases(layer_resource, layer)
-            self.__add_lookup_tables(layer_resource, layer)
+            self.__add_edit_widgets(layer_resource, layer)
             self.__set_display_field(layer_resource, layer)
 
         layer.setCustomProperty(
@@ -1098,7 +1099,7 @@ class NgwResourcesAdder(QObject):
                 ngw_field.display_name,
             )
 
-    def __add_lookup_tables(
+    def __add_edit_widgets(
         self,
         ngw_vector_layer: NGWAbstractVectorResource,
         qgs_vector_layer: QgsVectorLayer,
@@ -1108,25 +1109,39 @@ class NgwResourcesAdder(QObject):
         lookup_tables: Dict[int, List[Dict[str, str]]] = {}
 
         for ngw_field in ngw_vector_layer.fields:
-            if ngw_field.lookup_table is None:
-                continue
+            if ngw_field.datatype == NgwDataType.TIME:
+                setup = QgsEditorWidgetSetup(
+                    "DateTime",
+                    {
+                        "display_format": "HH:mm:ss",
+                        "field_format": "HH:mm:ss",
+                        "field_format_overwrite": True,
+                        "field_iso_format": False,
+                        "allow_null": True,
+                    },
+                )
+                field_index = qgs_fields.indexFromName(ngw_field.keyname)
+                qgs_vector_layer.setEditorWidgetSetup(field_index, setup)
 
-            lookup_table_id = ngw_field.lookup_table
+            elif ngw_field.lookup_table is not None:
+                lookup_table_id = ngw_field.lookup_table
 
-            if lookup_table_id not in lookup_tables:
-                lookup_table = self.__model.resource(ngw_field.lookup_table)
-                lookup_tables[lookup_table_id] = [
-                    {description: value}
-                    for value, description in lookup_table._json[
-                        "lookup_table"
-                    ]["items"].items()
-                ]
+                if lookup_table_id not in lookup_tables:
+                    lookup_table = self.__model.resource(
+                        ngw_field.lookup_table
+                    )
+                    lookup_tables[lookup_table_id] = [
+                        {description: value}
+                        for value, description in lookup_table._json[
+                            "lookup_table"
+                        ]["items"].items()
+                    ]
 
-            setup = QgsEditorWidgetSetup(
-                "ValueMap", {"map": lookup_tables[lookup_table_id]}
-            )
-            field_index = qgs_fields.indexFromName(ngw_field.keyname)
-            qgs_vector_layer.setEditorWidgetSetup(field_index, setup)
+                setup = QgsEditorWidgetSetup(
+                    "ValueMap", {"map": lookup_tables[lookup_table_id]}
+                )
+                field_index = qgs_fields.indexFromName(ngw_field.keyname)
+                qgs_vector_layer.setEditorWidgetSetup(field_index, setup)
 
     def __extract_styles(
         self, layer_index: Union[QModelIndex, NGWResource]

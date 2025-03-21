@@ -870,6 +870,12 @@ class DetachedContainer(QObject):
             if self.__is_silent_sync:
                 logger.debug("<b>Resync</b> attempt <b>failed</b>")
                 return
+        elif error.code == ErrorCode.ValueFormatError or (
+            isinstance(error.__cause__, NgConnectException)
+            and error.__cause__.code == ErrorCode.ValueFormatError
+        ):
+            self.__is_edit_allowed = True
+            self.__unlock_layers()
         else:
             self.__is_edit_allowed = False
             self.__lock_layers()
