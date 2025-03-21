@@ -1252,7 +1252,7 @@ Please be aware that your current connections will be converted to the new forma
     <message>
         <location filename="../ng_connect_dock.py" line="2406"/>
         <source>By name</source>
-        <translation>На названию</translation>
+        <translation>По названию</translation>
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="2413"/>
