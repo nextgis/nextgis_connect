@@ -478,7 +478,9 @@ class NgwSearch(NGWResourceModelJob):
             if values_count == 0:
                 return []
             elif values_count == 1:
-                return [f"{tag.query_name}={quote_plus(str(values[0]))}"]
+                return [
+                    f"{tag.query_name}{operator}={quote_plus(str(values[0]))}"
+                ]
             else:
                 joined_values = ",".join(
                     map(lambda value: quote_plus(str(value)), values)
