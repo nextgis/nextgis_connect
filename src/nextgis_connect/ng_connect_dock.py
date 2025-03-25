@@ -345,12 +345,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.delete_curent_ngw_resource
         )
 
-        self.actionOpenMapInBrowser = QAction(
+        self.actionOpenInBrowser = QAction(
             QIcon(os.path.join(ICONS_PATH, "mActionOpenMap.svg")),
-            self.tr("Open Web map in browser"),
+            self.tr("Display in browser"),
             self,
         )
-        self.actionOpenMapInBrowser.triggered.connect(self.__action_open_map)
+        self.actionOpenInBrowser.triggered.connect(self.__open_in_web)
 
         self.actionRefresh = QAction(
             QIcon(os.path.join(ICONS_PATH, "mActionRefresh.svg")),
@@ -417,7 +417,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.main_tool_bar.addSeparator()
 
-        self.main_tool_bar.addAction(self.actionOpenMapInBrowser)
+        self.main_tool_bar.addAction(self.actionOpenInBrowser)
 
         self.main_tool_bar.addSeparator()
 
@@ -717,10 +717,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.actionExport.setEnabled(is_download_enabled)
         self.toolbuttonDownload.setEnabled(is_download_enabled)
 
-        self.actionOpenMapInBrowser.setEnabled(
+        self.actionOpenInBrowser.setText(
+            self.tr("Open Web map in browser")
+            if is_one_ngw_selected and isinstance(ngw_resources[0], NGWWebMap)
+            else self.tr("Display in browser")
+        )
+        self.actionOpenInBrowser.setEnabled(
             not is_multiple_ngw_selection
             and not has_no_ngw_selection
-            and isinstance(ngw_resources[0], NGWWebMap)
+            and ngw_resources[0].is_preview_supported
         )
 
         self.creation_button.setEnabled(is_one_ngw_selected)
@@ -1173,7 +1178,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.creation_button,
             self.search_button,
             self.search_panel,
-            self.actionOpenMapInBrowser,
+            self.actionOpenInBrowser,
             self.actionUploadSelectedResources,
             self.actionUpdateStyle,
             self.actionAddStyle,
@@ -1301,8 +1306,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             creating_actions.append(self.actionCreateWebMap4Style)
 
-        if not is_multiple_selection and isinstance(ngw_resource, NGWWebMap):
-            services_actions.append(self.actionOpenMapInBrowser)
+        if not is_multiple_selection and ngw_resource.is_preview_supported:
+            services_actions.append(self.actionOpenInBrowser)
 
         menu = QMenu()
         for actions in [
@@ -1322,7 +1327,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def trvDoubleClickProcess(self, index: QModelIndex) -> None:
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         if isinstance(ngw_resource, NGWWebMap):
-            self.__action_open_map()
+            self.__open_in_web()
 
     def open_ngw_resource_page(self):
         sel_index = self.proxy_model.mapToSource(
@@ -1372,17 +1377,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.resources_tree_view.rename_resource(selected_index)
 
-    def __action_open_map(self):
+    def __open_in_web(self):
         selected_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
 
-        if selected_index.isValid():
-            ngw_resource = selected_index.data(
-                QNGWResourceItem.NGWResourceRole
-            )
-            url = ngw_resource.get_display_url()
-            QDesktopServices.openUrl(QUrl(url))
+        if not selected_index.isValid():
+            return
+
+        ngw_resource: NGWResource = selected_index.data(
+            QNGWResourceItem.NGWResourceRole
+        )
+        url = ngw_resource.preview_url
+        QDesktopServices.openUrl(QUrl(url))
 
     def __download_selected(self):
         selection_model = self.resources_tree_view.selectionModel()
@@ -2133,8 +2140,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             return
 
-        ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
-        url = ngw_resource.get_display_url()
+        ngw_resource: NGWResource = index.data(
+            QNGWResourceItem.NGWResourceRole
+        )
+        url = ngw_resource.preview_url
         QDesktopServices.openUrl(QUrl(url))
 
     def processWarnings(self, index):
