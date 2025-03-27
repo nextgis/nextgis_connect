@@ -275,12 +275,12 @@ Further work with the layer is possible only after the layer reset. You can do t
     </message>
     <message>
         <location filename="../detached_editing/detached_layer_config_widget.py" line="47"/>
-        <source>An error occured while settings UI loading</source>
+        <source>An error occurred while settings UI loading</source>
         <translation>Вознилка ошибка при загрузке интерфейса настроек</translation>
     </message>
     <message>
         <location filename="../detached_editing/detached_layer_config_widget.py" line="51"/>
-        <source>An error occured in settings UI</source>
+        <source>An error occurred in settings UI</source>
         <translation>Возникла ошибка в интерфейсе настроек</translation>
     </message>
 </context>
@@ -532,7 +532,7 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../exceptions.py" line="515"/>
-        <source>An error occured while layer synchronization.</source>
+        <source>An error occurred during layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
@@ -1139,7 +1139,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="2240"/>
-        <source>An error occured when copying the style</source>
+        <source>An error occurred when copying the style</source>
         <translation>При копировании стиля произошла ошибка</translation>
     </message>
     <message>
@@ -1382,12 +1382,12 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../settings/ui/ng_connect_settings_page.py" line="75"/>
-        <source>An error occured while settings UI loading</source>
+        <source>An error occurred while settings UI loading</source>
         <translation>Вознилка ошибка при загрузке интерфейса настроек</translation>
     </message>
     <message>
         <location filename="../settings/ui/ng_connect_settings_page.py" line="79"/>
-        <source>An error occured in settings UI</source>
+        <source>An error occurred in settings UI</source>
         <translation>Возникла ошибка в интерфейсе настроек</translation>
     </message>
     <message>
@@ -1745,12 +1745,12 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../ngw_resources_adder.py" line="271"/>
-        <source>An error occured while fetching resources</source>
+        <source>An error occurred while fetching resources</source>
         <translation>Возникла ошибка при получении ресурсов</translation>
     </message>
     <message>
         <location filename="../ngw_resources_adder.py" line="294"/>
-        <source>An error occured while fetching styles</source>
+        <source>An error occurred while fetching styles</source>
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>

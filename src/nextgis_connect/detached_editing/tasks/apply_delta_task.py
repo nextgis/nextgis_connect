@@ -73,7 +73,7 @@ class ApplyDeltaTask(DetachedEditingTask):
 
         except Exception as error:
             message = (
-                f"An error occured while applying layer {self._metadata}"
+                f"An error occurred while applying layer {self._metadata}"
                 " changes"
             )
             self._error = SynchronizationError(message)

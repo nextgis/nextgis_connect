@@ -20,7 +20,7 @@ class ClearNgConnectCacheTask(NgConnectTask):
             cache_manager = NgConnectCacheManager()
             cache_manager.clear_cache()
         except Exception as error:
-            logger.exception("An error occured while cache clearing")
+            logger.exception("An error occurred while cache clearing")
             self._error = error
             return False
 

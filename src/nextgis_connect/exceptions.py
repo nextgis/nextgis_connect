@@ -514,7 +514,7 @@ def default_user_message(code: ErrorCode) -> str:
             "The container could not be found. It may have been deleted."
         ),
         ErrorCode.SynchronizationError: QgsApplication.translate(
-            "Errors", "An error occured while layer synchronization."
+            "Errors", "An error occurred during layer synchronization."
         ),
         ErrorCode.NotVersionedContentChanged: QgsApplication.translate(
             "Errors", "Layer features have been modified outside of QGIS."

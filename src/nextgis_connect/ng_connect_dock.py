@@ -985,7 +985,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     @pyqtSlot(str, str)
     def __modelJobFinished(self, job_id: str, job_uuid: str):
         # note: __modelJobFinished will be triggered even if error/warning
-        # occured during job execution
+        # occurred during job execution
         self.jobs_count += 1
 
         if job_id == "NGWRootResourcesLoader":
@@ -2249,7 +2249,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
 
         if len(error_message) != 0:
-            user_message = self.tr("An error occured when copying the style")
+            user_message = self.tr("An error occurred when copying the style")
             error = NgConnectError(user_message=user_message)
             error.add_note(error_message)
             NgConnectInterface.instance().show_error(error)

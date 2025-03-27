@@ -72,11 +72,11 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         try:
             widget = uic.loadUi(str(plugin_path / "settings_dialog_base.ui"))  # type: ignore
         except FileNotFoundError as error:
-            message = self.tr("An error occured while settings UI loading")
+            message = self.tr("An error occurred while settings UI loading")
             logger.exception(message)
             raise RuntimeError(message) from error
         if widget is None:
-            message = self.tr("An error occured in settings UI")
+            message = self.tr("An error occurred in settings UI")
             logger.error(message)
             raise RuntimeError(message)
 

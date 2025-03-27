@@ -44,11 +44,11 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
                 str(directory / "detached_layer_config_widget_base.ui")
             )  # type: ignore
         except FileNotFoundError as error:
-            message = self.tr("An error occured while settings UI loading")
+            message = self.tr("An error occurred while settings UI loading")
             logger.exception(message)
             raise RuntimeError(message) from error
         if widget is None:
-            message = self.tr("An error occured in settings UI")
+            message = self.tr("An error occurred in settings UI")
             logger.error(message)
             raise RuntimeError(message)
 
@@ -61,7 +61,7 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
             self.__metadata = utils.container_metadata(self.__path)
         except Exception:
             logger.exception(
-                "An error occured while layer metadata extracting"
+                "An error occurred during layer metadata extracting"
             )
             raise
 

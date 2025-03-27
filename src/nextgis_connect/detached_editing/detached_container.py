@@ -347,7 +347,7 @@ class DetachedContainer(QObject):
 
         if connection_id is None or resource_id is None:
             error = NgConnectException(
-                "An error occured while resetting layer. Empty ids"
+                "An error occurred while resetting layer. Empty ids"
             )
             self.__process_error(error)
             return
@@ -366,7 +366,7 @@ class DetachedContainer(QObject):
             return
         except Exception as error:
             ng_error = NgConnectError(
-                "An error occured while resetting layer",
+                "An error occurred while resetting layer",
             )
             ng_error.__cause__ = error
             ng_error.try_again = self.reset_container

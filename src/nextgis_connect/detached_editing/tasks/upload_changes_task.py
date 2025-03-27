@@ -47,7 +47,7 @@ class UploadChangesTask(DetachedEditingTask):
             return False
 
         except Exception as error:
-            message = f"An error occured while uploading changes for {self._metadata}"
+            message = f"An error occurred while uploading changes for {self._metadata}"
             self._error = SynchronizationError(message)
             self._error.__cause__ = error
             return False
@@ -233,7 +233,7 @@ class UploadChangesTask(DetachedEditingTask):
                 is_lunkwill=True,
             )
         except Exception:
-            logger.exception("Exception occured while commiting transaction")
+            logger.exception("Exception occurred while commiting transaction")
             connection.delete(
                 f"{resource_url}/feature/transaction/{transaction_id}"
             )

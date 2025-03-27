@@ -72,7 +72,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
 
         except Exception as error:
             message = (
-                "An error occured while fetching extra data for layer "
+                "An error occurred while fetching extra data for layer "
                 f"{self._metadata}"
             )
             self._error = SynchronizationError(message)

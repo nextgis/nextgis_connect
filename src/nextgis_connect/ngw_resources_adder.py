@@ -269,7 +269,7 @@ class NgwResourcesAdder(QObject):
                     index = index.parent()
                 result.extend(self.__missing_resources(index))
         except Exception as error:
-            message = self.tr("An error occured while fetching resources")
+            message = self.tr("An error occurred while fetching resources")
             ng_error = NgwError(user_message=message)
             ng_error.__cause__ = error
             NgConnectInterface.instance().show_error(ng_error)
@@ -292,7 +292,7 @@ class NgwResourcesAdder(QObject):
                 result.extend(self.__missing_styles(index))
 
         except Exception as error:
-            message = self.tr("An error occured while fetching styles")
+            message = self.tr("An error occurred while fetching styles")
             ng_error = NgwError(user_message=message)
             ng_error.__cause__ = error
             NgConnectInterface.instance().show_error(ng_error)

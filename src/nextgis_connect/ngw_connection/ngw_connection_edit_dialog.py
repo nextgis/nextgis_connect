@@ -403,7 +403,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                     error = NgwError.from_json(json_content)
                 except Exception:
                     logger.exception(
-                        "An error occured while testing connection"
+                        "An error occurred while testing connection"
                     )
 
             if error is not None:
@@ -412,7 +412,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 elif error.code != ErrorCode.PermissionsError:
                     message = error.user_message
                     logger.exception(
-                        "An error occured while testing connection",
+                        "An error occurred while testing connection",
                         exc_info=error,
                     )
                 else:

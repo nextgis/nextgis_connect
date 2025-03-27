@@ -63,7 +63,7 @@ class DetachedLayer(QObject):
     structure_changed = pyqtSignal(name="structureChanged")
     settings_changed = pyqtSignal(name="settingsChanged")
 
-    error_occurred = pyqtSignal(ContainerError, name="errorOccured")
+    error_occurred = pyqtSignal(ContainerError, name="erroroccurred")
 
     def __init__(
         self,

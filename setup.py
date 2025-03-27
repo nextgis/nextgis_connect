@@ -631,7 +631,7 @@ class QgisPluginBuilder:
                 need_fill = False
             except Exception:
                 print(
-                    f"An error occured while reading {launch_file}. This file"
+                    f"An error occurred while reading {launch_file}. This file"
                     " will be overwrited"
                 )
                 pass

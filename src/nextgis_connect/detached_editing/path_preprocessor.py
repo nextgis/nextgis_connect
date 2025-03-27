@@ -23,7 +23,7 @@ class DetachedEditingPathPreprocessor:
         try:
             self.__create_container_if_needed(path)
         except Exception:
-            logger.exception("An error occured while path preprocessing")
+            logger.exception("An error occurred while path preprocessing")
 
         return path
 

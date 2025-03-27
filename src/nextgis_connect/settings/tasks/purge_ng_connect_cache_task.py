@@ -20,7 +20,7 @@ class PurgeNgConnectCacheTask(NgConnectTask):
             cache_manager = NgConnectCacheManager()
             cache_manager.purge_cache()
         except Exception:
-            logger.exception("An error occured while cache purging")
+            logger.exception("An error occurred while cache purging")
             return False
 
         return True

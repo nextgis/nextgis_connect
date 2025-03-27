@@ -72,7 +72,7 @@ class FillLayerWithVersioning(DetachedEditingTask):
 
         except Exception as error:
             message = (
-                f"An error occured while downloading layer {self._metadata}"
+                f"An error occurred while downloading layer {self._metadata}"
             )
             self._error = SynchronizationError(message)
             self._error.__cause__ = error

@@ -387,7 +387,7 @@ def ngw_feature_id(
                 return result[0]
 
     except Exception:
-        logger.exception("Error occured while querying ngw_fid")
+        logger.exception("Error occurred while querying ngw_fid")
 
     return None
 
@@ -423,6 +423,6 @@ def ngw_feature_description(
                 return result[0]
 
     except Exception:
-        logger.exception("Error occured while querying ngw_fid")
+        logger.exception("Error occurred while querying ngw_fid")
 
     return None
