@@ -27,6 +27,7 @@ class ErrorCode(IntEnum):
 
     AddingError = 480
     QuotaExceeded = auto()
+    SpatialReferenceError = auto()
     UnsupportedRasterType = auto()
     InvalidResource = auto()
     InvalidConnection = auto()

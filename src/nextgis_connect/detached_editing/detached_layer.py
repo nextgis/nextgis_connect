@@ -36,6 +36,7 @@ from nextgis_connect.exceptions import ContainerError
 from nextgis_connect.logging import logger
 from nextgis_connect.resources.ngw_field import FieldId
 from nextgis_connect.types import NgwFeatureId
+from nextgis_connect.utils import wrap_sql_value
 
 if TYPE_CHECKING:
     from .detached_container import DetachedContainer
@@ -582,7 +583,10 @@ class DetachedLayer(QObject):
         # Update records
         removed_records = ",".join(
             map(
-                lambda fid: f"({fid}, '{json.dumps(features_backup[fid])}')",
+                lambda fid: "({fid}, {backup})".format(  # noqa: UP032
+                    fid=fid,
+                    backup=wrap_sql_value(json.dumps(features_backup[fid])),
+                ),
                 removed_fids,
             )
         )

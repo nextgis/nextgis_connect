@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import field as dataclass_field
+from copy import deepcopy
 from dataclasses import replace
 from typing import Any, Dict, Iterable, Iterator, List, Optional, Union, cast
 
@@ -10,13 +10,15 @@ from nextgis_connect.resources.ngw_field import FieldId, NgwField
 
 class NgwFields(Sequence):
     _fields: List[NgwField]
+    _qgs_fields: QgsFields
     _label_field: Optional[NgwField]
-    _ngw_ids: Dict[FieldId, NgwField] = dataclass_field(init=False)
-    _attributes: Dict[FieldId, NgwField] = dataclass_field(init=False)
-    _keynames: Dict[str, NgwField] = dataclass_field(init=False)
+    _ngw_ids: Dict[FieldId, NgwField]
+    _attributes: Dict[FieldId, NgwField]
+    _keynames: Dict[str, NgwField]
 
     def __init__(self, fields: Iterable[NgwField]) -> None:
         self._fields = list(fields)
+        self.__reset_qgs_fields()
 
         self._label_field = None
         for field in self._fields:
@@ -27,6 +29,14 @@ class NgwFields(Sequence):
         self._ngw_ids = {field.ngw_id: field for field in self._fields}
         self._attributes = {field.attribute: field for field in self._fields}
         self._keynames = {field.keyname: field for field in self._fields}
+
+    @property
+    def qgs_fields(self) -> QgsFields:
+        return self._qgs_fields
+
+    @property
+    def label_field(self) -> Optional[NgwField]:
+        return self._label_field
 
     def __len__(self) -> int:
         return len(self._fields)
@@ -57,6 +67,8 @@ class NgwFields(Sequence):
         if old_field.keyname != field.keyname:
             del self._keynames[old_field.keyname]
 
+        self.__reset_qgs_fields()
+
     def __delitem__(self, index: int) -> None:
         field = self._fields.pop(index)
         if field.ngw_id in self._ngw_ids:
@@ -67,9 +79,7 @@ class NgwFields(Sequence):
             self._label_field = None
         del self._keynames[field.keyname]
 
-    @property
-    def label_field(self) -> Optional[NgwField]:
-        return self._label_field
+        self.__reset_qgs_fields()
 
     def append(self, field: NgwField) -> None:
         if field.is_label:
@@ -83,6 +93,8 @@ class NgwFields(Sequence):
             self._attributes[field.attribute] = field
         self._keynames[field.keyname] = field
 
+        self.__reset_qgs_fields()
+
     def insert(self, index: int, field: NgwField) -> None:
         if field.is_label:
             self.__reset_previous_label()
@@ -95,8 +107,11 @@ class NgwFields(Sequence):
             self._attributes[field.attribute] = field
         self._keynames[field.keyname] = field
 
+        self.__reset_qgs_fields()
+
     def move(self, source: int, destination: int) -> None:
         self._fields.insert(destination, self._fields.pop(source))
+        self.__reset_qgs_fields()
 
     def __iter__(self) -> Iterator[NgwField]:
         return iter(self._fields)
@@ -177,12 +192,6 @@ class NgwFields(Sequence):
 
         return list.__eq__(self._fields, value._fields)
 
-    def to_qgs_fields(self) -> QgsFields:
-        fields = QgsFields()
-        for field in self._fields:
-            fields.append(field.to_qgsfield())
-        return fields
-
     def to_json(self) -> List[Dict[str, Any]]:
         return [field.to_json() for field in self._fields]
 
@@ -193,9 +202,17 @@ class NgwFields(Sequence):
             for index, field in enumerate(json)
         )
 
+    def __deepcopy__(self, memo):
+        return NgwFields(deepcopy(self._fields))
+
     def __reset_previous_label(self) -> None:
         for i, field in enumerate(self._fields):
             if not field.is_label:
                 continue
 
             self._fields[i] = replace(field, is_label=False)
+
+    def __reset_qgs_fields(self) -> None:
+        self._qgs_fields = QgsFields()
+        for field in self._fields:
+            self._qgs_fields.append(field.to_qgs_field())

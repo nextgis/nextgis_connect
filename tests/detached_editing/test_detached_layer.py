@@ -302,7 +302,7 @@ class TestDetachedLayer(NgConnectTestCase):
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         STRING_FIELD = qgs_layer.fields().indexOf("STRING")
-        INITIAL_STRING_VALUE = "TEST"
+        INITIAL_STRING_VALUE = "'WRAPPED VALUE\""
         INITIAL_GEOMETRY = QgsGeometry.fromWkt("POINT (0 0)")
         self.assertFalse(INITIAL_GEOMETRY.isNull())
 
@@ -411,6 +411,36 @@ class TestDetachedLayer(NgConnectTestCase):
             ).asWkt(),
         )
 
+    @mock_container(
+        TestData.Points,
+        is_versioning_enabled=True,
+        extra_features_count=10000,
+        empty_features=True,
+    )
+    def test_deleting_many_features(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        changes_logger = LayerChangesLogger(qgs_layer)
+
+        with edit(layer.qgs_layer):
+            feature_ids = qgs_layer.allFeatureIds()
+            self.assertTrue(layer.qgs_layer.deleteFeatures(feature_ids))
+
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+        changes_checker = ChangesChecker(container_mock.path)
+        changes_checker.assert_changes_equal(changes_logger)
+
     @mock_container(TestData.Points)
     def test_updating_fields(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
@@ -418,7 +448,7 @@ class TestDetachedLayer(NgConnectTestCase):
         INTEGER_FIELD = qgs_layer.fields().indexOf("INTEGER")
         INITIAL_INTEGER_VALUE = 123
         STRING_FIELD = qgs_layer.fields().indexOf("STRING")
-        INITIAL_STRING_VALUE = "TEST"
+        INITIAL_STRING_VALUE = "'WRAPPED VALUE\""
 
         feature_id = list(sorted(qgs_layer.allFeatureIds()))[1]
         self.assertTrue(

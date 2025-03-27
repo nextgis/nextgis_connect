@@ -1378,10 +1378,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.rename_resource(selected_index)
 
     def __open_in_web(self):
-        selected_index = self.proxy_model.mapToSource(
-            self.resources_tree_view.selectionModel().currentIndex()
+        selected_indexes = (
+            self.resources_tree_view.selectionModel().selectedIndexes()
         )
+        if len(selected_indexes) != 1:
+            return
 
+        selected_index = self.proxy_model.mapToSource(selected_indexes[0])
         if not selected_index.isValid():
             return
 

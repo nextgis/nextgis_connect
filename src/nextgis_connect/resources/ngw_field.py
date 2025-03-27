@@ -72,7 +72,7 @@ class NgwField:
 
             return datatype == rhs.type() and self.keyname == rhs.name()
 
-    def to_qgsfield(self) -> QgsField:
+    def to_qgs_field(self) -> QgsField:
         return QgsField(self.keyname, self.datatype.qt_value)
 
     def to_json(self) -> Dict[str, Any]:

@@ -103,7 +103,7 @@ class TestNgwField(NgConnectTestCase):
         qgs_field = QgsField("name", FieldType.Int)
         self.assertFalse(field.is_compatible(qgs_field))
 
-    def test_to_qgsfield(self):
+    def test_to_qgs_field(self):
         field = NgwField(
             attribute=0,
             ngw_id=1,
@@ -112,7 +112,7 @@ class TestNgwField(NgConnectTestCase):
             display_name="Name",
             is_label=True,
         )
-        qgs_field = field.to_qgsfield()
+        qgs_field = field.to_qgs_field()
         self.assertEqual(qgs_field.name(), "name")
         self.assertEqual(qgs_field.type(), FieldType.QString)
 

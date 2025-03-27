@@ -414,7 +414,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
 
         fields = QgsFields()
         fields.append(QgsField(fid_field, FieldType.LongLong))
-        fields.extend(ngw_fields.to_qgs_fields())
+        fields.extend(ngw_fields.qgs_fields)
         fields.append(QgsField(ngw_fid_field, FieldType.Int))
 
         options.layerOptions = [
