@@ -22,6 +22,15 @@ experimental=False
 deprecated=False
 
 changelog=
+	3.2.0
+		* Add time edit widget for detached layers
+		* Add opening preview in browser
+		* Fixed features deletion
+		* Fixed auth config edit with empty realm
+		* Fixed ILIKE search
+		* Fixed typos
+		* Fixed rasters export with local crs
+		! Supported NGW versions: 4.9.0 - 5.2.0
 	3.1.1
 		* Fixed Web map creation for empty layer
 		! Supported NGW versions: 4.9.0 - 5.2.0
