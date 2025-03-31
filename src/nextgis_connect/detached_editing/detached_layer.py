@@ -71,12 +71,13 @@ class DetachedLayer(QObject):
         layer: QgsVectorLayer,
     ) -> None:
         super().__init__(container)
-
         self.__container = container
         self.__qgs_layer = layer
         self.__is_structure_changed = False
         self.__is_layer_changed = False
         self.__errors = []
+
+        self.__fix_source_if_needed()
 
         self.__reset_backup()
 
@@ -693,3 +694,15 @@ class DetachedLayer(QObject):
             for ng_error in self.__errors:
                 self.error_occurred.emit(ng_error)
             self.__errors.clear()
+
+    def __fix_source_if_needed(self) -> None:
+        if self.qgs_layer.isValid():
+            return
+
+        self.qgs_layer.setDataSource(
+            detached_layer_uri(
+                self.__container.path, self.__container.metadata
+            ),
+            self.qgs_layer.name(),
+            "ogr",
+        )

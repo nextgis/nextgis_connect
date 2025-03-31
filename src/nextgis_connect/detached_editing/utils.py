@@ -177,7 +177,7 @@ def is_ngw_container(
         return False
 
     if isinstance(layer, QgsVectorLayer):
-        if layer.storageType() != "GPKG":
+        if not layer.source().split("|")[0].endswith(".gpkg"):
             return False
 
         if check_metadata:

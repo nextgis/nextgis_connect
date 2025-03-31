@@ -175,10 +175,12 @@ class NgConnectTestCase(QgisTestCase):
 
     @classmethod
     def _init_connections(cls) -> None:
-        if len(cls._connections_id) > 0:
+        connections_manager = NgwConnectionsManager()
+        if len(connections_manager.connections) > 0:
             return
 
-        connections_manager = NgwConnectionsManager()
+        cls._connections_id = {}
+
         auth_manager = QgsApplication.authManager()
 
         # Create guest connection

@@ -42,7 +42,9 @@ class NgConnectCacheManager:
 
         old_cache_directory = Path(old_value)
         new_cache_directory = Path(new_value)
-        shutil.copytree(old_cache_directory, new_cache_directory)
+        shutil.copytree(
+            old_cache_directory, new_cache_directory, dirs_exist_ok=True
+        )
         shutil.rmtree(old_cache_directory)
 
     @property

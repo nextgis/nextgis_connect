@@ -24,6 +24,7 @@ class ErrorCode(IntEnum):
     AuthorizationError = 401
     PermissionsError = 403
     NotFound = 404
+    QgisTimeoutError = auto()
 
     AddingError = 480
     QuotaExceeded = auto()
