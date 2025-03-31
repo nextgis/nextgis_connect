@@ -25,6 +25,7 @@ changelog=
 	3.2.0
 		* Add time edit widget for detached layers
 		* Add opening preview in browser
+		* Added possibility to move project
 		* Fixed features deletion
 		* Fixed auth config edit with empty realm
 		* Fixed ILIKE search
