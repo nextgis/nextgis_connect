@@ -6,7 +6,7 @@ description=Create interactive web maps and manage your own fully-functional Web
 description[ru]=Создавайте интерактивные веб-карты и управляйте своей собственной полнофункциональной Веб ГИС на nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
 about[ru]=Создавайте интерактивные веб-карты и управляйте пространственными данными в своей Веб ГИС. Добавляйте слои, карты, сервисы WMS/WFS/TMS. Разработан компанией NextGIS. Любые отзывы приветствуются на https://nextgis.com/contact
-version=3.1.1
+version=3.2.0
 author=NextGIS
 email=info@nextgis.com
 
@@ -23,14 +23,14 @@ deprecated=False
 
 changelog=
 	3.2.0
-		* Add time edit widget for detached layers
-		* Add opening preview in browser
-		* Added possibility to move project
-		* Fixed features deletion
-		* Fixed auth config edit with empty realm
-		* Fixed ILIKE search
+		* Added ability to open layer preview in browser
+		* Added ability to restore detached layers from a project created on another machine
+		* Added time edit widget support for detached layers
+		* Added support for uploading rasters with local CRS
+		* Fixed ILIKE search functionality
+		* Fixed deletion of features with special characters in string fields
+		* Fixed editing of auth config with empty realm
 		* Fixed typos
-		* Fixed rasters export with local crs
 		! Supported NGW versions: 4.9.0 - 5.2.0
 	3.1.1
 		* Fixed Web map creation for empty layer
