@@ -62,11 +62,15 @@ class ResourcePropertiesDialog(QDialog):
 
         self.add_toolbutton.setIcon(add_icon)
         self.add_toolbutton.setIconSize(QSize(23, 23))
-        self.add_toolbutton.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.add_toolbutton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
 
         self.copy_toolbutton.setIcon(copy_icon)
         self.copy_toolbutton.setIconSize(QSize(23, 23))
-        self.copy_toolbutton.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.copy_toolbutton.setToolButtonStyle(
+            Qt.ToolButtonStyle.ToolButtonIconOnly
+        )
 
         self.__fill_information()
         self.__fill_json()
