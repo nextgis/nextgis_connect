@@ -30,13 +30,15 @@ class NGWResourcesTreeView(QTreeView):
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
+        )
         self.setHeaderHidden(True)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         header = self.header()
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
     def mouseDoubleClickEvent(self, e):
         index = self.indexAt(e.pos())
@@ -87,9 +89,11 @@ class NGWLayerStyleChooserDialog(QDialog):
         self.__layout.addWidget(self.tree)
 
         self.btn_box = QDialogButtonBox(
-            QDialogButtonBox.Ok, Qt.Orientation.Horizontal, self
+            QDialogButtonBox.StandardButton.Ok, Qt.Orientation.Horizontal, self
         )
-        self.btn_box.button(QDialogButtonBox.Ok).clicked.connect(self.accept)
+        self.btn_box.button(
+            QDialogButtonBox.StandardButton.Ok
+        ).clicked.connect(self.accept)
         self.__layout.addWidget(self.btn_box)
 
         self.tree.itemDoubleClicked.connect(self.accept)
@@ -116,6 +120,6 @@ class NGWLayerStyleChooserDialog(QDialog):
 
     def validate(self):
         index = self.selectedStyleIndex()
-        self.btn_box.button(QDialogButtonBox.Ok).setEnabled(
+        self.btn_box.button(QDialogButtonBox.StandardButton.Ok).setEnabled(
             index is not None and index.isValid()
         )

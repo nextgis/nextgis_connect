@@ -399,7 +399,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.main_tool_bar.addWidget(self.toolbuttonDownload)
 
         self.toolbuttonUpload = QToolButton()
-        self.toolbuttonUpload.setPopupMode(QToolButton.InstantPopup)
+        self.toolbuttonUpload.setPopupMode(
+            QToolButton.ToolButtonPopupMode.InstantPopup
+        )
         self.toolbuttonUpload.setMenu(self.menuUpload)
         self.toolbuttonUpload.setIcon(self.menuUpload.icon())
         self.toolbuttonUpload.setText(self.menuUpload.title())
@@ -1635,9 +1637,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 index.data(Qt.ItemDataRole.DisplayRole),
                 html.escape(qgs_map_layer.name()),
             ),
-            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
-        if result != QMessageBox.Yes:
+        if result != QMessageBox.StandardButton.Yes:
             return
 
         if isinstance(qgs_map_layer, QgsVectorLayer):
@@ -1758,11 +1760,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self,
             self.tr("Delete resource"),
             self.tr("Are you sure you want to remove this resource?"),
-            QMessageBox.Yes and QMessageBox.No,
-            QMessageBox.Yes,
+            QMessageBox.StandardButton.Yes and QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
         )
 
-        if res == QMessageBox.Yes:
+        if res == QMessageBox.StandardButton.Yes:
             selected_index = self.proxy_model.mapToSource(
                 self.resources_tree_view.selectionModel().currentIndex()
             )
@@ -1942,10 +1944,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self,
                 self.tr("Duplicate Resource"),
                 self.tr("Are you sure you want to duplicate this resource?"),
-                QMessageBox.Yes and QMessageBox.No,
-                QMessageBox.Yes,
+                QMessageBox.StandardButton.Yes
+                and QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
             )
-            if res == QMessageBox.No:
+            if res == QMessageBox.StandardButton.No:
                 return
 
             ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
@@ -2281,12 +2284,22 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def show_info(self, text: str, title: Optional[str] = None):
         if title is None:
             title = self.tr("Information")
-        self.show_msg_box(text, title, QMessageBox.Information, QMessageBox.Ok)
+        self.show_msg_box(
+            text,
+            title,
+            QMessageBox.Icon.Information,
+            QMessageBox.StandardButton.Ok,
+        )
 
     def show_error(self, text: str, title: Optional[str] = None):
         if title is None:
             title = self.tr("Error")
-        self.show_msg_box(text, title, QMessageBox.Critical, QMessageBox.Ok)
+        self.show_msg_box(
+            text,
+            title,
+            QMessageBox.Icon.Critical,
+            QMessageBox.StandardButton.Ok,
+        )
 
     def __add_layers_after_finish(self, job_uuid: str):
         found_i = -1
@@ -2565,7 +2578,9 @@ class NGWPanelToolBar(QToolBar):
         super().__init__(None)
 
         self.setIconSize(QSize(24, 24))
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
+        )
 
     def contextMenuEvent(self, a0: Optional[QContextMenuEvent]) -> None:
         a0.accept()

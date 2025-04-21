@@ -1,7 +1,6 @@
 from typing import List, Optional, cast
 
-from PyQt5.QtCore import QModelIndex
-from qgis.PyQt.QtCore import QObject, QSortFilterProxyModel
+from qgis.PyQt.QtCore import QModelIndex, QObject, QSortFilterProxyModel
 
 from .model import QNGWResourceItem, QNGWResourceTreeModel
 

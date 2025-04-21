@@ -71,15 +71,21 @@ class MetadataDialog(QDialog, FORM_CLASS):
         for i in range(len(self.md)):
             itemOne = QTableWidgetItem(str(self.md[i][0]))
             itemOne.setFlags(
-                Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+                Qt.ItemFlag.ItemIsSelectable
+                | Qt.ItemFlag.ItemIsEnabled
+                | Qt.ItemFlag.ItemIsEditable
             )
 
             itemTwo = QTableWidgetItem(str(self.md[i][1]))
-            itemTwo.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+            itemTwo.setFlags(
+                Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+            )
 
             itemThree = QTableWidgetItem(str(self.md[i][2]))
             itemThree.setFlags(
-                Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
+                Qt.ItemFlag.ItemIsSelectable
+                | Qt.ItemFlag.ItemIsEnabled
+                | Qt.ItemFlag.ItemIsEditable
             )
             if str(self.md[i][1]) == self.itemTypes["bool"]:
                 combo = QComboBox(self)
@@ -89,7 +95,9 @@ class MetadataDialog(QDialog, FORM_CLASS):
                 self.tableWidget.setCellWidget(i, 2, combo)
             elif str(self.md[i][1]) == self.itemTypes["NoneType"]:
                 itemThree.setText("")
-                itemThree.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+                itemThree.setFlags(
+                    Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+                )
 
             self.tableWidget.setItem(i, 0, itemOne)
             self.tableWidget.setItem(i, 1, itemTwo)
@@ -108,7 +116,7 @@ class MetadataDialog(QDialog, FORM_CLASS):
                 item.setBackground(QBrush())
             except ValueError:
                 brush = QBrush(QColor(255, 120, 100))
-                brush.setStyle(Qt.SolidPattern)
+                brush.setStyle(Qt.BrushStyle.SolidPattern)
                 item.setBackground(brush)
 
     def deleteRow(self):
@@ -135,29 +143,31 @@ class MetadataDialog(QDialog, FORM_CLASS):
     def addInt(self):
         row = self.addRow()
         item = QTableWidgetItem(self.itemTypes["int"])
-        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.tableWidget.setItem(row, 1, item)
 
     def addFloat(self):
         row = self.addRow()
         item = QTableWidgetItem(self.itemTypes["float"])
-        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.tableWidget.setItem(row, 1, item)
 
     def addString(self):
         row = self.addRow()
         item = QTableWidgetItem(self.itemTypes["str"])
-        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.tableWidget.setItem(row, 1, item)
 
     def addBool(self):
         row = self.addRow()
         typeItem = QTableWidgetItem(self.itemTypes["bool"])
-        typeItem.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        typeItem.setFlags(
+            Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+        )
         self.tableWidget.setItem(row, 1, typeItem)
 
         item = QTableWidgetItem()
-        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.tableWidget.setItem(row, 2, item)
 
         combo = QComboBox(self)
@@ -167,15 +177,17 @@ class MetadataDialog(QDialog, FORM_CLASS):
     def addNone(self):
         row = self.addRow()
         typeItem = QTableWidgetItem(self.itemTypes["NoneType"])
-        typeItem.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        typeItem.setFlags(
+            Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled
+        )
         self.tableWidget.setItem(row, 1, typeItem)
 
         item = QTableWidgetItem()
-        item.setFlags(Qt.ItemIsSelectable | Qt.ItemIsEnabled)
+        item.setFlags(Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEnabled)
         self.tableWidget.setItem(row, 2, item)
 
     def checkSendAndAccept(self):
-        self.setWindowModality(Qt.WindowModal)
+        self.setWindowModality(Qt.WindowModality.WindowModal)
         if not self.checkTable():
             return
         md = self.getData()
@@ -183,7 +195,7 @@ class MetadataDialog(QDialog, FORM_CLASS):
         progress = QProgressDialog(
             self.tr("Sending metadata..."), None, 0, 0, self
         )
-        progress.setWindowModality(Qt.WindowModal)
+        progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.show()
         progress.setValue(0)
         QApplication.processEvents()
@@ -200,15 +212,20 @@ class MetadataDialog(QDialog, FORM_CLASS):
             QgsMessageLog.logMessage(err_txt, "NGW API", Qgis.Critical)
 
             qm = QMessageBox()
-            qm.setIcon(QMessageBox.Question)
+            qm.setIcon(QMessageBox.Icon.Question)
             qm.setText(
                 self.tr(
                     "Error sending metadata update. Continue editing or exit?"
                 )
             )
-            qm.setStandardButtons(QMessageBox.Yes | QMessageBox.Close)
-            qm.button(QMessageBox.Yes).setText(self.tr("Continue"))
-            if qm.exec() != QMessageBox.Yes:
+            qm.setStandardButtons(
+                QMessageBox.StandardButton.Yes
+                | QMessageBox.StandardButton.Close
+            )
+            qm.button(QMessageBox.StandardButton.Yes).setText(
+                self.tr("Continue")
+            )
+            if qm.exec() != QMessageBox.StandardButton.Yes:
                 self.reject()
         else:
             self.accept()
