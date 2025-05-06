@@ -22,6 +22,9 @@ experimental=False
 deprecated=False
 
 changelog=
+	3.2.2
+		* Fixed logging for QGIS 3.42.2
+		! Supported NGW versions: 4.9.0 - 5.2.0
 	3.2.1
 		* Optimized geometry type checks for MapInfo files during upload
 		* Updated documentation link
