@@ -1,5 +1,6 @@
 import json
 from base64 import b64decode, b64encode
+from contextlib import suppress
 from datetime import date, datetime, time
 from typing import Any, Dict, Optional, Union
 
@@ -7,7 +8,7 @@ from qgis.core import QgsApplication, QgsGeometry, QgsWkbTypes
 from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QVariant
 
 from nextgis_connect.compat import GeometryType
-from nextgis_connect.exceptions import NgConnectError
+from nextgis_connect.exceptions import NgConnectError, SerializationError
 
 
 def simplify_date_and_time(
@@ -84,11 +85,17 @@ def simplify_value(value: Any) -> Any:
 
 
 def serialize_value(value: Any) -> Any:
-    return json.dumps(simplify_value(value))
+    try:
+        return json.dumps(simplify_value(value))
+    except Exception as error:
+        raise SerializationError from error
 
 
 def deserialize_value(value: str) -> Any:
-    return json.loads(value)
+    try:
+        return json.loads(value)
+    except Exception as error:
+        raise SerializationError from error
 
 
 def serialize_geometry(
@@ -150,8 +157,15 @@ def deserialize_geometry(
 
     if is_versioning_enabled:
         geometry = QgsGeometry()
-        geometry.fromWkb(b64decode(geometry_string))
+        with suppress(Exception):
+            decoded_string = b64decode(geometry_string)
+            geometry.fromWkb(decoded_string)
     else:
         geometry = QgsGeometry.fromWkt(geometry_string)
+
+    if geometry.isNull():
+        error = SerializationError("Invalid geometry")
+        error.add_note(f'Value: "{geometry_string}"')
+        raise error
 
     return geometry
