@@ -15,10 +15,15 @@ def simplify_date_and_time(
     *,
     iso_format: bool = False,
 ) -> Union[str, Dict[str, int], None]:
-    if (isinstance(date_object, (QDateTime, QDate, QTime))) and (
-        date_object.isNull() or not date_object.isValid()
-    ):
-        return None
+    if isinstance(date_object, (QDateTime, QDate, QTime)):
+        if date_object.isNull() or not date_object.isValid():
+            return None
+
+        if (isinstance(date_object, QDate) and date_object.year() < 1) or (
+            isinstance(date_object, QDateTime)
+            and date_object.date().year() < 1
+        ):
+            return None
 
     if iso_format:
         if isinstance(date_object, (datetime, date, time)):

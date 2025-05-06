@@ -5,7 +5,7 @@ from datetime import date, datetime, time
 from typing import Any
 
 from qgis.core import QgsGeometry
-from qgis.PyQt.QtCore import QDate, QDateTime, QTime
+from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
 
 from nextgis_connect.detached_editing.serialization import (
     deserialize_geometry,
@@ -53,58 +53,65 @@ class TestSerialization(NgConnectTestCase):
             ),  # NULL representation
         ]
 
+        VALID_DATE_PARTS = (2025, 3, 4)
+        VALID_DATE_STR = "2025-03-04"
+        VALID_TIME_PARTS = (14, 30, 15)
+        VALID_TIME_STR = "14:30:15"
+        VALID_DATETIME_PARTS = (*VALID_DATE_PARTS, *VALID_TIME_PARTS)
+        VALID_DATETIME_STR = f"{VALID_DATE_STR}T{VALID_TIME_STR}"
+
         self.date_and_time_values = [
+            # Valid date
             AttributeValuesTestData(
-                QDate(2025, 3, 4), '"2025-03-04"', "2025-03-04"
-            ),  # date
+                QDate(*VALID_DATE_PARTS), f'"{VALID_DATE_STR}"', VALID_DATE_STR
+            ),
             AttributeValuesTestData(
-                QTime(14, 30, 15), '"14:30:15"', "14:30:15"
-            ),  # time
+                date(*VALID_DATE_PARTS), f'"{VALID_DATE_STR}"', VALID_DATE_STR
+            ),
+            # Valid time
             AttributeValuesTestData(
-                QDateTime(QDate(2025, 3, 4), QTime(14, 30, 15)),
-                '"2025-03-04T14:30:15"',
-                "2025-03-04T14:30:15",
-            ),  # datetime
-            # Invalid date, time and datetime
-            AttributeValuesTestData(QDate(), "null", None),
+                QTime(*VALID_TIME_PARTS), f'"{VALID_TIME_STR}"', VALID_TIME_STR
+            ),
             AttributeValuesTestData(
-                QDate(-1, 1, 1), '""', ""
-            ),  # Negative year
+                time(*VALID_TIME_PARTS), f'"{VALID_TIME_STR}"', VALID_TIME_STR
+            ),
+            # Valid datetime
             AttributeValuesTestData(
-                QDate(2025, 2, 30), "null", None
-            ),  # Non-existent year
-            AttributeValuesTestData(QTime(), "null", None),
+                QDateTime(*VALID_DATETIME_PARTS),
+                f'"{VALID_DATETIME_STR}"',
+                VALID_DATETIME_STR,
+            ),
             AttributeValuesTestData(
-                QTime(25, 0, 0), "null", None
-            ),  # Hours more than 24
+                datetime(*VALID_DATETIME_PARTS),
+                f'"{VALID_DATETIME_STR}"',
+                VALID_DATETIME_STR,
+            ),
+            # Empty objects
             AttributeValuesTestData(QDateTime(), "null", None),
+            AttributeValuesTestData(QDate(), "null", None),
+            AttributeValuesTestData(QTime(), "null", None),
+            AttributeValuesTestData(QVariant(), "null", None),
+            # Negative year
+            AttributeValuesTestData(QDate(-1, 1, 1), "null", None),
             AttributeValuesTestData(
-                QDateTime(QDate(-1, 1, 1), QTime(14, 30, 15)),
-                '""',
-                "",
-            ),  # Incorrect date
-            AttributeValuesTestData(
-                QDateTime(QDate(2025, 2, 30), QTime(14, 30, 15)),
+                QDateTime(QDate(-1, 1, 1), QTime(*VALID_TIME_PARTS)),
                 "null",
                 None,
-            ),  # Incorrect date
+            ),
+            # Invalid date
+            AttributeValuesTestData(QDate(2025, 2, 30), "null", None),
             AttributeValuesTestData(
-                QDateTime(QDate(2025, 1, 1), QTime(25, 0, 0)),
-                '"2025-01-01T00:00:00"',
-                "2025-01-01T00:00:00",
-            ),  # Incorrect time
-            # datetime library types
+                QDateTime(QDate(2025, 2, 30), QTime(*VALID_TIME_PARTS)),
+                "null",
+                None,
+            ),
+            # Invalid time
+            AttributeValuesTestData(QTime(25, 0, 0), "null", None),
             AttributeValuesTestData(
-                date(2025, 3, 4), '"2025-03-04"', "2025-03-04"
-            ),  # date
-            AttributeValuesTestData(
-                time(14, 30, 15), '"14:30:15"', "14:30:15"
-            ),  # time
-            AttributeValuesTestData(
-                datetime(2025, 3, 4, 14, 30, 15),
-                '"2025-03-04T14:30:15"',
-                "2025-03-04T14:30:15",
-            ),  # datetime
+                QDateTime(QDate(*VALID_DATE_PARTS), QTime(25, 0, 0)),
+                f'"{VALID_DATE_STR}T00:00:00"',
+                f"{VALID_DATE_STR}T00:00:00",
+            ),
         ]
 
         wkt_geometries = [
@@ -185,9 +192,8 @@ class TestSerialization(NgConnectTestCase):
         # Invalid date
         invalid_qdate_1 = QDate(-1, 1, 1)
         self.assertTrue(
-            simplify_date_and_time(invalid_qdate_1, iso_format=True)
-            == simplify_value(invalid_qdate_1)
-            == ""
+            simplify_date_and_time(invalid_qdate_1, iso_format=True) is None
+            and simplify_value(invalid_qdate_1) is None
         )
 
         invalid_qdate_2 = QDate(2025, 2, 30)
@@ -209,8 +215,8 @@ class TestSerialization(NgConnectTestCase):
         invalid_qdatetime_1 = QDateTime(QDate(-1, 1, 1), QTime(14, 30, 15))
         self.assertTrue(
             simplify_date_and_time(invalid_qdatetime_1, iso_format=True)
-            == simplify_value(invalid_qdatetime_1)
-            == ""
+            is None
+            and simplify_value(invalid_qdatetime_1) is None
         )
         invalid_qdatetime_2 = QDateTime(QDate(2025, 2, 30), QTime(14, 30, 15))
         self.assertTrue(
