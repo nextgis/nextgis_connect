@@ -5,7 +5,7 @@ from datetime import date, datetime, time
 from typing import Any
 
 from qgis.core import QgsApplication, QgsGeometry
-from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
+from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QTimeZone, QVariant
 
 from nextgis_connect.detached_editing.serialization import (
     deserialize_geometry,
@@ -86,6 +86,21 @@ class TestSerialization(NgConnectTestCase):
             ),
             AttributeValuesTestData(
                 datetime(*VALID_DATETIME_PARTS),
+                f'"{VALID_DATETIME_STR}"',
+                VALID_DATETIME_STR,
+            ),
+            # With timezones
+            AttributeValuesTestData(
+                QDateTime(*VALID_DATETIME_PARTS, 0, Qt.TimeSpec.UTC),
+                f'"{VALID_DATETIME_STR}"',
+                VALID_DATETIME_STR,
+            ),
+            AttributeValuesTestData(
+                QDateTime(
+                    QDate(*VALID_DATE_PARTS),
+                    QTime(*VALID_TIME_PARTS),
+                    QTimeZone(b"Europe/Paris"),
+                ),
                 f'"{VALID_DATETIME_STR}"',
                 VALID_DATETIME_STR,
             ),
