@@ -15,6 +15,11 @@ def simplify_date_and_time(
     *,
     iso_format: bool = False,
 ) -> Union[str, Dict[str, int], None]:
+    if (
+        isinstance(date_object, QVariant) and date_object.isNull()
+    ) or date_object == QgsApplication.nullRepresentation():
+        return None
+
     if isinstance(date_object, (QDateTime, QDate, QTime)):
         if date_object.isNull() or not date_object.isValid():
             return None
