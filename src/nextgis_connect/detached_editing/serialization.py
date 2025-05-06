@@ -33,6 +33,8 @@ def simplify_date_and_time(
     if iso_format:
         if isinstance(date_object, (datetime, date, time)):
             return date_object.isoformat()
+        elif isinstance(date_object, QDateTime):
+            return date_object.toString("yyyy-MM-dd'T'HH:mm:ss")
         return date_object.toString(Qt.DateFormat.ISODate)
 
     extracted_date = None
