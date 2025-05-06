@@ -42,28 +42,19 @@ def simplify_date_and_time(
     elif isinstance(date_object, QTime):
         extracted_time = date_object
 
+    def get_int_value(date_part):
+        return date_part() if callable(date_part) else date_part
+
     result = {}
     if extracted_date is not None:
-        get_value = (
-            (lambda attr: attr())
-            if isinstance(date_object, (QDate, QDateTime))
-            else (lambda attr: attr)
-        )
-
-        result["year"] = get_value(extracted_date.year)
-        result["month"] = get_value(extracted_date.month)
-        result["day"] = get_value(extracted_date.day)
+        result["year"] = get_int_value(extracted_date.year)
+        result["month"] = get_int_value(extracted_date.month)
+        result["day"] = get_int_value(extracted_date.day)
 
     if extracted_time is not None:
-        get_value = (
-            (lambda attr: attr())
-            if isinstance(date_object, (QTime, QDateTime))
-            else (lambda attr: attr)
-        )
-
-        result["hour"] = get_value(extracted_time.hour)
-        result["minute"] = get_value(extracted_time.minute)
-        result["second"] = get_value(extracted_time.second)
+        result["hour"] = get_int_value(extracted_time.hour)
+        result["minute"] = get_int_value(extracted_time.minute)
+        result["second"] = get_int_value(extracted_time.second)
 
     return result
 
