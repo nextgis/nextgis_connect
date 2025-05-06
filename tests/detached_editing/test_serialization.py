@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time
 from typing import Any
 
-from qgis.core import QgsGeometry
+from qgis.core import QgsApplication, QgsGeometry
 from qgis.PyQt.QtCore import QDate, QDateTime, QTime, QVariant
 
 from nextgis_connect.detached_editing.serialization import (
@@ -48,9 +48,12 @@ class TestSerialization(NgConnectTestCase):
                 "Hello, World!", '"Hello, World!"', "Hello, World!"
             ),  # text
             AttributeValuesTestData("", '""', ""),  # empty string
+            AttributeValuesTestData("NULL", "null", None),
             AttributeValuesTestData(
-                "NULL", "null", None
-            ),  # NULL representation
+                QgsApplication.nullRepresentation(), "null", None
+            ),
+            AttributeValuesTestData(None, "null", None),
+            AttributeValuesTestData(QVariant(), "null", None),
         ]
 
         VALID_DATE_PARTS = (2025, 3, 4)
@@ -143,102 +146,24 @@ class TestSerialization(NgConnectTestCase):
             for wkt in wkt_geometries
         ]
 
-    def test_simplify_date_and_time(self) -> None:
-        # Date case
-        qdate = QDate(2025, 3, 4)
-        expected_qdate = "2025-03-04"
-        py_date = date(2025, 3, 4)
-        self.assertTrue(
-            simplify_date_and_time(qdate, iso_format=True)
-            == simplify_value(qdate)
-            == expected_qdate
-        )
-        self.assertTrue(
-            simplify_date_and_time(py_date, iso_format=True)
-            == simplify_value(py_date),
-            expected_qdate,
-        )
-
-        # Time case
-        qtime = QTime(14, 30, 15)
-        expected_qtime = "14:30:15"
-        py_time = time(14, 30, 15)
-        self.assertTrue(
-            simplify_date_and_time(qtime, iso_format=True)
-            == simplify_value(qtime)
-            == expected_qtime
-        )
-        self.assertTrue(
-            simplify_date_and_time(py_time, iso_format=True)
-            == simplify_value(py_time)
-            == expected_qtime
-        )
-
-        # Datetime case
-        qdatetime = QDateTime(QDate(2025, 3, 4), QTime(14, 30, 15))
-        expected_qdatetime = "2025-03-04T14:30:15"
-        py_datetime = datetime(2025, 3, 4, 14, 30, 15)
-        self.assertTrue(
-            simplify_date_and_time(qdatetime, iso_format=True)
-            == simplify_value(qdatetime)
-            == expected_qdatetime
-        )
-        self.assertTrue(
-            simplify_date_and_time(py_datetime, iso_format=True)
-            == simplify_value(py_datetime)
-            == expected_qdatetime
-        )
-
-        # Invalid date
-        invalid_qdate_1 = QDate(-1, 1, 1)
-        self.assertTrue(
-            simplify_date_and_time(invalid_qdate_1, iso_format=True) is None
-            and simplify_value(invalid_qdate_1) is None
-        )
-
-        invalid_qdate_2 = QDate(2025, 2, 30)
-        self.assertTrue(
-            simplify_date_and_time(invalid_qdate_2, iso_format=True)
-            == simplify_value(invalid_qdate_2)
-            is None
-        )
-
-        # Invalid time
-        invalid_qtime = QTime(25, 0, 0)
-        self.assertTrue(
-            simplify_date_and_time(invalid_qtime, iso_format=True)
-            == simplify_value(invalid_qtime)
-            is None
-        )
-
-        # Cases for invalid QDateTime with invalid date and valid time
-        invalid_qdatetime_1 = QDateTime(QDate(-1, 1, 1), QTime(14, 30, 15))
-        self.assertTrue(
-            simplify_date_and_time(invalid_qdatetime_1, iso_format=True)
-            is None
-            and simplify_value(invalid_qdatetime_1) is None
-        )
-        invalid_qdatetime_2 = QDateTime(QDate(2025, 2, 30), QTime(14, 30, 15))
-        self.assertTrue(
-            simplify_date_and_time(invalid_qdatetime_2, iso_format=True)
-            == simplify_value(invalid_qdatetime_2)
-            is None
-        )
-
-        # Case for invalid QDateTime with valid date and invalid time
-        invalid_qdatetime_3 = QDateTime(QDate(2025, 1, 1), QTime(25, 0, 0))
-        expected_invalid_qdatetime_3 = "2025-01-01T00:00:00"
-        self.assertTrue(
-            simplify_date_and_time(invalid_qdatetime_3, iso_format=True)
-            == simplify_value(invalid_qdatetime_3)
-            == expected_invalid_qdatetime_3
-        )
-
     def test_simplify_value(self):
         for case in self.attribute_values:
             with self.subTest(value=case.initial_value):
                 simplified_value = simplify_value(case.initial_value)
                 self.assertEqual(simplified_value, case.expected_deserialized)
+
+    def test_simplify_date_and_time(self):
+        for case in self.date_and_time_values:
+            with self.subTest(value=case.initial_value):
+                simplified_value = simplify_value(case.initial_value)
+                simplified_datetime_value = simplify_date_and_time(
+                    case.initial_value, iso_format=True
+                )
+                self.assertTrue(
+                    simplified_value
+                    == simplified_datetime_value
+                    == case.expected_deserialized
+                )
 
     def test_serialize_value(self) -> None:
         for case in [*self.attribute_values, *self.date_and_time_values]:
