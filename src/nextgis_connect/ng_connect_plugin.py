@@ -82,15 +82,15 @@ class NgConnectPlugin(NgConnectInterface):
 
         NgConnectSettings().did_last_launch_fail = False
 
-        logger.debug("<b>Plugin object created</b>")
-        logger.debug(f"<b>OS:</b> {QSysInfo().prettyProductName()}")
-        logger.debug(f"<b>Qt version:</b> {QT_VERSION_STR}")
-        logger.debug(f"<b>QGIS version:</b> {Qgis.version()}")
-        logger.debug(f"<b>Python version:</b> {sys.version}")
-        logger.debug(f"<b>GDAL version:</b> {gdal.__version__}")
-        logger.debug(f"<b>Plugin version:</b> {self.version}")
+        logger.debug("<b>✅ Plugin object created</b>")
+        logger.debug(f"<b>ℹ️ OS:</b> {QSysInfo().prettyProductName()}")
+        logger.debug(f"<b>ℹ️ Qt version:</b> {QT_VERSION_STR}")
+        logger.debug(f"<b>ℹ️ QGIS version:</b> {Qgis.version()}")
+        logger.debug(f"<b>ℹ️ Python version:</b> {sys.version}")
+        logger.debug(f"<b>ℹ️ GDAL version:</b> {gdal.__version__}")
+        logger.debug(f"<b>ℹ️ Plugin version:</b> {self.version}")
         logger.debug(
-            f"<b>Plugin path:</b> {self.plugin_dir}"
+            f"<b>ℹ️ Plugin path:</b> {self.plugin_dir}"
             + (
                 f" -> {self.plugin_dir.resolve()}"
                 if self.plugin_dir.is_symlink()
@@ -100,7 +100,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     def initGui(self) -> None:
         with QgsRuntimeProfiler.profile("Plugin initialization"):  # type: ignore
-            logger.debug("<b>Start interface initialization</b>")
+            logger.debug("<b>⏳ Start interface initialization</b>...")
 
             with QgsRuntimeProfiler.profile("Translations initialization"):  # type: ignore
                 self.__init_translator()
@@ -121,7 +121,7 @@ class NgConnectPlugin(NgConnectInterface):
             with QgsRuntimeProfiler.profile("Cache initialization"):  # type: ignore
                 self.__init_cache_purging()
 
-            logger.debug("<b>End plugin initialization</b>")
+            logger.debug("<b>✅ End plugin initialization</b>")
 
     def unload(self) -> None:
         logger.debug("<b>Start plugin unloading</b>")

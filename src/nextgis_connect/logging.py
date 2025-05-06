@@ -1,10 +1,14 @@
+import html
 import logging
+import re
 import sys
+from pprint import pformat
 from types import MethodType
-from typing import Optional, cast
+from typing import Dict, List, Optional, Set, Union, cast
 
 from qgis.core import Qgis, QgsApplication
 
+from nextgis_connect.compat import QGIS_3_42_2
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings import NgConnectSettings
 
@@ -48,9 +52,10 @@ class QgisLoggerHandler(logging.Handler):
         message = self.format(record)
         message_log = QgsApplication.messageLog()
         if record.levelno == logging.DEBUG:
-            message = f"<i>[DEBUG]&nbsp;&nbsp;&nbsp;&nbsp;{message}</i>"
+            message = f"<i>[DEBUG]    {message}</i>"
         assert message_log is not None
-        message_log.logMessage(message, record.name, level)
+
+        message_log.logMessage(self._process_html(message), record.name, level)
 
     def _map_logging_level_to_qgis(self, level):
         if level >= logging.ERROR:
@@ -63,6 +68,30 @@ class QgisLoggerHandler(logging.Handler):
             return Qgis.MessageLevel.Info
 
         return Qgis.MessageLevel.NoLevel
+
+    def _process_html(self, message: str) -> str:
+        if Qgis.versionInt() < QGIS_3_42_2:
+            return message
+
+        # https://github.com/qgis/QGIS/issues/45834
+
+        message = message.replace(" ", "\u00a0")
+        for tag in {"i", "b"}:
+            message = re.sub(
+                rf"<{tag}\b[^>]*?>", "", message, flags=re.IGNORECASE
+            )
+            message = re.sub(rf"</{tag}>", "", message, flags=re.IGNORECASE)
+
+        return message
+
+
+def escape_html(message: str) -> str:
+    # https://github.com/qgis/QGIS/issues/45834
+    return html.escape(message) if Qgis.versionInt() < QGIS_3_42_2 else message
+
+
+def format_container_data(data: Union[List, Set, Dict]) -> str:
+    return pformat(data)
 
 
 def init_logger() -> QgisLoggerProtocol:

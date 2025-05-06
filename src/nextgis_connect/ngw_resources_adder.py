@@ -1,4 +1,3 @@
-import html
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union, cast
 
@@ -35,7 +34,7 @@ from nextgis_connect.exceptions import (
     NgConnectWarning,
     NgwError,
 )
-from nextgis_connect.logging import logger
+from nextgis_connect.logging import escape_html, logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.ngw_api.core import (
     NGWBaseMap,
@@ -911,7 +910,7 @@ class NgwResourcesAdder(QObject):
             return resource.layer_params
 
         raise NgConnectError(
-            html.escape(f"Unsupported resource: {resource!r}"),
+            escape_html(f"Unsupported resource: {resource!r}"),
             code=ErrorCode.AddingError,
         )
 
@@ -949,8 +948,8 @@ class NgwResourcesAdder(QObject):
             error = NgConnectError(
                 "Unsupported resources", code=ErrorCode.AddingError
             )
-            error.add_note(html.escape(f"Style parent: {layer_resource!r}"))
-            error.add_note(html.escape(f"Style: {style_resource!r}"))
+            error.add_note(escape_html(f"Style parent: {layer_resource!r}"))
+            error.add_note(escape_html(f"Style: {style_resource!r}"))
             raise error
 
         self.__layers_params[id(webmap_layer)] = params
