@@ -58,6 +58,7 @@ class ErrorCode(IntEnum):
     VersioningDisabled = auto()
     ValueFormatError = auto()
     ConflictsNotResolved = auto()
+    SerializationError = auto()
 
     PluginWarning = 10000
 
@@ -417,6 +418,25 @@ class SynchronizationError(DetachedEditingError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.SynchronizationError,
+        try_again: Optional[Callable[[], Any]] = None,
+    ) -> None:
+        super().__init__(
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=code,
+            try_again=try_again,
+        )
+
+
+class SerializationError(DetachedEditingError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        code: ErrorCode = ErrorCode.SerializationError,
         try_again: Optional[Callable[[], Any]] = None,
     ) -> None:
         super().__init__(

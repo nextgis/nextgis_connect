@@ -15,6 +15,7 @@ from nextgis_connect.detached_editing.serialization import (
     simplify_date_and_time,
     simplify_value,
 )
+from nextgis_connect.exceptions import SerializationError
 from tests.ng_connect_testcase import (
     NgConnectTestCase,
 )
@@ -23,6 +24,14 @@ from tests.ng_connect_testcase import (
 @dataclass
 class AttributeValuesTestData:
     initial_value: Any
+    expected_serialized: Any
+    expected_deserialized: Any
+
+
+@dataclass
+class AttributeDateValuesTestData:
+    initial_value: Any
+    expected_dict: Any
     expected_serialized: Any
     expected_deserialized: Any
 
@@ -57,76 +66,134 @@ class TestSerialization(NgConnectTestCase):
         ]
 
         VALID_DATE_PARTS = (2025, 3, 4)
-        VALID_DATE_STR = "2025-03-04"
         VALID_TIME_PARTS = (14, 30, 15)
-        VALID_TIME_STR = "14:30:15"
         VALID_DATETIME_PARTS = (*VALID_DATE_PARTS, *VALID_TIME_PARTS)
+        VALID_DATE_STR = "2025-03-04"
+        VALID_TIME_STR = "14:30:15"
         VALID_DATETIME_STR = f"{VALID_DATE_STR}T{VALID_TIME_STR}"
+
+        DATE_KEYS = ("year", "month", "day")
+        TIME_KEYS = ("hour", "minute", "second")
+        DATETIME_KEYS = (*DATE_KEYS, *TIME_KEYS)
 
         self.date_and_time_values = [
             # Valid date
-            AttributeValuesTestData(
-                QDate(*VALID_DATE_PARTS), f'"{VALID_DATE_STR}"', VALID_DATE_STR
+            AttributeDateValuesTestData(
+                QDate(*VALID_DATE_PARTS),
+                dict(zip(DATE_KEYS, VALID_DATE_PARTS)),
+                f'"{VALID_DATE_STR}"',
+                VALID_DATE_STR,
             ),
-            AttributeValuesTestData(
-                date(*VALID_DATE_PARTS), f'"{VALID_DATE_STR}"', VALID_DATE_STR
+            AttributeDateValuesTestData(
+                date(*VALID_DATE_PARTS),
+                dict(zip(DATE_KEYS, VALID_DATE_PARTS)),
+                f'"{VALID_DATE_STR}"',
+                VALID_DATE_STR,
             ),
             # Valid time
-            AttributeValuesTestData(
-                QTime(*VALID_TIME_PARTS), f'"{VALID_TIME_STR}"', VALID_TIME_STR
+            AttributeDateValuesTestData(
+                QTime(*VALID_TIME_PARTS),
+                dict(zip(TIME_KEYS, VALID_TIME_PARTS)),
+                f'"{VALID_TIME_STR}"',
+                VALID_TIME_STR,
             ),
-            AttributeValuesTestData(
-                time(*VALID_TIME_PARTS), f'"{VALID_TIME_STR}"', VALID_TIME_STR
+            AttributeDateValuesTestData(
+                time(*VALID_TIME_PARTS),
+                dict(zip(TIME_KEYS, VALID_TIME_PARTS)),
+                f'"{VALID_TIME_STR}"',
+                VALID_TIME_STR,
             ),
             # Valid datetime
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
                 QDateTime(*VALID_DATETIME_PARTS),
+                dict(zip(DATETIME_KEYS, VALID_DATETIME_PARTS)),
                 f'"{VALID_DATETIME_STR}"',
                 VALID_DATETIME_STR,
             ),
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
                 datetime(*VALID_DATETIME_PARTS),
+                dict(zip(DATETIME_KEYS, VALID_DATETIME_PARTS)),
                 f'"{VALID_DATETIME_STR}"',
                 VALID_DATETIME_STR,
             ),
             # With timezones
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
                 QDateTime(*VALID_DATETIME_PARTS, 0, Qt.TimeSpec.UTC),
+                dict(zip(DATETIME_KEYS, VALID_DATETIME_PARTS)),
                 f'"{VALID_DATETIME_STR}"',
                 VALID_DATETIME_STR,
             ),
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
                 QDateTime(
                     QDate(*VALID_DATE_PARTS),
                     QTime(*VALID_TIME_PARTS),
                     QTimeZone(b"Europe/Paris"),
                 ),
+                dict(zip(DATETIME_KEYS, VALID_DATETIME_PARTS)),
                 f'"{VALID_DATETIME_STR}"',
                 VALID_DATETIME_STR,
             ),
             # Empty objects
-            AttributeValuesTestData(QDateTime(), "null", None),
-            AttributeValuesTestData(QDate(), "null", None),
-            AttributeValuesTestData(QTime(), "null", None),
-            AttributeValuesTestData(QVariant(), "null", None),
+            AttributeDateValuesTestData(
+                QDateTime(),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
+                QDate(),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
+                QTime(),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
+                QVariant(),
+                None,
+                "null",
+                None,
+            ),
             # Negative year
-            AttributeValuesTestData(QDate(-1, 1, 1), "null", None),
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
+                QDate(-1, 1, 1),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
                 QDateTime(QDate(-1, 1, 1), QTime(*VALID_TIME_PARTS)),
+                None,
                 "null",
                 None,
             ),
             # Invalid date
-            AttributeValuesTestData(QDate(2025, 2, 30), "null", None),
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
+                QDate(2025, 2, 30),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
                 QDateTime(QDate(2025, 2, 30), QTime(*VALID_TIME_PARTS)),
+                None,
                 "null",
                 None,
             ),
             # Invalid time
-            AttributeValuesTestData(QTime(25, 0, 0), "null", None),
-            AttributeValuesTestData(
+            AttributeDateValuesTestData(
+                QTime(25, 0, 0),
+                None,
+                "null",
+                None,
+            ),
+            AttributeDateValuesTestData(
                 QDateTime(QDate(*VALID_DATE_PARTS), QTime(25, 0, 0)),
+                dict(zip(DATETIME_KEYS, (*VALID_DATE_PARTS, 0, 0, 0))),
                 f'"{VALID_DATE_STR}T00:00:00"',
                 f"{VALID_DATE_STR}T00:00:00",
             ),
@@ -171,13 +238,21 @@ class TestSerialization(NgConnectTestCase):
         for case in self.date_and_time_values:
             with self.subTest(value=case.initial_value):
                 simplified_value = simplify_value(case.initial_value)
-                simplified_datetime_value = simplify_date_and_time(
+
+                simplified_datetime_iso_value = simplify_date_and_time(
                     case.initial_value, iso_format=True
                 )
                 self.assertTrue(
                     simplified_value
-                    == simplified_datetime_value
+                    == simplified_datetime_iso_value
                     == case.expected_deserialized
+                )
+
+                simplified_datetime_dict_value = simplify_date_and_time(
+                    case.initial_value, iso_format=False
+                )
+                self.assertEqual(
+                    simplified_datetime_dict_value, case.expected_dict
                 )
 
     def test_serialize_value(self) -> None:
@@ -263,6 +338,32 @@ class TestSerialization(NgConnectTestCase):
                 )
                 self.assertTrue(
                     deserialized_wkb.equals(case.expected_deserialized_wkb)
+                )
+
+    def test_serialize_value_with_unknown_type(self):
+        class Dummy:
+            pass
+
+        with self.assertRaises(SerializationError):
+            serialize_value(Dummy())
+
+    def test_deserialize_value_with_invalid_json(self):
+        with self.assertRaises(SerializationError):
+            deserialize_value("{invalid_json}")
+
+    def test_deserialize_invalid_geometry(self):
+        with self.subTest("Invalid WKT"):
+            with self.assertRaises(SerializationError):
+                deserialize_geometry(
+                    "INVALIDWKT",
+                    is_versioning_enabled=False,
+                )
+
+        with self.subTest("Invalid WKB64"):
+            with self.assertRaises(SerializationError):
+                deserialize_geometry(
+                    "!!notbase64@@",
+                    is_versioning_enabled=True,
                 )
 
 
