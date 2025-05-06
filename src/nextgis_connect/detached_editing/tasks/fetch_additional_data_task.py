@@ -55,7 +55,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(f"<b>Fetch extra data</b> for layer {self._metadata}")
+        logger.debug(f"<b>⬇️ Fetch extra data</b> for layer {self._metadata}")
 
         try:
             ngw_connection = QgsNgwConnection(self._metadata.connection_id)
@@ -126,7 +126,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         )
 
     def __get_permissions(self, ngw_connection: QgsNgwConnection) -> None:
-        logger.debug("Get permissions")
+        logger.debug("⬇️ Get permissions")
 
         resource_id = self._metadata.resource_id
         permission_url = f"/api/resource/{resource_id}/permission"
@@ -146,7 +146,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         )
 
         if len(lookup_table_resources_id) > 0:
-            logger.debug("Get lookup tables")
+            logger.debug("⬇️ Get lookup tables")
 
         for lookup_table_id in lookup_table_resources_id:
             try:

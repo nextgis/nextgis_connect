@@ -161,7 +161,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
         is_error = state == DetachedLayerState.Error
         self.line.setVisible(is_error)
         self.errorLabel.setVisible(is_error)
-        if is_error:
+        if is_error and self.__container.error is not None:
             self.errorLabel.setText(self.__container.error.user_message)
 
     def __fill_changes(self) -> None:
