@@ -160,6 +160,7 @@ class DetachedEditingTask(NgConnectTask):
                 error = SynchronizationError(message, code=code)
                 error.add_note(f"Local: {self._metadata.epoch}")
                 error.add_note(f"Remote: {ngw_layer.epoch}")
+                raise error
         else:
             remote_features_count = ngw_layer.features_count
 

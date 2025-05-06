@@ -583,7 +583,13 @@ class DetachedContainer(QObject):
                 )
 
             will_be_updated = (
-                error.code == ErrorCode.ContainerVersionIsOutdated
+                error.code
+                in (
+                    ErrorCode.ContainerVersionIsOutdated,
+                    ErrorCode.VersioningEnabled,
+                    ErrorCode.VersioningDisabled,
+                    ErrorCode.EpochChanged,
+                )
                 and not self.metadata.has_changes
             )
 
@@ -644,7 +650,13 @@ class DetachedContainer(QObject):
                 )
 
             will_be_updated = (
-                error.code == ErrorCode.ContainerVersionIsOutdated
+                error.code
+                in (
+                    ErrorCode.ContainerVersionIsOutdated,
+                    ErrorCode.VersioningEnabled,
+                    ErrorCode.VersioningDisabled,
+                    ErrorCode.EpochChanged,
+                )
                 and not self.metadata.has_changes
             )
 
@@ -767,7 +779,7 @@ class DetachedContainer(QObject):
         self.__update_state(is_full_update=True)
         self.__unlock_layers()
 
-        logger.debug("<b>Synchronization finished</b>")
+        logger.debug("<b>✅ Synchronization finished</b>")
 
         # Start next layer update
         NgConnectInterface.instance().synchronize_layers()
