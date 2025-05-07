@@ -506,37 +506,37 @@ Are you sure you want to continue?</source>
 <context>
     <name>Errors</name>
     <message>
-        <location filename="../exceptions.py" line="477"/>
+        <location filename="../exceptions.py" line="497"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="488"/>
+        <location filename="../exceptions.py" line="508"/>
         <source>Error occurred while communicating with Web GIS.</source>
         <translation>Произошла ошибка при запросе к Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="494"/>
+        <location filename="../exceptions.py" line="514"/>
         <source>Invalid NextGIS Web connection.</source>
         <translation>Неверное соединение NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="500"/>
+        <location filename="../exceptions.py" line="520"/>
         <source>Detached editing error occurred.</source>
         <translation>Произошла ошибка откреплённого редактирования.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="503"/>
+        <location filename="../exceptions.py" line="523"/>
         <source>Detached container error occurred.</source>
         <translation>Произошла ошибка в открепленном слое.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="517"/>
+        <location filename="../exceptions.py" line="537"/>
         <source>An error occurred during layer synchronization.</source>
         <translation>При синхронизации слоя произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="564"/>
+        <location filename="../exceptions.py" line="584"/>
         <source>Changes in the structure of the layer and some of its settings lead to the fact that further synchronization becomes impossible.
 
 To continue working with the layer, you need to reset the layer to its state in NextGIS Web. This can be done from the sync status window by clicking on the layer indicator.
@@ -549,82 +549,82 @@ If a layer contains important changes that were not sent to the server, they wil
 Если слой содержит важные изменения, которые еще не были отправлены на сервер, они будут утеряны. Сделайте резервную копию слоя, если это необходимо.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="506"/>
+        <location filename="../exceptions.py" line="526"/>
         <source>An error occurred while creating the container for the layer.</source>
         <translation>Произошла ошибка при создании контейнера для слоя.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="513"/>
+        <location filename="../exceptions.py" line="533"/>
         <source>The container could not be found. It may have been deleted.</source>
         <translation>Не удалось найти контейнер. Возможно, он был удален.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="510"/>
+        <location filename="../exceptions.py" line="530"/>
         <source>The container version is out of date.</source>
         <translation>Версия контейнера устарела.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="520"/>
+        <location filename="../exceptions.py" line="540"/>
         <source>Layer features have been modified outside of QGIS.</source>
         <translation>Объекты слоя были изменены вне QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="523"/>
+        <location filename="../exceptions.py" line="543"/>
         <source>Invalid NextGIS Web address.</source>
         <translation>Неверный адрес NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="527"/>
+        <location filename="../exceptions.py" line="547"/>
         <source>The layer structure is different from the structure on the server.</source>
         <translation>Структура слоя отличается от той, что на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="531"/>
+        <location filename="../exceptions.py" line="551"/>
         <source>Versioning state has been changed on ther server multiple times.</source>
         <translation>Состояние версионирования на сервере было изменено несколько раз.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="535"/>
+        <location filename="../exceptions.py" line="555"/>
         <source>Versioning has been enabled on the server.</source>
         <translation>Версионирование было включено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="538"/>
+        <location filename="../exceptions.py" line="558"/>
         <source>Versioning has been disabled on the server.</source>
         <translation>Версионирование было выключено на сервере.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="497"/>
+        <location filename="../exceptions.py" line="517"/>
         <source>Invalid permissions.</source>
         <translation>Неверные разрешения.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="480"/>
+        <location filename="../exceptions.py" line="500"/>
         <source>The plugin has been updated successfully. To continue working, please restart QGIS.</source>
         <translation>Плагин успешно обновлён. Для продолжения работы, пожалуйста, презапустите QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="485"/>
+        <location filename="../exceptions.py" line="505"/>
         <source>Resource can&apos;t be added to the map.</source>
         <translation>Ресурс не можнт быть добавлен на карту.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="578"/>
+        <location filename="../exceptions.py" line="598"/>
         <source>This type of raster is not supported anymore</source>
         <translation>Данный тип растра больше не поддерживается</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="578"/>
+        <location filename="../exceptions.py" line="598"/>
         <source>Please add COG support</source>
         <translation>Добавьте поддержку COG</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="491"/>
+        <location filename="../exceptions.py" line="511"/>
         <source>You have reached the limit of layers allowed.</source>
         <translation>Вы достигли лимита на количество слоёв.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="541"/>
+        <location filename="../exceptions.py" line="561"/>
         <source>Conflicts were not resolved. Synchronization is not possible.</source>
         <translation>Конфликты не были решены. Синхронизация невозможна.</translation>
     </message>
@@ -1707,64 +1707,64 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgwResourcesAdder</name>
     <message>
-        <location filename="../ngw_resources_adder.py" line="327"/>
+        <location filename="../ngw_resources_adder.py" line="326"/>
         <source>Resources can&apos;t be added to the map</source>
         <translation>Невозможно добавить ресурсы на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="333"/>
+        <location filename="../ngw_resources_adder.py" line="332"/>
         <source>Resource &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="606"/>
+        <location filename="../ngw_resources_adder.py" line="605"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="879"/>
+        <location filename="../ngw_resources_adder.py" line="878"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1302"/>
+        <location filename="../ngw_resources_adder.py" line="1301"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1303"/>
+        <location filename="../ngw_resources_adder.py" line="1302"/>
         <source>You are trying to add a WFS service containing a layer with Z dimension. WFS in QGIS doesn&apos;t fully support editing such geometries. You won&apos;t be able to edit and create new features. You will only be able to delete features.
 To fix this, change geometry type of your layer(s) and recreate WFS service.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается.
 Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1319"/>
+        <location filename="../ngw_resources_adder.py" line="1318"/>
         <source>Add anyway</source>
         <translation>Добавить всё равно</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1322"/>
+        <location filename="../ngw_resources_adder.py" line="1321"/>
         <source>Skip</source>
         <translation>Пропустить</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="272"/>
+        <location filename="../ngw_resources_adder.py" line="271"/>
         <source>An error occurred while fetching resources</source>
         <translation>Возникла ошибка при получении ресурсов</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="295"/>
+        <location filename="../ngw_resources_adder.py" line="294"/>
         <source>An error occurred while fetching styles</source>
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1048"/>
+        <location filename="../ngw_resources_adder.py" line="1047"/>
         <source>Layer &quot;{raster_layer.display_name}&quot; was not added to the map</source>
         <translation>Слой &quot;{raster_layer.display_name}&quot; не был добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1051"/>
+        <location filename="../ngw_resources_adder.py" line="1050"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
