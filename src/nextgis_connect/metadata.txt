@@ -6,7 +6,7 @@ description=Create interactive web maps and manage your own fully-functional Web
 description[ru]=Создавайте интерактивные веб-карты и управляйте своей собственной полнофункциональной Веб ГИС на nextgis.com
 about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
 about[ru]=Создавайте интерактивные веб-карты и управляйте пространственными данными в своей Веб ГИС. Добавляйте слои, карты, сервисы WMS/WFS/TMS. Разработан компанией NextGIS. Любые отзывы приветствуются на https://nextgis.com/contact
-version=3.2.2
+version=3.2.3
 author=NextGIS
 email=info@nextgis.com
 
@@ -22,6 +22,10 @@ experimental=False
 deprecated=False
 
 changelog=
+	3.2.3
+		* Fixed uploading of vector layers with missing relation
+		* Fixed uploading of vector layers with ValueRelation widget
+		! Supported NGW versions: 4.9.0 - 5.2.0
 	3.2.2
 		* Added automatic layer reset when versioning settings are changed in NextGIS Web
 		* Fixed vector layers uploading in QGIS 3.42.2
