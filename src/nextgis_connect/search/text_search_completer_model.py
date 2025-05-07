@@ -151,7 +151,7 @@ class TextSearchCompleterModel(QStringListModel):
         )
 
         self.fetching_started.emit()
-        logger.debug(f"⬇️ Fetching suggestions for: {search_string}")
+        logger.debug(f"↓ Fetching suggestions for: {search_string}")
 
     @pyqtSlot()
     def __update_suggestions(self) -> None:

@@ -293,7 +293,7 @@ class NgwSearch(NGWResourceModelJob):
 
         assert self.result.found_resources is not None
         logger.debug(
-            f"<b>✅ Found</b> {len(self.result.found_resources)} resources: {self.result.found_resources}"
+            f"<b>✓ Found</b> {len(self.result.found_resources)} resources: {self.result.found_resources}"
         )
 
         if len(self.result.found_resources) == 0:
@@ -563,7 +563,7 @@ class NgwSearch(NGWResourceModelJob):
         return list(ids)
 
     def __fetch_parents(self, resources_factory: NGWResourceFactory) -> None:
-        logger.debug("⏳ Fetching intermediate resources")
+        logger.debug("◴ Fetching intermediate resources")
 
         for parent_id in self.parents:
             if parent_id in self.populated_resources:
@@ -590,7 +590,7 @@ class NgwSearch(NGWResourceModelJob):
 
         self.result.added_resources = sorted_added_resources
 
-        logger.debug("✅ All intermediate resources are fetched")
+        logger.debug("✓ All intermediate resources are fetched")
 
     def __fetch_children(
         self, resources_factory: NGWResourceFactory, resource_id: int
@@ -778,7 +778,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         assert isinstance(parent_item, QModelItem)
         if parent_item is self.root_item:
             worker = NGWRootResourcesLoader(self._ngw_connection)
-            logger.debug("⬇️ Fetch root resource")
+            logger.debug("↓ Fetch root resource")
         else:
             ngw_resource = parent_item.data(QNGWResourceItem.NGWResourceRole)
             worker = NGWResourceUpdater(ngw_resource, [])

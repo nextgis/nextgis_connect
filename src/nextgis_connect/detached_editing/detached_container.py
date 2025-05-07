@@ -779,7 +779,7 @@ class DetachedContainer(QObject):
         self.__update_state(is_full_update=True)
         self.__unlock_layers()
 
-        logger.debug("<b>✅ Synchronization finished</b>")
+        logger.debug("<b>✓ Synchronization finished</b>")
 
         # Start next layer update
         NgConnectInterface.instance().synchronize_layers()

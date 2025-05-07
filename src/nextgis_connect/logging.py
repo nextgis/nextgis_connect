@@ -52,7 +52,7 @@ class QgisLoggerHandler(logging.Handler):
         message = self.format(record)
         message_log = QgsApplication.messageLog()
         if record.levelno == logging.DEBUG:
-            message = f"<i>[DEBUG]    {message}</i>"
+            message = f"[DEBUG]    {message}"
         assert message_log is not None
 
         message_log.logMessage(self._process_html(message), record.name, level)
@@ -70,12 +70,13 @@ class QgisLoggerHandler(logging.Handler):
         return Qgis.MessageLevel.NoLevel
 
     def _process_html(self, message: str) -> str:
+        message = message.replace(" ", "\u00a0")
+
         if Qgis.versionInt() < QGIS_3_42_2:
             return message
 
         # https://github.com/qgis/QGIS/issues/45834
 
-        message = message.replace(" ", "\u00a0")
         for tag in {"i", "b"}:
             message = re.sub(
                 rf"<{tag}\b[^>]*?>", "", message, flags=re.IGNORECASE

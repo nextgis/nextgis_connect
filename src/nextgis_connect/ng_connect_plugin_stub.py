@@ -33,15 +33,15 @@ class NgConnectPluginStub(NgConnectInterface):
         super().__init__()
         plugin_dir = Path(__file__).parent
 
-        logger.debug("<b>✅ Plugin stub object created</b>")
-        logger.debug(f"<b>ℹ️ OS:</b> {QSysInfo().prettyProductName()}")
-        logger.debug(f"<b>ℹ️ Qt version:</b> {QT_VERSION_STR}")
-        logger.debug(f"<b>ℹ️ QGIS version:</b> {Qgis.version()}")
-        logger.debug(f"<b>ℹ️ Python version:</b> {sys.version}")
-        logger.debug(f"<b>ℹ️ GDAL version:</b> {gdal.__version__}")
-        logger.debug(f"<b>ℹ️ Plugin version:</b> {self.version}")
+        logger.debug("<b>✓ Plugin stub object created</b>")
+        logger.debug(f"<b>ⓘ OS:</b> {QSysInfo().prettyProductName()}")
+        logger.debug(f"<b>ⓘ Qt version:</b> {QT_VERSION_STR}")
+        logger.debug(f"<b>ⓘ QGIS version:</b> {Qgis.version()}")
+        logger.debug(f"<b>ⓘ Python version:</b> {sys.version}")
+        logger.debug(f"<b>ⓘ GDAL version:</b> {gdal.__version__}")
+        logger.debug(f"<b>ⓘ Plugin version:</b> {self.version}")
         logger.debug(
-            f"<b>ℹ️ Plugin path:</b> {plugin_dir}"
+            f"<b>ⓘ Plugin path:</b> {plugin_dir}"
             + (
                 f" -> {plugin_dir.resolve()}"
                 if plugin_dir.is_symlink()

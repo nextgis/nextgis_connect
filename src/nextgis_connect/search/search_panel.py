@@ -117,7 +117,7 @@ class SearchPanel(QWidget):
             self.__reset()
             return
 
-        logger.debug(f"<b>⏳ Search resources:</b> {search_string}")
+        logger.debug(f"<b>◴ Search resources:</b> {search_string}")
         self.search_requested.emit(search_string)
 
     @pyqtSlot()
