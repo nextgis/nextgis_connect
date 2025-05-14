@@ -45,6 +45,7 @@ from nextgis_connect.ngw_api.core import (
     NGWRasterLayer,
     NGWRasterMosaic,
     NGWResource,
+    NGWTileset,
     NGWVectorLayer,
     NGWWebMap,
     NGWWfsLayer,
@@ -81,7 +82,7 @@ LayerParams = Tuple[str, str, str]
 
 InsertionPoint = QgsLayerTreeRegistryBridge.InsertionPoint
 
-TmsLayerResources = (NGWTmsLayer, NGWTmsConnection, NGWBaseMap)
+TmsLayerResources = (NGWTmsLayer, NGWTmsConnection, NGWBaseMap, NGWTileset)
 ServiceLayerResources = (NGWPostgisLayer, NGWWmsLayer, NGWWfsLayer)
 
 VectorResources = (NGWVectorLayer, NGWWfsLayer, NGWPostgisLayer)
