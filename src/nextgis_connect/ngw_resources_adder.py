@@ -1108,6 +1108,13 @@ class NgwResourcesAdder(QObject):
 
         lookup_tables: Dict[int, List[Dict[str, str]]] = {}
 
+        if is_ngw_container(qgs_vector_layer):
+            # Fix for old QGIS versions. If widget is range data could be
+            # corrupted
+            fid_field = qgs_vector_layer.primaryKeyAttributes()[0]
+            setup = QgsEditorWidgetSetup("", {})
+            qgs_vector_layer.setEditorWidgetSetup(fid_field, setup)
+
         for ngw_field in ngw_vector_layer.fields:
             if ngw_field.datatype == NgwDataType.TIME:
                 setup = QgsEditorWidgetSetup(

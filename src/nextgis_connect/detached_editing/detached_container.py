@@ -634,6 +634,7 @@ class DetachedContainer(QObject):
             self.__apply_label_attribute()
             self.__apply_aliases()
             self.__apply_lookup_tables()
+            self.__fix_fid_widget()
             self.__state = DetachedLayerState.Synchronized
             self.__versioning_state = (
                 VersioningSynchronizationState.Synchronized
@@ -835,6 +836,14 @@ class DetachedContainer(QObject):
                 detached_layer.qgs_layer.setFieldAlias(
                     field.attribute, field.display_name
                 )
+
+    def __fix_fid_widget(self) -> None:
+        for detached_layer in self.__detached_layers.values():
+            # Fix for old QGIS versions. If widget is range data could be
+            # corrupted
+            setup = QgsEditorWidgetSetup("", {})
+            fid_field = detached_layer.qgs_layer.primaryKeyAttributes()[0]
+            detached_layer.qgs_layer.setEditorWidgetSetup(fid_field, setup)
 
     def __apply_lookup_tables(self) -> None:
         assert isinstance(self.__sync_task, FetchAdditionalDataTask)

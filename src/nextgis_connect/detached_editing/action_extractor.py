@@ -61,7 +61,6 @@ class ActionExtractor:
         added_features = self.extract_added_features()
         deleted_features = self.extract_deleted_features()
         restored_features = self.extract_restored_features()
-        restored_features = self.extract_restored_features()
         updated_features = self.extract_updated_features()
 
         actions = itertools.chain(
@@ -102,6 +101,12 @@ class ActionExtractor:
             create_actions.append(
                 FeatureCreateAction(fid, None, geom, fields_values)
             )
+
+        if len(added_features_id) != len(create_actions):
+            error = ContainerError("Not all actions were created")
+            error.add_note(f"New features count: {len(added_features_id)}")
+            error.add_note(f"Actions count: {len(create_actions)}")
+            raise error
 
         return create_actions
 
@@ -230,6 +235,14 @@ class ActionExtractor:
             restore_actions.append(
                 FeatureRestoreAction(ngw_fid, version, geom, fields_values)
             )
+
+        if len(restored_features_id) != len(restore_actions):
+            error = ContainerError("Not all actions were created")
+            error.add_note(
+                f"Restored features count: {len(restored_features_id)}"
+            )
+            error.add_note(f"Actions count: {len(restore_actions)}")
+            raise error
 
         return restore_actions
 
