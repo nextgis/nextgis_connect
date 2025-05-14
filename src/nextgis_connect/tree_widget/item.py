@@ -1,4 +1,5 @@
 from typing import cast
+from urllib.parse import urlparse
 
 from qgis.PyQt.QtCore import Qt, QVariant
 from qgis.PyQt.QtGui import QIcon
@@ -8,6 +9,7 @@ from nextgis_connect.ngw_api.core import (
     NGWGroupResource,
     NGWResource,
 )
+from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 
 # TODO: remove QTreeWidgetItem inheritance
@@ -57,9 +59,18 @@ class QNGWResourceItem(QModelItem):
     _title: str
     _ngw_resource: NGWResource
 
-    def __init__(self, ngw_resource):
+    def __init__(self, ngw_resource: NGWResource):
         super().__init__()
         title = ngw_resource.display_name
+
+        if (
+            ngw_resource.resource_id == 0
+            and NgConnectSettings().is_developer_mode
+        ):
+            server_url = ngw_resource.connection.server_url
+            server_url = urlparse(server_url).netloc
+            title += f" ({server_url})"
+
         self._title = title
         self._ngw_resource = ngw_resource
         self._icon = QIcon(self._ngw_resource.icon_path)
