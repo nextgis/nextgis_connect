@@ -875,7 +875,8 @@ class NgwResourcesAdder(QObject):
         resource: NGWVectorLayer = index.data(QNGWResourceItem.NGWResourceRole)
         params = self.__collect_params_for_layer_resource(resource)
 
-        if not self.__is_mass_adding and self.__model.rowCount(index) > 1:
+        styles = self.__extract_styles(index)
+        if not self.__is_mass_adding and len(styles) > 1:
             dialog = NGWLayerStyleChooserDialog(
                 self.tr("Select style"), index, self.__model
             )
