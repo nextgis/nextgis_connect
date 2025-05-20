@@ -68,7 +68,7 @@ from qgis.PyQt.QtGui import (
     QIcon,
     QResizeEvent,
 )
-from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction,
     QActionGroup,
@@ -1777,13 +1777,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 )
             )
 
-    def _downloadRasterSource(self, ngw_lyr, raster_file=None):
-        """Download raster layer source file
-        using QNetworkAccessManager.
-        Download and write file by chunks
-        using readyRead signal
+    def _downloadRasterSource(
+        self, ngw_lyr: NGWRasterLayer, raster_file: Optional[QFile] = None
+    ) -> QFile:
+        """
+        Download raster layer source file from NextGIS Web using QNetworkAccessManager.
 
-        return QFile object
+        The file is downloaded and written in chunks using the readyRead signal.
+        If raster_file is not provided, a temporary file will be created.
+
+        :param ngw_lyr: NGWRasterLayer instance to download.
+        :param raster_file: Optional QFile or QTemporaryFile to write data to.
+
+        :return: QFile object containing the downloaded raster data.
         """
         if not raster_file:
             raster_file = QTemporaryFile()
@@ -1793,7 +1799,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         url = f"{ngw_lyr.get_absolute_api_url()}/download"
 
         def write_chuck():
-            if reply.error():
+            if reply.error() != QNetworkReply.NetworkError.NoError:
                 raise RuntimeError(
                     "{} {}".format(
                         self.tr("Failed to download raster source:"),
