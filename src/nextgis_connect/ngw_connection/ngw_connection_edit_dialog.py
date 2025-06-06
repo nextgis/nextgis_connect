@@ -38,7 +38,10 @@ from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
 
 HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
+NGAccess = None
+NGRequest = None
 if HAS_NGSTD:
+    from ngstd.core import NGRequest  # type: ignore
     from ngstd.framework import NGAccess  # type: ignore
 
 
@@ -300,6 +303,11 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self.__make_valid_url(self.urlLineEdit.text()),
             self.authWidget.configId(),
         )
+
+        if HAS_NGSTD and self.__temp_connection.auth_config_id == "NextGIS":
+            NGRequest.addAuthURL(
+                NGAccess.instance().endPoint(), self.__temp_connection.url
+            )
 
         url = urljoin(
             self.__temp_connection.url, "api/component/auth/current_user"
