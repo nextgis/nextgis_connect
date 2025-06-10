@@ -1076,7 +1076,7 @@ class NgwResourcesAdder(QObject):
         self.__layers = task.layers
 
         if all(not layer.isValid() for layer in self.__layers.values()):
-            message = "All layers is invalid"
+            message = "All layers are invalid"
             raise NgConnectError(
                 code=ErrorCode.AddingError, log_message=message
             )
