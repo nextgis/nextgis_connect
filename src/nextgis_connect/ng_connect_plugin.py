@@ -417,6 +417,14 @@ class NgConnectPlugin(NgConnectInterface):
             self.__action_about,
         )
 
+        for action in self.iface.webMenu().actions():
+            if action.text() != self.PLUGIN_NAME:
+                continue
+            action.setIcon(
+                QIcon(str(self.plugin_dir / "icons/connect_logo.svg"))
+            )
+            break
+
         # Add adction to Help > Plugins
         self.__show_help_action = QAction(
             QIcon(str(self.plugin_dir / "icons/connect_logo.svg")),

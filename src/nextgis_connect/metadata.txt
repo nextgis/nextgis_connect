@@ -20,6 +20,7 @@ repository=https://github.com/nextgis/nextgis_connect
 icon=icons/connect_logo.svg
 experimental=False
 deprecated=False
+supportsQt6=True
 
 changelog=
 	3.2.5

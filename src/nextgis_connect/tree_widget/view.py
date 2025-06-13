@@ -49,10 +49,10 @@ class QOverlay(QWidget):
 
         if draw_background:
             palette = QPalette(self.palette())
-            self._overlay_color = palette.color(QPalette.ColorRole.Background)
+            self._overlay_color = palette.color(QPalette.ColorRole.Window)
             self._overlay_color.setAlpha(200)
             palette.setColor(
-                QPalette.ColorRole.Background, Qt.GlobalColor.transparent
+                QPalette.ColorRole.Window, Qt.GlobalColor.transparent
             )
             self.setPalette(palette)
 
@@ -62,7 +62,7 @@ class QOverlay(QWidget):
 
         painter = QPainter()
         painter.begin(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.fillRect(a0.rect(), QBrush(self._overlay_color))
         painter.setPen(QPen(Qt.PenStyle.NoPen))
 
@@ -101,10 +101,10 @@ class MigrationOverlay(QOverlay):
         self.setLayout(layout)
 
         spacer_before = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
         spacer_after = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
 
         self.text = QLabel(
@@ -161,10 +161,10 @@ class NoNgstdAuthOverlay(QOverlay):
         self.setLayout(layout)
 
         spacer_before = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
         spacer_after = QSpacerItem(
-            20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
 
         self.text = QLabel(
@@ -200,7 +200,7 @@ class QProcessOverlay(QOverlay):
         self.setLayout(layout)
 
         spacer_before = QSpacerItem(
-            20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
         layout.addItem(spacer_before)
 
@@ -238,7 +238,7 @@ class QProcessOverlay(QOverlay):
         bottom_layout.addWidget(self.status_text)
 
         spacer_after = QSpacerItem(
-            20, 0, QSizePolicy.Minimum, QSizePolicy.Expanding
+            20, 0, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding
         )
         bottom_layout.addItem(spacer_after)
 
@@ -291,7 +291,9 @@ class QNGWResourceTreeView(QTreeView):
     def __init__(self, parent: Optional[QWidget]):
         super().__init__(parent)
 
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred
+        )
         self.setHeaderHidden(True)
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
@@ -300,7 +302,7 @@ class QNGWResourceTreeView(QTreeView):
         header = self.header()
         assert header is not None
         header.setStretchLastSection(True)
-        header.setSectionResizeMode(QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
 
         # no ngw connectiond message
         self.no_ngw_connections_overlay = QMessageOverlay(

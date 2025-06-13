@@ -41,15 +41,12 @@ class HeaderWithCenteredIconProxyStyle(QProxyStyle):
             QStyle.PixelMetric.PM_SmallIconSize, option
         )
 
-        window = widget.window().windowHandle() if widget else None
-
         # Set icon size
         icon_size = QSize(icon_extent, icon_extent)
         rect = header.rect
 
         # Create icon pixmap
         pixmap = icon.pixmap(
-            window,
             icon_size,
             QIcon.Mode.Normal
             if header.state & QStyle.StateFlag.State_Enabled
