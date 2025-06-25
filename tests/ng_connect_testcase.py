@@ -1,7 +1,6 @@
 import atexit
 import json
 import os
-import shutil
 import sys
 import tempfile
 import uuid
@@ -27,6 +26,7 @@ from nextgis_connect.ngw_api.core.ngw_resource_factory import (
 )
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 from nextgis_connect.ngw_connection import NgwConnection, NgwConnectionsManager
+from tests.utils import safe_remove
 
 
 class TestData(str, Enum):
@@ -73,10 +73,7 @@ class NgConnectTestCase(QgisTestCase):
         QgsSettings().clear()
 
         for path in cls._temp_paths:
-            if path.is_dir():
-                shutil.rmtree(str(path))
-            else:
-                path.unlink(missing_ok=True)
+            safe_remove(path)
 
         super().tearDownClass()
 
@@ -301,13 +298,10 @@ def stop_qgis() -> None:
     APPLICATION_INFO.application.exitQgis()
     del APPLICATION_INFO.application
 
-    shutil.rmtree(APPLICATION_INFO.qgis_custom_config_path)
-    shutil.rmtree(APPLICATION_INFO.qgis_auth_db_path)
+    safe_remove(APPLICATION_INFO.qgis_custom_config_path)
+    safe_remove(APPLICATION_INFO.qgis_auth_db_path)
 
-    for temp_file in Path(tempfile.gettempdir()).glob(
+    for path in Path(tempfile.gettempdir()).glob(
         f"{ApplicationInfo.APPLICATION_NAME}*"
     ):
-        if temp_file.is_dir():
-            shutil.rmtree(str(temp_file))
-        else:
-            temp_file.unlink(missing_ok=True)
+        safe_remove(path)
