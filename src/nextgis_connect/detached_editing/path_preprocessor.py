@@ -45,8 +45,7 @@ class DetachedEditingPathPreprocessor:
 
         source_path = (
             PureWindowsPath(source_path_str)
-            if "\\\\" in source_path_str
-            or (len(source_path_str) > 2 and source_path_str[1] == ":")
+            if "\\" in source_path_str or ":" in source_path_str
             else PurePosixPath(source_path_str)
         )
         domain_uuid, resource_id = self.__extract_domain_uuid_and_resource_id(

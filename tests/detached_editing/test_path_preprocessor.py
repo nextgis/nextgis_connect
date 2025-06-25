@@ -347,7 +347,8 @@ class TestPathPreprocessor(NgConnectTestCase):
 
         with self.subTest("Absolute path with backslashes"):
             windows_source = (
-                r"C:\Users\User\AppData\Local\NextGIS\ngqgis\cache\NGConnect\\"
+                r"C:\Users\User\AppData\Local\NextGIS\ngqgis\cache\NGConnect"
+                "\\"
                 + connection.domain_uuid
                 + "\\"
                 + f"{resource.resource_id}.gpkg|layername={layer_name}"
@@ -384,7 +385,8 @@ class TestPathPreprocessor(NgConnectTestCase):
 
         with self.subTest("Relative path with backslashes"):
             posix_source = (
-                r"..\..\AppData\Local\NextGIS\ngqgis\cache\NGConnect\\"
+                r"..\..\AppData\Local\NextGIS\ngqgis\cache\NGConnect"
+                "\\"
                 + connection.domain_uuid
                 + "/"
                 + f"{resource.resource_id}.gpkg|layername={layer_name}"
