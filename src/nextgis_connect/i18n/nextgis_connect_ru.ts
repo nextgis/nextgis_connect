@@ -4,57 +4,57 @@
 <context>
     <name>AboutDialog</name>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="85"/>
+        <location filename="../core/ui/about_dialog.py" line="92"/>
         <source> by NextGIS</source>
         <translation> от NextGIS</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="224"/>
+        <location filename="../core/ui/about_dialog.py" line="231"/>
         <source>REPORT_END</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="229"/>
+        <location filename="../core/ui/about_dialog.py" line="236"/>
         <source>Developers</source>
         <translation>Разработчики</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="230"/>
+        <location filename="../core/ui/about_dialog.py" line="237"/>
         <source>Homepage</source>
         <translation>Домашняя страница</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="232"/>
+        <location filename="../core/ui/about_dialog.py" line="239"/>
         <source>Please report bugs at</source>
         <translation>Пожалуйста, сообщайте об ошибках в</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="234"/>
+        <location filename="../core/ui/about_dialog.py" line="241"/>
         <source>bugtracker</source>
         <translation>багтрекер</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="235"/>
+        <location filename="../core/ui/about_dialog.py" line="242"/>
         <source>Video with an overview of the plugin</source>
         <translation>Видео с обзором плагина</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="236"/>
+        <location filename="../core/ui/about_dialog.py" line="243"/>
         <source>Other helpful services by NextGIS</source>
         <translation>Другие полезные сервисы от NextGIS</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="237"/>
+        <location filename="../core/ui/about_dialog.py" line="244"/>
         <source>Convenient up-to-date data extracts for any place in the world</source>
         <translation>Удобная выборка актуальных данных из любой точки мира</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="240"/>
+        <location filename="../core/ui/about_dialog.py" line="247"/>
         <source>Fully featured Web GIS service</source>
         <translation>Полнофункциональный Веб ГИС-сервис</translation>
     </message>
     <message>
-        <location filename="../core/ui/about_dialog.py" line="231"/>
+        <location filename="../core/ui/about_dialog.py" line="238"/>
         <source>User Guide</source>
         <translation>Руководство пользователя</translation>
     </message>
@@ -699,7 +699,7 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Ложь</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="241"/>
+        <location filename="../dialog_metadata.py" line="258"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
@@ -709,42 +709,42 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Неподдерживаемый тип метаданных</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="183"/>
+        <location filename="../dialog_metadata.py" line="195"/>
         <source>Sending metadata...</source>
         <translation>Отправка метаданных...</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="195"/>
+        <location filename="../dialog_metadata.py" line="207"/>
         <source>Error sending metadata update:</source>
         <translation>Ошибка отправки метаданных:</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="204"/>
+        <location filename="../dialog_metadata.py" line="216"/>
         <source>Error sending metadata update. Continue editing or exit?</source>
         <translation>Ошибка отправки метаданных. Продолжить редактирование или закрыть?</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="210"/>
+        <location filename="../dialog_metadata.py" line="225"/>
         <source>Continue</source>
         <translation>Продолжить</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="223"/>
+        <location filename="../dialog_metadata.py" line="240"/>
         <source>Empty key field</source>
         <translation>Ключи не должны быть пустыми</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="230"/>
+        <location filename="../dialog_metadata.py" line="247"/>
         <source>Empty value field</source>
         <translation>Значения не должны быть пустыми</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="235"/>
+        <location filename="../dialog_metadata.py" line="252"/>
         <source>Wrong data types</source>
         <translation>Неверный тип данных</translation>
     </message>
     <message>
-        <location filename="../dialog_metadata.py" line="241"/>
+        <location filename="../dialog_metadata.py" line="258"/>
         <source>Keys duplication</source>
         <translation>Ключи не должны повторяться</translation>
     </message>
@@ -913,7 +913,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Перезаписать выбранный слой</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2477"/>
+        <location filename="../ng_connect_dock.py" line="2496"/>
         <source>Create resource group</source>
         <translation>Создать группу ресурсов</translation>
     </message>
@@ -943,7 +943,7 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Создать сервис WMS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1941"/>
+        <location filename="../ng_connect_dock.py" line="1949"/>
         <source>Duplicate Resource</source>
         <translation>Дублировать ресурс</translation>
     </message>
@@ -953,12 +953,12 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Редактировать метаданные</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1757"/>
+        <location filename="../ng_connect_dock.py" line="1759"/>
         <source>Delete resource</source>
         <translation>Удалить ресурс</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="722"/>
+        <location filename="../ng_connect_dock.py" line="724"/>
         <source>Open Web map in browser</source>
         <translation>Открыть Веб-карту в браузере</translation>
     </message>
@@ -978,132 +978,132 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Справка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="926"/>
+        <location filename="../ng_connect_dock.py" line="928"/>
         <source>Access denied. Enter your login.</source>
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2288"/>
+        <location filename="../ng_connect_dock.py" line="2302"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1481"/>
+        <location filename="../ng_connect_dock.py" line="1483"/>
         <source>Please select parent resource group for a new resource group</source>
         <translation>Пожалуйста, выберите родительскую группу ресурсов для новой группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1488"/>
+        <location filename="../ng_connect_dock.py" line="1490"/>
         <source>New resource group</source>
         <translation>Новая группа ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1572"/>
+        <location filename="../ng_connect_dock.py" line="1574"/>
         <source>Uploading parameters</source>
         <translation>Параметры загрузки</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1575"/>
+        <location filename="../ng_connect_dock.py" line="1577"/>
         <source>Enter name for resource group</source>
         <translation>Введите новое имя для группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1627"/>
+        <location filename="../ng_connect_dock.py" line="1629"/>
         <source>Overwrite resource</source>
         <translation>Перезаписать ресурс</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1627"/>
+        <location filename="../ng_connect_dock.py" line="1629"/>
         <source>Resource &quot;{}&quot; will be overwritten with QGIS layer &quot;{}&quot;. Current data will be lost.&lt;br/&gt;Are you sure you want to overwrite it?</source>
         <translation>Ресурс &quot;{}&quot; будет перезаписан слоем QGIS &quot;{}&quot; . Текущие данные будут потеряны.&lt;br/&gt;Вы уверены, что хотите перезаписать его?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1658"/>
+        <location filename="../ng_connect_dock.py" line="1660"/>
         <source>Get resource metadata</source>
         <translation>Получение метаданных ресурса</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1757"/>
+        <location filename="../ng_connect_dock.py" line="1759"/>
         <source>Are you sure you want to remove this resource?</source>
         <translation>Вы уверены, что хотите удалить этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1795"/>
+        <location filename="../ng_connect_dock.py" line="1803"/>
         <source>Failed to download raster source:</source>
         <translation>Ошибка загрузки растрового файла:</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1830"/>
+        <location filename="../ng_connect_dock.py" line="1838"/>
         <source>Can&apos;t open file to write raster!</source>
         <translation>Ошибка записи растрового файла!</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1841"/>
+        <location filename="../ng_connect_dock.py" line="1849"/>
         <source>Style for &quot;{}&quot; - Upload ({}%)</source>
         <translation>Стиль слоя &quot;{}&quot; - Загрузка ({}%)</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1941"/>
+        <location filename="../ng_connect_dock.py" line="1949"/>
         <source>Are you sure you want to duplicate this resource?</source>
         <translation>Вы уверены, что хотите дублировать этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1956"/>
+        <location filename="../ng_connect_dock.py" line="1965"/>
         <source>Duplicating</source>
         <translation>Дублирование</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1993"/>
+        <location filename="../ng_connect_dock.py" line="2002"/>
         <source>You are trying to create a WFS service for a layer that contains Z geometries. WFS in QGIS doesn&apos;t fully support editing such geometries. To fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается. Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2004"/>
+        <location filename="../ng_connect_dock.py" line="2013"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2066"/>
+        <location filename="../ng_connect_dock.py" line="2075"/>
         <source>Create WMS service for layer</source>
         <translation>Создать сервис WMS для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2113"/>
+        <location filename="../ng_connect_dock.py" line="2122"/>
         <source>Create Web map for layer</source>
         <translation>Создать Веб-карту для слоя</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2189"/>
+        <location filename="../ng_connect_dock.py" line="2198"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2193"/>
+        <location filename="../ng_connect_dock.py" line="2202"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2211"/>
+        <location filename="../ng_connect_dock.py" line="2220"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2211"/>
+        <location filename="../ng_connect_dock.py" line="2220"/>
         <source>QGIS Layer Style File</source>
         <translation>Файлы стилей QGIS</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2250"/>
+        <location filename="../ng_connect_dock.py" line="2259"/>
         <source>{error_message} at line {line} column {column}</source>
         <translation>{error_message} строка {line} столбец {column}</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2283"/>
+        <location filename="../ng_connect_dock.py" line="2292"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1488"/>
+        <location filename="../ng_connect_dock.py" line="1490"/>
         <source>Resource group name</source>
         <translation>Название группы ресурсов</translation>
     </message>
@@ -1113,37 +1113,37 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Создать сервис OGC API - Features</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="860"/>
+        <location filename="../ng_connect_dock.py" line="862"/>
         <source>Failed to connect. Please check your connection details</source>
         <translation>Ошибка подключения. Пожалуйста, проверьте параметры соединения</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="914"/>
+        <location filename="../ng_connect_dock.py" line="916"/>
         <source>Error occurred while communicating with Web GIS</source>
         <translation>При обращении к Веб ГИС происзошла ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2160"/>
+        <location filename="../ng_connect_dock.py" line="2169"/>
         <source>NextGIS Connect operation errors</source>
         <translation>Ошибки операций NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="958"/>
+        <location filename="../ng_connect_dock.py" line="960"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2004"/>
+        <location filename="../ng_connect_dock.py" line="2013"/>
         <source>Create </source>
         <translation>Создать </translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2255"/>
+        <location filename="../ng_connect_dock.py" line="2264"/>
         <source>An error occurred when copying the style</source>
         <translation>При копировании стиля произошла ошибка</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2395"/>
+        <location filename="../ng_connect_dock.py" line="2414"/>
         <source>Upload to NextGIS Web</source>
         <translation>Загрузить в NextGIS Web</translation>
     </message>
@@ -1158,127 +1158,127 @@ Please be aware that your current connections will be converted to the new forma
         <translation>Свойства ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="449"/>
+        <location filename="../ng_connect_dock.py" line="451"/>
         <source>Creating resource...</source>
         <translation>Создание ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="450"/>
+        <location filename="../ng_connect_dock.py" line="452"/>
         <source>Deleting resource...</source>
         <translation>Удаление ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="451"/>
+        <location filename="../ng_connect_dock.py" line="453"/>
         <source>Uploading layer...</source>
         <translation>Загрузка ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="452"/>
+        <location filename="../ng_connect_dock.py" line="454"/>
         <source>Uploading project...</source>
         <translation>Загрузка проекта…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="453"/>
+        <location filename="../ng_connect_dock.py" line="455"/>
         <source>Creating WFS service...</source>
         <translation>Создание сервиса WFS…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="454"/>
+        <location filename="../ng_connect_dock.py" line="456"/>
         <source>Creating OGC API Features service...</source>
         <translation>Создание сервиса OGC API Features...</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="457"/>
+        <location filename="../ng_connect_dock.py" line="459"/>
         <source>Creating WMS service...</source>
         <translation>Создание сервиса WMS…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="459"/>
+        <location filename="../ng_connect_dock.py" line="461"/>
         <source>Creating Web map...</source>
         <translation>Создание Веб-карты…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="461"/>
+        <location filename="../ng_connect_dock.py" line="463"/>
         <source>Creating style for a layer...</source>
         <translation>Создание стиля для слоя…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="462"/>
+        <location filename="../ng_connect_dock.py" line="464"/>
         <source>Renaming resource...</source>
         <translation>Переименование ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="463"/>
+        <location filename="../ng_connect_dock.py" line="465"/>
         <source>Updating resource...</source>
         <translation>Загрузка ресурса…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="464"/>
+        <location filename="../ng_connect_dock.py" line="466"/>
         <source>Downloading resources...</source>
         <translation>Скачивание ресурсов…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="465"/>
+        <location filename="../ng_connect_dock.py" line="467"/>
         <source>Processing vector layers...</source>
         <translation>Обработка векторных слоёв…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="468"/>
+        <location filename="../ng_connect_dock.py" line="470"/>
         <source>Downloading linked resources...</source>
         <translation>Загрузка связанных ресурсов…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="469"/>
+        <location filename="../ng_connect_dock.py" line="471"/>
         <source>Downloading styles...</source>
         <translation>Загрузка стилей…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="470"/>
+        <location filename="../ng_connect_dock.py" line="472"/>
         <source>Adding resources to QGIS...</source>
         <translation>Добавление ресурсов в QGIS…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="471"/>
+        <location filename="../ng_connect_dock.py" line="473"/>
         <source>Searching resources...</source>
         <translation>Поиск ресурсов…</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="1728"/>
+        <location filename="../ng_connect_dock.py" line="1730"/>
         <source>Choose style</source>
         <translation>Выбор стиля</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2416"/>
+        <location filename="../ng_connect_dock.py" line="2435"/>
         <source>Search type</source>
         <translation>Тип поиска</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2421"/>
+        <location filename="../ng_connect_dock.py" line="2440"/>
         <source>By name</source>
         <translation>По названию</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2428"/>
+        <location filename="../ng_connect_dock.py" line="2447"/>
         <source>By metadata</source>
         <translation>По метаданным</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2446"/>
+        <location filename="../ng_connect_dock.py" line="2465"/>
         <source>Search</source>
         <translation>Поиск</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2485"/>
+        <location filename="../ng_connect_dock.py" line="2504"/>
         <source>Create vector layer</source>
         <translation>Создать векторный слой</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="2495"/>
+        <location filename="../ng_connect_dock.py" line="2514"/>
         <source>New NextGIS Web Vector Layer</source>
         <translation>Новый векторный слой NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../ng_connect_dock.py" line="722"/>
+        <location filename="../ng_connect_dock.py" line="724"/>
         <source>Display in browser</source>
         <translation>Просмотр в браузере</translation>
     </message>
@@ -1613,52 +1613,52 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgwConnectionEditDialog</name>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="95"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="98"/>
         <source>Edit the NextGIS Web Connection</source>
         <translation>Редактирование подключения NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="391"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="399"/>
         <source>Connection failed</source>
         <translation>Ошибка подключения</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="312"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="320"/>
         <source>Authentication error</source>
         <translation>Ошибка аутентификации</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="376"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="384"/>
         <source>Connection successful</source>
         <translation>Подключение успешно</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="395"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="403"/>
         <source>Request timeout</source>
         <translation>Время ожидания запроса истекло</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="78"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="81"/>
         <source>NextGIS authentication is not supported for my.nextgis.com yet. Please choose Basic authentication or change authentication endpoint.</source>
         <translation>Аутентификация NextGIS пока не поддерживается для my.nextgis.com. Пожалуйста, выберите аутентификацию типа Basic или измените сервер аутентификации.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="538"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="546"/>
         <source>As guest</source>
         <translation>Как гость</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="419"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="427"/>
         <source>Web GIS access was not granted for the</source>
         <translation>Доступ к Веб ГИС не был предоставлен для</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="421"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="429"/>
         <source> guest users.</source>
         <translation> гостевых пользователей.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="423"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="431"/>
         <source> selected authentication parameters.</source>
         <translation> выбранных параметров аутентификации.</translation>
     </message>
@@ -1795,27 +1795,27 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>QNGWResourceTreeView</name>
     <message>
-        <location filename="../tree_widget/view.py" line="441"/>
+        <location filename="../tree_widget/view.py" line="443"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="444"/>
+        <location filename="../tree_widget/view.py" line="446"/>
         <source>Enter new name for selected resource</source>
         <translation>Введите новое имя для выбранного ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="445"/>
+        <location filename="../tree_widget/view.py" line="447"/>
         <source>Resource already exists</source>
         <translation>Ресурс уже существует</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="327"/>
+        <location filename="../tree_widget/view.py" line="329"/>
         <source>No resources were found matching your search query</source>
         <translation>Не найдены ресурсы, соответствующие вашему запросу</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="306"/>
+        <location filename="../tree_widget/view.py" line="308"/>
         <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</source>
         <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на  &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
