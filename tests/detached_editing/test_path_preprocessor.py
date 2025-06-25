@@ -28,9 +28,10 @@ from tests.ng_connect_testcase import (
     TestConnection,
     TestData,
 )
+from tests.utils import safe_move
 
 
-class TestDetachedLayerEditingUtils(NgConnectTestCase):
+class TestPathPreprocessor(NgConnectTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.__path_preprocessor = DetachedEditingPathPreprocessor()
@@ -453,7 +454,7 @@ class TestDetachedLayerEditingUtils(NgConnectTestCase):
         domain_directory.mkdir(exist_ok=True, parents=True)
 
         container_path = domain_directory / f"{resource.resource_id}.gpkg"
-        shutil.move(container_mock.path, container_path)
+        safe_move(container_mock.path, container_path)
 
         container_mock.path = container_path
 
