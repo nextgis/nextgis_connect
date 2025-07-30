@@ -102,6 +102,7 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job_error import (
     JobError,
     JobWarning,
 )
+from nextgis_connect.qml_processor import QMLProcessor
 from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.settings import NgConnectSettings
 
@@ -920,6 +921,10 @@ class QGISResourceJob(NGWResourceModelJob):
         temp_filename = tempfile.mktemp(suffix=".qml")
         with open(temp_filename, "w") as qml_file:
             qml_data = style_manager.style(style_name).xmlData()
+
+            if isinstance(qgs_map_layer, QgsVectorLayer):
+                qml_data = QMLProcessor(qml_data, qgs_map_layer).process()
+
             qml_file.write(qml_data)
 
         if style_manager.isDefault(style_name):
