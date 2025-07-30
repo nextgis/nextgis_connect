@@ -10,7 +10,14 @@ from qgis.core import (
     QgsSettings,
 )
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import QByteArray, QLocale, QMimeData, QSize, Qt
+from qgis.PyQt.QtCore import (
+    QByteArray,
+    QLocale,
+    QMimeData,
+    QSize,
+    Qt,
+    QVariant,
+)
 from qgis.PyQt.QtGui import QClipboard, QIcon, QPainter, QPixmap
 from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import (
@@ -23,6 +30,7 @@ from qgis.PyQt.QtWidgets import (
     QMenu,
     QVBoxLayout,
 )
+from qgis.PyQt.QtXml import QDomDocument
 from qgis.utils import iface
 
 from nextgis_connect.compat import QGIS_3_30
@@ -270,3 +278,53 @@ def material_icon(
     painter.end()
 
     return QIcon(pixmap)
+
+
+# Workaround class for NGW issues with boolean fields in style expressions.
+class NGWQMLProcessor:
+    def __init__(self, qml_xml_string: str, qgs_map_layer):
+        self.qml = qml_xml_string
+        self.layer = qgs_map_layer
+        self.has_change = False
+
+        self.doc = QDomDocument()
+        self.doc.setContent(qml_xml_string)
+
+    def convert_label_to_ngw(self) -> None:
+        labeling_nodes = self.doc.elementsByTagName("text-style")
+        for i in range(labeling_nodes.count()):
+            labeling = labeling_nodes.at(i).toElement()
+            if not labeling.hasAttribute("fieldName"):
+                continue
+            field_name = labeling.attribute("fieldName")
+            field = self.layer.fields().field(field_name)
+            if field is not None and field.type() == QVariant.Bool:
+                labeling.setAttribute("isExpression", "1")
+                labeling.setAttribute("fieldName", f'if("{field_name}", true, false)')
+                self.has_change = True
+
+    def convert_categorized_bool_to_int(self) -> None:
+        renderer_nodes = self.doc.elementsByTagName("renderer-v2")
+        for i in range(renderer_nodes.count()):
+            renderer = renderer_nodes.at(i).toElement()
+            if renderer.attribute("type") != "categorizedSymbol":
+                continue
+            categories = renderer.elementsByTagName("category")
+            for j in range(categories.count()):
+                category = categories.at(j).toElement()
+                if category.attribute("type") != "bool":
+                    continue
+                category.setAttribute("type", "integer")
+                value = category.attribute("value")
+                if value.lower() == "true":
+                    category.setAttribute("value", "1")
+                elif value.lower() == "false":
+                    category.setAttribute("value", "0")
+                self.has_change = True
+
+    def process(self) -> str:
+        self.convert_label_to_ngw()
+        self.convert_categorized_bool_to_int()
+        if not self.has_change:
+            return self.qml
+        return self.doc.toString()
