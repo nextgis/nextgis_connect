@@ -287,13 +287,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.menuUpload.addAction(self.actionUpdateStyle)
         self.menuUpload.addAction(self.actionAddStyle)
 
-        self.actionUpdateNGWVectorLayer = QAction(
+        self.actionUpdateNGWLayer = QAction(
             self.tr("Overwrite selected layer"), self.menuUpload
         )
-        self.actionUpdateNGWVectorLayer.triggered.connect(
-            self.overwrite_ngw_layer
-        )
-        self.actionUpdateNGWVectorLayer.setEnabled(False)
+        self.actionUpdateNGWLayer.triggered.connect(self.overwrite_ngw_layer)
+        self.actionUpdateNGWLayer.setEnabled(False)
 
         self.actionCreateWebMap4Layer = QAction(
             self.tr("Create Web map"), self
@@ -646,11 +644,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
         # Overwrite selected layer
-        self.actionUpdateNGWVectorLayer.setEnabled(
+        self.actionUpdateNGWLayer.setEnabled(
             is_one_qgis_layer_selected
             and is_one_ngw_selected
-            and isinstance(
-                cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(), QgsVectorLayer
+            and (
+                isinstance(
+                    cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(),
+                    QgsVectorLayer,
+                )
+                or isinstance(
+                    cast(QgsLayerTreeLayer, qgis_nodes[0]).layer(),
+                    QgsRasterLayer,
+                )
             )
         )
 
@@ -686,7 +691,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.actionUploadProjectResources,
             self.actionUpdateStyle,
             self.actionAddStyle,
-            self.actionUpdateNGWVectorLayer,
+            self.actionUpdateNGWLayer,
         ]
         self.toolbuttonUpload.setEnabled(
             any(action.isEnabled() for action in upload_actions)
@@ -1272,10 +1277,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             getting_actions.extend([self.actionDownload, self.actionCopyStyle])
 
-        if not is_multiple_selection and isinstance(
-            ngw_resource, NGWVectorLayer
+        qgs_map_layer = self.iface.mapCanvas().currentLayer()
+        is_same_type = (
+            isinstance(ngw_resource, NGWVectorLayer)
+            and isinstance(qgs_map_layer, QgsVectorLayer)
+        ) or (
+            isinstance(ngw_resource, NGWRasterLayer)
+            and isinstance(qgs_map_layer, QgsRasterLayer)
+        )
+
+        if (
+            not is_multiple_selection
+            and isinstance(ngw_resource, (NGWVectorLayer, NGWRasterLayer))
+            and is_same_type
         ):
-            setting_actions.append(self.actionUpdateNGWVectorLayer)
+            setting_actions.append(self.actionUpdateNGWLayer)
 
         if not is_multiple_selection and isinstance(
             ngw_resource, NGWGroupResource
@@ -1650,7 +1666,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if isinstance(qgs_map_layer, QgsVectorLayer):
-            self.resource_model.updateNGWLayer(index, qgs_map_layer)
+            self.resource_model.updateNGWVectorLayer(index, qgs_map_layer)
+
+        if isinstance(qgs_map_layer, QgsRasterLayer):
+            self.resource_model.updateNGWRasterLayer(index, qgs_map_layer)
 
     def edit_metadata(self):
         """Edit metadata table"""
