@@ -50,6 +50,7 @@ from nextgis_connect.ngw_api.core.ngw_webmap import NGWWebMap
 from nextgis_connect.ngw_api.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
     NGWCreateWMSService,
+    NGWUpdateRasterLayer,
     NGWUpdateVectorLayer,
     QGISProjectUploader,
     QGISResourcesUploader,
@@ -1362,7 +1363,7 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         )
 
     @modelRequest
-    def updateNGWLayer(self, index, qgs_vector_layer):
+    def updateNGWVectorLayer(self, index, qgs_layer):
         if not index.isValid():
             index = self.index(0, 0, index)
 
@@ -1370,7 +1371,19 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ngw_vector_layer = item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(
-            NGWUpdateVectorLayer(ngw_vector_layer, qgs_vector_layer),
+            NGWUpdateVectorLayer(ngw_vector_layer, qgs_layer),
+        )
+
+    @modelRequest
+    def updateNGWRasterLayer(self, index, qgs_layer):
+        if not index.isValid():
+            index = self.index(0, 0, index)
+
+        item = index.internalPointer()
+        ngw_raster_layer = item.data(QNGWResourceItem.NGWResourceRole)
+
+        return self._startJob(
+            NGWUpdateRasterLayer(ngw_raster_layer, qgs_layer),
         )
 
     @modelRequest
