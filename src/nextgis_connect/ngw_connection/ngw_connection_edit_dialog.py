@@ -1,7 +1,6 @@
 import importlib.util
 import json
 import os.path
-import re
 import uuid
 from math import ceil
 from typing import Optional, cast
@@ -121,7 +120,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         help_button.clicked.connect(self.__open_help)
 
         # Url field settings
-        self.urlRequiredLabel.hide()
+        self.urlErrorLabel.hide()
         self.urlLineEdit.textChanged.connect(self.__on_url_changed)
         self.urlLineEdit.setShowClearButton(False)
         self.__url_completer_model = QStringListModel(self)
@@ -223,9 +222,9 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.urlLineEdit.setText(lower_text)
         self.urlLineEdit.setCursorPosition(curent_cursor_position)
 
-        is_empty = len(lower_text) == 0
-        self.urlLineEdit.setHighlighted(is_empty)
-        self.urlRequiredLabel.setVisible(is_empty)
+        is_url_empty = len(lower_text) != 0
+        self.urlLineEdit.setHighlighted(not is_url_empty)
+        self.urlErrorLabel.setVisible(not is_url_empty)
 
         self.__update_url_completer(lower_text)
         self.__update_name(lower_text)
@@ -277,7 +276,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__validate()
 
-    def __validate(self):
+    def __validate(self) -> None:
         is_url_valid = len(self.urlLineEdit.text()) != 0
         is_name_valid = len(self.nameLineEdit.text()) != 0
         is_auth_valid = True
@@ -504,29 +503,22 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.progressBar.hide()
 
     def __make_valid_url(self, url: str) -> str:
-        url = url.strip()
-
-        # Always remove trailing slashes (this is only a base url which will
-        # not be used standalone anywhere).
-        while url.endswith("/"):
-            url = url[:-1]
-
-        # Replace common ending when user copy-pastes from browser URL
-        url = re.sub("/resource/[0-9]+", "", url)
-
         parse_result = urlparse(url)
-        hostname = parse_result.hostname
+        if parse_result.scheme == "":
+            parse_result = urlparse("https://" + url)
 
-        # Select https if protocol has not been defined by user
-        if hostname is None:
-            url = f"https://{url}"
+        scheme = parse_result.scheme
+        base_url = parse_result.netloc
 
         # Force https regardless of what user has selected, but only for cloud
         # connections.
-        if url.startswith("http://") and url.endswith(self.NEXTGIS_DOMAIN):
-            url = url.replace("http://", "https://")
+        if base_url.endswith(self.NEXTGIS_DOMAIN) and scheme != "https":
+            scheme = "https"
 
-        return url
+        if not scheme or not base_url:
+            return url
+
+        return f"{scheme}://{base_url}"
 
     @pyqtSlot()
     def __on_add_config_clicked(self) -> None:
