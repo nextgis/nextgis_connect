@@ -90,23 +90,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.connections_widget
         )
 
-        icon_path = Path(__file__).parents[2] / "icons" / "experimental.svg"
-        warning_icon = QIcon(str(icon_path))
-        size = int(
-            max(18.0, self.__widget.versioningCheckBox.minimumSize().height())
-        )
-        pixmap = warning_icon.pixmap(
-            warning_icon.actualSize(QSize(size, size))
-        )
-
-        self.__widget.versioningIcon.setPixmap(pixmap)
-        self.__widget.versioningIcon.setToolTip(
-            self.tr(
-                "Experimental feature. Some operations may not work if feature"
-                " versioning is enabled."
-            )
-        )
-
         unit = self.tr("GiB")
         self.__widget.cacheSizeSlider = LabeledSlider(
             [f"{number} {unit}" for number in [8, 12, 16, 24, 32, 64]] + ["∞"],

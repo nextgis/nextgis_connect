@@ -181,23 +181,6 @@ class VectorLayerCreationDialog(QDialog, VectorLayerCreationDialogBase):
             NgConnectSettings().upload_vector_with_versioning
         )
 
-        icon_path = Path(__file__).parents[2] / "icons" / "experimental.svg"
-        experimental_icon = QIcon(str(icon_path))
-        size = int(
-            max(18.0, self.versioning_warning_label.minimumSize().height())
-        )
-        pixmap = experimental_icon.pixmap(
-            experimental_icon.actualSize(QSize(size, size))
-        )
-
-        self.versioning_warning_label.setPixmap(pixmap)
-        self.versioning_warning_label.setToolTip(
-            self.tr(
-                "Experimental feature. Some operations may not work if feature"
-                " versioning is enabled."
-            )
-        )
-
     def __setup_new_field_ui(self) -> None:
         # Init warning
         warning_icon = QgsApplication.getThemeIcon("mIconWarning.svg")
