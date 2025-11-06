@@ -990,6 +990,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     @pyqtSlot(str)
     def __modelJobStarted(self, job_id: str):
         if job_id in self.blocked_jobs:
+            self.setUserVisible(True)
             self.block_gui()
             self.resources_tree_view.addBlockedJob(self.blocked_jobs[job_id])
 
