@@ -76,7 +76,7 @@
            <item>
             <widget class="QLineEdit" name="layer_name_lineedit">
              <property name="text">
-              <string></string>
+              <string/>
              </property>
             </widget>
            </item>
@@ -147,13 +147,6 @@
           <widget class="QCheckBox" name="versioning_checkbox">
            <property name="text">
             <string>Feature versioning</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="versioning_warning_label">
-           <property name="text">
-            <string/>
            </property>
           </widget>
          </item>

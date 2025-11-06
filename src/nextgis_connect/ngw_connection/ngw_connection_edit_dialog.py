@@ -111,7 +111,8 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         help_button.clicked.connect(self.__open_help)
 
         # Url field settings
-        self.urlRequiredLabel.hide()
+        self.urlErrorLabel.hide()
+        self.urlErrorLabel.setStyleSheet("color: red;")
         self.urlLineEdit.textChanged.connect(self.__on_url_changed)
         self.urlLineEdit.setShowClearButton(False)
         self.__url_completer_model = QStringListModel(self)
@@ -212,14 +213,23 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.urlLineEdit.setText(lower_text)
         self.urlLineEdit.setCursorPosition(curent_cursor_position)
 
-        is_empty = len(lower_text) == 0
-        self.urlLineEdit.setHighlighted(is_empty)
-        self.urlRequiredLabel.setVisible(is_empty)
+        url = self.urlLineEdit.text()
+        is_url_valid = len(url) != 0
+        if not is_url_valid:
+            self.urlErrorLabel.setText(self.tr("URL is required"))
+        elif is_url_valid and not url.endswith(self.NEXTGIS_DOMAIN):
+            self.urlErrorLabel.setText(
+                self.tr("Domain 'nextgis.com' in the end is required")
+            )
+            is_url_valid = False
+
+        self.urlLineEdit.setHighlighted(not is_url_valid)
+        self.urlErrorLabel.setVisible(not is_url_valid)
 
         self.__update_url_completer(lower_text)
         self.__update_name(lower_text)
 
-        self.__validate()
+        self.__validate(not is_url_valid)
 
     def __update_url_completer(self, value: str):
         if any(char in value for char in [":", "\\", "/"]):
@@ -266,7 +276,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__validate()
 
-    def __validate(self):
+    def __validate(self, has_error: bool = False):
         is_url_valid = len(self.urlLineEdit.text()) != 0
         is_name_valid = len(self.nameLineEdit.text()) != 0
         is_auth_valid = True
@@ -283,7 +293,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             is_auth_valid = not is_my
             self.authWarningLabel.setVisible(not is_auth_valid)
 
-        is_valid = is_url_valid and is_name_valid and is_auth_valid
+        is_valid = is_url_valid and is_name_valid and is_auth_valid and not has_error
 
         save_button = self.buttonBox.button(
             QDialogButtonBox.StandardButton.Save
@@ -478,13 +488,10 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     def __make_valid_url(self, url: str) -> str:
         url = url.strip()
 
-        # Always remove trailing slashes (this is only a base url which will
-        # not be used standalone anywhere).
-        while url.endswith("/"):
-            url = url[:-1]
-
-        # Replace common ending when user copy-pastes from browser URL
-        url = re.sub("/resource/[0-9]+", "", url)
+        # Remove everything after domain
+        domain_idx = url.find(self.NEXTGIS_DOMAIN)
+        if domain_idx != -1:
+            url = url[: domain_idx + len(self.NEXTGIS_DOMAIN)]
 
         parse_result = urlparse(url)
         hostname = parse_result.hostname

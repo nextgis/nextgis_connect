@@ -235,6 +235,12 @@
    <header>qgspasswordlineedit.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>username_lineedit</tabstop>
+  <tabstop>password_lineedit</tabstop>
+  <tabstop>additional_groupbox</tabstop>
+  <tabstop>name_lineedit</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>
