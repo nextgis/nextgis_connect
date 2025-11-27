@@ -196,6 +196,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.setupUi(self)
         self.setObjectName("NGConnectDock")
 
+        self.__init_title()
+
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
@@ -1079,6 +1081,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 else:
                     self.resources_tree_view.showWelcomeMessage()
                 return
+
+            self.__init_title()
 
             if (
                 HAS_NGSTD
@@ -2679,6 +2683,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             QDesktopServices.openUrl(QUrl(promo_url))
 
         banner_label.linkActivated.connect(open_link)
+
+    def __init_title(self) -> None:
+        title = NgConnectInterface.PLUGIN_NAME
+        connection = NgwConnectionsManager().current_connection
+        if connection is not None:
+            url = connection.url.replace("https://", "").replace("http://", "")
+            title += f" — {url}"
+
+        self.setWindowTitle(title)
 
 
 class NGWPanelToolBar(QToolBar):

@@ -350,10 +350,8 @@ class NgConnectPlugin(NgConnectInterface):
         logger.debug("Detached editing unloaded")
 
     def __init_ng_connect_dock(self) -> None:
-        # Dock tree panel
-        self.__ng_resources_tree_dock = NgConnectDock(
-            self.PLUGIN_NAME, self.iface
-        )
+
+        self.__ng_resources_tree_dock = NgConnectDock("", self.iface)
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea,
             self.__ng_resources_tree_dock,
