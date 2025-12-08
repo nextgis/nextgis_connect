@@ -42,6 +42,7 @@ from nextgis_connect.settings.ng_connect_cache_manager import (
 from nextgis_connect.settings.tasks.clear_ng_connect_cache_task import (
     ClearNgConnectCacheTask,
 )
+from nextgis_connect.utils import human_readable_size
 
 
 class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
@@ -318,7 +319,8 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             self.__widget.clearCacheButton.setEnabled(False)
         else:
             self.__widget.clearCacheButton.setText(
-                self.tr("Clear Cache") + f"  ({self.format_size(cache_size)})"
+                self.tr("Clear Cache")
+                + f"  ({human_readable_size(cache_size)})"
             )
             self.__widget.clearCacheButton.setEnabled(True)
 
@@ -549,21 +551,6 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.connections_widget.refresh()
 
         self.__need_reinit = True
-
-    def format_size(self, size_in_kb):
-        units = [
-            self.tr("KiB"),
-            self.tr("MiB"),
-            self.tr("GiB"),
-            self.tr("TiB"),
-        ]
-        size = size_in_kb
-        unit_index = 0
-        while size > 1024 and unit_index < len(units) - 1:
-            size /= 1024
-            unit_index += 1
-        precision = 2 if size < 10 else 1
-        return f"{size:.{precision}f} {units[unit_index]}"
 
 
 class NgConnectOptionsErrorPageWidget(QgsOptionsPageWidget):

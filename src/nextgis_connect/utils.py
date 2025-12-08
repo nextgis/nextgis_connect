@@ -2,30 +2,24 @@ import platform
 from enum import Enum, auto
 from itertools import islice
 from pathlib import Path
-from typing import Any, Optional, Tuple, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Tuple, Union
 
 from qgis.core import (
     Qgis,
     QgsApplication,
     QgsSettings,
 )
-from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
-    QBuffer,
     QByteArray,
-    QIODevice,
     QLocale,
     QMimeData,
-    QSize,
     Qt,
 )
-from qgis.PyQt.QtGui import QClipboard, QIcon, QPainter, QPixmap
-from qgis.PyQt.QtSvg import QSvgRenderer
+from qgis.PyQt.QtGui import QClipboard
 from qgis.PyQt.QtWidgets import (
     QAction,
     QDialog,
     QDialogButtonBox,
-    QLabel,
     QListWidget,
     QListWidgetItem,
     QMenu,
@@ -37,7 +31,10 @@ from nextgis_connect.compat import QGIS_3_30
 from nextgis_connect.core.ui.about_dialog import AboutDialog
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
-iface = cast(QgisInterface, iface)
+if TYPE_CHECKING:
+    from qgis.gui import QgisInterface
+
+    assert isinstance(iface, QgisInterface)
 
 
 class SupportStatus(Enum):
@@ -241,105 +238,24 @@ def wrap_sql_table_name(value: Any) -> str:
     return f'"{value}"'
 
 
-def draw_icon(label: QLabel, icon: QIcon, *, size: int = 24) -> None:
-    pixmap = icon.pixmap(icon.actualSize(QSize(size, size)))
-    label.setPixmap(pixmap)
-    label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-
-def render_svg_icon(
-    svg_path: Path, *, color: Optional[str] = None, size: Optional[int] = None
-) -> QIcon:
-    """Render an SVG file into a QIcon with optional recolor and resize.
-
-    :param svg_path: Filesystem path to the SVG file.
-    :type svg_path: Path
-    :param color: Color to apply instead of white fill. If None, keep the
-        original fills unchanged.
-    :type color: Optional[str]
-    :param size: Output icon size in pixels. If None, use SVG default size.
-    :type size: Optional[int]
-    :returns: Rendered QIcon.
-    :rtype: QIcon
-    :raises ValueError: If the SVG cannot be loaded.
+def human_readable_size(size_in_kb: float) -> str:
     """
-    svg_content = svg_path.read_text(encoding="utf-8")
-
-    # Replace only pure white fills to preserve multi-colored icons
-    if color:
-        modified_svg = svg_content.replace('fill="#ffffff"', f'fill="{color}"')
-        modified_svg = modified_svg.replace("fill:#ffffff", f"fill:{color}")
-    else:
-        modified_svg = svg_content
-
-    byte_array = QByteArray(modified_svg.encode("utf-8"))
-    renderer = QSvgRenderer()
-    if not renderer.load(byte_array):
-        message = f"Failed to load SVG: {svg_path}"
-        raise ValueError(message)
-
-    target_size = renderer.defaultSize() if size is None else QSize(size, size)
-    pixmap = QPixmap(target_size)
-    pixmap.fill(Qt.GlobalColor.transparent)
-
-    painter = QPainter(pixmap)
-    renderer.render(painter)
-    painter.end()
-
-    return QIcon(pixmap)
-
-
-def material_icon(
-    name: str, *, color: str = "", size: Optional[int] = None
-) -> QIcon:
-    """Return a material icon as QIcon, optionally recolored and resized.
-
-    :param name: Name of the material icon (without .svg extension).
-    :type name: str
-    :param color: Color to apply to the icon (hex string).
-    :type color: str
-    :param size: Size of the icon in pixels.
-    :type size: Optional[int]
-    :returns: QIcon instance for the material icon.
-    :rtype: QIcon
-    :raises FileNotFoundError: If the SVG file is not found.
-    :raises ValueError: If the SVG cannot be loaded.
-    """
-    material_icons_path = Path(__file__).parent / "icons" / "material"
-
-    svg_path = None
-    for path in material_icons_path.glob(f"{name}*"):
-        if path.is_file():
-            svg_path = path
-            break
-
-    if svg_path is None:
-        message = f"SVG file not found: {svg_path}"
-        raise FileNotFoundError(message)
-
-    effective_color = color or QgsApplication.palette().text().color().name()
-    return render_svg_icon(svg_path, color=effective_color, size=size)
-
-
-def icon_to_base64(icon: QIcon, size: Optional[int] = None) -> str:
-    """Convert a QIcon to a base64-encoded string.
-
-    :param icon: QIcon to convert.
-    :type icon: QIcon
-    :returns: Base64-encoded string of the icon.
+    Converts a file size in kilobytes to a human-readable format.
+    :param size_in_kb: Size in kilobytes.
+    :type size_in_kb: float
+    :returns: Human-readable size string.
     :rtype: str
     """
-    icon_size = QSize(32, 32) if size is None else QSize(size, size)
-    pixmap = icon.pixmap(icon_size)
-
-    buffer = QByteArray()
-    qbuffer = QBuffer(buffer)
-    qbuffer.open(QIODevice.OpenModeFlag.WriteOnly)
-    pixmap.save(qbuffer, "PNG")
-    qbuffer.close()
-
-    data = buffer.toBase64().data()
-    if not isinstance(data, str):
-        data = data.decode("utf-8")
-
-    return "data:image/png;base64, " + data
+    units = [
+        QgsApplication.translate("SizeUnits", "KiB"),
+        QgsApplication.translate("SizeUnits", "MiB"),
+        QgsApplication.translate("SizeUnits", "GiB"),
+        QgsApplication.translate("SizeUnits", "TiB"),
+    ]
+    size = size_in_kb
+    unit_index = 0
+    while size > 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+    precision = 2 if size < 10 else 1
+    return f"{size:.{precision}f} {units[unit_index]}"

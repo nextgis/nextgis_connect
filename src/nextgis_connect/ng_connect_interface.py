@@ -1,5 +1,6 @@
 import configparser
 from abc import ABCMeta, abstractmethod
+from pathlib import Path
 from typing import TYPE_CHECKING, Union
 
 from qgis import utils
@@ -36,6 +37,15 @@ class NgConnectInterface(QObject, metaclass=_NgConnectInterfaceMetaClass):
     @property
     def version(self) -> str:
         return self.metadata.get("general", "version")
+
+    @property
+    def path(self) -> "Path":
+        """Return the plugin path.
+
+        :returns: Path to the plugin directory.
+        :rtype: Path
+        """
+        return Path(__file__).parent
 
     @property
     @abstractmethod

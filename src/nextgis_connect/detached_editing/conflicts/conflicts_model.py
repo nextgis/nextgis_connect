@@ -29,7 +29,7 @@ from nextgis_connect.detached_editing.conflicts.item_to_resolution_converter imp
     ItemToResolutionConverter,
 )
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
-from nextgis_connect.utils import material_icon
+from nextgis_connect.ui.icon import material_icon
 
 
 class ConflictsResolvingModel(QAbstractListModel):

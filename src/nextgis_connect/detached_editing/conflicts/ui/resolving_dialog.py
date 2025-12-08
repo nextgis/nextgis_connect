@@ -80,7 +80,7 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
 )
 from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.resources.ngw_field import NgwField
-from nextgis_connect.utils import draw_icon, material_icon
+from nextgis_connect.ui.icon import draw_icon, material_icon
 
 WIDGET, _ = uic.loadUiType(
     str(Path(__file__).parent / "resolving_dialog_base.ui")

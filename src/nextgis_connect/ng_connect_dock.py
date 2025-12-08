@@ -162,6 +162,7 @@ from nextgis_connect.tree_widget import (
 )
 from nextgis_connect.tree_widget.model import NGWResourceModelResponse
 from nextgis_connect.tree_widget.proxy_model import NgConnectProxyModel
+from nextgis_connect.ui.icon import icon_to_base64, material_icon
 
 HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
 if HAS_NGSTD:
@@ -2659,9 +2660,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         banner_label = QLabel(banner)
         banner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_path = Path(ICONS_PATH) / "fire.png"
-        close_icon = utils.icon_to_base64(
-            utils.material_icon("close", size=16)
-        )
+        close_icon = icon_to_base64(material_icon("close_small", size=16))
 
         html = f"""
             <html>

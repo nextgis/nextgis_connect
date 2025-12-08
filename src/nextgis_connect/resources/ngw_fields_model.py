@@ -13,7 +13,7 @@ from qgis.PyQt.QtCore import (
 
 from nextgis_connect.resources.ngw_field import NgwDataType, NgwField
 from nextgis_connect.resources.ngw_fields import NgwFields
-from nextgis_connect.utils import material_icon
+from nextgis_connect.ui.icon import material_icon
 
 
 class NgwFieldsModel(QAbstractTableModel):
