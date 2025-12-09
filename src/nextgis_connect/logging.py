@@ -4,9 +4,11 @@ import re
 import sys
 from pprint import pformat
 from types import MethodType
-from typing import Dict, List, Optional, Set, Union, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Union, cast
 
 from qgis.core import Qgis, QgsApplication
+from qgis.PyQt.QtWidgets import QPlainTextEdit, QTabWidget
+from qgis.utils import iface
 
 from nextgis_connect.compat import QGIS_3_42_2
 from nextgis_connect.ng_connect_interface import NgConnectInterface
@@ -16,6 +18,11 @@ if sys.version_info >= (3, 8):
     from typing import Protocol
 else:
     Protocol = object
+
+if TYPE_CHECKING:
+    from qgis.gui import QgisInterface
+
+    assert isinstance(iface, QgisInterface)
 
 
 class QgisLoggerProtocol(Protocol):
@@ -131,6 +138,28 @@ def unload_logger():
         del logger.success  # type: ignore
 
     logger.setLevel(logging.NOTSET)
+
+
+def extract_logs() -> str:
+    """
+    Extract log messages from QGIS log viewer for the plugin tab.
+    :returns: Log messages as a single string.
+    :rtype: str
+    """
+    log_viewer = iface.mainWindow().logViewer()
+    tab_widget: QTabWidget = log_viewer.findChild(QTabWidget)
+    assert tab_widget is not None
+
+    text_edit: Optional[QPlainTextEdit] = None
+    for index in range(tab_widget.count()):
+        if tab_widget.tabText(index) == NgConnectInterface.PLUGIN_NAME:
+            text_edit = tab_widget.widget(index)
+            break
+
+    if text_edit is None:
+        return ""
+
+    return text_edit.toPlainText()
 
 
 logger = init_logger()
