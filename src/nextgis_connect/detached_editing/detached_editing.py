@@ -15,6 +15,9 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
 from nextgis_connect.compat import QGIS_3_34
+from nextgis_connect.detached_editing.identification.identification_manager import (
+    IdentificationManager,
+)
 from nextgis_connect.detached_editing.path_preprocessor import (
     DetachedEditingPathPreprocessor,
 )
@@ -78,10 +81,17 @@ class DetachedEditing(QObject):
                 self.__path_preprocessor  # type: ignore
             )
 
+        self._identification_manager = IdentificationManager(
+            iface.mapCanvas(), self
+        )
+        self._identification_manager.load()
+
         QTimer.singleShot(0, self.__setup_layers)
 
     def unload(self) -> None:
         self.__timer.stop()
+
+        self._identification_manager.unload()
 
         containers = list(self.__containers.values())
 

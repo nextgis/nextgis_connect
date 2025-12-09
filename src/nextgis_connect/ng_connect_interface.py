@@ -11,6 +11,10 @@ if TYPE_CHECKING:
     from qgis.PyQt.QtCore import QAbstractItemModel, QItemSelectionModel
     from qgis.PyQt.QtWidgets import QToolBar
 
+    from nextgis_connect.detached_editing.detached_editing import (
+        DetachedEditing,
+    )
+
 
 class _NgConnectInterfaceMetaClass(ABCMeta, type(QObject)): ...
 
@@ -68,6 +72,9 @@ class NgConnectInterface(QObject, metaclass=_NgConnectInterfaceMetaClass):
 
     @abstractmethod
     def unload(self) -> None: ...
+
+    @abstractmethod
+    def detached_editing(self) -> "DetachedEditing": ...
 
     @abstractmethod
     def synchronize_layers(self) -> None: ...

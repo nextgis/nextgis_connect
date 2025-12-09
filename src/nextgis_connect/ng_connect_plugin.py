@@ -46,7 +46,7 @@ from nextgis_connect.core.tasks.ng_connect_task_manager import (
     NgConnectTaskManager,
 )
 from nextgis_connect.core.ui.about_dialog import AboutDialog
-from nextgis_connect.detached_editing.detached_edititng import DetachedEditing
+from nextgis_connect.detached_editing.detached_editing import DetachedEditing
 from nextgis_connect.exceptions import (
     ErrorCode,
     NgConnectError,
@@ -173,6 +173,10 @@ class NgConnectPlugin(NgConnectInterface):
     def disable_synchronization(self) -> None:
         assert self.__detached_editing is not None
         self.__detached_editing.disable_synchronization()
+
+    def detached_editing(self) -> DetachedEditing:
+        assert self.__detached_editing is not None
+        return self.__detached_editing
 
     def show_error(self, error: Exception) -> str:
         if not isinstance(error, NgConnectError):
