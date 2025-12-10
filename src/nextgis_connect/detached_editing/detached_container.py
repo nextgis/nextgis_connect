@@ -257,6 +257,14 @@ class DetachedContainer(QObject):
             f'Layer "{layer_id}" detached from container "{self.__path.name}"'
         )
 
+    def layer(self, layer: QgsVectorLayer) -> Optional[DetachedLayer]:
+        """Return detached layer for QGIS layer.
+
+        :param layer: Vector layer.
+        :return: Detached layer or ``None`` if layer is not detached.
+        """
+        return self.__detached_layers.get(layer.id())
+
     def clear(self) -> None:
         self.__clear_indicators()
 

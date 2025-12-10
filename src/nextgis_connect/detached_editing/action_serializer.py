@@ -72,7 +72,7 @@ class ActionSerializer:
         return self.__deserialize_actions(dicts_list)
 
     def __convert_versioning_action(self, action: VersioningAction) -> Any:
-        if not isinstance(action, DataChangeAction):
+        if not isinstance(action, (DataChangeAction, DescriptionPutAction)):
             class_name = action.__class__.__name__
             message = f"Object of type '{class_name}' is not serializable"
             code = ErrorCode.SynchronizationError

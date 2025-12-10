@@ -296,15 +296,10 @@ class ActionApplier(QObject):
         )
 
     def __put_description(self, action: DescriptionPutAction) -> None:
-        feature_metadata = self.__get_feature_metadata(ngw_fid=action.fid)
-        if feature_metadata is None:
-            message = f"Feature with fid={action.fid} is not exist"
-            raise SynchronizationError(message)
-
         self.__commands.append(
             (
-                "UPDATE ngw_features_metadata SET description=? WHERE ngw_fid=?",
-                (action.value, action.fid),
+                "UPDATE ngw_features_metadata SET version=?, description=? WHERE ngw_fid=?",
+                (action.vid, action.value, action.fid),
             )
         )
 

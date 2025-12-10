@@ -21,6 +21,7 @@ from nextgis_connect.exceptions import (
     NgConnectError,
 )
 from nextgis_connect.logging import logger
+from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.resources.ngw_field import NgwField
 from nextgis_connect.resources.ngw_fields import NgwFields
 from nextgis_connect.utils import wrap_sql_table_name, wrap_sql_value
@@ -88,6 +89,10 @@ class DetachedContainerChangesInfo:
     restored_features_count: int = 0
     updated_attributes_count: int = 0
     updated_geometries_count: int = 0
+    updated_descriptions_count: int = 0
+    added_attachments_count: int = 0
+    removed_attachments_count: int = 0
+    updated_attachments_count: int = 0
 
     @property
     def updated_features_count(self) -> int:
@@ -305,7 +310,11 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
             OR EXISTS(SELECT 1 FROM ngw_restored_features)
             OR EXISTS(SELECT 1 FROM ngw_updated_attributes)
             OR EXISTS(SELECT 1 FROM ngw_updated_geometries)
-    """
+            OR EXISTS(SELECT 1 FROM ngw_updated_descriptions)
+            OR EXISTS(SELECT 1 FROM ngw_added_attachments)
+            OR EXISTS(SELECT 1 FROM ngw_removed_attachments)
+            OR EXISTS(SELECT 1 FROM ngw_updated_attachments)
+        """
     )
     has_changes = bool(cursor.fetchone()[0])
 
@@ -343,7 +352,11 @@ def container_changes(path: Path) -> DetachedContainerChangesInfo:
               (SELECT COUNT(*) FROM ngw_removed_features) removed,
               (SELECT COUNT(*) FROM ngw_restored_features) restored,
               (SELECT COUNT(DISTINCT fid) FROM ngw_updated_attributes) attributes,
-              (SELECT COUNT(*) FROM ngw_updated_geometries) geometries
+              (SELECT COUNT(*) FROM ngw_updated_geometries) geometries,
+              (SELECT COUNT(*) FROM ngw_updated_descriptions) descriptions,
+              (SELECT COUNT(*) FROM ngw_added_attachments) added_attachments,
+              (SELECT COUNT(*) FROM ngw_removed_attachments) removed_attachments,
+              (SELECT COUNT(*) FROM ngw_updated_attachments) updated_attachments
             """
         )
         result = cursor.fetchone()
@@ -354,6 +367,10 @@ def container_changes(path: Path) -> DetachedContainerChangesInfo:
             restored_features_count=result[2],
             updated_attributes_count=result[3],
             updated_geometries_count=result[4],
+            updated_descriptions_count=result[5],
+            added_attachments_count=result[6],
+            removed_attachments_count=result[7],
+            updated_attachments_count=result[8],
         )
 
 
@@ -392,7 +409,7 @@ def ngw_feature_id(
     return None
 
 
-# @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
+@qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
 def ngw_feature_description(
     feature: QgsFeature, context: QgsExpressionContext
 ) -> Optional[str]:
@@ -409,20 +426,14 @@ def ngw_feature_description(
     if layer is None or not is_ngw_container(layer):
         return None
 
-    path = container_path(layer)
     try:
-        with closing(make_connection(path)) as connection, closing(
-            connection.cursor()
-        ) as cursor:
-            cursor.execute(
-                "SELECT description FROM ngw_features_metadata"
-                f" WHERE fid={fid}"
-            )
-            result = cursor.fetchone()
-            if result is not None:
-                return result[0]
+        detached_editing = NgConnectInterface.instance().detached_editing
+        detached_layer = detached_editing.layer(layer)
+        if detached_layer is None:
+            return None
+        return detached_layer.feature_description(fid)
 
     except Exception:
-        logger.exception("Error occurred while querying ngw_fid")
+        logger.exception("Error occurred while querying feature description")
 
     return None

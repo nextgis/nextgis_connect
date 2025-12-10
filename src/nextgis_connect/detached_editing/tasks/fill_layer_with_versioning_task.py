@@ -1,3 +1,4 @@
+import urllib.parse
 from contextlib import closing
 from pathlib import Path
 
@@ -40,8 +41,13 @@ class FillLayerWithVersioning(DetachedEditingTask):
             # Check structure etc
             self._get_layer(ngw_connection)
 
+            check_params = urllib.parse.urlencode(
+                {
+                    "extensions": "attachment,description",
+                }
+            )
             check_result = ngw_connection.get(
-                f"/api/resource/{resource_id}/feature/changes/check"
+                f"/api/resource/{resource_id}/feature/changes/check?{check_params}"
             )
             fetch_url = check_result["fetch"]
 

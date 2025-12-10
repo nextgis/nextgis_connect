@@ -140,7 +140,7 @@ def unload_logger():
     logger.setLevel(logging.NOTSET)
 
 
-def extract_logs() -> str:
+def extract_plugin_logs() -> str:
     """
     Extract log messages from QGIS log viewer for the plugin tab.
     :returns: Log messages as a single string.
@@ -160,6 +160,16 @@ def extract_logs() -> str:
         return ""
 
     return text_edit.toPlainText()
+
+
+def open_plugin_logs() -> None:
+    """
+    Open QGIS log viewer with the plugin tab selected.
+    """
+    if Qgis.versionInt() >= 34400:
+        iface.openMessageLog(NgConnectInterface.PLUGIN_NAME)
+    else:
+        iface.openMessageLog()
 
 
 logger = init_logger()

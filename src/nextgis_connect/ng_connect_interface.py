@@ -73,6 +73,7 @@ class NgConnectInterface(QObject, metaclass=_NgConnectInterfaceMetaClass):
     @abstractmethod
     def unload(self) -> None: ...
 
+    @property
     @abstractmethod
     def detached_editing(self) -> "DetachedEditing": ...
 

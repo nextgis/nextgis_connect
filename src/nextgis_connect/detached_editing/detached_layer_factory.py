@@ -263,6 +263,13 @@ class DetachedLayerFactory:
                 FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
+            -- Updated descriptions
+            CREATE TABLE ngw_updated_descriptions (
+                'fid' INTEGER PRIMARY KEY, -- Unique updated description ID
+                'backup' TEXT, -- Description before update
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
+            );
+
             -- Added attachments
             CREATE TABLE ngw_added_attachments (
                 'aid' INTEGER PRIMARY KEY, -- Unique added attachment ID

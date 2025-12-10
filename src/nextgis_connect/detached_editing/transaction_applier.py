@@ -10,6 +10,7 @@ from nextgis_connect.detached_editing.utils import (
 from nextgis_connect.exceptions import SynchronizationError
 
 from .actions import (
+    DescriptionPutAction,
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureRestoreAction,
@@ -57,6 +58,8 @@ class TransactionApplier:
         delete_actions = []
         restore_actions = []
 
+        updated_descriptions = []
+
         for action, (_, action_result) in zip(actions, operation_result):
             if str(action.action) != action_result["action"]:
                 raise SynchronizationError("Different action and result type")
@@ -78,12 +81,17 @@ class TransactionApplier:
                 updated_features.append(
                     FeatureMetaData(ngw_fid=cast(int, action.fid))
                 )
+            elif isinstance(action, DescriptionPutAction):
+                updated_descriptions.append(action)
 
         if len(added_features) > 0:
             self.__process_added(added_features)
 
         if len(updated_features) > 0:
             self.__process_updated(updated_features)
+
+        if len(updated_descriptions) > 0:
+            self.__process_updated_descriptions(updated_descriptions)
 
         if len(delete_actions) > 0:
             self.__process_deleted(delete_actions)
@@ -209,5 +217,18 @@ class TransactionApplier:
                 DELETE FROM ngw_updated_geometries
                     WHERE fid in ({updated_fids});
                 """
+            )
+            connection.commit()
+
+    def __process_updated_descriptions(
+        self, actions: List[DescriptionPutAction]
+    ) -> None:
+        updated_fids = ",".join(str(action.fid) for action in actions)
+
+        with closing(
+            make_connection(self.__container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            cursor.execute(
+                f"DELETE FROM ngw_updated_descriptions WHERE fid in ({updated_fids})"
             )
             connection.commit()

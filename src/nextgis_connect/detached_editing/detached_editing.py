@@ -15,6 +15,7 @@ from qgis.PyQt.QtCore import QObject, QTimer, pyqtSlot
 from qgis.utils import iface  # type: ignore
 
 from nextgis_connect.compat import QGIS_3_34
+from nextgis_connect.detached_editing.detached_layer import DetachedLayer
 from nextgis_connect.detached_editing.identification.identification_manager import (
     IdentificationManager,
 )
@@ -146,6 +147,17 @@ class DetachedEditing(QObject):
     @pyqtSlot(name="disableSynchronization")
     def disable_synchronization(self) -> None:
         self.__is_synchronization_enabled = False
+
+    def layer(self, layer: QgsVectorLayer) -> Optional[DetachedLayer]:
+        """Return detached layer for QGIS layer.
+
+        :param layer: Vector layer.
+        :return: Detached layer or ``None`` if layer is not detached.
+        """
+        container = self.__containers_by_layer_id.get(layer.id())
+        if container is None:
+            return None
+        return container.layer(layer)
 
     def __setup_layers(self) -> None:
         project = QgsProject.instance()

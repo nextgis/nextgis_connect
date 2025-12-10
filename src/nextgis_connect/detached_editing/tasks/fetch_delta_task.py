@@ -70,6 +70,7 @@ class FetchDeltaTask(DetachedEditingTask):
                 {
                     "epoch": self._metadata.epoch,
                     "initial": self._metadata.version,
+                    "extensions": "attachment,description",
                 }
             )
             check_url = f"/api/resource/{resource_id}/feature/changes/check?{check_params}"

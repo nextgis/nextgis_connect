@@ -18,7 +18,7 @@ from qgis.PyQt.QtWidgets import QPushButton, QToolBar
 from qgis.utils import iface
 
 from nextgis_connect.exceptions import ErrorCode, NgConnectError
-from nextgis_connect.logging import logger, unload_logger
+from nextgis_connect.logging import logger, open_plugin_logs, unload_logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 from nextgis_connect.utils import nextgis_domain, utm_tags
@@ -111,7 +111,7 @@ class NgConnectPluginStub(NgConnectInterface):
 
         if not pretend_is_not_a_error:
             button = QPushButton(self.tr("Open logs"))
-            button.pressed.connect(iface.openMessageLog)
+            button.pressed.connect(open_plugin_logs)
             widget.layout().addWidget(button)
 
             button = QPushButton(self.tr("Let us know"))
@@ -158,6 +158,7 @@ class NgConnectPluginStub(NgConnectInterface):
     def disable_synchronization(self) -> None:
         raise NotImplementedError
 
+    @property
     def detached_editing(self) -> "DetachedEditing":
         raise NotImplementedError
 

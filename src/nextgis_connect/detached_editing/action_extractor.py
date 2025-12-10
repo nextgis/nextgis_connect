@@ -30,6 +30,7 @@ from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.resources.ngw_field import NgwField
 
 from .actions import (
+    DescriptionPutAction,
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureId,
@@ -62,12 +63,14 @@ class ActionExtractor:
         deleted_features = self.extract_deleted_features()
         restored_features = self.extract_restored_features()
         updated_features = self.extract_updated_features()
+        updated_descriptions = self.extract_updated_descriptions()
 
         actions = itertools.chain(
             added_features,
             deleted_features,
             restored_features,
             updated_features,
+            updated_descriptions,
         )
         return list(actions)
 
@@ -245,6 +248,25 @@ class ActionExtractor:
             raise error
 
         return restore_actions
+
+    def extract_updated_descriptions(self) -> List[DescriptionPutAction]:
+        try:
+            with closing(
+                make_connection(self.__container_path)
+            ) as connection, closing(connection.cursor()) as cursor:
+                query = """
+                    SELECT ngw_fid, version, description
+                    FROM ngw_features_metadata
+                    RIGHT JOIN ngw_updated_descriptions
+                        ON ngw_features_metadata.fid = ngw_updated_descriptions.fid
+                """
+                return [
+                    DescriptionPutAction(row[0], row[1], row[2])
+                    for row in cursor.execute(query)
+                ]
+
+        except Exception as error:
+            raise ContainerError from error
 
     def __features_metadata(
         self, cursor: sqlite3.Cursor, fids: Iterable[FeatureId]
