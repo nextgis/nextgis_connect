@@ -27,6 +27,7 @@ from typing import ClassVar, Optional
 from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import QSettings, QStandardPaths
 
+from nextgis_connect.core.constants import PLUGIN_SETTINGS_GROUP
 from nextgis_connect.search.search_settings import SearchSettings
 
 
@@ -308,7 +309,7 @@ class NgConnectSettings:
 
     @property
     def __plugin_group(self) -> str:
-        return "NextGIS/Connect"
+        return PLUGIN_SETTINGS_GROUP
 
     def __migrate(self) -> None:
         if self.__is_migrated:

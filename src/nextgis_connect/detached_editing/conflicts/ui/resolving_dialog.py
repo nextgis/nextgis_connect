@@ -70,6 +70,9 @@ from nextgis_connect.detached_editing.conflicts.conflict_resolving_item import (
 from nextgis_connect.detached_editing.conflicts.conflicts_model import (
     ConflictsResolvingModel,
 )
+from nextgis_connect.detached_editing.identification.settings import (
+    IdentificationSettings,
+)
 from nextgis_connect.detached_editing.serialization import simplify_value
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
@@ -1044,14 +1047,17 @@ class ResolvingDialog(QDialog, WIDGET):
 
         canvas.property("rubber_band").setToGeometry(geometry, None)
 
+        settings = IdentificationSettings()
         if (
             geometry.type() == GeometryType.Point
             and not QgsWkbTypes.isMultiType(geometry.wkbType())
         ):
             canvas.setCenter(geometry.asPoint())
-            canvas.zoomScale(50000)
+            canvas.zoomScale(settings.zoom_map_scale)
         else:
-            canvas.setExtent(geometry.boundingBox())
+            bounding_box = geometry.boundingBox()
+            bounding_box.scale(settings.zoom_geometry_scale_factor)
+            canvas.setExtent(bounding_box)
             canvas.zoomOut()
 
         canvas.refresh()
