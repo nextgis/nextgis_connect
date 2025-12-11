@@ -4,8 +4,10 @@ from itertools import islice
 from pathlib import Path
 from typing import Optional
 
-from nextgis_connect.detached_editing.action_extractor import ActionExtractor
-from nextgis_connect.detached_editing.action_serializer import ActionSerializer
+from nextgis_connect.detached_editing.actions.extractor import ActionExtractor
+from nextgis_connect.detached_editing.actions.serializer import (
+    ActionSerializer,
+)
 from nextgis_connect.detached_editing.tasks.detached_editing_task import (
     DetachedEditingTask,
 )

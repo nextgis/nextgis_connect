@@ -3,10 +3,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from nextgis_connect.detached_editing.action_serializer import ActionSerializer
 from nextgis_connect.detached_editing.actions import (
     ContinueAction,
     VersioningAction,
+)
+from nextgis_connect.detached_editing.actions.serializer import (
+    ActionSerializer,
 )
 from nextgis_connect.detached_editing.tasks.detached_editing_task import (
     DetachedEditingTask,

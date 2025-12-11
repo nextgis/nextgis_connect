@@ -13,7 +13,6 @@ from nextgis_connect.detached_editing.actions import (
     FeatureAction,
     FeatureId,
     FeatureUpdateAction,
-    FieldId,
 )
 from nextgis_connect.detached_editing.conflicts.conflict_resolution import (
     ConflictResolution,
@@ -27,6 +26,7 @@ from nextgis_connect.detached_editing.utils import (
 )
 from nextgis_connect.exceptions import DetachedEditingError
 from nextgis_connect.logging import logger
+from nextgis_connect.resources.ngw_field import FieldId
 
 
 class ConflictsResolver:

@@ -2,7 +2,6 @@ from itertools import chain
 from pathlib import Path
 from typing import Dict, List
 
-from nextgis_connect.detached_editing.action_extractor import ActionExtractor
 from nextgis_connect.detached_editing.actions import (
     ActionType,
     FeatureAction,
@@ -10,6 +9,7 @@ from nextgis_connect.detached_editing.actions import (
     FeatureUpdateAction,
     VersioningAction,
 )
+from nextgis_connect.detached_editing.actions.extractor import ActionExtractor
 from nextgis_connect.detached_editing.conflicts.conflict import (
     VersioningConflict,
 )

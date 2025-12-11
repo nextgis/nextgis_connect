@@ -2,20 +2,19 @@ from contextlib import closing
 from pathlib import Path
 from typing import List, Optional, Sequence, cast
 
-from nextgis_connect.detached_editing.utils import (
-    DetachedContainerMetaData,
-    FeatureMetaData,
-    make_connection,
-)
-from nextgis_connect.exceptions import SynchronizationError
-
-from .actions import (
+from nextgis_connect.detached_editing.actions import (
     DescriptionPutAction,
     FeatureCreateAction,
     FeatureDeleteAction,
     FeatureRestoreAction,
     FeatureUpdateAction,
 )
+from nextgis_connect.detached_editing.utils import (
+    DetachedContainerMetaData,
+    FeatureMetaData,
+    make_connection,
+)
+from nextgis_connect.exceptions import SynchronizationError
 
 
 class TransactionApplier:

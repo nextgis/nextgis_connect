@@ -2,8 +2,10 @@ import urllib.parse
 from contextlib import closing
 from pathlib import Path
 
-from nextgis_connect.detached_editing.action_applier import ActionApplier
-from nextgis_connect.detached_editing.action_serializer import ActionSerializer
+from nextgis_connect.detached_editing.actions.applier import ActionApplier
+from nextgis_connect.detached_editing.actions.serializer import (
+    ActionSerializer,
+)
 from nextgis_connect.detached_editing.tasks.detached_editing_task import (
     DetachedEditingTask,
 )

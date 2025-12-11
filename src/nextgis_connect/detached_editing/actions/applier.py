@@ -13,6 +13,19 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QObject, pyqtSlot
 
+from nextgis_connect.detached_editing.actions import (
+    ActionType,
+    AttachmentCreateAction,
+    AttachmentDeleteAction,
+    AttachmentUpdateAction,
+    ContinueAction,
+    DescriptionPutAction,
+    FeatureAction,
+    FeatureCreateAction,
+    FeatureDeleteAction,
+    FeatureId,
+    FeatureUpdateAction,
+)
 from nextgis_connect.detached_editing.serialization import deserialize_geometry
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
@@ -25,20 +38,6 @@ from nextgis_connect.exceptions import (
     LayerEditError,
     NgConnectError,
     SynchronizationError,
-)
-
-from .actions import (
-    ActionType,
-    AttachmentCreateAction,
-    AttachmentDeleteAction,
-    AttachmentUpdateAction,
-    ContinueAction,
-    DescriptionPutAction,
-    FeatureAction,
-    FeatureCreateAction,
-    FeatureDeleteAction,
-    FeatureId,
-    FeatureUpdateAction,
 )
 
 

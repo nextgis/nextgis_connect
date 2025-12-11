@@ -3,10 +3,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from nextgis_connect.detached_editing.action_applier import ActionApplier
 from nextgis_connect.detached_editing.actions import (
     FeatureAction,
 )
+from nextgis_connect.detached_editing.actions.applier import ActionApplier
 from nextgis_connect.detached_editing.tasks.detached_editing_task import (
     DetachedEditingTask,
 )

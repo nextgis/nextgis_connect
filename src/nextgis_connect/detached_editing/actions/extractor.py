@@ -11,6 +11,15 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import Qt, QTime
 
+from nextgis_connect.detached_editing.actions import (
+    DescriptionPutAction,
+    FeatureCreateAction,
+    FeatureDeleteAction,
+    FeatureId,
+    FeatureRestoreAction,
+    FeatureUpdateAction,
+    VersioningAction,
+)
 from nextgis_connect.detached_editing.serialization import (
     serialize_geometry,
     simplify_value,
@@ -28,16 +37,6 @@ from nextgis_connect.exceptions import (
 )
 from nextgis_connect.resources.ngw_data_type import NgwDataType
 from nextgis_connect.resources.ngw_field import NgwField
-
-from .actions import (
-    DescriptionPutAction,
-    FeatureCreateAction,
-    FeatureDeleteAction,
-    FeatureId,
-    FeatureRestoreAction,
-    FeatureUpdateAction,
-    VersioningAction,
-)
 
 
 class ActionExtractor:

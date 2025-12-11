@@ -4,8 +4,10 @@ from contextlib import closing
 from pathlib import Path
 from typing import cast
 
-from nextgis_connect.detached_editing.action_applier import ActionApplier
-from nextgis_connect.detached_editing.action_serializer import ActionSerializer
+from nextgis_connect.detached_editing.actions.applier import ActionApplier
+from nextgis_connect.detached_editing.actions.serializer import (
+    ActionSerializer,
+)
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
