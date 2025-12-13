@@ -5,8 +5,7 @@ from qgis.core import QgsField
 
 from nextgis_connect.compat import FieldType
 from nextgis_connect.resources.ngw_data_type import NgwDataType
-
-FieldId = int
+from nextgis_connect.types import FieldId
 
 
 @dataclass(frozen=True, init=False)

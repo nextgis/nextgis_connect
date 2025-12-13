@@ -3,6 +3,7 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 from nextgis_connect.resources.ngw_field import FieldId
+from nextgis_connect.types import FeatureId
 
 
 class ActionType(str, Enum):
@@ -20,7 +21,6 @@ class ActionType(str, Enum):
         return str(self.value)
 
 
-FeatureId = int
 VersionId = int
 
 UnsetValue = None
