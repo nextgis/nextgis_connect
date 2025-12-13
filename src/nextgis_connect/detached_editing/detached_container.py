@@ -321,7 +321,7 @@ class DetachedContainer(QObject):
                     return False
 
             if self.check_date is not None and not self.metadata.has_changes:
-                period = NgConnectSettings().synchronizatin_period
+                period = NgConnectSettings().synchronization_period
                 if datetime.now() - self.check_date < period:
                     return False
 

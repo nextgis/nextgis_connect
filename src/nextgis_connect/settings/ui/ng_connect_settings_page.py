@@ -123,6 +123,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__save_resources_settings(settings)
         self.__save_search_settings(settings)
         self.__save_sync_settings(settings)
+        self.__save_editing_settings(settings)
         self.__save_cache_settings()
         self.__save_other_settings(settings)
 
@@ -157,6 +158,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__init_resources_settings(settings)
         self.__init_search_settings(settings)
         self.__init_sync_settings(settings)
+        self.__init_editing_settings(settings)
         self.__init_cache_settings()
         self.__init_other_settings(settings)
 
@@ -208,7 +210,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         )
 
     def __init_sync_settings(self, settings: NgConnectSettings) -> None:
-        period = settings.synchronizatin_period
+        period = settings.synchronization_period
 
         if period // timedelta(minutes=1) < 59:
             value = period // timedelta(minutes=1)
@@ -243,6 +245,14 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
             hour_string += "s"
         hour_string = hour_string[hour_string.find("$") + 1 :]
         period_combobox.setItemText(1, hour_string)
+
+    def __init_editing_settings(self, settings: NgConnectSettings) -> None:
+        attachments_checkbox = (
+            self.__widget.deletingFeaturesWithAttachmentsCheckbox
+        )
+        attachments_checkbox.setChecked(
+            settings.notify_when_deleting_features_with_attachments
+        )
 
     def __init_cache_settings(self) -> None:
         cache_manager = NgConnectCacheManager()
@@ -428,7 +438,15 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         period_combobox = cast(QComboBox, self.__widget.syncPeriodComboBox)
 
         param = {period_combobox.currentData(): period_spinbox.value()}
-        settings.synchronizatin_period = timedelta(**param)
+        settings.synchronization_period = timedelta(**param)
+
+    def __save_editing_settings(self, settings: NgConnectSettings) -> None:
+        attachments_checkbox = (
+            self.__widget.deletingFeaturesWithAttachmentsCheckbox
+        )
+        settings.notify_when_deleting_features_with_attachments = (
+            attachments_checkbox.isChecked()
+        )
 
     def __save_cache_settings(self) -> None:
         cache_manager = NgConnectCacheManager()

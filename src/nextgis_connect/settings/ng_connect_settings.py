@@ -252,7 +252,27 @@ class NgConnectSettings:
         return int(timedelta(seconds=15) / timedelta(milliseconds=1))
 
     @property
-    def synchronizatin_period(self) -> timedelta:
+    def notify_when_deleting_features_with_attachments(self) -> bool:
+        value = self.__settings.value(
+            self.__plugin_group
+            + "/editing/notifyWhenDeletingFeaturesWithAttachments",
+            defaultValue=True,
+            type=bool,
+        )
+        return value
+
+    @notify_when_deleting_features_with_attachments.setter
+    def notify_when_deleting_features_with_attachments(
+        self, value: bool
+    ) -> None:
+        self.__settings.setValue(
+            self.__plugin_group
+            + "/editing/notifyWhenDeletingFeaturesWithAttachments",
+            value,
+        )
+
+    @property
+    def synchronization_period(self) -> timedelta:
         value = self.__settings.value(
             self.__plugin_group + "/synchronization/period",
             defaultValue=60,
@@ -260,8 +280,8 @@ class NgConnectSettings:
         )
         return timedelta(seconds=value)
 
-    @synchronizatin_period.setter
-    def synchronizatin_period(self, value: timedelta) -> None:
+    @synchronization_period.setter
+    def synchronization_period(self, value: timedelta) -> None:
         self.__settings.setValue(
             self.__plugin_group + "/synchronization/period",
             value.total_seconds(),

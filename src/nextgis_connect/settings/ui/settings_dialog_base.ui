@@ -166,6 +166,25 @@
     </widget>
    </item>
    <item>
+    <widget class="QGroupBox" name="editingGroupBox">
+     <property name="title">
+      <string>Editing</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_8">
+      <item>
+       <widget class="QCheckBox" name="deletingFeaturesWithAttachmentsCheckbox">
+        <property name="text">
+         <string>Show notification when deleting features with attachments</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox_2">
      <property name="title">
       <string>Synchronization</string>
