@@ -564,10 +564,10 @@ class DetachedContainer(QObject):
         if self.is_not_initialized:
             sync_task = FillLayerWithVersioning(self.path)
             sync_task.taskCompleted.connect(
-                lambda: self.__on_synchronization_finished(True)
+                lambda: self.__on_fill_finished(True)
             )
             sync_task.taskTerminated.connect(
-                lambda: self.__on_synchronization_finished(False)
+                lambda: self.__on_fill_finished(False)
             )
             return sync_task
 
@@ -753,6 +753,17 @@ class DetachedContainer(QObject):
         task.taskCompleted.connect(self.__on_versioned_uploading_finished)
         task.taskTerminated.connect(self.__on_versioned_uploading_finished)
         self.__start_sync(task)
+
+    @pyqtSlot(bool)
+    def __on_fill_finished(self, result: bool) -> None:
+        if not result:
+            self.__on_synchronization_finished(False)
+            return
+
+        for detached_layer in self.__detached_layers.values():
+            detached_layer.qgs_layer.triggerRepaint()
+
+        self.__on_synchronization_finished(True)
 
     @pyqtSlot()
     def __on_versioned_uploading_finished(self) -> None:
