@@ -46,6 +46,8 @@ class ErrorCode(IntEnum):
     DeletedContainer = auto()
     NotCompletedFetch = auto()
     LayerEditError = auto()
+    FeatureNotFound = auto()
+    AttachmentNotFound = auto()
 
     NetworkError = auto()
 
