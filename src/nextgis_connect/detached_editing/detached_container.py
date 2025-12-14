@@ -3,7 +3,7 @@ import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence
+from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
 
 from qgis.core import (
     QgsEditorWidgetSetup,
@@ -41,7 +41,7 @@ from nextgis_connect.exceptions import (
     ContainerError,
     ErrorCode,
     NgConnectError,
-    NgConnectException,
+    NgConnectWarning,
     NgwError,
     SynchronizationError,
 )
@@ -84,7 +84,7 @@ class DetachedContainer(QObject):
     __versioning_state: VersioningSynchronizationState
     __changes: DetachedContainerChangesInfo
 
-    __error: Optional[NgConnectException]
+    __error: Union[NgConnectWarning, NgConnectError, None]
 
     __indicator: Optional[DetachedLayerIndicator]
     __sync_task: Optional[DetachedEditingTask]
@@ -159,7 +159,7 @@ class DetachedContainer(QObject):
         return self.__is_not_initialized
 
     @property
-    def error(self) -> Optional[NgConnectException]:
+    def error(self) -> Union[NgConnectWarning, NgConnectError, None]:
         return self.__error
 
     @property
@@ -251,7 +251,9 @@ class DetachedContainer(QObject):
             self.__indicator = None
 
             if self.__error is not None:
-                NgConnectInterface.instance().close_error(self.__error)
+                NgConnectInterface.instance().notifier.dismiss_message(
+                    self.__error.error_id
+                )
 
         logger.debug(
             f'Layer "{layer_id}" detached from container "{self.__path.name}"'
@@ -354,7 +356,7 @@ class DetachedContainer(QObject):
             resource_id = self.__property("ngw_resource_id")
 
         if connection_id is None or resource_id is None:
-            error = NgConnectException(
+            error = ContainerError(
                 "An error occurred while resetting layer. Empty ids"
             )
             self.__process_error(error)
@@ -896,7 +898,10 @@ class DetachedContainer(QObject):
             detached_layer.update()
 
     def __process_error(
-        self, error: NgConnectException, *, show_error: bool = True
+        self,
+        error: Union[NgConnectWarning, NgConnectError],
+        *,
+        show_error: bool = True,
     ) -> None:
         self.__state = DetachedLayerState.Error
         self.__versioning_state = VersioningSynchronizationState.Error
@@ -911,7 +916,7 @@ class DetachedContainer(QObject):
                 logger.debug("<b>Resync</b> attempt <b>failed</b>")
                 return
         elif error.code == ErrorCode.ValueFormatError or (
-            isinstance(error.__cause__, NgConnectException)
+            isinstance(error.__cause__, (NgConnectError, NgConnectWarning))
             and error.__cause__.code == ErrorCode.ValueFormatError
         ):
             self.__is_edit_allowed = True
@@ -923,7 +928,7 @@ class DetachedContainer(QObject):
         self.__error = error
 
         if show_error:
-            NgConnectInterface.instance().show_error(error)
+            NgConnectInterface.instance().notifier.display_exception(error)
 
     def __check_structure(self) -> None:
         container_fields_name = set()
@@ -1020,7 +1025,9 @@ class DetachedContainer(QObject):
         if self.__error is None or self.__is_silent_sync:
             return
 
-        NgConnectInterface.instance().close_error(self.__error)
+        NgConnectInterface.instance().notifier.dismiss_message(
+            self.__error.error_id
+        )
         self.__error = None
 
     def __is_network_error(self, error: Optional[Exception]) -> bool:

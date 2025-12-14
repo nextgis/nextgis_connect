@@ -8,7 +8,6 @@ from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtWidgets import QPlainTextEdit, QTabWidget
 from qgis.utils import iface
 
-from nextgis_connect import NgConnectInterface
 from nextgis_connect.compat import QGIS_3_42_2
 from nextgis_connect.core.constants import PLUGIN_NAME
 from nextgis_connect.settings import NgConnectSettings
@@ -250,7 +249,7 @@ def open_plugin_logs() -> None:
     Open QGIS log viewer with the plugin tab selected.
     """
     if Qgis.versionInt() >= 34400:
-        iface.openMessageLog(NgConnectInterface.PLUGIN_NAME)
+        iface.openMessageLog(PLUGIN_NAME)
     else:
         iface.openMessageLog()
 

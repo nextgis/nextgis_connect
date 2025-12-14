@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from osgeo import gdal
 from qgis.core import Qgis, QgsApplication, QgsTaskManager
@@ -10,18 +10,14 @@ from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QItemSelectionModel,
     QSysInfo,
-    QTranslator,
-    QUrl,
 )
-from qgis.PyQt.QtGui import QDesktopServices
-from qgis.PyQt.QtWidgets import QPushButton, QToolBar
+from qgis.PyQt.QtWidgets import QToolBar
 from qgis.utils import iface
 
-from nextgis_connect.exceptions import ErrorCode, NgConnectError
-from nextgis_connect.logging import logger, open_plugin_logs, unload_logger
+from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
-from nextgis_connect.utils import nextgis_domain, utm_tags
+from nextgis_connect.notifier.message_bar_notifier import MessageBarNotifier
+from nextgis_connect.notifier.notifier_interface import NotifierInterface
 
 if TYPE_CHECKING:
     from nextgis_connect.detached_editing.detached_editing import (
@@ -53,85 +49,39 @@ class NgConnectPluginStub(NgConnectInterface):
                 else ""
             )
         )
+        self.__notifier = None
 
-    def initGui(self) -> None:
+    @property
+    def notifier(self) -> "NotifierInterface":
+        """Return the notifier for displaying messages to the user.
+
+        :returns: Notifier interface instance.
+        :rtype: NotifierInterface
+        """
+        assert self.__notifier is not None, "Notifier is not initialized"
+        return self.__notifier
+
+    def _load(self) -> None:
         logger.debug("<b>Start stub initialization</b>")
 
-        self.__init_translator()
+        application = QgsApplication.instance()
+        assert application is not None
+        locale = application.locale()
+        self._add_translator(
+            Path(__file__).parent / "i18n" / f"nextgis_connect_{locale}.qm",
+        )
+
+        self.__notifier = MessageBarNotifier(self)
 
         logger.debug("<b>End stub initialization</b>")
 
-    def unload(self) -> None:
+    def _unload(self) -> None:
         logger.debug("<b>Start stub unloading</b>")
 
-        self.__unload_translations()
+        self.__notifier.deleteLater()
+        self.__notifier = None
 
         logger.debug("<b>End stub unloading</b>")
-
-        unload_logger()
-
-    def show_error(self, error: Exception) -> str:
-        settings = NgConnectSettings()
-
-        pretend_is_not_a_error = False
-        if not settings.did_last_launch_fail and isinstance(
-            error, ImportError
-        ):
-            old_error = error
-            error = NgConnectError(code=ErrorCode.BigUpdateError)
-            error.__cause__ = old_error
-            pretend_is_not_a_error = True
-
-        settings.did_last_launch_fail = True
-
-        if not isinstance(error, NgConnectError):
-            old_error = error
-            error = NgConnectError()
-            error.__cause__ = old_error
-            del old_error
-
-        message = error.user_message
-        if not message.endswith("."):
-            message += "."
-        if message.endswith(".."):
-            message = message.rstrip(".") + "."
-
-        message_bar = iface.messageBar()
-        assert message_bar is not None
-
-        widget = message_bar.createMessage(
-            NgConnectInterface.PLUGIN_NAME, message
-        )
-
-        def contact_us():
-            utm = utm_tags("error")
-            QDesktopServices.openUrl(
-                QUrl(f"{nextgis_domain()}/contact/?{utm}")
-            )
-
-        if not pretend_is_not_a_error:
-            button = QPushButton(self.tr("Open logs"))
-            button.pressed.connect(open_plugin_logs)
-            widget.layout().addWidget(button)
-
-            button = QPushButton(self.tr("Let us know"))
-            button.pressed.connect(contact_us)
-            widget.layout().addWidget(button)
-
-        message_bar.pushWidget(
-            widget,
-            Qgis.MessageLevel.Success
-            if pretend_is_not_a_error
-            else Qgis.MessageLevel.Critical,
-            duration=0,
-        )
-
-        logger.exception(error.log_message, exc_info=error)
-
-        return error.error_id
-
-    def close_error(self, error: Union[Exception, str]) -> None:
-        raise NotImplementedError
 
     @property
     def toolbar(self) -> QToolBar:
@@ -161,33 +111,3 @@ class NgConnectPluginStub(NgConnectInterface):
     @property
     def detached_editing(self) -> "DetachedEditing":
         raise NotImplementedError
-
-    def __init_translator(self) -> None:
-        application = QgsApplication.instance()
-        assert application is not None
-        locale = application.locale()
-        self.__translators = list()
-
-        def add_translator(locale_path: Path) -> None:
-            translator = QTranslator()
-
-            is_loaded = translator.load(str(locale_path))
-            if not is_loaded:
-                return
-
-            is_installed = QgsApplication.installTranslator(translator)
-            if not is_installed:
-                return
-
-            # Should be kept in memory
-            self.__translators.append(translator)
-
-        add_translator(
-            Path(__file__).parent / "i18n" / f"nextgis_connect_{locale}.qm",
-        )
-
-    def __unload_translations(self) -> None:
-        for translator in self.__translators:
-            QgsApplication.removeTranslator(translator)
-
-        self.__translators.clear()

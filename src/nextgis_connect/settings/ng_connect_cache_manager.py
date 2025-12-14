@@ -6,12 +6,12 @@ from typing import List, Optional, Tuple, Union
 
 from qgis.core import QgsProject
 
+from nextgis_connect.core.constants import PLUGIN_NAME
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
     container_path,
     is_ngw_container,
 )
-from nextgis_connect.ng_connect_interface import NgConnectInterface
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 
@@ -106,7 +106,7 @@ class NgConnectCacheManager:
     def clear_cache(self) -> bool:
         cache_path = Path(self.cache_directory)
 
-        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+        logger = logging.getLogger(PLUGIN_NAME)
 
         try:
             shutil.rmtree(cache_path)
@@ -119,7 +119,7 @@ class NgConnectCacheManager:
         return True
 
     def purge_cache(self) -> bool:
-        logger = logging.getLogger(NgConnectInterface.PLUGIN_NAME)
+        logger = logging.getLogger(PLUGIN_NAME)
 
         need_check_size = self.cache_max_size != -1
         need_check_date = self.cache_duration != -1

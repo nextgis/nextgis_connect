@@ -4,7 +4,7 @@ from typing import Optional
 
 from qgis.PyQt.QtNetwork import QNetworkReply
 
-from nextgis_connect.exceptions import NgConnectException
+from nextgis_connect.exceptions import NgConnectExceptionInfoMixin
 
 
 @dataclass
@@ -24,12 +24,12 @@ class QtNetworkErrorInfo:
     constant: str
     description: str
 
-    def add_exception_notes(self, error: NgConnectException) -> None:
+    def add_exception_notes(self, error: NgConnectExceptionInfoMixin) -> None:
         """
-        Add network error details as notes to a NgConnectException.
+        Add network error details as notes to a NgConnectExceptionInfoMixin.
 
         :param error: The exception to which notes will be added.
-        :type error: NgConnectException
+        :type error: NgConnectExceptionInfoMixin
         """
         error.add_note(f"Network error: {self.constant}")
         error.add_note(f"Error description: {self.description}")

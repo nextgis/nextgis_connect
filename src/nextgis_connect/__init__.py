@@ -26,27 +26,49 @@ from typing import TYPE_CHECKING
 from qgis.core import QgsRuntimeProfiler
 
 from nextgis_connect.ng_connect_interface import NgConnectInterface
+from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface
 
 
 def classFactory(iface: "QgisInterface") -> NgConnectInterface:
+    settings = NgConnectSettings()
+
     try:
         with QgsRuntimeProfiler.profile("Import plugin"):  # type: ignore
             from nextgis_connect.ng_connect_plugin import NgConnectPlugin
 
         plugin = NgConnectPlugin()
 
+        settings.did_last_launch_fail = False
+
     except Exception as error:
         import copy
 
         from qgis.PyQt.QtCore import QTimer
 
+        from nextgis_connect.exceptions import (
+            NgConnectReloadAfterUpdateWarning,
+        )
         from nextgis_connect.ng_connect_plugin_stub import NgConnectPluginStub
 
-        plugin = NgConnectPluginStub()
         error_copy = copy.deepcopy(error)
-        QTimer.singleShot(0, lambda: plugin.show_error(error_copy))
+        exception = error_copy
+
+        if not settings.did_last_launch_fail and isinstance(
+            error, ImportError
+        ):
+            exception = NgConnectReloadAfterUpdateWarning()
+            exception.__cause__ = error_copy
+
+        settings.did_last_launch_fail = True
+
+        plugin = NgConnectPluginStub()
+
+        def display_exception() -> None:
+            plugin.notifier.display_exception(exception)
+
+        QTimer.singleShot(0, display_exception)
 
     return plugin

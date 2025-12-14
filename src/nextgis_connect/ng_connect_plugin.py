@@ -22,7 +22,7 @@
 
 import sys
 from pathlib import Path
-from typing import Union, cast
+from typing import cast
 
 from osgeo import gdal
 from qgis import utils as qgis_utils
@@ -35,38 +35,34 @@ from qgis.PyQt.QtCore import (
     QMetaObject,
     QSysInfo,
     Qt,
-    QTranslator,
-    QUrl,
 )
-from qgis.PyQt.QtGui import QDesktopServices, QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QPushButton, QToolBar
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QToolBar
 
 from nextgis_connect.compat import LayerType
+from nextgis_connect.core.constants import PLUGIN_NAME
 from nextgis_connect.core.tasks.ng_connect_task_manager import (
     NgConnectTaskManager,
 )
 from nextgis_connect.core.ui.about_dialog import AboutDialog
 from nextgis_connect.detached_editing.detached_editing import DetachedEditing
 from nextgis_connect.exceptions import (
-    ErrorCode,
     NgConnectError,
-    NgConnectWarning,
 )
-from nextgis_connect.logging import logger, open_plugin_logs, unload_logger
+from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ng_connect_interface import NgConnectInterface
-from nextgis_connect.ngw_api import qgis as qgis_ngw_api
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
-from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
+from nextgis_connect.notifier.message_bar_notifier import MessageBarNotifier
+from nextgis_connect.notifier.notifier_interface import NotifierInterface
 from nextgis_connect.settings.tasks.purge_ng_connect_cache_task import (
     PurgeNgConnectCacheTask,
 )
 from nextgis_connect.settings.ui.ng_connect_settings_page import (
     NgConnectOptionsWidgetFactory,
 )
-from nextgis_connect.utils import nextgis_domain, utm_tags
 
 
 class NgConnectPlugin(NgConnectInterface):
@@ -79,8 +75,6 @@ class NgConnectPlugin(NgConnectInterface):
         super().__init__()
         self.iface = cast(QgisInterface, qgis_utils.iface)
         self.plugin_dir = Path(__file__).parent
-
-        NgConnectSettings().did_last_launch_fail = False
 
         logger.debug("<b>✓ Plugin object created</b>")
         logger.debug(f"<b>ⓘ OS:</b> {QSysInfo().prettyProductName()}")
@@ -98,12 +92,14 @@ class NgConnectPlugin(NgConnectInterface):
             )
         )
 
-    def initGui(self) -> None:
+    def _load(self) -> None:
         with QgsRuntimeProfiler.profile("Plugin initialization"):  # type: ignore
             logger.debug("<b>◴ Start interface initialization</b>...")
 
             with QgsRuntimeProfiler.profile("Translations initialization"):  # type: ignore
                 self.__init_translator()
+            with QgsRuntimeProfiler.profile("Notifier initialization"):  # type: ignore
+                self.__init_notifier()
             with QgsRuntimeProfiler.profile("Connections intialization"):  # type: ignore
                 self.__init_connections()
             with QgsRuntimeProfiler.profile("Task manager initialization"):  # type: ignore
@@ -123,7 +119,7 @@ class NgConnectPlugin(NgConnectInterface):
 
             logger.debug("<b>✓ End plugin initialization</b>")
 
-    def unload(self) -> None:
+    def _unload(self) -> None:
         logger.debug("<b>Start plugin unloading</b>")
 
         self.__unload_ng_connect_settings_page()
@@ -133,11 +129,22 @@ class NgConnectPlugin(NgConnectInterface):
         self.__unload_detached_editing()
         self.__unload_task_manger()
         self.__unload_translations()
+        self.__unload_notifier()
         self.__close_notifications()
 
         logger.debug("<b>End plugin unloading</b>")
 
-        unload_logger()
+    @property
+    def notifier(self) -> "NotifierInterface":
+        """
+        Return the notifier for displaying messages to the user.
+
+        :returns: Notifier interface instance.
+        :rtype: NotifierInterface
+        :raises AssertionError: If notifier is not initialized.
+        """
+        assert self.__notifier is not None, "Notifier is not initialized"
+        return self.__notifier
 
     @property
     def toolbar(self) -> QToolBar:
@@ -179,151 +186,27 @@ class NgConnectPlugin(NgConnectInterface):
         assert self.__detached_editing is not None
         return self.__detached_editing
 
-    def show_error(self, error: Exception) -> str:
-        if not isinstance(error, NgConnectError):
-            old_error = error
-            error = NgConnectError()
-            error.__cause__ = old_error
-            del old_error
-
-        def show_details():
-            user_message = error.user_message.rstrip(".")
-            QMessageBox.information(
-                self.iface.mainWindow(), user_message, error.detail
-            )
-
-        def contact_us():
-            utm = utm_tags("error")
-            QDesktopServices.openUrl(
-                QUrl(f"{nextgis_domain()}/contact/?{utm}")
-            )
-
-        def upgrade_plan():
-            utm = utm_tags("quota")
-            QDesktopServices.openUrl(
-                QUrl(f"{nextgis_domain()}/pricing-base/?{utm}")
-            )
-
-        message = error.user_message
-        if not message.endswith("."):
-            message += "."
-        if message.endswith(".."):
-            message = message.rstrip(".") + "."
-
-        message_bar = self.iface.messageBar()
-        assert message_bar is not None
-
-        widget = message_bar.createMessage(
-            NgConnectInterface.PLUGIN_NAME, message
-        )
-
-        if error.try_again is not None:
-
-            def try_again():
-                error.try_again()
-                message_bar.popWidget(widget)
-
-            button = QPushButton(self.tr("Try again"))
-            button.pressed.connect(try_again)
-            widget.layout().addWidget(button)
-
-        if error.detail is not None:
-            button = QPushButton(self.tr("Details"))
-            button.pressed.connect(show_details)
-            widget.layout().addWidget(button)
-        else:
-            button = QPushButton(self.tr("Open logs"))
-            button.pressed.connect(open_plugin_logs)
-            widget.layout().addWidget(button)
-
-        if error.code == ErrorCode.QuotaExceeded:
-            button = QPushButton(self.tr("Upgrade your plan"))
-            button.setIcon(
-                QIcon(str(self.plugin_dir / "icons" / "upgrade.svg")),
-            )
-            button.pressed.connect(upgrade_plan)
-            widget.layout().addWidget(button)
-
-        elif error.code.is_connection_error:
-            button = QPushButton(self.tr("Open settings"))
-            button.pressed.connect(
-                lambda: self.iface.showOptionsDialog(
-                    self.iface.mainWindow(), "NextGIS Connect"
-                )
-            )
-            widget.layout().addWidget(button)
-
-        if error.code.is_plugin_error:
-            button = QPushButton(self.tr("Let us know"))
-            button.pressed.connect(contact_us)
-            widget.layout().addWidget(button)
-
-        level = (
-            Qgis.MessageLevel.Critical
-            if not isinstance(error, NgConnectWarning)
-            else Qgis.MessageLevel.Warning
-        )
-
-        item = message_bar.pushWidget(widget, level)
-        item.setObjectName("NgConnectMessageBarItem")
-        item.setProperty("NgConnectErrorId", error.error_id)
-
-        logger.exception(error.log_message, exc_info=error)
-
-        return error.error_id
-
-    def close_error(self, error: Union[Exception, str]) -> None:
-        if not isinstance(error, (NgConnectError, str)):
-            return
-
-        error_id = error if isinstance(error, str) else error.error_id
-        notifications = self.iface.mainWindow().findChildren(
-            QgsMessageBarItem, "NgConnectMessageBarItem"
-        )
-        for notification in notifications:
-            if notification.property("NgConnectErrorId") != error_id:
-                continue
-            self.iface.messageBar().popWidget(notification)
-
     def __init_connections(self) -> None:
         connections_manager = NgwConnectionsManager()
         connections_manager.clear_old_connections_if_converted()
 
     def __init_translator(self) -> None:
-        # initialize locale
         application = QgsApplication.instance()
         assert application is not None
         locale = application.locale()
-        self.__translators = list()
-
-        def add_translator(locale_path: Path) -> None:
-            translator = QTranslator()
-
-            is_loaded = translator.load(str(locale_path))
-            if not is_loaded:
-                return
-
-            is_installed = QgsApplication.installTranslator(translator)
-            if not is_installed:
-                return
-
-            # Should be kept in memory
-            self.__translators.append(translator)
-
-        add_translator(
-            Path(self.plugin_dir) / "i18n" / f"nextgis_connect_{locale}.qm",
-        )
-        add_translator(
-            Path(qgis_ngw_api.__file__).parent
-            / "i18n"
-            / f"qgis_ngw_api_{locale}.qm",
+        self._add_translator(
+            Path(__file__).parent / "i18n" / f"nextgis_connect_{locale}.qm",
         )
 
-    def __unload_translations(self) -> None:
-        for translator in self.__translators:
-            QgsApplication.removeTranslator(translator)
+    def __init_notifier(self) -> None:
+        self.__notifier = MessageBarNotifier(self)
 
-        self.__translators.clear()
+    def __unload_notifier(self) -> None:
+        assert self.__notifier is not None
+        self.__notifier.deleteLater()
+        self.__notifier = None
+
+        logger.debug("Notifier unloaded")
 
     def __close_notifications(self) -> None:
         notifications = self.iface.mainWindow().findChildren(
@@ -355,7 +238,6 @@ class NgConnectPlugin(NgConnectInterface):
         logger.debug("Detached editing unloaded")
 
     def __init_ng_connect_dock(self) -> None:
-
         self.__ng_resources_tree_dock = NgConnectDock(self.iface)
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea,
@@ -373,7 +255,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __init_ng_connect_menus(self) -> None:
         # Show panel action
-        self.__ng_connect_toolbar = self.iface.addToolBar(self.PLUGIN_NAME)
+        self.__ng_connect_toolbar = self.iface.addToolBar(PLUGIN_NAME)
         assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.setObjectName("NgConnectToolBar")
         self.__ng_connect_toolbar.setToolTip(
@@ -412,16 +294,16 @@ class NgConnectPlugin(NgConnectInterface):
 
         # Add action to Web
         self.iface.addPluginToWebMenu(
-            self.PLUGIN_NAME,
+            PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
         self.iface.addPluginToWebMenu(
-            self.PLUGIN_NAME,
+            PLUGIN_NAME,
             self.__action_about,
         )
 
         for action in self.iface.webMenu().actions():
-            if action.text() != self.PLUGIN_NAME:
+            if action.text() != PLUGIN_NAME:
                 continue
             action.setIcon(
                 QIcon(str(self.plugin_dir / "icons/connect_logo.svg"))
@@ -431,7 +313,7 @@ class NgConnectPlugin(NgConnectInterface):
         # Add adction to Help > Plugins
         self.__show_help_action = QAction(
             QIcon(str(self.plugin_dir / "icons/connect_logo.svg")),
-            self.PLUGIN_NAME,
+            PLUGIN_NAME,
             self.iface.mainWindow(),
         )
         self.__show_help_action.triggered.connect(self.__open_about)
@@ -441,11 +323,11 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __unload_ng_connect_menus(self) -> None:
         self.iface.removePluginWebMenu(
-            self.PLUGIN_NAME,
+            PLUGIN_NAME,
             self.__show_ngw_resources_tree_action,
         )
         self.iface.removePluginWebMenu(
-            self.PLUGIN_NAME,
+            PLUGIN_NAME,
             self.__action_about,
         )
 
@@ -474,7 +356,7 @@ class NgConnectPlugin(NgConnectInterface):
             for layer_type in (LayerType.Vector, LayerType.Raster):
                 self.iface.addCustomActionForLayerType(
                     action,
-                    self.PLUGIN_NAME,
+                    PLUGIN_NAME,
                     layer_type,
                     allLayers=True,
                 )

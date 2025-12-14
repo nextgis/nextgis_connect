@@ -14,7 +14,7 @@ class ErrorCode(IntEnum):
     NoError = -1
 
     PluginError = 0
-    BigUpdateError = 1
+    BigUpdateWarning = 1
 
     NgStdError = 50
 
@@ -311,6 +311,19 @@ class NgConnectWarning(NgConnectExceptionInfoMixin, UserWarning):
         )
 
 
+class NgConnectReloadAfterUpdateWarning(NgConnectWarning):
+    """
+    Warning raised when the plugin structure has changed after an update.
+
+    This warning indicates that the plugin was successfully updated, but due to changes
+    in its structure, it may fail to load properly until QGIS is restarted.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the warning."""
+        super().__init__(code=ErrorCode.BigUpdateWarning)
+
+
 class NgwError(NgConnectError):
     _try_reconnect: bool
     _ngw_exception_class: Optional[str]
@@ -548,7 +561,7 @@ class SerializationError(DetachedEditingError):
 def _default_log_message(code: ErrorCode) -> str:
     messages = {
         ErrorCode.PluginError: "Internal plugin error",
-        ErrorCode.BigUpdateError: "Big update error",
+        ErrorCode.BigUpdateWarning: "Big update error",
         ErrorCode.NgStdError: "NgStd library error",
         ErrorCode.NgwError: "NGW communication error",
         ErrorCode.NgwConnectionError: "Connection error",
@@ -593,7 +606,7 @@ def default_user_message(code: ErrorCode) -> str:
         ErrorCode.PluginError: QgsApplication.translate(
             "Errors", "Internal plugin error occurred."
         ),
-        ErrorCode.BigUpdateError: QgsApplication.translate(
+        ErrorCode.BigUpdateWarning: QgsApplication.translate(
             "Errors",
             "The plugin has been updated successfully. "
             "To continue working, please restart QGIS."

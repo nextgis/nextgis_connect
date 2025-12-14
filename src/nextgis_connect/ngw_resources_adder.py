@@ -272,7 +272,7 @@ class NgwResourcesAdder(QObject):
             message = self.tr("An error occurred while fetching resources")
             ng_error = NgwError(user_message=message)
             ng_error.__cause__ = error
-            NgConnectInterface.instance().show_error(ng_error)
+            NgConnectInterface.instance().notifier.display_exception(ng_error)
             return False, []
 
         result = list(set(result))
@@ -295,7 +295,7 @@ class NgwResourcesAdder(QObject):
             message = self.tr("An error occurred while fetching styles")
             ng_error = NgwError(user_message=message)
             ng_error.__cause__ = error
-            NgConnectInterface.instance().show_error(ng_error)
+            NgConnectInterface.instance().notifier.display_exception(ng_error)
             return False, []
 
         result = list(set(result))
@@ -341,7 +341,7 @@ class NgwResourcesAdder(QObject):
             ng_error = NgwError(user_message=user_message)
             ng_error.__cause__ = error
 
-            NgConnectInterface.instance().show_error(ng_error)
+            NgConnectInterface.instance().notifier.display_exception(ng_error)
             return False
 
         finally:

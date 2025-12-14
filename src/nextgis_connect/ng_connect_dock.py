@@ -94,6 +94,7 @@ from nextgis_connect.action_style_import_or_update import (
     ActionStyleImportUpdate,
 )
 from nextgis_connect.compat import QGIS_3_32, parse_version
+from nextgis_connect.core.constants import PACKAGE_NAME, PLUGIN_NAME
 from nextgis_connect.dialog_choose_style import NGWLayerStyleChooserDialog
 from nextgis_connect.dialog_metadata import MetadataDialog
 from nextgis_connect.exceptions import (
@@ -918,7 +919,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if self.__is_reinit_tree:
                 exception.try_again = lambda: self.reinit_tree(force=True)
 
-        error_id = NgConnectInterface.instance().show_error(exception)
+        error_id = NgConnectInterface.instance().notifier.display_exception(
+            exception
+        )
         if self.__is_reinit_tree:
             self.__reinit_tree_error = error_id
 
@@ -983,9 +986,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if message.endswith(".."):
             message = message[:-1]
 
-        widget = self.iface.messageBar().createMessage(
-            NgConnectInterface.PLUGIN_NAME, message
-        )
+        widget = self.iface.messageBar().createMessage(PLUGIN_NAME, message)
         self.iface.messageBar().pushWidget(widget, level, duration)
 
     @pyqtSlot(str)
@@ -1069,7 +1070,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def reinit_tree(self, force=False):
         self.__is_reinit_tree = True
         if self.__reinit_tree_error is not None:
-            NgConnectInterface.instance().close_error(self.__reinit_tree_error)
+            NgConnectInterface.instance().notifier.dismiss_message(
+                self.__reinit_tree_error
+            )
             self.__reinit_tree_error = None
 
         # clear tree and states
@@ -1152,7 +1155,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             logger.exception("Model update error")
 
-            NgConnectInterface.instance().show_error(error)
+            NgConnectInterface.instance().notifier.display_exception(error)
 
         self.__update_search_button()
         self.__is_reinit_tree = False
@@ -1704,17 +1707,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             except NGWError as error:
                 ng_error = NgwError()
                 ng_error.__cause__ = error
-                NgConnectInterface.instance().show_error(ng_error)
+                NgConnectInterface.instance().notifier.display_exception(
+                    ng_error
+                )
                 self.resources_tree_view.ngw_job_block_overlay.hide()
 
             except NgConnectError as error:
-                NgConnectInterface.instance().show_error(error)
+                NgConnectInterface.instance().notifier.display_exception(error)
                 self.resources_tree_view.ngw_job_block_overlay.hide()
 
             except Exception as error:
                 ng_error = NgConnectError()
                 ng_error.__cause__ = error
-                NgConnectInterface.instance().show_error(ng_error)
+                NgConnectInterface.instance().notifier.display_exception(
+                    ng_error
+                )
                 self.resources_tree_view.ngw_job_block_overlay.hide()
 
             self.unblock_gui()
@@ -2004,7 +2011,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 ngw_result = self._copy_resource(ngw_resource)
                 self.__add_resource_to_tree(ngw_result)
             except NgConnectError as error:
-                NgConnectInterface.instance().show_error(error)
+                NgConnectInterface.instance().notifier.display_exception(error)
             except Exception as ex:
                 error_mes = str(ex)
                 self.iface.messageBar().pushMessage(
@@ -2234,7 +2241,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 error = NgConnectError(
                     user_message=self.tr("QML file could not be downloaded")
                 )
-                NgConnectInterface.instance().show_error(error)
+                NgConnectInterface.instance().notifier.display_exception(error)
 
         self.dwn_qml_file = QFile(path)
         return result
@@ -2296,7 +2303,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             user_message = self.tr("An error occurred when copying the style")
             error = NgConnectError(user_message=user_message)
             error.add_note(error_message)
-            NgConnectInterface.instance().show_error(error)
+            NgConnectInterface.instance().notifier.display_exception(error)
             return
 
         # Copy style
@@ -2640,7 +2647,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 "utm_source=qgis_plugin",
                 "utm_medium=banner",
                 f"utm_campaign={promo_campaign}",
-                f"utm_term={NgConnectInterface.PACKAGE_NAME}",
+                f"utm_term={PACKAGE_NAME}",
                 f"utm_content={utils.locale()}",
             ]
         )
