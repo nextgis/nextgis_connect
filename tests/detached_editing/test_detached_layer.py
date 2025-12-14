@@ -21,11 +21,13 @@ from nextgis_connect.detached_editing.detached_layer import DetachedLayer
 from nextgis_connect.detached_editing.serialization import (
     deserialize_geometry,
     deserialize_value,
+    serialize_value,
     simplify_value,
 )
 from nextgis_connect.detached_editing.utils import (
     make_connection,
 )
+from nextgis_connect.exceptions import ContainerError, DetachedEditingError
 from tests.detached_editing.utils import mock_container
 from tests.ng_connect_testcase import (
     NgConnectTestCase,
@@ -41,7 +43,15 @@ def mock_layer_signals(layer: DetachedLayer) -> MagicMock:
     layer.structure_changed = signals_mock.structure_changed
     layer.settings_changed = signals_mock.settings_changed
     layer.error_occurred = signals_mock.error_occurred
+    layer.description_updated = signals_mock.description_updated
     return signals_mock
+
+
+def set_layer_error_assert(layer: DetachedLayer) -> None:
+    def _error_assert(error: ContainerError) -> None:
+        raise error
+
+    layer.error_occurred.connect(_error_assert)
 
 
 class LayerChangesLogger(QObject):
@@ -156,6 +166,21 @@ class ChangesChecker:
 
         return writed_fids == set(updated_fids)
 
+    def updated_descriptions_is_equal(
+        self, updated_fids: Iterable[int]
+    ) -> bool:
+        with closing(
+            make_connection(self.container_path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            writed_fids = set(
+                row[0]
+                for row in cursor.execute(
+                    "SELECT fid FROM ngw_updated_descriptions"
+                )
+            )
+
+        return writed_fids == set(updated_fids)
+
     def assert_changes_equal(self, logger: LayerChangesLogger) -> None:
         assert self.added_is_equal(logger.added_fids)
         assert self.removed_is_equal(logger.removed_fids)
@@ -165,16 +190,18 @@ class ChangesChecker:
 
 class TestDetachedLayer(NgConnectTestCase):
     @mock_container(TestData.Points)
-    def test_start_stop_signals(
+    def test_emits_signals_on_start_and_stop_editing(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
+        # Start editing, then rollback; signals should be emitted
         self.assertTrue(qgs_layer.startEditing())
         self.assertTrue(layer.is_edit_mode_enabled)
         self.assertTrue(qgs_layer.rollBack())
 
+        # Start editing again, then commit; signals should be emitted
         self.assertTrue(qgs_layer.startEditing())
         self.assertTrue(layer.is_edit_mode_enabled)
         self.assertTrue(qgs_layer.commitChanges())
@@ -185,11 +212,12 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
     @mock_container(TestData.Points)
-    def test_start_stop_signals_with_started_editing(
+    def test_emits_signals_when_already_in_edit_mode(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         signals_mock = MagicMock()
 
+        # Pre-enable editing to check signal behavior on instantiation
         qgs_layer.startEditing()
 
         module = "nextgis_connect.detached_editing.detached_layer"
@@ -212,7 +240,7 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
     @mock_container(TestData.Points)
-    def test_ngw_properties(
+    def test_sets_and_updates_ngw_properties(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         qgs_layer.setCustomProperty("not_ngw_property_is_same", True)
@@ -232,6 +260,7 @@ class TestDetachedLayer(NgConnectTestCase):
             )
 
         layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
         check_properties()
 
         container_mock.metadata = replace(
@@ -243,17 +272,17 @@ class TestDetachedLayer(NgConnectTestCase):
         check_properties()
 
     @mock_container(TestData.Points)
-    def test_settings_changed_signal(
+    def test_emits_settings_changed_on_update_state_property(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         layer = DetachedLayer(container_mock, qgs_layer)
         signals_mock = mock_layer_signals(layer)
 
-        # Check not emmitted when not ngw properties set
+        # Should NOT emit when unrelated property changes
         qgs_layer.setCustomProperty("not_ngw_property", True)
         signals_mock.assert_not_called()
 
-        # Check not emmitted when ngw properties set
+        # Should NOT emit on metadata update alone
         container_mock.metadata = replace(
             container_mock.metadata,
             connection_id=sentinel.NGW_CONNECTION_ID,
@@ -262,11 +291,12 @@ class TestDetachedLayer(NgConnectTestCase):
 
         signals_mock.assert_not_called()
 
+        # Should emit when explicit update state flag is set
         qgs_layer.setCustomProperty(DetachedLayer.UPDATE_STATE_PROPERTY, True)
         signals_mock.settings_changed.emit.assert_called_once()
 
     @mock_container(TestData.Points)
-    def test_adding_features(
+    def test_tracks_added_features_and_commits(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         changes_logger = LayerChangesLogger(qgs_layer)
@@ -297,8 +327,8 @@ class TestDetachedLayer(NgConnectTestCase):
         changes_checker = ChangesChecker(container_mock.path)
         changes_checker.assert_changes_equal(changes_logger)
 
-    @mock_container(TestData.Points)
-    def test_deleting_features(
+    @mock_container(TestData.Points, descriptions={1: "<TEST_BEFORE>"})
+    def test_deletes_feature_and_stores_backups(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         STRING_FIELD = qgs_layer.fields().indexOf("STRING")
@@ -306,7 +336,8 @@ class TestDetachedLayer(NgConnectTestCase):
         INITIAL_GEOMETRY = QgsGeometry.fromWkt("POINT (0 0)")
         self.assertFalse(INITIAL_GEOMETRY.isNull())
 
-        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
+        # Prepare initial feature state (geometry + attribute)
+        feature_id = 1
         self.assertTrue(
             qgs_layer.dataProvider().changeGeometryValues(
                 {feature_id: INITIAL_GEOMETRY}
@@ -334,6 +365,7 @@ class TestDetachedLayer(NgConnectTestCase):
                 )
             )
             self.assertTrue(qgs_layer.changeGeometry(feature_id, NEW_GEOMETRY))
+            layer.set_feature_description(feature_id, "<TEST_AFTER>")
 
         edited_feature = qgs_layer.getFeature(feature_id)
 
@@ -345,6 +377,7 @@ class TestDetachedLayer(NgConnectTestCase):
             signals_mock.mock_calls,
             [
                 call.editing_started.emit(),
+                call.description_updated(feature_id, "<TEST_AFTER>"),
                 call.layer_changed.emit(),
                 call.editing_finished.emit(),
                 call.editing_started.emit(),
@@ -363,6 +396,7 @@ class TestDetachedLayer(NgConnectTestCase):
         )
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
 
         with closing(
             make_connection(container_mock.path)
@@ -411,13 +445,25 @@ class TestDetachedLayer(NgConnectTestCase):
             ).asWkt(),
         )
 
+        # Check descriptions backups
+        after_desc = backup["after_sync"]["description"]
+        before_desc = backup["before_deletion"]["description"]
+
+        self.assertIsInstance(after_desc, dict)
+        self.assertEqual("<TEST_BEFORE>", after_desc.get("value"))
+        self.assertEqual(12345, after_desc.get("version"))
+
+        self.assertIsInstance(before_desc, dict)
+        self.assertEqual("<TEST_AFTER>", before_desc.get("value"))
+        self.assertEqual(12345, before_desc.get("version"))
+
     @mock_container(
         TestData.Points,
         is_versioning_enabled=True,
         extra_features_count=10000,
         empty_features=True,
     )
-    def test_deleting_many_features(
+    def test_mass_delete_features_is_tracked_and_committed(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         layer = DetachedLayer(container_mock, qgs_layer)
@@ -442,7 +488,7 @@ class TestDetachedLayer(NgConnectTestCase):
         changes_checker.assert_changes_equal(changes_logger)
 
     @mock_container(TestData.Points)
-    def test_updating_fields(
+    def test_updates_attributes_and_stores_original_backups(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         INTEGER_FIELD = qgs_layer.fields().indexOf("INTEGER")
@@ -525,7 +571,7 @@ class TestDetachedLayer(NgConnectTestCase):
         )
 
     @mock_container(TestData.Points)
-    def test_updating_geometry(
+    def test_updates_geometry_and_stores_backup(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         INITIAL_GEOMETRY = QgsGeometry.fromWkt("POINT (0 0)")
@@ -586,7 +632,7 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertEqual(backup[feature_id].asWkt(), INITIAL_GEOMETRY.asWkt())
 
     @mock_container(TestData.Points)
-    def test_updating_new_feature(
+    def test_new_feature_attribute_and_geometry_changes_not_logged_as_updates(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         attribute_index = qgs_layer.fields().indexOf("STRING")
@@ -638,9 +684,10 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
 
     @mock_container(TestData.Points)
-    def test_rollback(
+    def test_rollback_clears_all_uncommitted_changes(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         attribute_index = qgs_layer.fields().indexOf("STRING")
@@ -678,7 +725,9 @@ class TestDetachedLayer(NgConnectTestCase):
                 is_removed = qgs_layer.deleteFeature(feature_id)
                 self.assertTrue(is_removed)
 
-                raise RuntimeError
+                layer.set_feature_description(feature_id, "<TEST_DESCRIPTION>")
+
+                raise RuntimeError  # Force rollback via exception
 
         except Exception:
             pass
@@ -696,9 +745,10 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
 
     @mock_container(TestData.Points)
-    def test_deleting_new_feature(
+    def test_add_then_delete_new_feature_has_no_persisted_changes(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         attribute_index = qgs_layer.fields().indexOf("STRING")
@@ -740,9 +790,10 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.removed_is_equal({}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
 
     @mock_container(TestData.Points)
-    def test_deleting_updated_feature(
+    def test_delete_existing_feature_after_updates_resets_update_logs(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
         attribute_index = qgs_layer.fields().indexOf("STRING")
@@ -786,6 +837,7 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.removed_is_equal({feature_id}))
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
 
     # todo: add and remove without sync, remove and add with same name, virtual field
 
@@ -794,7 +846,7 @@ class TestDetachedLayer(NgConnectTestCase):
         "qgis.PyQt.QtWidgets.QMessageBox.warning",
         return_value=QMessageBox.StandardButton.Ok,
     )
-    def test_add_atttribute_for_not_versioned(
+    def test_add_attribute_on_non_versioned_layer_warns_and_emits_structure_changed(
         self,
         container_mock: MagicMock,
         qgs_layer: QgsVectorLayer,
@@ -823,7 +875,7 @@ class TestDetachedLayer(NgConnectTestCase):
         "qgis.PyQt.QtWidgets.QMessageBox.warning",
         return_value=QMessageBox.StandardButton.Ok,
     )
-    def test_remove_atttribute_for_not_versioned(
+    def test_remove_attribute_on_non_versioned_layer_warns_and_emits_structure_changed(
         self,
         container_mock: MagicMock,
         qgs_layer: QgsVectorLayer,
@@ -852,7 +904,7 @@ class TestDetachedLayer(NgConnectTestCase):
         "qgis.PyQt.QtWidgets.QMessageBox.warning",
         return_value=QMessageBox.StandardButton.Ok,
     )
-    def test_add_atttribute_for_versioned(
+    def test_add_attribute_on_versioned_layer_warns_and_emits_structure_changed(
         self,
         container_mock: MagicMock,
         qgs_layer: QgsVectorLayer,
@@ -881,7 +933,7 @@ class TestDetachedLayer(NgConnectTestCase):
         "qgis.PyQt.QtWidgets.QMessageBox.warning",
         return_value=QMessageBox.StandardButton.Ok,
     )
-    def test_remove_atttribute_for_versioned(
+    def test_remove_attribute_on_versioned_layer_warns_and_emits_structure_changed(
         self,
         container_mock: MagicMock,
         qgs_layer: QgsVectorLayer,
@@ -904,6 +956,638 @@ class TestDetachedLayer(NgConnectTestCase):
                 call.editing_finished.emit(),
             ],
         )
+
+
+class TestDetachedLayerDescriptions(NgConnectTestCase):
+    FEATURE_1 = 1
+    FEATURE_2 = 2
+
+    TEST_DESCRIPTION_TEXT_0 = "<TEST_0>"
+    TEST_DESCRIPTION_TEXT_1 = "<TEST_1>"
+    TEST_DESCRIPTION_TEXT_2 = "<TEST_2>"
+    TEST_DESCRIPTION_TEXT_3 = "<TEST_3>"
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_read_feature_description_and_missing_returns_none(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+        with self.subTest("Set description"):
+            self.assertEqual(
+                layer.feature_description(self.FEATURE_1),
+                self.TEST_DESCRIPTION_TEXT_0,
+            )
+        with self.subTest("No description"):
+            self.assertEqual(layer.feature_description(2), None)
+
+    @mock_container(TestData.Points)
+    def test_set_description_in_read_mode_raises_error(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with self.assertRaises(DetachedEditingError):
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+            )
+
+    @mock_container(TestData.Points)
+    def test_access_description_of_nonexistent_feature_raises_error(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with self.subTest("Get description"):
+            with self.assertRaises(DetachedEditingError):
+                self.assertEqual(layer.feature_description(999), None)
+
+        with self.subTest("Set description"):
+            with self.assertRaises(DetachedEditingError):
+                layer.set_feature_description(
+                    999, self.TEST_DESCRIPTION_TEXT_1
+                )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_update_description_on_existing_feature_emits_and_stores_backup(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+            )
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(
+                layer.feature_description(self.FEATURE_1),
+                self.TEST_DESCRIPTION_TEXT_1,
+            )
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                ),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_1,
+        )
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            descriptions = list(
+                cursor.execute(
+                    "SELECT fid, description FROM ngw_features_descriptions"
+                )
+            )
+
+        self.assertEqual(
+            descriptions, [(self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1)]
+        )
+
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            updated_descriptions = list(
+                cursor.execute(
+                    "SELECT fid, backup FROM ngw_updated_descriptions"
+                )
+            )
+        self.assertEqual(
+            updated_descriptions,
+            [
+                (
+                    self.FEATURE_1,
+                    serialize_value(
+                        {
+                            "value": self.TEST_DESCRIPTION_TEXT_0,
+                            "version": 12345,
+                        }
+                    ),
+                )
+            ],
+        )
+
+        # Update again should not duplicate backup entries
+        with edit(layer.qgs_layer):
+            layer.set_feature_description(1, self.TEST_DESCRIPTION_TEXT_2)
+
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_2,
+        )
+
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            updated_descriptions = list(
+                cursor.execute(
+                    "SELECT fid, backup FROM ngw_updated_descriptions"
+                )
+            )
+        self.assertEqual(
+            updated_descriptions,
+            [
+                (
+                    self.FEATURE_1,
+                    serialize_value(
+                        {
+                            "value": self.TEST_DESCRIPTION_TEXT_0,
+                            "version": 12345,
+                        }
+                    ),
+                )
+            ],
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_save_description_in_edit_mode(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+            )
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(
+                layer.feature_description(self.FEATURE_1),
+                self.TEST_DESCRIPTION_TEXT_1,
+            )
+            layer.qgs_layer.commitChanges(stopEditing=False)
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+            )
+
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                ),
+                call.layer_changed.emit(),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_update_description_on_newly_added_features(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            new_feature = QgsFeature(layer.qgs_layer.fields())
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+
+            added_fids = list(
+                layer.qgs_layer.editBuffer().addedFeatures().keys()
+            )
+            added_fids.sort(reverse=True)
+            feature_1_id = added_fids[0]
+            feature_2_id = added_fids[1]
+
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                feature_1_id, self.TEST_DESCRIPTION_TEXT_1
+            )
+            layer.set_feature_description(
+                feature_2_id, self.TEST_DESCRIPTION_TEXT_2
+            )
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+
+            self.assertEqual(
+                layer.feature_description(feature_1_id),
+                self.TEST_DESCRIPTION_TEXT_1,
+            )
+            self.assertEqual(
+                layer.feature_description(feature_2_id),
+                self.TEST_DESCRIPTION_TEXT_2,
+            )
+
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    feature_1_id, self.TEST_DESCRIPTION_TEXT_1
+                ),
+                call.description_updated(
+                    feature_2_id, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+        feature_1_id, feature_2_id = list(
+            sorted(layer.qgs_layer.allFeatureIds())
+        )[-2:]
+        self.assertEqual(
+            layer.feature_description(feature_1_id),
+            self.TEST_DESCRIPTION_TEXT_1,
+        )
+        self.assertEqual(
+            layer.feature_description(feature_2_id),
+            self.TEST_DESCRIPTION_TEXT_2,
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_update_description_undo_restores_original_and_clears_flags(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+            )
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+            layer.qgs_layer.undoStack().undo()
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(
+                layer.feature_description(self.FEATURE_1),
+                self.TEST_DESCRIPTION_TEXT_0,
+            )
+
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_0,
+        )
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                ),
+                call.editing_finished.emit(),
+            ],
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_update_description_redo_reapplies_change_and_emits_signals(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            layer.set_feature_description(
+                self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+            )
+            layer.qgs_layer.undoStack().undo()
+            layer.qgs_layer.undoStack().redo()
+
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                ),
+                call.description_updated(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_2,
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_merge_update_description_commands_in_undo_stack(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with self.subTest("Simple merge"):
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                )
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                )
+                self.assertEqual(layer.qgs_layer.undoStack().count(), 1)
+                self.assertEqual(
+                    len(layer.edit_buffer.updated_descriptions), 1
+                )
+
+        with self.subTest("No merge between different features"):
+            # Restore state
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                )
+
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                )
+                layer.set_feature_description(
+                    self.FEATURE_2, self.TEST_DESCRIPTION_TEXT_2
+                )
+                self.assertEqual(layer.qgs_layer.undoStack().count(), 2)
+                self.assertEqual(
+                    len(layer.edit_buffer.updated_descriptions), 2
+                )
+
+        with self.subTest("Merge with return to original"):
+            # Restore state
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                )
+
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                )
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                )
+                self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+                self.assertEqual(layer.qgs_layer.undoStack().count(), 0)
+
+        with self.subTest("Merge with return to previous"):
+            # Restore state
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_0
+                )
+
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                )
+
+                # For splitting undo commands
+                layer.set_feature_description(
+                    self.FEATURE_2, self.TEST_DESCRIPTION_TEXT_0
+                )
+
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                )
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+                )
+
+                self.assertEqual(layer.qgs_layer.undoStack().count(), 2)
+                self.assertEqual(
+                    len(layer.edit_buffer.updated_descriptions), 2
+                )
+                self.assertEqual(
+                    layer.feature_description(self.FEATURE_1),
+                    self.TEST_DESCRIPTION_TEXT_1,
+                )
+                self.assertEqual(
+                    layer.feature_description(self.FEATURE_2),
+                    self.TEST_DESCRIPTION_TEXT_0,
+                )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_delete_new_feature_with_description_clears_update_buffer(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        signals_mock = mock_layer_signals(layer)
+        with edit(layer.qgs_layer):
+            new_feature = QgsFeature(layer.qgs_layer.fields())
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+
+            added_fids = list(
+                layer.qgs_layer.editBuffer().addedFeatures().keys()
+            )
+            added_fids.sort(reverse=True)
+            feature_1_id = added_fids[0]
+            feature_2_id = added_fids[1]
+
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            layer.set_feature_description(
+                feature_1_id, self.TEST_DESCRIPTION_TEXT_1
+            )
+            layer.qgs_layer.deleteFeature(feature_1_id)
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(len(layer.edit_buffer.updated_descriptions), 0)
+
+            layer.set_feature_description(
+                feature_2_id, self.TEST_DESCRIPTION_TEXT_2
+            )
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(len(layer.edit_buffer.updated_descriptions), 1)
+
+            self.assertEqual(
+                layer.feature_description(feature_2_id),
+                self.TEST_DESCRIPTION_TEXT_2,
+            )
+
+        self.assertEqual(
+            signals_mock.mock_calls,
+            [
+                call.editing_started.emit(),
+                call.description_updated(
+                    feature_1_id, self.TEST_DESCRIPTION_TEXT_1
+                ),
+                call.description_updated(
+                    feature_2_id, self.TEST_DESCRIPTION_TEXT_2
+                ),
+                call.layer_changed.emit(),
+                call.editing_finished.emit(),
+            ],
+        )
+        feature_2_id = list(sorted(layer.qgs_layer.allFeatureIds()))[-1]
+        self.assertEqual(
+            layer.feature_description(feature_2_id),
+            self.TEST_DESCRIPTION_TEXT_2,
+        )
+
+    @mock_container(TestData.Points)
+    def test_delete_persisted_new_feature_with_description_removes_storage_entry(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with edit(layer.qgs_layer):
+            new_feature = QgsFeature(layer.qgs_layer.fields())
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+
+            added_fids = list(
+                layer.qgs_layer.editBuffer().addedFeatures().keys()
+            )
+            added_fids.sort(reverse=True)
+            feature_id = added_fids[0]
+            layer.set_feature_description(
+                feature_id, self.TEST_DESCRIPTION_TEXT_1
+            )
+
+        feature_id = list(sorted(layer.qgs_layer.allFeatureIds()))[-1]
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            updated_descriptions = list(
+                cursor.execute(
+                    "SELECT fid, backup FROM ngw_updated_descriptions"
+                )
+            )
+        self.assertEqual(updated_descriptions, [(feature_id, None)])
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(layer.qgs_layer.deleteFeature(feature_id))
+
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            updated_descriptions = list(
+                cursor.execute(
+                    "SELECT fid, backup FROM ngw_updated_descriptions"
+                )
+            )
+        self.assertEqual(updated_descriptions, [])
+
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            cursor.execute(
+                "SELECT COUNT(*) FROM ngw_features_descriptions",
+            )
+            self.assertEqual(0, cursor.fetchone()[0])
+
+    @mock_container(TestData.Points)
+    def test_delete_feature_with_updated_description_removes_updates(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with self.subTest("Read from buffer"):
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_2
+                )
+                self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+                layer.qgs_layer.deleteFeature(self.FEATURE_1)
+                self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+                self.assertFalse(
+                    self.FEATURE_1 in layer.edit_buffer.updated_descriptions
+                )
+
+        with self.subTest("Read from storage"):
+            with edit(layer.qgs_layer):
+                layer.set_feature_description(
+                    self.FEATURE_2, self.TEST_DESCRIPTION_TEXT_2
+                )
+
+            with edit(layer.qgs_layer):
+                layer.qgs_layer.deleteFeature(self.FEATURE_2)
+
+            with self.assertRaises(DetachedEditingError):
+                layer.feature_description(self.FEATURE_2)
+
+            with closing(
+                make_connection(container_mock.path)
+            ) as connection, closing(connection.cursor()) as cursor:
+                updated_descriptions = list(
+                    cursor.execute(
+                        "SELECT fid, backup FROM ngw_updated_descriptions"
+                    )
+                )
+            self.assertEqual(updated_descriptions, [])
+
+    @mock_container(TestData.Points)
+    def test_undo_delete_restores_description_update_for_feature(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        set_layer_error_assert(layer)
+
+        with edit(layer.qgs_layer):
+            new_feature = QgsFeature(layer.qgs_layer.fields())
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+            feature_1_fid = list(
+                sorted(layer.qgs_layer.editBuffer().addedFeatures().keys())
+            )[-1]
+            layer.set_feature_description(
+                feature_1_fid, self.TEST_DESCRIPTION_TEXT_1
+            )
+            self.assertTrue(layer.qgs_layer.deleteFeature(feature_1_fid))
+            self.assertFalse(layer.edit_buffer.has_updated_descriptions)
+
+            self.assertTrue(layer.qgs_layer.addFeature(new_feature))
+            feature_2_fid = list(
+                sorted(layer.qgs_layer.editBuffer().addedFeatures().keys())
+            )[-1]
+            self.assertEqual(layer.feature_description(feature_2_fid), None)
+
+            layer.qgs_layer.undoStack().undo()  # Undo add
+            layer.qgs_layer.undoStack().undo()  # Undo delete
+
+            self.assertTrue(layer.edit_buffer.has_updated_descriptions)
+            self.assertEqual(
+                layer.feature_description(feature_1_fid),
+                self.TEST_DESCRIPTION_TEXT_1,
+            )
 
 
 if __name__ == "__main__":

@@ -1,10 +1,11 @@
 import functools
 import random
 import shutil
+from contextlib import closing
 from dataclasses import replace
 from datetime import date, datetime, time
 from pathlib import Path
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 from qgis.core import (
     QgsFeature,
@@ -16,13 +17,14 @@ from qgis.core import (
     edit,
 )
 
-from nextgis_connect.compat import WkbType
+from nextgis_connect.compat import QgsFeatureId, WkbType
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
     detached_layer_uri,
+    make_connection,
 )
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.resources.ngw_data_type import NgwDataType
@@ -165,6 +167,7 @@ def mock_container(
     is_versioning_enabled: bool = False,
     extra_features_count: int = 0,
     empty_features: bool = False,
+    descriptions: Optional[Dict[QgsFeatureId, str]] = None,
     **metadata_values: Dict,
 ) -> Callable:
     def create_container_mock(
@@ -230,6 +233,26 @@ def mock_container(
             metadata.layer_name,
             "ogr",
         )
+
+        if descriptions is not None:
+            with closing(make_connection(qgs_layer)) as connection, closing(
+                connection.cursor()
+            ) as cursor:
+                cursor.executemany(
+                    """
+                    INSERT INTO ngw_features_descriptions (
+                        fid, version, description
+                    )
+                    VALUES (?, 12345, ?)
+                    ON CONFLICT(fid) DO UPDATE SET
+                        description = ?;
+                    """,
+                    (
+                        (fid, description, description)
+                        for fid, description in descriptions.items()
+                    ),
+                )
+                connection.commit()
 
         return container_mock, qgs_layer
 
