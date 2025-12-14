@@ -26,7 +26,7 @@ from qgis.utils import iface
 
 from nextgis_connect import NgConnectInterface
 from nextgis_connect.core.ui.labeled_slider import LabeledSlider
-from nextgis_connect.logging import logger, update_level
+from nextgis_connect.logging import logger, update_logging_level
 from nextgis_connect.ng_connect_dock import NgConnectDock
 from nextgis_connect.ngw_connection.ngw_connection import NgwConnection
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
@@ -467,7 +467,7 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         settings.is_debug_enabled = new_debug_enabled
         if old_debug_enabled != new_debug_enabled:
             debug_state = "enabled" if new_debug_enabled else "disabled"
-            update_level()
+            update_logging_level()
             logger.info(f"Debug messages are now {debug_state}")
         settings.is_network_debug_enabled = (
             self.__widget.debugNetworkCheckBox.isChecked()
