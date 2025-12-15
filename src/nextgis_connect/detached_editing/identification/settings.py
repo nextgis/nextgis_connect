@@ -1,3 +1,5 @@
+from typing import Set
+
 from qgis.core import QgsSettings
 from qgis.gui import QgsMapToolIdentify
 from qgis.PyQt.QtCore import Qt
@@ -79,6 +81,18 @@ class IdentificationSettings:
     @property
     def zoom_geometry_scale_factor(self) -> float:
         return 1.2
+
+    @property
+    def attachment_thumbnail_size(self) -> int:
+        return 48
+
+    @property
+    def attachment_thumbnail_mime_types(self) -> Set[str]:
+        return {
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+        }
 
     @property
     def attachments_sort_mode(self) -> AttachmentsSortMode:
