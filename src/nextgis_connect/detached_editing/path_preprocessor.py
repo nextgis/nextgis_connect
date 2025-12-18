@@ -60,7 +60,7 @@ class DetachedEditingPathPreprocessor:
         if not cached_layer_path.exists():
             logger.warning(f"Found deleted container: {cached_layer_path}")
             is_created = self.__find_connection_and_create_container(
-                cached_layer_path
+                domain_uuid, resource_id, cached_layer_path
             )
             if not is_created:
                 return old_source
@@ -87,7 +87,10 @@ class DetachedEditingPathPreprocessor:
         if len(source_path.parts) < 2:
             return None, None
 
-        uuid_candidate = source_path.parts[-2]
+        uuid_candidates = (
+            source_path.parts[-4],  # New scheme
+            source_path.parts[-2],  # Old scheme
+        )
         file_candidate = source_path.parts[-1]
 
         uuid_pattern = re.compile(
@@ -96,25 +99,25 @@ class DetachedEditingPathPreprocessor:
         )
         file_pattern = re.compile(r"^\d+\.gpkg$")
 
-        if not uuid_pattern.match(uuid_candidate) or not file_pattern.match(
-            file_candidate
-        ):
+        uuid_candidate = None
+        for candidate in uuid_candidates:
+            if uuid_pattern.match(candidate):
+                uuid_candidate = candidate
+                break
+
+        if uuid_candidate is None or not file_pattern.match(file_candidate):
             return None, None
 
         return uuid_candidate, int(source_path.stem)
 
     def __cached_layer_path(self, domain_uuid: str, resource_id: int) -> Path:
-        cache_directory = Path(NgConnectCacheManager().cache_directory)
-        return (
-            cache_directory / domain_uuid / f"{resource_id}.gpkg"
-        ).resolve()
+        return NgConnectCacheManager().detached_container_path(
+            domain_uuid, resource_id
+        )
 
     def __find_connection_and_create_container(
-        self, cached_layer_path: Path
+        self, domain_uuid: str, resource_id: int, cached_layer_path: Path
     ) -> bool:
-        domain_uuid = cached_layer_path.parent.name
-        resource_id = int(cached_layer_path.stem)
-
         connection_id = self.__best_connection(domain_uuid, resource_id)
         if connection_id is None:
             logger.warning("There are no suitable connections")
@@ -173,5 +176,5 @@ class DetachedEditingPathPreprocessor:
         assert isinstance(ngw_layer, NGWVectorLayer)
 
         detached_factory = DetachedLayerFactory()
-        cached_layer_path.parent.mkdir(exist_ok=True)
+        cached_layer_path.parent.mkdir(exist_ok=True, parents=True)
         detached_factory.create_initial_container(ngw_layer, cached_layer_path)

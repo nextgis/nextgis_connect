@@ -134,6 +134,8 @@ class DetachedLayerFactory:
             f"FID={fid_field}",
         ]
 
+        container_path.parent.mkdir(parents=True, exist_ok=True)
+
         writer = QgsVectorFileWriter.create(
             fileName=str(container_path),
             fields=fields,

@@ -319,9 +319,14 @@ class NgConnectReloadAfterUpdateWarning(NgConnectWarning):
     in its structure, it may fail to load properly until QGIS is restarted.
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+    ) -> None:
         """Initialize the warning."""
-        super().__init__(code=ErrorCode.BigUpdateWarning)
+        super().__init__(
+            log_message=log_message, code=ErrorCode.BigUpdateWarning
+        )
 
 
 class NgwError(NgConnectError):

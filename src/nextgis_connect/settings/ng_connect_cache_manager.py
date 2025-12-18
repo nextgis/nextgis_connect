@@ -1,10 +1,13 @@
+import hashlib
 import logging
+import re
 import shutil
 from pathlib import Path
 from time import time
 from typing import List, Optional, Tuple, Union
 
 from qgis.core import QgsProject
+from qgis.PyQt.QtCore import QMimeDatabase
 
 from nextgis_connect.core.constants import PLUGIN_NAME
 from nextgis_connect.detached_editing.utils import (
@@ -25,12 +28,12 @@ class NgConnectCacheManager:
         Path(self.cache_directory).mkdir(parents=True, exist_ok=True)
 
     @property
-    def cache_directory(self) -> str:
-        return self.__settings.cache_directory
+    def default_user_profile_cache_directory(self) -> str:
+        return self.__settings.default_user_profile_cache_directory
 
     @property
-    def cache_directory_default(self) -> str:
-        return self.__settings.cache_directory_default
+    def cache_directory(self) -> str:
+        return self.__settings.cache_directory
 
     @cache_directory.setter
     def cache_directory(self, value: Optional[str]) -> None:
@@ -90,18 +93,143 @@ class NgConnectCacheManager:
             for file_path in Path(self.cache_directory).glob("**/*.gpkg")
         )
 
-    def exists(self, path: str) -> bool:
+    @property
+    def need_migration(self) -> bool:
+        old_plugin_cache_path = Path(
+            self.__settings.default_plugin_cache_directory
+        )
+        custom_cache_path = Path(
+            self.cache_directory,
+        )
+        for cache_path in (old_plugin_cache_path, custom_cache_path):
+            for directory in cache_path.glob("*"):
+                if not _is_uuid(directory.name):
+                    continue
+
+                if any(True for _ in directory.glob("*.gpkg")):
+                    return True
+
+        return False
+
+    @property
+    def can_migrate(self) -> bool:
+        old_plugin_cache_path = Path(
+            self.__settings.default_plugin_cache_directory
+        )
+        custom_cache_path = Path(
+            self.cache_directory,
+        )
+
+        for cache_path in (old_plugin_cache_path, custom_cache_path):
+            for directory in cache_path.glob("*"):
+                if not _is_uuid(directory.name):
+                    continue
+
+                gpkg_files = list(directory.glob("*.gpkg"))
+                for gpkg_file in gpkg_files:
+                    if self.__is_file_used_by_project(gpkg_file):
+                        return False
+
+        return True
+
+    def exists(self, path: Union[str, Path]) -> bool:
         path_to_file = Path(path)
         if not path_to_file.is_absolute():
             path_to_file = self.cache_directory / path_to_file
         return path_to_file.exists()
 
-    def absolute_path(self, path: str) -> str:
-        path_to_file = Path(path)
-        if not path_to_file.is_absolute():
-            path_to_file = self.cache_directory / path_to_file
+    def detached_container_path(
+        self, domain_uuid: str, resource_id: Union[int, str]
+    ) -> Path:
+        seed = f"{domain_uuid}_{resource_id}"
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_hash_prefix = sha1_hash[:2]
+        return (
+            Path(self.cache_directory)
+            / domain_uuid
+            / sha1_hash_prefix
+            / sha1_hash
+            / f"{resource_id}.gpkg"
+        )
 
-        return str(path_to_file.absolute())
+    def attachment_path(
+        self,
+        domain_uuid: str,
+        resource_id: Union[int, str],
+        attachment_id: Union[int, str],
+        *,
+        file_name: Optional[str] = None,
+        mime_type: Optional[str] = None,
+        fileobj: Optional[int] = None,
+    ) -> Path:
+        seed = f"{domain_uuid}_{resource_id}_{attachment_id}"
+        if fileobj is not None and fileobj != -1:
+            seed += f"_{fileobj}"
+
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_hash_prefix = sha1_hash[:2]
+
+        extension = _guess_extension(file_name=file_name, mime_type=mime_type)
+        return (
+            Path(self.cache_directory)
+            / domain_uuid
+            / sha1_hash_prefix
+            / sha1_hash
+            / f"{attachment_id}{extension}"
+        )
+
+    def attachment_thumbnail_path(
+        self,
+        domain_uuid: str,
+        resource_id: Union[int, str],
+        attachment_id: Union[int, str],
+        *,
+        fileobj: Optional[int] = None,
+    ) -> Path:
+        seed = f"{domain_uuid}_{resource_id}_{attachment_id}"
+        if fileobj is not None and fileobj != -1:
+            seed += f"_{fileobj}"
+        seed += "_thumbnail"
+
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_hash_prefix = sha1_hash[:2]
+
+        return (
+            Path(self.cache_directory)
+            / domain_uuid
+            / sha1_hash_prefix
+            / sha1_hash
+            / f"{attachment_id}.jpg"
+        )
+
+    def migrate(self) -> bool:
+        logger = logging.getLogger(PLUGIN_NAME)
+        logger.debug("Start cache migration")
+
+        old_plugin_cache_path = Path(
+            self.__settings.default_plugin_cache_directory
+        )
+
+        self.__migrate(old_plugin_cache_path, Path(self.cache_directory))
+        if (
+            self.cache_directory
+            != self.__settings.default_plugin_cache_directory
+        ):
+            self.__migrate(
+                Path(self.cache_directory), Path(self.cache_directory)
+            )
+
+        if (
+            self.cache_directory
+            == self.__settings.default_plugin_cache_directory
+        ):
+            self.cache_directory = (
+                self.__settings.default_user_profile_cache_directory
+            )
+
+        logger.debug("Cache migration completed")
+
+        return True
 
     def clear_cache(self) -> bool:
         cache_path = Path(self.cache_directory)
@@ -222,3 +350,59 @@ class NgConnectCacheManager:
             ]
 
         return file_path in self.__project_containers
+
+    def __migrate(self, old_base: Path, new_base: Path) -> bool:
+        for directory in old_base.glob("*"):
+            if not _is_uuid(directory.name):
+                continue
+
+            gpkg_files = list(directory.glob("*.gpkg"))
+            for gpkg_file in gpkg_files:
+                connection_id = directory.name
+                resource_id = gpkg_file.stem
+                relative_path = self.detached_container_path(
+                    connection_id, resource_id
+                ).relative_to(self.cache_directory)
+                new_path = new_base / relative_path
+                new_path.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(gpkg_file, new_path)
+
+            if old_base != new_base:
+                shutil.rmtree(directory)
+
+        return True
+
+
+def _is_uuid(name: str) -> bool:
+    uuid_pattern = re.compile(
+        r"^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$",
+        re.IGNORECASE,
+    )
+    return bool(uuid_pattern.match(name))
+
+
+def _guess_extension(
+    file_name: Optional[str], mime_type: Optional[str]
+) -> str:
+    extension = ""
+
+    mime_database = QMimeDatabase()
+
+    if mime_type:
+        mime = mime_database.mimeTypeForName(mime_type)
+        if mime.isValid():
+            extension = mime.preferredSuffix()
+            if extension:
+                extension = f".{extension}"
+
+    if not extension and file_name:
+        mime = mime_database.mimeTypeForFile(file_name)
+        if mime.isValid():
+            extension = mime.preferredSuffix()
+            if extension:
+                extension = f".{extension}"
+
+        if not extension:
+            extension = Path(file_name).suffix
+
+    return extension

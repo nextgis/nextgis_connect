@@ -258,12 +258,12 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         cache_manager = NgConnectCacheManager()
         is_cache_directory_default = (
             cache_manager.cache_directory
-            == cache_manager.cache_directory_default
+            == cache_manager.default_user_profile_cache_directory
         )
 
         # Cache directory lineedit
         self.__widget.cacheDirectoryLineEdit.setPlaceholderText(
-            cache_manager.cache_directory_default
+            cache_manager.default_user_profile_cache_directory
         )
         if not is_cache_directory_default:
             self.__widget.cacheDirectoryLineEdit.setText(

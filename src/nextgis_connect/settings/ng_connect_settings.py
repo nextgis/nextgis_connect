@@ -22,13 +22,20 @@
 
 import json
 from datetime import timedelta
-from typing import ClassVar, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from qgis.core import QgsSettings
 from qgis.PyQt.QtCore import QSettings, QStandardPaths
+from qgis.utils import iface
 
 from nextgis_connect.core.constants import PLUGIN_SETTINGS_GROUP
 from nextgis_connect.search.search_settings import SearchSettings
+
+if TYPE_CHECKING:
+    from qgis.gui import QgisInterface
+
+    assert isinstance(iface, QgisInterface)
 
 
 class NgConnectSettings:
@@ -204,22 +211,32 @@ class NgConnectSettings:
     def cache_directory(self) -> str:
         return self.__settings.value(
             self.__plugin_group + "/cache/directory",
-            defaultValue=self.cache_directory_default,
+            defaultValue=self.default_user_profile_cache_directory,
             type=str,
         )
-
-    @property
-    def cache_directory_default(self) -> str:
-        application_cache_path = QStandardPaths.writableLocation(
-            QStandardPaths.StandardLocation.CacheLocation
-        )
-        return application_cache_path + "/NGConnect"
 
     @cache_directory.setter
     def cache_directory(self, value: Optional[str]) -> None:
         self.__settings.setValue(
             self.__plugin_group + "/cache/directory", value
         )
+
+    @property
+    def default_plugin_cache_directory(self) -> str:
+        application_cache_path = QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.CacheLocation
+        )
+        return application_cache_path + "/NGConnect"
+
+    @property
+    def default_user_profile_cache_directory(self) -> str:
+        folder_name = "default"
+        if iface is not None:
+            # Can be none in some testing environments
+            active_profile = iface.userProfileManager().userProfile()
+            assert active_profile is not None
+            folder_name = Path(active_profile.folder()).name
+        return self.default_plugin_cache_directory + f"/{folder_name}"
 
     @property
     def cache_duration(self) -> int:

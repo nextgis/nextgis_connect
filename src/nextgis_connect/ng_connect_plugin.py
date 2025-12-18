@@ -48,6 +48,7 @@ from nextgis_connect.core.ui.about_dialog import AboutDialog
 from nextgis_connect.detached_editing.detached_editing import DetachedEditing
 from nextgis_connect.exceptions import (
     NgConnectError,
+    NgConnectReloadAfterUpdateWarning,
 )
 from nextgis_connect.logging import logger
 from nextgis_connect.ng_connect_dock import NgConnectDock
@@ -57,6 +58,9 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
 )
 from nextgis_connect.notifier.message_bar_notifier import MessageBarNotifier
 from nextgis_connect.notifier.notifier_interface import NotifierInterface
+from nextgis_connect.settings.ng_connect_cache_manager import (
+    NgConnectCacheManager,
+)
 from nextgis_connect.settings.tasks.purge_ng_connect_cache_task import (
     PurgeNgConnectCacheTask,
 )
@@ -91,6 +95,18 @@ class NgConnectPlugin(NgConnectInterface):
                 else ""
             )
         )
+        with QgsRuntimeProfiler.profile("Cache migration"):  # type: ignore
+            cache_manager = NgConnectCacheManager()
+            if cache_manager.need_migration:
+                if cache_manager.can_migrate:
+                    cache_manager.migrate()
+                else:
+                    # Cache will be cleared after QGIS restart before any
+                    # project is loaded
+                    exception = NgConnectReloadAfterUpdateWarning(
+                        "Cache migration is not possible"
+                    )
+                    raise exception
 
     def _load(self) -> None:
         with QgsRuntimeProfiler.profile("Plugin initialization"):  # type: ignore

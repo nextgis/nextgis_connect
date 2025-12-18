@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, Union, cast
 
 from qgis.core import (
@@ -1004,13 +1003,11 @@ class NgwResourcesAdder(QObject):
         assert connection is not None
 
         cache_manager = NgConnectCacheManager()
-        connection_path = (
-            Path(cache_manager.cache_directory) / connection.domain_uuid
+        detached_layer_path = cache_manager.detached_container_path(
+            connection.domain_uuid, vector_layer.resource_id
         )
 
-        uri = detached_layer_uri(
-            connection_path / f"{vector_layer.resource_id}.gpkg"
-        )
+        uri = detached_layer_uri(detached_layer_path)
 
         return (uri, vector_layer.display_name, "ogr")
 

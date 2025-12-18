@@ -3,7 +3,6 @@ import itertools
 import re
 import uuid
 from dataclasses import dataclass
-from pathlib import Path
 from typing import (
     Any,
     Callable,
@@ -208,7 +207,6 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
         connections_manager = NgwConnectionsManager()
 
         cache_manager = NgConnectCacheManager()
-        cache_directory = Path(cache_manager.cache_directory)
 
         detached_factory = DetachedLayerFactory()
 
@@ -229,11 +227,8 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
             # TODO: optimizations. e.g. fetch common dir for resources
             ngw_resource.update(skip_children=True)
 
-            instance_subdir = connection.domain_uuid
-            instance_cache_path = cache_directory / instance_subdir
-            instance_cache_path.mkdir(parents=True, exist_ok=True)
-            gpkg_path = (
-                instance_cache_path / f"{ngw_resource.resource_id}.gpkg"
+            gpkg_path = cache_manager.detached_container_path(
+                connection.domain_uuid, ngw_resource.resource_id
             )
             detached_factory.create_initial_container(ngw_resource, gpkg_path)
 
@@ -1470,12 +1465,12 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                 ngw_resource.connection_id
             )
             assert connection is not None
-            instance_subdir = connection.domain_uuid
 
             if isinstance(ngw_resource, NGWVectorLayer):
-                if cache_manager.exists(
-                    f"{instance_subdir}/{ngw_resource.resource_id}.gpkg"
-                ):
+                container_path = cache_manager.detached_container_path(
+                    connection.domain_uuid, ngw_resource.resource_id
+                )
+                if cache_manager.exists(container_path):
                     return [index], []
                 return [index], [index]
 
@@ -1485,9 +1480,10 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                 if not isinstance(parent_resource, NGWVectorLayer):
                     return [], []
 
-                if cache_manager.exists(
-                    f"{instance_subdir}/{parent_resource.resource_id}.gpkg"
-                ):
+                container_path = cache_manager.detached_container_path(
+                    connection.domain_uuid, ngw_resource.resource_id
+                )
+                if cache_manager.exists(container_path):
                     return [parent, index], []
                 return [parent, index], [parent]
 
@@ -1518,11 +1514,10 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
                     ngw_resource.connection_id
                 )
                 assert connection is not None
-                instance_subdir = connection.domain_uuid
-
-                if cache_manager.exists(
-                    f"{instance_subdir}/{ngw_resource.resource_id}.gpkg"
-                ):
+                container_path = cache_manager.detached_container_path(
+                    connection.domain_uuid, ngw_resource.resource_id
+                )
+                if cache_manager.exists(container_path):
                     continue
 
                 result.append(ngw_resource)

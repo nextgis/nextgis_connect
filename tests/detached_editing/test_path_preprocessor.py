@@ -1,3 +1,4 @@
+import hashlib
 import shutil
 import tempfile
 import unittest
@@ -219,7 +220,7 @@ class TestPathPreprocessor(NgConnectTestCase):
                 QgsPathResolver().readPath(old_source), new_source
             )
 
-        with self.subTest("Absolute path"):
+        with self.subTest("Relative path"):
             relative_path = QDir(str(self.project_directory)).relativeFilePath(
                 str(container_mock.path)
             )
@@ -258,8 +259,11 @@ class TestPathPreprocessor(NgConnectTestCase):
         }
         connection_mock.return_value = permissions_mock
 
-        domain_directory = self.cache_directory / connection.domain_uuid
-        container_path = domain_directory / f"{resource.resource_id}.gpkg"
+        cache_manager = NgConnectCacheManager()
+        container_path = cache_manager.detached_container_path(
+            connection.domain_uuid, resource.resource_id
+        )
+
         self.assertTrue(container_path.is_absolute())
 
         with self.subTest("Absolute path"):
@@ -327,6 +331,11 @@ class TestPathPreprocessor(NgConnectTestCase):
         resource = self.resource(TestData.Points)
         layer_name = container_mock.metadata.table_name
 
+        cache_manager = NgConnectCacheManager()
+        current_layer_path = cache_manager.detached_container_path(
+            connection.domain_uuid, resource.resource_id
+        )
+
         with self.subTest("Absolute path"):
             windows_source = (
                 r"C:/Users/User/AppData/Local/NextGIS/ngqgis/cache/NGConnect/"
@@ -336,11 +345,8 @@ class TestPathPreprocessor(NgConnectTestCase):
             )
 
             current_source = str(
-                self.cache_directory
-                / connection.domain_uuid
-                / f"{resource.resource_id}.gpkg|layername={layer_name}"
+                f"{current_layer_path}|layername={layer_name}"
             )
-
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
@@ -355,11 +361,8 @@ class TestPathPreprocessor(NgConnectTestCase):
             )
 
             current_source = str(
-                self.cache_directory
-                / connection.domain_uuid
-                / f"{resource.resource_id}.gpkg|layername={layer_name}"
+                f"{current_layer_path}|layername={layer_name}"
             )
-
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
@@ -404,6 +407,94 @@ class TestPathPreprocessor(NgConnectTestCase):
             )
 
     @mock_container(TestData.Points)
+    def test_from_windows_hashed_to_current(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        self.__move_container(container_mock)
+        connection = self.connection(TestConnection.SandboxGuest)
+        resource = self.resource(TestData.Points)
+        layer_name = container_mock.metadata.table_name
+
+        seed = f"{connection.domain_uuid}_{resource.resource_id}"
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_prefix = sha1_hash[:2]
+
+        cache_manager = NgConnectCacheManager()
+        current_layer_path = cache_manager.detached_container_path(
+            connection.domain_uuid, resource.resource_id
+        )
+
+        with self.subTest("Absolute path"):
+            windows_source = (
+                r"C:/Users/User/AppData/Local/NextGIS/ngqgis/cache/NGConnect/"
+                + connection.domain_uuid
+                + "/"
+                + f"{sha1_prefix}/{sha1_hash}/{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            current_source = str(
+                f"{current_layer_path}|layername={layer_name}"
+            )
+            self.assertEqual(
+                QgsPathResolver().readPath(windows_source), current_source
+            )
+
+        with self.subTest("Absolute path with backslashes"):
+            windows_source = (
+                r"C:\Users\User\AppData\Local\NextGIS\ngqgis\cache\NGConnect"
+                "\\"
+                + connection.domain_uuid
+                + "\\"
+                + f"{sha1_prefix}\\{sha1_hash}\\{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            current_source = str(
+                f"{current_layer_path}|layername={layer_name}"
+            )
+            self.assertEqual(
+                QgsPathResolver().readPath(windows_source), current_source
+            )
+
+        with self.subTest("Relative path"):
+            posix_source = (
+                r"../../AppData/Local/NextGIS/ngqgis/cache/NGConnect/"
+                + connection.domain_uuid
+                + "/"
+                + f"{sha1_prefix}/{sha1_hash}/{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            current_source = (
+                QDir(str(self.project_directory)).relativeFilePath(
+                    str(container_mock.path)
+                )
+                + f"|layername={layer_name}"
+            )
+
+            self.assertEqual(
+                QgsPathResolver().readPath(posix_source), current_source
+            )
+
+        with self.subTest("Relative path with backslashes"):
+            posix_source = (
+                r"..\..\AppData\Local\NextGIS\ngqgis\cache\NGConnect"
+                "\\"
+                + connection.domain_uuid
+                + "\\"
+                + f"{sha1_prefix}/{sha1_hash}/{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            current_source = (
+                QDir(str(self.project_directory)).relativeFilePath(
+                    str(container_mock.path)
+                )
+                + f"|layername={layer_name}"
+            )
+
+            self.assertEqual(
+                QgsPathResolver().readPath(posix_source), current_source
+            )
+
+    @mock_container(TestData.Points)
     def test_from_unix_to_current(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
@@ -420,10 +511,64 @@ class TestPathPreprocessor(NgConnectTestCase):
                 + f"{resource.resource_id}.gpkg|layername={layer_name}"
             )
 
+            cache_manager = NgConnectCacheManager()
+            current_layer_path = cache_manager.detached_container_path(
+                connection.domain_uuid, resource.resource_id
+            )
             current_source = str(
-                self.cache_directory
-                / connection.domain_uuid
-                / f"{resource.resource_id}.gpkg|layername={layer_name}"
+                f"{current_layer_path}|layername={layer_name}"
+            )
+
+            self.assertEqual(
+                QgsPathResolver().readPath(posix_source), current_source
+            )
+
+    @mock_container(TestData.Points)
+    def test_from_unix_hashed_to_current(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        self.__move_container(container_mock)
+        connection = self.connection(TestConnection.SandboxGuest)
+        resource = self.resource(TestData.Points)
+        layer_name = container_mock.metadata.table_name
+
+        seed = f"{connection.domain_uuid}_{resource.resource_id}"
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_prefix = sha1_hash[:2]
+
+        with self.subTest("Absolute path"):
+            posix_source = (
+                "/home/user/.cache/NextGIS/ngqgis/NGConnect/"
+                + connection.domain_uuid
+                + "/"
+                + f"{sha1_prefix}/{sha1_hash}/{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            cache_manager = NgConnectCacheManager()
+            current_layer_path = cache_manager.detached_container_path(
+                connection.domain_uuid, resource.resource_id
+            )
+            current_source = str(
+                f"{current_layer_path}|layername={layer_name}"
+            )
+
+            self.assertEqual(
+                QgsPathResolver().readPath(posix_source), current_source
+            )
+
+        with self.subTest("Relative path"):
+            posix_source = (
+                "../../.cache/NextGIS/ngqgis/NGConnect/"
+                + connection.domain_uuid
+                + "/"
+                + f"{sha1_prefix}/{sha1_hash}/{resource.resource_id}.gpkg|layername={layer_name}"
+            )
+
+            current_source = (
+                QDir(str(self.project_directory)).relativeFilePath(
+                    str(container_mock.path)
+                )
+                + f"|layername={layer_name}"
             )
 
             self.assertEqual(
@@ -452,10 +597,13 @@ class TestPathPreprocessor(NgConnectTestCase):
     def __move_container(self, container_mock: MagicMock) -> None:
         resource = self.resource(TestData.Points)
         connection = self.connection(TestConnection.SandboxGuest)
-        domain_directory = self.cache_directory / connection.domain_uuid
-        domain_directory.mkdir(exist_ok=True, parents=True)
 
-        container_path = domain_directory / f"{resource.resource_id}.gpkg"
+        cache_manager = NgConnectCacheManager()
+        container_path = cache_manager.detached_container_path(
+            connection.domain_uuid, resource.resource_id
+        )
+        container_path.parent.mkdir(exist_ok=True, parents=True)
+
         safe_move(container_mock.path, container_path)
 
         container_mock.path = container_path
