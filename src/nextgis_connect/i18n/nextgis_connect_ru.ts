@@ -2020,9 +2020,14 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>TextSearchLineEdit</name>
     <message>
-        <location filename="../search/text_search_line_edit.py" line="32"/>
+        <location filename="../search/text_search_line_edit.py" line="35"/>
         <source>Resource name…</source>
         <translation>Название ресурса…</translation>
+    </message>
+    <message>
+        <location filename="../search/text_search_line_edit.py" line="133"/>
+        <source>Open help in the browser</source>
+        <translation>Открыть справку в браузере</translation>
     </message>
 </context>
 <context>

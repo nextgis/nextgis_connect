@@ -1,8 +1,9 @@
 import re
 from typing import Optional
 
-from qgis.PyQt.QtCore import Qt, pyqtSlot
-from qgis.PyQt.QtGui import QIcon, QMovie
+from qgis.core import QgsApplication
+from qgis.PyQt.QtCore import Qt, QUrl, pyqtSlot
+from qgis.PyQt.QtGui import QDesktopServices, QIcon, QMovie
 from qgis.PyQt.QtWidgets import QAction, QLineEdit, QWidget
 
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
@@ -15,12 +16,14 @@ from nextgis_connect.search.search_settings import SearchSettings
 from nextgis_connect.search.text_search_completer_model import (
     TextSearchCompleterModel,
 )
+from nextgis_connect.utils import nextgis_domain, utm_tags
 
 
 class TextSearchLineEdit(AbstractSearchLineEdit):
     __completer_model: TextSearchCompleterModel
 
     __loading_action: Optional[QAction]
+    __open_help_action: Optional[QAction]
     __loading_icon_movie: QMovie
 
     __connection_id: Optional[str]
@@ -38,6 +41,11 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
         self.__loading_icon_movie.setFileName(
             ":images/themes/default/mIconLoading.gif"
         )
+
+        # Help action
+        self.__open_help_action = None
+        self.__change_state_help_action()
+        self.textChanged.connect(self.__change_state_help_action)
 
         # Completer model
         self.__completer_model = TextSearchCompleterModel(connection_id, self)
@@ -59,6 +67,7 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
             self.update_history,
             Qt.ConnectionType.QueuedConnection,  # type: ignore
         )
+
 
     @pyqtSlot(str)
     def set_connection_id(self, connection_id: str) -> None:
@@ -111,6 +120,30 @@ class TextSearchLineEdit(AbstractSearchLineEdit):
             )
         )
         self.__loading_icon_movie.start()
+
+    @pyqtSlot()
+    def __change_state_help_action(self) -> None:
+        if not len(self.text()) and self.__open_help_action is None:
+            self.__open_help_action = self.addAction(
+                QgsApplication.getThemeIcon("mActionHelpContents.svg"),
+                QLineEdit.ActionPosition.TrailingPosition,
+            )
+            self.__open_help_action.setToolTip(
+                self.tr("Open help in the browser")
+            )
+
+            self.__open_help_action.triggered.connect(self.__open_help_in_browser)
+
+        elif self.__open_help_action is not None:
+            self.__open_help_action.deleteLater()
+            self.__open_help_action = None
+
+    @pyqtSlot()
+    def __open_help_in_browser(self) -> None:
+        domain = nextgis_domain("docs")
+        utm = utm_tags("search_panel")
+        url = f"{domain}/docs_ngconnect/source/filter.html?{utm}"
+        QDesktopServices.openUrl(QUrl(url, QUrl.ParsingMode.TolerantMode))
 
     @pyqtSlot()
     def __hide_loading_icon(self) -> None:
