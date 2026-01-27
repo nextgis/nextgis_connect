@@ -322,6 +322,10 @@ class NgwResourcesAdder(QObject):
 
             added_layers = len(self.__layers)
 
+        except NgwError as error:
+            NgConnectInterface.instance().show_error(error)
+            return False
+
         except Exception as error:
             if self.__is_mass_adding:
                 user_message = self.tr("Resources can't be added to the map")
@@ -1038,7 +1042,10 @@ class NgwResourcesAdder(QObject):
         self, raster_layer: NGWRasterLayer
     ) -> LayerParams:
         if not raster_layer.is_cog:
-            raise NgwError(code=ErrorCode.UnsupportedRasterType)
+            raise NgwError(
+                user_message=self.tr("Unsupported raster type"),
+                code=ErrorCode.UnsupportedRasterType,
+            )
 
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(raster_layer.connection_id)
