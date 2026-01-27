@@ -1,0 +1,3 @@
+@echo off
+pylupdate5 common_plugin_settings.py ngw_connection_edit_dialog.py ngw_connection_edit_dialog_base.ui ngw_plugin_settings.py ngw_resource_model_4qgis.py -ts i18n\qgis_ngw_api_ru.ts
+lrelease i18n\qgis_ngw_api_ru.ts
