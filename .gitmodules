@@ -1,3 +1,0 @@
-[submodule "src/ngw_api"]
-	path = src/nextgis_connect/ngw_api
-    url = https://github.com/nextgis/ngw_external_api_python.git
