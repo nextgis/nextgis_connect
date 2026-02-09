@@ -84,7 +84,7 @@ It creates a multi-user, server-backed environment where teams work on the same 
 ![Resource search and filtering](assets/connect_search.webp)
 
 - **Advanced resource search and filtering**  
-  Search and filter NextGIS Web resources by name, type, owner, and other attributes — essential for large multi-user environments.
+  Search and filter NextGIS Web resources by name, type, owner, and other attributes, essential for large multi-user environments.
 
 ---
 
