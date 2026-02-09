@@ -1,7 +1,6 @@
 import json
 from typing import Any, Dict, Iterable
 
-from nextgis_connect.detached_editing.serialization import serialize_geometry
 from nextgis_connect.detached_editing.sync.common.changes import (
     DescriptionPut,
     FeatureChange,
@@ -9,6 +8,9 @@ from nextgis_connect.detached_editing.sync.common.changes import (
     FeatureDeletion,
     FeatureUpdate,
     FieldsChanges,
+)
+from nextgis_connect.detached_editing.sync.common.serialization import (
+    serialize_geometry,
 )
 from nextgis_connect.detached_editing.utils import DetachedContainerMetaData
 from nextgis_connect.exceptions import (

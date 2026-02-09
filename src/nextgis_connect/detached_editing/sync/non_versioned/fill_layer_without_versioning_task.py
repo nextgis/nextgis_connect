@@ -4,15 +4,17 @@ from contextlib import closing
 from pathlib import Path
 from typing import cast
 
-from nextgis_connect.detached_editing.actions.applier import ActionApplier
-from nextgis_connect.detached_editing.actions.serializer import (
-    ActionSerializer,
-)
-from nextgis_connect.detached_editing.detached_layer_factory import (
+from nextgis_connect.detached_editing.container.container_factory import (
     DetachedLayerFactory,
 )
-from nextgis_connect.detached_editing.tasks.detached_editing_task import (
+from nextgis_connect.detached_editing.sync.common.detached_editing_task import (
     DetachedEditingTask,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions_applier import (
+    ActionApplier,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions_serializer import (
+    ActionSerializer,
 )
 from nextgis_connect.detached_editing.utils import (
     container_metadata,

@@ -13,9 +13,6 @@ from qgis.PyQt.QtCore import Qt, QTime
 from nextgis_connect.detached_editing.container.editing import (
     ContainerReadOnlySession,
 )
-from nextgis_connect.detached_editing.serialization import (
-    simplify_value,
-)
 from nextgis_connect.detached_editing.sync.common.changes import (
     AttachmentCreation,
     AttachmentDeletion,
@@ -27,6 +24,9 @@ from nextgis_connect.detached_editing.sync.common.changes import (
     FeatureDeletion,
     FeatureRestoration,
     FeatureUpdate,
+)
+from nextgis_connect.detached_editing.sync.common.serialization import (
+    simplify_value,
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerContext,

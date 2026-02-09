@@ -5,13 +5,16 @@ from qgis.gui import QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer, pyqtSlot
 from qgis.PyQt.QtGui import QIcon
 
+from nextgis_connect.detached_editing.container.ui.layer_status_dialog import (
+    DetachedLayerStatusDialog,
+)
+from nextgis_connect.detached_editing.utils import DetachedLayerState
 from nextgis_connect.logging import logger
 
-from .detached_layer_status_dialog import DetachedLayerStatusDialog
-from .utils import DetachedLayerState
-
 if TYPE_CHECKING:
-    from .detached_container import DetachedContainer
+    from nextgis_connect.detached_editing.container.container import (
+        DetachedContainer,
+    )
 
 
 class DetachedLayerIndicator(QgsLayerTreeViewIndicator):

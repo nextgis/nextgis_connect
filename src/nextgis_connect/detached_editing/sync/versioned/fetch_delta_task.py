@@ -3,15 +3,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
 
-from nextgis_connect.detached_editing.actions import (
+from nextgis_connect.detached_editing.sync.common.detached_editing_task import (
+    DetachedEditingTask,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions import (
     ContinueAction,
     VersioningAction,
 )
-from nextgis_connect.detached_editing.actions.serializer import (
+from nextgis_connect.detached_editing.sync.versioned.actions_serializer import (
     ActionSerializer,
-)
-from nextgis_connect.detached_editing.tasks.detached_editing_task import (
-    DetachedEditingTask,
 )
 from nextgis_connect.exceptions import (
     ErrorCode,

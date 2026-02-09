@@ -2,12 +2,14 @@ import urllib.parse
 from contextlib import closing
 from pathlib import Path
 
-from nextgis_connect.detached_editing.actions.applier import ActionApplier
-from nextgis_connect.detached_editing.actions.serializer import (
-    ActionSerializer,
-)
-from nextgis_connect.detached_editing.tasks.detached_editing_task import (
+from nextgis_connect.detached_editing.sync.common.detached_editing_task import (
     DetachedEditingTask,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions_applier import (
+    ActionApplier,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions_serializer import (
+    ActionSerializer,
 )
 from nextgis_connect.detached_editing.utils import (
     make_connection,
@@ -17,7 +19,7 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import QgsNgwConnection
 
 
-class FillLayerWithVersioning(DetachedEditingTask):
+class FillLayerWithVersioningTask(DetachedEditingTask):
     def __init__(self, stub_path: Path) -> None:
         super().__init__(stub_path)
         if self._error is not None:

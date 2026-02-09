@@ -13,14 +13,16 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 
-from .utils import DetachedLayerState
+from nextgis_connect.detached_editing.utils import DetachedLayerState
 
 if TYPE_CHECKING:
-    from .detached_container import DetachedContainer
+    from nextgis_connect.detached_editing.container.container import (
+        DetachedContainer,
+    )
 
 
 WIDGET, _ = uic.loadUiType(
-    str(Path(__file__).parent / "detached_layer_status_dialog_base.ui")
+    str(Path(__file__).parent / "layer_status_dialog_base.ui")
 )
 
 

@@ -30,7 +30,7 @@ from qgis.PyQt.QtGui import QFont
 
 from nextgis_connect import utils
 from nextgis_connect.compat import parse_version
-from nextgis_connect.detached_editing.detached_layer_factory import (
+from nextgis_connect.detached_editing.container_factory import (
     DetachedLayerFactory,
 )
 from nextgis_connect.exceptions import ErrorCode, NgwConnectionError, NgwError

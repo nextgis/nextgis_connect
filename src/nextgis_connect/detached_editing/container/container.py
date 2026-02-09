@@ -16,6 +16,7 @@ from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
+from nextgis_connect.detached_editing import utils
 from nextgis_connect.detached_editing.conflicts.deduplicator import (
     ConflictsDeduplicator,
 )
@@ -28,14 +29,33 @@ from nextgis_connect.detached_editing.conflicts.resolver import (
 from nextgis_connect.detached_editing.conflicts.ui.resolving_dialog import (
     ResolvingDialog,
 )
-from nextgis_connect.detached_editing.tasks import (
-    ApplyDeltaTask,
+from nextgis_connect.detached_editing.container.container_factory import (
+    DetachedLayerFactory,
+)
+from nextgis_connect.detached_editing.container.ui.layer_indicator import (
+    DetachedLayerIndicator,
+)
+from nextgis_connect.detached_editing.detached_layer import DetachedLayer
+from nextgis_connect.detached_editing.sync.common import (
     DetachedEditingTask,
     FetchAdditionalDataTask,
-    FetchDeltaTask,
-    FillLayerWithoutVersioningTask,
-    FillLayerWithVersioning,
     UploadChangesTask,
+)
+from nextgis_connect.detached_editing.sync.non_versioned import (
+    FillLayerWithoutVersioningTask,
+)
+from nextgis_connect.detached_editing.sync.versioned import (
+    ApplyDeltaTask,
+    FetchDeltaTask,
+    FillLayerWithVersioningTask,
+)
+from nextgis_connect.detached_editing.utils import (
+    DetachedContainerChangesInfo,
+    DetachedContainerContext,
+    DetachedContainerMetaData,
+    DetachedLayerState,
+    VersioningSynchronizationState,
+    make_connection,
 )
 from nextgis_connect.exceptions import (
     ContainerError,
@@ -58,18 +78,6 @@ from nextgis_connect.ngw_connection.ngw_connections_manager import (
 )
 from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.utils import wrap_sql_value
-
-from . import utils
-from .detached_layer import DetachedLayer
-from .detached_layer_factory import DetachedLayerFactory
-from .detached_layer_indicator import DetachedLayerIndicator
-from .utils import (
-    DetachedContainerChangesInfo,
-    DetachedContainerMetaData,
-    DetachedLayerState,
-    VersioningSynchronizationState,
-    make_connection,
-)
 
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
@@ -564,7 +572,7 @@ class DetachedContainer(QObject):
         self.__versioning_state = State.FetchingChanges
 
         if self.is_not_initialized:
-            sync_task = FillLayerWithVersioning(self.path)
+            sync_task = FillLayerWithVersioningTask(self.path)
             sync_task.taskCompleted.connect(
                 lambda: self.__on_fill_finished(True)
             )
@@ -983,7 +991,8 @@ class DetachedContainer(QObject):
         )
 
         # Check conflicts
-        conflict_detector = ConflictsDetector(self.path, self.metadata)
+        context = DetachedContainerContext(self.path, self.metadata)
+        conflict_detector = ConflictsDetector(context)
         conflicts = conflict_detector.detect(fetch_delta_task.delta)
 
         # Find duplicates and remove it from actions and local changes

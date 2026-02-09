@@ -100,20 +100,17 @@ def deserialize_value(value: str) -> Any:
 
 def serialize_geometry(
     geometry: Optional[QgsGeometry], is_versioning_enabled: bool = False
-) -> str:
+) -> Optional[str]:
     """
     Serializes a QgsGeometry object to a string representation.
 
     :param geometry: The geometry to serialize. If None or empty, returns an empty string.
-    :type geometry: Optional[QgsGeometry]
     :param is_versioning_enabled: If True, serializes the geometry to a base64-encoded WKB string.
                                   If False, serializes the geometry to a WKT string.
-    :type is_versioning_enabled: bool
     :return: The serialized geometry as a string.
-    :rtype: str
     """
-    if geometry is None or geometry.isEmpty():
-        return ""
+    if geometry is None:
+        return None
 
     def as_wkt(geometry: QgsGeometry) -> str:
         wkt = geometry.asWkt()
@@ -134,7 +131,10 @@ def serialize_geometry(
         return wkt.replace(*replacement)
 
     def as_wkb64(geometry: QgsGeometry) -> str:
-        return b64encode(geometry.asWkb().data()).decode("ascii")
+        wkb = geometry.asWkb().data()
+        if isinstance(wkb, str):
+            wkb = wkb.encode("latin-1")
+        return b64encode(wkb).decode("ascii")
 
     return as_wkb64(geometry) if is_versioning_enabled else as_wkt(geometry)
 

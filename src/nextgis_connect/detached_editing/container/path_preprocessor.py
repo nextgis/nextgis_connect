@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QDir
 
-from nextgis_connect.detached_editing.detached_layer_factory import (
+from nextgis_connect.detached_editing.container.container_factory import (
     DetachedLayerFactory,
 )
 from nextgis_connect.detached_editing.utils import (

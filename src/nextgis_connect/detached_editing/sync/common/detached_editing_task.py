@@ -7,6 +7,7 @@ from qgis.core import QgsApplication, QgsTask
 from nextgis_connect.compat import parse_version
 from nextgis_connect.core.tasks.ng_connect_task import NgConnectTask
 from nextgis_connect.detached_editing.utils import (
+    DetachedContainerContext,
     DetachedContainerMetaData,
     container_changes,
     container_metadata,
@@ -46,6 +47,9 @@ class DetachedEditingTask(NgConnectTask):
 
         try:
             self._metadata = container_metadata(container_path)
+            self._context = DetachedContainerContext(
+                container_path, self._metadata
+            )
             self.__check_container()
 
         except ContainerError as error:

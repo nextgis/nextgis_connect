@@ -2,7 +2,7 @@ from contextlib import closing
 from pathlib import Path
 from typing import Dict, List, Set
 
-from nextgis_connect.detached_editing.tasks import DetachedEditingTask
+from nextgis_connect.detached_editing.sync.common import DetachedEditingTask
 from nextgis_connect.detached_editing.utils import (
     container_metadata,
     make_connection,

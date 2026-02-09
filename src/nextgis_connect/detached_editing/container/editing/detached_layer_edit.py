@@ -1,6 +1,6 @@
 from qgis.core import QgsVectorLayer, edit
 
-from nextgis_connect.detached_editing.detached_container import (
+from nextgis_connect.detached_editing.container.container import (
     DetachedContainer,
 )
 from nextgis_connect.detached_editing.utils import (
