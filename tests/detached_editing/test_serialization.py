@@ -7,7 +7,7 @@ from typing import Any
 from qgis.core import QgsApplication, QgsGeometry
 from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QTimeZone, QVariant
 
-from nextgis_connect.detached_editing.serialization import (
+from nextgis_connect.detached_editing.sync.common.serialization import (
     deserialize_geometry,
     deserialize_value,
     serialize_geometry,
@@ -277,8 +277,8 @@ class TestSerialization(NgConnectTestCase):
                 self.assertEqual(deserialized, case.expected_deserialized)
 
     def test_serialize_empty_geometry(self) -> None:
-        self.assertEqual(serialize_geometry(None), "")
-        self.assertEqual(serialize_geometry(QgsGeometry()), "")
+        self.assertEqual(serialize_geometry(None), None)
+        self.assertEqual(serialize_geometry(QgsGeometry()), None)
 
     def test_serialize_geometry(self) -> None:
         for case in self.geometries:

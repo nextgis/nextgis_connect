@@ -109,7 +109,7 @@ def serialize_geometry(
                                   If False, serializes the geometry to a WKT string.
     :return: The serialized geometry as a string.
     """
-    if geometry is None:
+    if geometry is None or geometry.isEmpty():
         return None
 
     def as_wkt(geometry: QgsGeometry) -> str:
