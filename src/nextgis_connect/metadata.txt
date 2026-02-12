@@ -20,7 +20,7 @@ about=NextGIS Connect transforms QGIS into a multi-user, server-backed GIS envir
 	NextGIS Web on-premise: https://nextgis.com/pricing/
 	NextGIS Web GitHub: https://github.com/nextgis/nextgisweb
 
-	Contact us: nextgis.com/
+	Contact us: nextgis.com/contact
 about[ru]=Создавайте интерактивные веб-карты и управляйте пространственными данными в своей Веб ГИС. Добавляйте слои, карты, сервисы WMS/WFS/TMS. Разработан компанией NextGIS. Любые отзывы приветствуются на https://nextgis.com/contact
 version=3.4.4
 author=NextGIS
@@ -607,3 +607,4 @@ changelog=
 		* New tool for refresh resource tree
 
 		* Some bug fixing
+
