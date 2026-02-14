@@ -9,16 +9,21 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Union
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 
+import qgis.utils
 from qgis.core import (
     QgsApplication,
     QgsAuthMethodConfig,
+    QgsLayerTreeModel,
     QgsMapLayer,
+    QgsProject,
     QgsSettings,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import Qt
+from qgis.gui import QgisInterface, QgsLayerTreeView, QgsMapCanvas
+from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtWidgets import QMainWindow
 from qgis.testing import QgisTestCase
 
 from nextgis_connect.ngw_api.core import NGWResource
@@ -266,6 +271,8 @@ def start_qgis() -> None:
     # Initialize qgis
     application.initQgis()
 
+    init_interface()
+
     # Setup logging
     def print_log_message(message, tag, level):
         print(f"{tag}({level}): {message}")  # noqa: T201
@@ -310,3 +317,33 @@ def stop_qgis() -> None:
         f"{ApplicationInfo.APPLICATION_NAME}*"
     ):
         safe_remove(path)
+
+
+def init_interface() -> None:
+    iface = getattr(qgis.utils, "iface", None)
+    if iface is None:
+        iface = Mock(spec=QgisInterface)
+        qgis.utils.iface = iface
+
+    assert isinstance(iface, Mock)
+
+    iface.mainWindow.return_value = QMainWindow()
+
+    canvas = QgsMapCanvas(iface.mainWindow())
+    canvas.resize(QSize(400, 400))
+    iface.mapCanvas.return_value = canvas
+
+    layer_tree_view = QgsLayerTreeView(iface.mainWindow())
+    layer_tree_model = QgsLayerTreeModel(
+        QgsProject.instance().layerTreeRoot(), layer_tree_view
+    )
+    layer_tree_view.setModel(layer_tree_model)
+    iface.layerTreeView.return_value = layer_tree_view
+
+    user_profile = MagicMock()
+    user_profile.folder.return_value = tempfile.mkdtemp(
+        prefix=f"{ApplicationInfo.APPLICATION_NAME}-profile-"
+    )
+    user_profile_manager = MagicMock()
+    user_profile_manager.userProfile.return_value = user_profile
+    iface.userProfileManager.return_value = user_profile_manager
