@@ -16,6 +16,7 @@ from nextgis_connect.detached_editing.utils import (
     is_ngw_container,
 )
 from nextgis_connect.settings.ng_connect_settings import NgConnectSettings
+from nextgis_connect.types import FileObjectId, UnsetType
 
 
 class NgConnectCacheManager:
@@ -29,7 +30,7 @@ class NgConnectCacheManager:
 
     @property
     def default_user_profile_cache_directory(self) -> str:
-        return self.__settings.default_user_profile_cache_directory
+        return self.__settings.user_profile_cache_directory
 
     @property
     def cache_directory(self) -> str:
@@ -96,7 +97,7 @@ class NgConnectCacheManager:
     @property
     def need_migration(self) -> bool:
         old_plugin_cache_path = Path(
-            self.__settings.default_plugin_cache_directory
+            self.__settings.old_plugin_cache_directory
         )
         custom_cache_path = Path(
             self.cache_directory,
@@ -114,7 +115,7 @@ class NgConnectCacheManager:
     @property
     def can_migrate(self) -> bool:
         old_plugin_cache_path = Path(
-            self.__settings.default_plugin_cache_directory
+            self.__settings.old_plugin_cache_directory
         )
         custom_cache_path = Path(
             self.cache_directory,
@@ -152,6 +153,27 @@ class NgConnectCacheManager:
             / f"{resource_id}.gpkg"
         )
 
+    def attachment_directory(
+        self,
+        domain_uuid: str,
+        resource_id: Union[int, str],
+        attachment_id: Union[int, str],
+        *,
+        fileobj: Union[UnsetType, None, FileObjectId] = None,
+    ) -> Path:
+        seed = f"{domain_uuid}_{resource_id}_{attachment_id}"
+        if bool(fileobj) and fileobj != -1:
+            seed += f"_{fileobj}"
+
+        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
+        sha1_hash_prefix = sha1_hash[:2]
+        return (
+            Path(self.cache_directory)
+            / domain_uuid
+            / sha1_hash_prefix
+            / sha1_hash
+        )
+
     def attachment_path(
         self,
         domain_uuid: str,
@@ -160,22 +182,34 @@ class NgConnectCacheManager:
         *,
         file_name: Optional[str] = None,
         mime_type: Optional[str] = None,
-        fileobj: Optional[int] = None,
+        fileobj: Union[UnsetType, None, FileObjectId] = None,
+    ) -> Path:
+        attachment_directory = self.attachment_directory(
+            domain_uuid, resource_id, attachment_id, fileobj=fileobj
+        )
+        extension = _guess_extension(file_name=file_name, mime_type=mime_type)
+        return attachment_directory / f"{attachment_id}{extension}"
+
+    def attachment_thumbnail_directory(
+        self,
+        domain_uuid: str,
+        resource_id: Union[int, str],
+        attachment_id: Union[int, str],
+        *,
+        fileobj: Union[UnsetType, None, FileObjectId] = None,
     ) -> Path:
         seed = f"{domain_uuid}_{resource_id}_{attachment_id}"
-        if fileobj is not None and fileobj != -1:
+        if bool(fileobj) and fileobj != -1:
             seed += f"_{fileobj}"
+        seed += "_thumbnail"
 
         sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
         sha1_hash_prefix = sha1_hash[:2]
-
-        extension = _guess_extension(file_name=file_name, mime_type=mime_type)
         return (
             Path(self.cache_directory)
             / domain_uuid
             / sha1_hash_prefix
             / sha1_hash
-            / f"{attachment_id}{extension}"
         )
 
     def attachment_thumbnail_path(
@@ -184,48 +218,33 @@ class NgConnectCacheManager:
         resource_id: Union[int, str],
         attachment_id: Union[int, str],
         *,
-        fileobj: Optional[int] = None,
+        fileobj: Union[UnsetType, None, FileObjectId] = None,
     ) -> Path:
-        seed = f"{domain_uuid}_{resource_id}_{attachment_id}"
-        if fileobj is not None and fileobj != -1:
-            seed += f"_{fileobj}"
-        seed += "_thumbnail"
-
-        sha1_hash = hashlib.sha1(seed.encode()).hexdigest()
-        sha1_hash_prefix = sha1_hash[:2]
-
-        return (
-            Path(self.cache_directory)
-            / domain_uuid
-            / sha1_hash_prefix
-            / sha1_hash
-            / f"{attachment_id}.jpg"
+        thumbnail_directory = self.attachment_thumbnail_directory(
+            domain_uuid, resource_id, attachment_id, fileobj=fileobj
         )
+        return thumbnail_directory / f"{attachment_id}.jpg"
 
     def migrate(self) -> bool:
         logger = logging.getLogger(PLUGIN_NAME)
         logger.debug("Start cache migration")
 
         old_plugin_cache_path = Path(
-            self.__settings.default_plugin_cache_directory
+            self.__settings.old_plugin_cache_directory
         )
 
+        # Migrate from default cache directory
         self.__migrate(old_plugin_cache_path, Path(self.cache_directory))
-        if (
-            self.cache_directory
-            != self.__settings.default_plugin_cache_directory
-        ):
+
+        if self.cache_directory != self.__settings.old_plugin_cache_directory:
+            # Just update structure if custom cache directory was used
             self.__migrate(
                 Path(self.cache_directory), Path(self.cache_directory)
             )
 
-        if (
-            self.cache_directory
-            == self.__settings.default_plugin_cache_directory
-        ):
-            self.cache_directory = (
-                self.__settings.default_user_profile_cache_directory
-            )
+        if self.cache_directory == self.__settings.old_plugin_cache_directory:
+            # Reset if default value was stored in settings
+            self.cache_directory = self.__settings.user_profile_cache_directory
 
         logger.debug("Cache migration completed")
 
@@ -352,6 +371,9 @@ class NgConnectCacheManager:
         return file_path in self.__project_containers
 
     def __migrate(self, old_base: Path, new_base: Path) -> bool:
+        if not old_base.exists():
+            return True
+
         for directory in old_base.glob("*"):
             if not _is_uuid(directory.name):
                 continue
@@ -369,6 +391,9 @@ class NgConnectCacheManager:
 
             if old_base != new_base:
                 shutil.rmtree(directory)
+
+        if not any(old_base.iterdir()):
+            old_base.rmdir()
 
         return True
 
