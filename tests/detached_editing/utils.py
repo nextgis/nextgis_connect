@@ -1,11 +1,10 @@
 import functools
 import random
 import shutil
-from contextlib import closing
 from dataclasses import replace
 from datetime import date, datetime, time
 from pathlib import Path
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from qgis.core import (
     QgsFeature,
@@ -18,13 +17,16 @@ from qgis.core import (
 )
 
 from nextgis_connect.compat import QgsFeatureId, WkbType
+from nextgis_connect.detached_editing.container.editing.container_sessions import (
+    ContainerReadWriteSession,
+)
 from nextgis_connect.detached_editing.detached_layer_factory import (
     DetachedLayerFactory,
 )
 from nextgis_connect.detached_editing.utils import (
+    AttachmentMetadata,
     container_metadata,
     detached_layer_uri,
-    make_connection,
 )
 from nextgis_connect.ngw_api.core.ngw_vector_layer import NGWVectorLayer
 from nextgis_connect.resources.ngw_data_type import NgwDataType
@@ -168,93 +170,135 @@ def mock_container(
     extra_features_count: int = 0,
     empty_features: bool = False,
     descriptions: Optional[Dict[QgsFeatureId, str]] = None,
+    attachments: Optional[List[AttachmentMetadata]] = None,
     **metadata_values: Dict,
 ) -> Callable:
     def create_container_mock(
         self: NgConnectTestCase,
     ) -> Tuple[MagicQObjectMock, QgsVectorLayer]:
-        ngw_layer = self.resource(test_data)
-        assert isinstance(ngw_layer, NGWVectorLayer)
-        qgs_layer = self.layer(test_data)
-        assert isinstance(qgs_layer, QgsVectorLayer)
+        container_mock: Optional[MagicQObjectMock] = None
+        qgs_layer: Optional[QgsVectorLayer] = None
 
-        container_path = self.create_temp_file(".gpkg")
+        try:
+            ngw_layer = self.resource(test_data)
+            assert isinstance(ngw_layer, NGWVectorLayer)
 
-        factory = DetachedLayerFactory()
-        factory.create_initial_container(ngw_layer, container_path)
+            source_layer = self.layer(test_data)
+            assert isinstance(source_layer, QgsVectorLayer)
+            source_layer.deleteLater()
 
-        # Handle extra features
-        source_path = self.data_path(test_data)
-        temp_path = None
-        if extra_features_count > 0:
-            temp_path = self.create_temp_file(".gpkg")
-            shutil.copyfile(source_path, temp_path)
+            container_path = self.create_temp_file(".gpkg")
 
-            temp_layer = QgsVectorLayer(
-                detached_layer_uri(temp_path), "temp_layer", "ogr"
-            )
-            temp_fields = QgsFields()
-            for field in temp_layer.fields():
-                ngw_field = ngw_layer.fields.find_with(keyname=field.name())
-                temp_fields.append(
-                    field if ngw_field is None else ngw_field.to_qgs_field()
+            factory = DetachedLayerFactory()
+            factory.create_initial_container(ngw_layer, container_path)
+
+            source_path = self.data_path(test_data)
+            temp_path = None
+            if extra_features_count > 0:
+                temp_path = self.create_temp_file(".gpkg")
+                shutil.copyfile(source_path, temp_path)
+
+                temp_layer = QgsVectorLayer(
+                    detached_layer_uri(temp_path), "temp_layer", "ogr"
                 )
-
-            with edit(temp_layer):
-                features = [
-                    random_feature(temp_layer.wkbType(), temp_fields)
-                    if not empty_features
-                    else QgsFeature(temp_fields)
-                    for _ in range(extra_features_count)
-                ]
-                temp_layer.dataProvider().addFeatures(features)
-
-            source_path = Path(temp_path)
-
-        factory.fill_container(
-            ngw_layer,
-            source_path=source_path,
-            container_path=container_path,
-        )
-
-        metadata = replace(
-            container_metadata(container_path),
-            epoch=1 if is_versioning_enabled else None,
-            version=1 if is_versioning_enabled else None,
-            **metadata_values,
-        )
-
-        container_mock = MagicQObjectMock()
-        container_mock.metadata = metadata
-        container_mock.path = container_path
-
-        qgs_layer = QgsVectorLayer(
-            detached_layer_uri(container_path, metadata),
-            metadata.layer_name,
-            "ogr",
-        )
-
-        if descriptions is not None:
-            with closing(make_connection(qgs_layer)) as connection, closing(
-                connection.cursor()
-            ) as cursor:
-                cursor.executemany(
-                    """
-                    INSERT INTO ngw_features_descriptions (
-                        fid, version, description
+                temp_fields = QgsFields()
+                for field in temp_layer.fields():
+                    ngw_field = ngw_layer.fields.find_with(
+                        keyname=field.name()
                     )
-                    VALUES (?, 12345, ?)
-                    ON CONFLICT(fid) DO UPDATE SET
-                        description = ?;
-                    """,
-                    (
-                        (fid, description, description)
-                        for fid, description in descriptions.items()
-                    ),
-                )
-                connection.commit()
+                    temp_fields.append(
+                        field
+                        if ngw_field is None
+                        else ngw_field.to_qgs_field()
+                    )
 
-        return container_mock, qgs_layer
+                with edit(temp_layer):
+                    features = [
+                        random_feature(temp_layer.wkbType(), temp_fields)
+                        if not empty_features
+                        else QgsFeature(temp_fields)
+                        for _ in range(extra_features_count)
+                    ]
+                    temp_layer.dataProvider().addFeatures(features)
+
+                temp_layer.deleteLater()
+                source_path = Path(temp_path)
+
+            factory.fill_container(
+                ngw_layer,
+                source_path=source_path,
+                container_path=container_path,
+            )
+
+            metadata = replace(
+                container_metadata(container_path),
+                epoch=1 if is_versioning_enabled else None,
+                version=1 if is_versioning_enabled else None,
+                **metadata_values,
+            )
+
+            container_mock = MagicQObjectMock()
+            container_mock.metadata = metadata
+            container_mock.path = container_path
+
+            qgs_layer = QgsVectorLayer(
+                detached_layer_uri(container_path, metadata),
+                metadata.layer_name,
+                "ogr",
+            )
+
+            if descriptions is not None:
+                with ContainerReadWriteSession(qgs_layer) as cursor:
+                    cursor.executemany(
+                        """
+                        INSERT INTO ngw_features_descriptions (
+                            fid, version, description
+                        )
+                        VALUES (?, 12345, ?)
+                        ON CONFLICT(fid) DO UPDATE SET
+                            description = ?;
+                        """,
+                        (
+                            (fid, description, description)
+                            for fid, description in descriptions.items()
+                        ),
+                    )
+
+            if attachments is not None:
+                with ContainerReadWriteSession(qgs_layer) as cursor:
+                    cursor.executemany(
+                        """
+                        INSERT INTO ngw_features_attachments (
+                            fid, aid, ngw_aid, version, keyname, name, description, fileobj, mime_type
+                        )
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+                        """,
+                        (
+                            (
+                                attachment.fid,
+                                attachment.aid,
+                                attachment.aid,
+                                attachment.version or None,
+                                attachment.keyname or None,
+                                attachment.name or f"name_{attachment.aid}",
+                                attachment.description
+                                or f"description_{attachment.aid}",
+                                attachment.fileobj or -1,
+                                attachment.mime_type or None,
+                            )
+                            for attachment in attachments
+                        ),
+                    )
+
+            return container_mock, qgs_layer
+        except Exception:
+            if qgs_layer is not None:
+                qgs_layer.deleteLater()
+
+            if container_mock is not None:
+                container_mock.deleteLater()
+
+            raise
 
     def decorator(
         method: Callable[..., None],
@@ -263,11 +307,17 @@ def mock_container(
         def wrapper(
             self: NgConnectTestCase, *args: Tuple, **kwargs: Dict
         ) -> None:
-            container_mock, qgs_layer = create_container_mock(self)
+            container_mock = None
+            qgs_layer = None
             try:
+                container_mock, qgs_layer = create_container_mock(self)
                 method(self, container_mock, qgs_layer, *args, **kwargs)
             finally:
-                container_mock.deleteLater()
+                if qgs_layer is not None:
+                    qgs_layer.deleteLater()
+
+                if container_mock is not None:
+                    container_mock.deleteLater()
 
         return wrapper
 
