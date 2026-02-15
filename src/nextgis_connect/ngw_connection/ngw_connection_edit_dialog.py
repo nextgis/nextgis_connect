@@ -33,6 +33,7 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_connection.auth_config_edit_dialog import (
     AuthConfigEditDialog,
 )
+from nextgis_connect.utils import nextgis_domain
 
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
@@ -53,10 +54,9 @@ WIDGET, BASE = uic.loadUiType(
 
 
 class NgwConnectionEditDialog(QDialog, WIDGET):
-    NEXTGIS_DOMAIN = ".nextgis.com"
-
     __is_edit: bool
     __connection_id: str
+    __nextgis_domain: str
     __is_save_clicked: bool
     __url_completer_model: QStringListModel
     __name_completer_model: QStringListModel
@@ -71,6 +71,8 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     ) -> None:
         super().__init__(parent)
         self.setupUi(self)
+
+        self.__nextgis_domain =  urlparse(nextgis_domain()).netloc
 
         warning_icon = QgsApplication.getThemeIcon("mIconWarning.svg")
         size = int(max(24.0, self.authWidget.minimumSize().height()))
@@ -217,11 +219,6 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         is_url_valid = len(url) != 0
         if not is_url_valid:
             self.urlErrorLabel.setText(self.tr("URL is required"))
-        elif is_url_valid and not url.endswith(self.NEXTGIS_DOMAIN):
-            self.urlErrorLabel.setText(
-                self.tr("Domain 'nextgis.com' in the end is required")
-            )
-            is_url_valid = False
 
         self.urlLineEdit.setHighlighted(not is_url_valid)
         self.urlErrorLabel.setVisible(not is_url_valid)
@@ -236,16 +233,16 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self.__url_completer_model.setStringList([])
             return
 
-        suffix = self.NEXTGIS_DOMAIN
+        suffix = "." + self.__nextgis_domain
 
         first_point_pos = value.find(".")
         if first_point_pos != -1:
             text_after_point = value[first_point_pos:]
-            if not self.NEXTGIS_DOMAIN.startswith(text_after_point):
+            if not self.__nextgis_domain.startswith(text_after_point):
                 self.__url_completer_model.setStringList([])
                 return
 
-            suffix = self.NEXTGIS_DOMAIN[len(text_after_point) :]
+            suffix = self.__nextgis_domain[len(text_after_point) :]
 
         self.__url_completer_model.setStringList([value + suffix])
 
@@ -293,7 +290,9 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             is_auth_valid = not is_my
             self.authWarningLabel.setVisible(not is_auth_valid)
 
-        is_valid = is_url_valid and is_name_valid and is_auth_valid and not has_error
+        is_valid = (
+            is_url_valid and is_name_valid and is_auth_valid and not has_error
+        )
 
         save_button = self.buttonBox.button(
             QDialogButtonBox.StandardButton.Save
@@ -486,23 +485,22 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.progressBar.hide()
 
     def __make_valid_url(self, url: str) -> str:
-        url = url.strip()
-
-        # Remove everything after domain
-        domain_idx = url.find(self.NEXTGIS_DOMAIN)
-        if domain_idx != -1:
-            url = url[: domain_idx + len(self.NEXTGIS_DOMAIN)]
-
         parse_result = urlparse(url)
-        hostname = parse_result.hostname
+
+        if parse_result.netloc != "":
+            if parse_result.scheme != "":
+                url = f"{parse_result.scheme}://{parse_result.netloc}"
+            else:
+                url = f"https://{parse_result.netloc}"
+
 
         # Select https if protocol has not been defined by user
-        if hostname is None:
+        if parse_result.scheme == "":
             url = f"https://{url}"
 
         # Force https regardless of what user has selected, but only for cloud
         # connections.
-        if url.startswith("http://") and url.endswith(self.NEXTGIS_DOMAIN):
+        if url.startswith("http://") and url.endswith(self.__nextgis_domain):
             url = url.replace("http://", "https://")
 
         return url
