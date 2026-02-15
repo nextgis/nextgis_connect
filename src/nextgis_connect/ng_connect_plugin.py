@@ -351,7 +351,7 @@ class NgConnectPlugin(NgConnectInterface):
 
     def __init_ng_connect_dock(self) -> None:
 
-        self.__ng_resources_tree_dock = NgConnectDock("", self.iface)
+        self.__ng_resources_tree_dock = NgConnectDock(self.iface)
         self.iface.addDockWidget(
             Qt.DockWidgetArea.RightDockWidgetArea,
             self.__ng_resources_tree_dock,

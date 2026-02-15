@@ -190,8 +190,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     resource_model: QNGWResourceTreeModel
     resources_tree_view: QNGWResourceTreeView
 
-    def __init__(self, title: str, iface: QgisInterface):
-        super().__init__(title, parent=None)
+    def __init__(self, iface: QgisInterface):
+        super().__init__(parent=None)
 
         self.setupUi(self)
         self.setObjectName("NGConnectDock")
@@ -2688,7 +2688,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         title = NgConnectInterface.PLUGIN_NAME
         connection = NgwConnectionsManager().current_connection
         if connection is not None:
-            url = connection.url.replace("https://", "").replace("http://", "")
+            url = urllib.parse.urlparse(connection.url).netloc
             title += f" — {url}"
 
         self.setWindowTitle(title)
