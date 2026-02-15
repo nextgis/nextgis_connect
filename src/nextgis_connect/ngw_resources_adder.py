@@ -1042,10 +1042,7 @@ class NgwResourcesAdder(QObject):
         self, raster_layer: NGWRasterLayer
     ) -> LayerParams:
         if not raster_layer.is_cog:
-            raise NgwError(
-                user_message=self.tr("Unsupported raster type"),
-                code=ErrorCode.UnsupportedRasterType,
-            )
+            raise NgwError(code=ErrorCode.UnsupportedRasterType)
 
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(raster_layer.connection_id)
