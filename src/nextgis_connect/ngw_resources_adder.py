@@ -322,6 +322,10 @@ class NgwResourcesAdder(QObject):
 
             added_layers = len(self.__layers)
 
+        except NgwError as error:
+            NgConnectInterface.instance().show_error(error)
+            return False
+
         except Exception as error:
             if self.__is_mass_adding:
                 user_message = self.tr("Resources can't be added to the map")

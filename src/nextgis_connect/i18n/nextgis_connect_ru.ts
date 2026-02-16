@@ -604,11 +604,6 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Плагин успешно обновлён. Для продолжения работы, пожалуйста, презапустите QGIS.</translation>
     </message>
     <message>
-        <location filename="../exceptions.py" line="513"/>
-        <source>Resource can&apos;t be added to the map.</source>
-        <translation>Ресурс не можнт быть добавлен на карту.</translation>
-    </message>
-    <message>
         <location filename="../exceptions.py" line="606"/>
         <source>This type of raster is not supported anymore</source>
         <translation>Данный тип растра больше не поддерживается</translation>
@@ -627,6 +622,11 @@ If a layer contains important changes that were not sent to the server, they wil
         <location filename="../exceptions.py" line="569"/>
         <source>Conflicts were not resolved. Synchronization is not possible.</source>
         <translation>Конфликты не были решены. Синхронизация невозможна.</translation>
+    </message>
+    <message>
+        <location filename="../exceptions.py" line="513"/>
+        <source>COG is disabled.</source>
+        <translation>Режим COG отключен</translation>
     </message>
 </context>
 <context>
@@ -1712,44 +1712,44 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgwResourcesAdder</name>
     <message>
-        <location filename="../ngw_resources_adder.py" line="327"/>
+        <location filename="../ngw_resources_adder.py" line="331"/>
         <source>Resources can&apos;t be added to the map</source>
         <translation>Невозможно добавить ресурсы на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="333"/>
+        <location filename="../ngw_resources_adder.py" line="337"/>
         <source>Resource &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="606"/>
+        <location filename="../ngw_resources_adder.py" line="610"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="880"/>
+        <location filename="../ngw_resources_adder.py" line="884"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1310"/>
+        <location filename="../ngw_resources_adder.py" line="1314"/>
         <source>Warning</source>
         <translation>Предупреждение</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1311"/>
+        <location filename="../ngw_resources_adder.py" line="1315"/>
         <source>You are trying to add a WFS service containing a layer with Z dimension. WFS in QGIS doesn&apos;t fully support editing such geometries. You won&apos;t be able to edit and create new features. You will only be able to delete features.
 To fix this, change geometry type of your layer(s) and recreate WFS service.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается.
 Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1327"/>
+        <location filename="../ngw_resources_adder.py" line="1331"/>
         <source>Add anyway</source>
         <translation>Добавить всё равно</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1330"/>
+        <location filename="../ngw_resources_adder.py" line="1334"/>
         <source>Skip</source>
         <translation>Пропустить</translation>
     </message>
@@ -1764,12 +1764,12 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1049"/>
+        <location filename="../ngw_resources_adder.py" line="1053"/>
         <source>Layer &quot;{raster_layer.display_name}&quot; was not added to the map</source>
         <translation>Слой &quot;{raster_layer.display_name}&quot; не был добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../ngw_resources_adder.py" line="1052"/>
+        <location filename="../ngw_resources_adder.py" line="1056"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
@@ -2025,7 +2025,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <translation>Название ресурса…</translation>
     </message>
     <message>
-        <location filename="../search/text_search_line_edit.py" line="133"/>
+        <location filename="../search/text_search_line_edit.py" line="131"/>
         <source>Open help in the browser</source>
         <translation>Открыть справку в браузере</translation>
     </message>
