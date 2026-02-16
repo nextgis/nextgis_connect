@@ -21,6 +21,7 @@
 from typing import Dict, Type
 
 from nextgis_connect.logging import logger
+from nextgis_connect.ngw_api.core.ngw_gallery import NGWGallery
 from nextgis_connect.ngw_api.core.ngw_tms_resources import (
     NGWTmsConnection,
     NGWTmsLayer,
@@ -71,6 +72,7 @@ class NGWResourceFactory:
             NGWQGISRasterStyle.type_id: NGWQGISRasterStyle,
             NGWRasterLayer.type_id: NGWRasterLayer,
             NGWWebMap.type_id: NGWWebMap,
+            NGWGallery.type_id: NGWGallery,
             NGWRasterStyle.type_id: NGWRasterStyle,
             NGWWmsConnection.type_id: NGWWmsConnection,
             NGWWmsLayer.type_id: NGWWmsLayer,

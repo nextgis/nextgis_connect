@@ -213,6 +213,7 @@ class NGWResource:
             "raster_layer",
             "basemap_layer",
             "webmap",
+            "gallery",
         ) or any(
             context
             in (
