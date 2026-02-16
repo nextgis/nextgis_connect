@@ -511,7 +511,7 @@ def default_user_message(code: ErrorCode) -> str:
             "To continue working, please restart QGIS."
         ),
         ErrorCode.UnsupportedRasterType: QgsApplication.translate(
-            "Errors", "Resource can't be added to the map."
+            "Errors", "COG is disabled."
         ),
         ErrorCode.NgwError: QgsApplication.translate(
             "Errors", "Error occurred while communicating with Web GIS."
