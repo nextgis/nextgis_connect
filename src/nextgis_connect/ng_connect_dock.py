@@ -190,11 +190,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     resource_model: QNGWResourceTreeModel
     resources_tree_view: QNGWResourceTreeView
 
-    def __init__(self, title: str, iface: QgisInterface):
-        super().__init__(title, parent=None)
+    def __init__(self, iface: QgisInterface):
+        super().__init__(parent=None)
 
         self.setupUi(self)
         self.setObjectName("NGConnectDock")
+
+        self.__init_title()
 
         self.iface = iface
 
@@ -1084,6 +1086,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 else:
                     self.resources_tree_view.showWelcomeMessage()
                 return
+
+            self.__init_title()
 
             if (
                 HAS_NGSTD
@@ -2698,6 +2702,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             QDesktopServices.openUrl(QUrl(promo_url))
 
         banner_label.linkActivated.connect(open_link)
+
+    def __init_title(self) -> None:
+        title = NgConnectInterface.PLUGIN_NAME
+        connection = NgwConnectionsManager().current_connection
+        if connection is not None:
+            url = urllib.parse.urlparse(connection.url).netloc
+            title += f" — {url}"
+
+        self.setWindowTitle(title)
 
 
 class NGWPanelToolBar(QToolBar):
