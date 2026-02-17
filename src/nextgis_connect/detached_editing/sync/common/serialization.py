@@ -9,6 +9,7 @@ from qgis.PyQt.QtCore import QDate, QDateTime, Qt, QTime, QVariant
 
 from nextgis_connect.compat import GeometryType
 from nextgis_connect.exceptions import NgConnectError, SerializationError
+from nextgis_connect.types import Wkb64String, WktString
 
 
 def simplify_date_and_time(
@@ -98,6 +99,45 @@ def deserialize_value(value: str) -> Any:
         raise SerializationError from error
 
 
+def geometry_to_wkt(geometry: QgsGeometry) -> WktString:
+    wkt = geometry.asWkt()
+
+    if not QgsWkbTypes.hasZ(geometry.wkbType()):
+        return wkt
+
+    geometry_type = geometry.type()
+    if geometry_type == GeometryType.Point:
+        replacement = ("tZ", "t Z")
+    elif geometry_type == GeometryType.Line:
+        replacement = ("gZ", "g Z")
+    elif geometry_type == GeometryType.Polygon:
+        replacement = ("nZ", "n Z")
+    else:
+        raise NgConnectError("Unknown geometry")
+
+    return wkt.replace(*replacement)
+
+
+def geometry_to_wkb64(geometry: QgsGeometry) -> Wkb64String:
+    wkb = geometry.asWkb().data()
+    if isinstance(wkb, str):
+        wkb = wkb.encode("latin-1")
+    return b64encode(wkb).decode("ascii")
+
+
+def geometry_from_wkt(geometry_string: WktString) -> QgsGeometry:
+    return QgsGeometry.fromWkt(geometry_string)
+
+
+def geometry_from_wkb64(geometry_string: Wkb64String) -> QgsGeometry:
+    geometry = QgsGeometry()
+    with suppress(Exception):
+        decoded_string = b64decode(geometry_string)
+        geometry.fromWkb(decoded_string)
+
+    return geometry
+
+
 def serialize_geometry(
     geometry: Optional[QgsGeometry], is_versioning_enabled: bool = False
 ) -> Optional[str]:
@@ -112,31 +152,10 @@ def serialize_geometry(
     if geometry is None or geometry.isEmpty():
         return None
 
-    def as_wkt(geometry: QgsGeometry) -> str:
-        wkt = geometry.asWkt()
+    if is_versioning_enabled:
+        return geometry_to_wkb64(geometry)
 
-        if not QgsWkbTypes.hasZ(geometry.wkbType()):
-            return wkt
-
-        geometry_type = geometry.type()
-        if geometry_type == GeometryType.Point:
-            replacement = ("tZ", "t Z")
-        elif geometry_type == GeometryType.Line:
-            replacement = ("gZ", "g Z")
-        elif geometry_type == GeometryType.Polygon:
-            replacement = ("nZ", "n Z")
-        else:
-            raise NgConnectError("Unknown geometry")
-
-        return wkt.replace(*replacement)
-
-    def as_wkb64(geometry: QgsGeometry) -> str:
-        wkb = geometry.asWkb().data()
-        if isinstance(wkb, str):
-            wkb = wkb.encode("latin-1")
-        return b64encode(wkb).decode("ascii")
-
-    return as_wkb64(geometry) if is_versioning_enabled else as_wkt(geometry)
+    return geometry_to_wkt(geometry)
 
 
 def deserialize_geometry(
@@ -146,22 +165,16 @@ def deserialize_geometry(
     Deserialize a geometry string into a QgsGeometry object.
 
     :param geometry_string: The geometry string to deserialize. Can be in WKT or WKB format.
-    :type geometry_string: Optional[str]
     :param is_versioning_enabled: Flag indicating if versioning is enabled. If True, the geometry string is expected to be in WKB format and base64 encoded.
-    :type is_versioning_enabled: bool
     :return: The deserialized QgsGeometry object.
-    :rtype: QgsGeometry
     """
     if geometry_string is None or geometry_string == "":
         return QgsGeometry()
 
     if is_versioning_enabled:
-        geometry = QgsGeometry()
-        with suppress(Exception):
-            decoded_string = b64decode(geometry_string)
-            geometry.fromWkb(decoded_string)
+        geometry = geometry_from_wkb64(geometry_string)
     else:
-        geometry = QgsGeometry.fromWkt(geometry_string)
+        geometry = geometry_from_wkt(geometry_string)
 
     if geometry.isNull():
         error = SerializationError("Invalid geometry")
