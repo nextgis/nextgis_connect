@@ -15,8 +15,8 @@ from qgis.core import (
 )
 
 from nextgis_connect.compat import FieldType
-from nextgis_connect.detached_editing.detached_layer_factory import (
-    DetachedLayerFactory,
+from nextgis_connect.detached_editing.container.container_factory import (
+    DetachedContainerFactory,
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerMetaData,
@@ -39,7 +39,7 @@ DELETED_FEATURE = 3
 FIXED_DATETIME = datetime(2006, 5, 4, 3, 2, 1)
 
 
-class TestDetachedLayerFactory(NgConnectTestCase):
+class TestDetachedContainerFactory(NgConnectTestCase):
     def test_create_without_versioning(self) -> None:
         def check_test_metadata(metadata: DetachedContainerMetaData):
             self.assertIsNone(metadata.transaction_id)
@@ -54,7 +54,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         layer_json = self.resource_json(TestData.Points)
         initial_fields = layer_json["feature_layer"]["fields"]
 
-        factory = DetachedLayerFactory()
+        factory = DetachedContainerFactory()
 
         with self.subTest("1. Ordinary layer"):
             ngw_layer = cast(
@@ -209,7 +209,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         layer_json = self.resource_json(TestData.Points)
         initial_fields = layer_json["feature_layer"]["fields"]
 
-        factory = DetachedLayerFactory()
+        factory = DetachedContainerFactory()
 
         with self.subTest("1. Ordinary layer"):
             ngw_layer = cast(
@@ -440,7 +440,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
         )
 
         # Create and fill container
-        factory = DetachedLayerFactory()
+        factory = DetachedContainerFactory()
         container_path = self.create_temp_file(".gpkg")
         factory.create_initial_container(ngw_layer, container_path)
         factory.fill_container(

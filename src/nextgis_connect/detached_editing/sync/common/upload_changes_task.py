@@ -275,11 +275,12 @@ class UploadChangesTask(DetachedEditingTask):
             if change.fid in self.__added_fids_mapping:
                 change.ngw_fid = self.__added_fids_mapping[change.fid]
 
+            assert not isinstance(change.source, UnsetType)
             payload = {
                 "keyname": change.keyname,
                 "name": change.name,
                 "description": change.description,
-                "file_upload": change.source,
+                "file_upload": change.source.data,
                 "mime_type": change.mime_type,
             }
             url = f"{feature_url}/{change.ngw_fid}/attachment/"
@@ -707,6 +708,8 @@ class UploadChangesTask(DetachedEditingTask):
             error = SynchronizationError("Transaction is not committed")
             error.add_note(f"Synchronization id: {transaction_id}")
             error.add_note(f"Status: {result['status']}")
+            if "errors" in result:
+                error.add_note(f"Error: {result['errors']}")
             raise error
 
         transaction_result = connection.get(

@@ -17,7 +17,7 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QDir
 
 from nextgis_connect.compat import WkbType
-from nextgis_connect.detached_editing.path_preprocessor import (
+from nextgis_connect.detached_editing.container.path_preprocessor import (
     DetachedEditingPathPreprocessor,
 )
 from nextgis_connect.settings.ng_connect_cache_manager import (

@@ -152,6 +152,56 @@ class TestChangesExtraction(NgConnectTestCase):
         self.assertEqual(result[0].fid, feature_id)
         self.assertIsNotNone(result[0].ngw_fid)
 
+    @mock_container(TestData.Points, is_versioning_enabled=True)
+    def test_extract_restored_features_returns_current_fields_and_geometry(
+        self, container_mock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        extractor = self._extractor(container_mock)
+        layer = DetachedLayer(container_mock, qgs_layer)
+        feature_id = self._first_feature_id(qgs_layer)
+        string_attribute = self._string_attribute_index(qgs_layer)
+        expected_geometry = QgsGeometry.fromWkt("Point (77 88)")
+
+        with edit(layer.qgs_layer):
+            self.assertTrue(
+                layer.qgs_layer.changeAttributeValue(
+                    feature_id,
+                    string_attribute,
+                    "restored-current-value",
+                )
+            )
+            self.assertTrue(
+                layer.qgs_layer.changeGeometry(feature_id, expected_geometry)
+            )
+
+        with ContainerReadWriteSession(container_mock.path) as cursor:
+            cursor.execute(
+                "DELETE FROM ngw_updated_attributes WHERE fid = ?",
+                (feature_id,),
+            )
+            cursor.execute(
+                "DELETE FROM ngw_updated_geometries WHERE fid = ?",
+                (feature_id,),
+            )
+            cursor.execute(
+                "INSERT INTO ngw_restored_features (fid) VALUES (?)",
+                (feature_id,),
+            )
+
+        result = extractor.extract_restored_features()
+
+        self.assertEqual(len(result), 1)
+        field = container_mock.metadata.fields.get_with(
+            attribute=string_attribute
+        )
+        self.assertEqual(
+            result[0].fields_dict[field.ngw_id],
+            "restored-current-value",
+        )
+        self.assertIsNot(result[0].geometry, Unset)
+        assert isinstance(result[0].geometry, QgsGeometry)
+        self.assertTrue(result[0].geometry.equals(expected_geometry))
+
     @mock_container(TestData.Points)
     def test_extract_restored_features_returns_empty_for_non_versioned(
         self, container_mock, _qgs_layer

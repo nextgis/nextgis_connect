@@ -3,7 +3,14 @@ import tempfile
 from contextlib import closing
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from qgis.core import (
     QgsEditorWidgetSetup,
@@ -17,14 +24,14 @@ from qgis.PyQt.QtCore import QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.utils import iface
 
 from nextgis_connect.detached_editing import utils
-from nextgis_connect.detached_editing.conflicts.deduplicator import (
-    ConflictsDeduplicator,
+from nextgis_connect.detached_editing.conflicts.auto_resolver import (
+    ConflictsAutoResolver,
 )
 from nextgis_connect.detached_editing.conflicts.detector import (
     ConflictsDetector,
 )
-from nextgis_connect.detached_editing.conflicts.resolver import (
-    ConflictsResolver,
+from nextgis_connect.detached_editing.conflicts.resolutions_applier import (
+    ConflictsResolutionApplier,
 )
 from nextgis_connect.detached_editing.conflicts.ui.resolving_dialog import (
     ResolvingDialog,
@@ -41,6 +48,9 @@ from nextgis_connect.detached_editing.sync.common import (
     FetchAdditionalDataTask,
     UploadChangesTask,
 )
+from nextgis_connect.detached_editing.sync.common.changes_extractor import (
+    ChangesExtractor,
+)
 from nextgis_connect.detached_editing.sync.non_versioned import (
     FillLayerWithoutVersioningTask,
 )
@@ -48,6 +58,9 @@ from nextgis_connect.detached_editing.sync.versioned import (
     ApplyDeltaTask,
     FetchDeltaTask,
     FillLayerWithVersioningTask,
+)
+from nextgis_connect.detached_editing.sync.versioned.actions import (
+    VersioningAction,
 )
 from nextgis_connect.detached_editing.utils import (
     DetachedContainerChangesInfo,
@@ -157,6 +170,10 @@ class DetachedContainer(QObject):
     @property
     def metadata(self):
         return self.__metadata
+
+    @property
+    def context(self) -> DetachedContainerContext:
+        return DetachedContainerContext(self.path, self.metadata)
 
     @property
     def state(self) -> DetachedLayerState:
@@ -699,7 +716,9 @@ class DetachedContainer(QObject):
 
         if len(self.__sync_task.delta) > 0:
             try:
-                delta = self.__process_delta(self.__sync_task)
+                delta = self.__process_delta_and_resolve_conflicts(
+                    self.__sync_task
+                )
             except SynchronizationError as error:
                 error.try_again = lambda: self.synchronize(is_manual=True)
                 self.__process_error(error)
@@ -982,7 +1001,9 @@ class DetachedContainer(QObject):
         if is_connection_changed or self.__metadata.is_auto_sync_enabled:
             self.synchronize(is_manual=True)
 
-    def __process_delta(self, fetch_delta_task: FetchDeltaTask) -> Sequence:
+    def __process_delta_and_resolve_conflicts(
+        self, fetch_delta_task: FetchDeltaTask
+    ) -> Sequence[VersioningAction]:
         if len(fetch_delta_task.delta) == 0:
             return []
 
@@ -992,43 +1013,50 @@ class DetachedContainer(QObject):
 
         # Check conflicts
         context = DetachedContainerContext(self.path, self.metadata)
-        conflict_detector = ConflictsDetector(context)
-        conflicts = conflict_detector.detect(fetch_delta_task.delta)
+        local_changes = ChangesExtractor(context).extract_all_changes()
 
-        # Find duplicates and remove it from actions and local changes
-        deduplicator = ConflictsDeduplicator(self.path, self.metadata)
-        need_update_state, delta, conflicts = deduplicator.deduplicate(
-            fetch_delta_task.delta, conflicts
+        conflict_detector = ConflictsDetector()
+        conflicts = conflict_detector.detect(
+            local_changes,
+            fetch_delta_task.delta,
+        )
+        if len(conflicts) == 0:
+            return fetch_delta_task.delta
+
+        self.__versioning_state = (
+            VersioningSynchronizationState.ConflictSolving
         )
 
-        if need_update_state:
-            if len(conflicts) > 0:
-                self.__versioning_state = (
-                    VersioningSynchronizationState.ConflictSolving
+        auto_resolution = ConflictsAutoResolver().resolve(conflicts)
+        manual_resolutions = []
+        if len(auto_resolution.remaining_conflicts) > 0:
+            dialog = ResolvingDialog(
+                context, auto_resolution.remaining_conflicts
+            )
+            result = dialog.exec()
+
+            if result != ResolvingDialog.DialogCode.Accepted:
+                raise SynchronizationError(
+                    "Resolving cancelled", code=ErrorCode.ConflictsNotResolved
                 )
 
-            self.__update_state(is_full_update=True)
+            manual_resolutions = dialog.resolutions
 
-        if len(conflicts) == 0:
-            return delta
+        all_resolutions = (
+            auto_resolution.resolved_conflicts + manual_resolutions
+        )
 
-        dialog = ResolvingDialog(self.path, self.metadata, conflicts)
-        result = dialog.exec()
+        applier = ConflictsResolutionApplier(context)
+        status, updated_delta = applier.apply(
+            all_resolutions, fetch_delta_task.delta
+        )
 
-        if result != ResolvingDialog.DialogCode.Accepted:
-            raise SynchronizationError(
-                "Resolving cancelled", code=ErrorCode.ConflictsNotResolved
-            )
-
-        resolver = ConflictsResolver(self.path, self.metadata)
-        status, delta = resolver.resolve(delta, dialog.resolutions)
-
-        if status != ConflictsResolver.Status.Resolved:
+        if status != ConflictsResolutionApplier.Status.Resolved:
             raise SynchronizationError("Not all conflicts were solved")
 
         self.__update_state(is_full_update=True)
 
-        return delta
+        return updated_delta
 
     def __reset_error(self) -> None:
         if self.__error is None or self.__is_silent_sync:

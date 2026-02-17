@@ -17,14 +17,15 @@ from qgis.core import (
 )
 
 from nextgis_connect.compat import QgsFeatureId, WkbType
+from nextgis_connect.detached_editing.container.container_factory import (
+    DetachedContainerFactory,
+)
 from nextgis_connect.detached_editing.container.editing.container_sessions import (
     ContainerReadWriteSession,
 )
-from nextgis_connect.detached_editing.detached_layer_factory import (
-    DetachedLayerFactory,
-)
 from nextgis_connect.detached_editing.utils import (
     AttachmentMetadata,
+    DetachedContainerContext,
     container_metadata,
     detached_layer_uri,
 )
@@ -189,7 +190,7 @@ def mock_container(
 
             container_path = self.create_temp_file(".gpkg")
 
-            factory = DetachedLayerFactory()
+            factory = DetachedContainerFactory()
             factory.create_initial_container(ngw_layer, container_path)
 
             source_path = self.data_path(test_data)
@@ -240,6 +241,9 @@ def mock_container(
             container_mock = MagicQObjectMock()
             container_mock.metadata = metadata
             container_mock.path = container_path
+            container_mock.context = DetachedContainerContext(
+                container_path, metadata
+            )
 
             qgs_layer = QgsVectorLayer(
                 detached_layer_uri(container_path, metadata),

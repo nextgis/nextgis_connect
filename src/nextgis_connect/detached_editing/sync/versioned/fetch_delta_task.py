@@ -10,6 +10,9 @@ from nextgis_connect.detached_editing.sync.versioned.actions import (
     ContinueAction,
     VersioningAction,
 )
+from nextgis_connect.detached_editing.sync.versioned.actions_filter import (
+    ActionsFilter,
+)
 from nextgis_connect.detached_editing.sync.versioned.actions_serializer import (
     ActionSerializer,
 )
@@ -114,6 +117,9 @@ class FetchDeltaTask(DetachedEditingTask):
                     ngw_connection.get(continue_action.url)
                 )
 
+            actions_filter = ActionsFilter()
+            self.__delta = actions_filter.filter(self.__delta)
+
             logger.debug(f"Fetched {len(self.__delta)} actions")
 
         except SynchronizationError as error:
@@ -152,7 +158,7 @@ class FetchDeltaTask(DetachedEditingTask):
             message = "SRS is not compatible"
             code = ErrorCode.StructureChanged
             error = SynchronizationError(message, code=code)
-            error.add_note(f"Local: {self._metadata.geometry_name}")
+            error.add_note(f"Local: {self._metadata.srs_id}")
             error.add_note(f"Remote: {answer['srs']['id']}")
             raise error
 

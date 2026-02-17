@@ -149,6 +149,10 @@ class AttachmentChangeMixin:
     fileobj: Unsettable[FileObjectId] = Unset
     mime_type: Unsettable[Optional[str]] = Unset
 
+    @property
+    def is_file_new(self) -> bool:
+        return bool(self.fileobj)
+
 
 @dataclass(frozen=True)
 class AttachmentCreateAction(AttachmentChangeMixin, AttachmentAction):
@@ -162,10 +166,6 @@ class AttachmentUpdateAction(AttachmentChangeMixin, AttachmentAction):
     """Action for attachment update"""
 
     TYPE: ClassVar[ActionType] = ActionType.ATTACHMENT_UPDATE
-
-    @property
-    def is_file_new(self) -> bool:
-        return bool(self.fileobj)
 
 
 @dataclass(frozen=True)
