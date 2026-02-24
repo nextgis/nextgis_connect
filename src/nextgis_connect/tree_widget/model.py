@@ -523,7 +523,7 @@ class NgwSearch(NGWResourceModelJob):
         try:
             assert connection_id is not None
             ngw_connection = QgsNgwConnection(connection_id)
-            result = ngw_connection.get("api/component/auth/user/")
+            result = ngw_connection.get("api/component/auth/user/?brief=true")
             for user in result:
                 self.users_keyname[user["keyname"]] = user["id"]
                 self.users_username[user["display_name"]] = user["id"]
