@@ -294,6 +294,22 @@ class NGWResourceDelete(NGWResourceModelJob):
         self.putDeletedResourceToResult(self.ngw_resource)
 
 
+class NGWResourceBatchDelete(NGWResourceModelJob):
+    def __init__(
+        self,
+        ngw_resources: List[NGWResource],
+        model: "QNGWResourceTreeModel",
+    ):
+        NGWResourceModelJob.__init__(self)
+        self.ngw_resources = ngw_resources
+        self.model = model
+
+    def _do(self):
+        NGWResource.delete_resources(self.ngw_resources, self.model)
+        for ngw_resource in self.ngw_resources:
+            self.putDeletedResourceToResult(ngw_resource)
+
+
 class NGWCreateVectorLayer(NGWResourceModelJob):
     def __init__(
         self,

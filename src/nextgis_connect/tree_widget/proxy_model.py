@@ -2,6 +2,8 @@ from typing import List, Optional, cast
 
 from qgis.PyQt.QtCore import QModelIndex, QObject, QSortFilterProxyModel
 
+from nextgis_connect.resources.utils import extract_closest_to_root
+
 from .model import QNGWResourceItem, QNGWResourceTreeModel
 
 
@@ -73,7 +75,7 @@ class NgConnectProxyModel(QSortFilterProxyModel):
 
         model = cast(QNGWResourceTreeModel, self.sourceModel())
 
-        closest_to_root = self.__extract_closest_to_root()
+        closest_to_root = extract_closest_to_root(model, self.__resources_id)
         expanded_resources = set()
 
         for resource_id in closest_to_root:
@@ -87,30 +89,3 @@ class NgConnectProxyModel(QSortFilterProxyModel):
                 index = parent
 
         self.__expandex_resources = list(expanded_resources)
-
-    def __extract_closest_to_root(self) -> List[int]:
-        closest_to_root = set()
-
-        model = cast(QNGWResourceTreeModel, self.sourceModel())
-
-        for resource_id in self.__resources_id:
-            index = model.index_from_id(resource_id)
-
-            has_parent_in_found_list = False
-
-            while index and index.isValid():
-                parent = index.parent()
-                if not parent.isValid():
-                    break
-
-                parent_id = model.resource(parent).resource_id
-                if parent_id != 0 and parent_id in self.__resources_id:
-                    has_parent_in_found_list = True
-                    break
-
-                index = parent
-
-            if not has_parent_in_found_list:
-                closest_to_root.add(resource_id)
-
-        return list(closest_to_root)

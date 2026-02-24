@@ -455,6 +455,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.blocked_jobs = {
             "NGWGroupCreater": self.tr("Creating resource..."),
             "NGWResourceDelete": self.tr("Deleting resource..."),
+            "NGWResourceBatchDelete": self.tr("Deleting resources..."),
             "QGISResourcesUploader": self.tr("Uploading layer..."),
             "QGISProjectUploader": self.tr("Uploading project..."),
             "NGWCreateWfsService": self.tr("Creating WFS service..."),
@@ -485,8 +486,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.proxy_model.set_resources_id
         )
         self.resource_model.found_resources_changed.connect(
-            lambda resources: self.resources_tree_view.not_found_overlay.setVisible(
-                -1 in resources
+            lambda resources: (
+                self.resources_tree_view.not_found_overlay.setVisible(
+                    -1 in resources
+                )
             )
         )
 
@@ -749,10 +752,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.creation_button.setEnabled(is_one_ngw_selected)
         self.actionCreateNgwVectorLayer.setEnabled(is_one_ngw_selected)
 
+        is_not_root = not has_no_ngw_selection and all(
+            item.parent().isValid() for item in selected_ngw_indexes
+        )
+
         self.actionDeleteResource.setEnabled(
-            not is_multiple_ngw_selection
-            and not has_no_ngw_selection
-            and selected_ngw_indexes[0].parent().isValid()
+            not has_no_ngw_selection and is_not_root
         )
 
         self.actionOpenInNGW.setEnabled(is_one_ngw_selected)
@@ -1790,23 +1795,41 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         res = QMessageBox.question(
             self,
             self.tr("Delete resource"),
-            self.tr("Are you sure you want to remove this resource?"),
+            self.tr("Are you sure you want to remove selected resources?"),
             QMessageBox.StandardButton.Yes and QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
         )
 
-        if res == QMessageBox.StandardButton.Yes:
+        if res == QMessageBox.StandardButton.No:
+            return
+
+        if (
+            len(self.resources_tree_view.selectionModel().selectedIndexes())
+            == 1
+        ):
             selected_index = self.proxy_model.mapToSource(
                 self.resources_tree_view.selectionModel().currentIndex()
             )
             self.delete_resource_response = self.resource_model.deleteResource(
                 selected_index
             )
-            self.delete_resource_response.done.connect(
-                lambda index: self.resources_tree_view.setCurrentIndex(
-                    self.proxy_model.mapFromSource(index)
-                )
+        else:
+            selected_indicies = []
+            for (
+                index
+            ) in self.resources_tree_view.selectionModel().selectedIndexes():
+                selected_index = self.proxy_model.mapToSource(index)
+                selected_indicies.append(selected_index)
+
+            self.delete_resource_response = (
+                self.resource_model.deleteResources(selected_indicies)
             )
+
+        self.delete_resource_response.done.connect(
+            lambda index: self.resources_tree_view.setCurrentIndex(
+                self.proxy_model.mapFromSource(index)
+            )
+        )
 
     def _downloadRasterSource(
         self, ngw_lyr: NGWRasterLayer, raster_file: Optional[QFile] = None
