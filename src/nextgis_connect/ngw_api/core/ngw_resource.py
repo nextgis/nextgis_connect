@@ -97,6 +97,21 @@ class NGWResource:
         url = API_RESOURCE_URL(ngw_resource.resource_id)
         ngw_con.delete(url)
 
+    @classmethod
+    def delete_resources(cls, ngw_resources: List["NGWResource"]):
+        if not ngw_resources:
+            return
+
+        indicies = ",".join(str(res.resource_id) for res in ngw_resources)
+        ngw_con = ngw_resources[0].res_factory.connection
+        if ngw_con is None:
+            return
+
+        ngw_con.post(
+            f"{API_COLLECTION_URL}delete?resources={indicies}&partial=true",
+            params={"resources": indicies, "partial": "true"},
+        )
+
     # INSTANCE
     def __init__(self, resource_factory, resource_json):
         """
