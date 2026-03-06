@@ -2,7 +2,7 @@
 
 [![License: GPL v2+](https://img.shields.io/badge/license-GPLv2%2B-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![QGIS plugin](https://img.shields.io/badge/QGIS-Plugin-green)](https://plugins.qgis.org/plugins/nextgis_connect/)
-[![NextGIS Web integrated](https://img.shields.io/badge/NextGIS%20Web-Intergated-blue.svg)](https://github.com/nextgis/nextgisweb)
+[![NextGIS Web integrated](https://img.shields.io/badge/NextGIS%20Web-Integrated-blue.svg)](https://github.com/nextgis/nextgisweb)
 [![Community](https://img.shields.io/badge/Community-Forum-brightgreen)](https://community.nextgis.com)
 [![Docs](https://img.shields.io/badge/docs-available-brightgreen)](https://docs.nextgis.com/docs_ngconnect/source/index.html)
 
