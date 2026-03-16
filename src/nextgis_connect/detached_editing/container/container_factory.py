@@ -198,21 +198,30 @@ class DetachedLayerFactory:
             CREATE TABLE ngw_features_metadata (
                 'fid' INTEGER PRIMARY KEY, -- Feature ID in GPKG
                 'ngw_fid' INTEGER, -- Feature ID in NextGIS Web
+                'version' INTEGER
+            );
+
+            -- Features descriptions
+            CREATE TABLE ngw_features_descriptions (
+                'fid' INTEGER PRIMARY KEY, -- Feature ID in GPKG
                 'version' INTEGER,
-                'description' TEXT
+                'description' TEXT,
+                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
             -- Attachments metadata
             CREATE TABLE ngw_features_attachments (
                 'fid' INTEGER,
-                'aid' INTEGER PRIMARY KEY, -- Attachment ID in GPKG
-                'ngw_aid' INTEGER, -- Attachment ID in NextGIS Web
-                'name' TEXT,
+                'aid' INTEGER PRIMARY KEY AUTOINCREMENT, -- Attachment ID in GPKG
+                'ngw_aid' INTEGER UNIQUE, -- Attachment ID in NextGIS Web
+                'version' INTEGER,
                 'keyname' TEXT,
+                'name' TEXT,
                 'description' TEXT,
-                'file_meta' TEXT,
+                'fileobj' INTEGER,
                 'mime_type' TEXT,
                 'size' INTEGER,
+                'sha256' TEXT,
                 FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
@@ -245,6 +254,7 @@ class DetachedLayerFactory:
             -- Restored features
             CREATE TABLE ngw_restored_features (
                 'fid' INTEGER PRIMARY KEY, -- Unique restored feature ID
+                'backup' TEXT, -- Backup information
                 FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
             );
 
@@ -269,7 +279,7 @@ class DetachedLayerFactory:
             CREATE TABLE ngw_updated_descriptions (
                 'fid' INTEGER PRIMARY KEY, -- Unique updated description ID
                 'backup' TEXT, -- Description before update
-                FOREIGN KEY (fid) REFERENCES ngw_features_metadata(fid) ON DELETE CASCADE
+                FOREIGN KEY (fid) REFERENCES ngw_features_descriptions(fid) ON DELETE CASCADE
             );
 
             -- Added attachments
@@ -281,13 +291,21 @@ class DetachedLayerFactory:
             -- Removed attachments
             CREATE TABLE ngw_removed_attachments (
                 'aid' INTEGER PRIMARY KEY, -- Unique removed attachment ID
+                'backup' TEXT, -- Backup information
                 FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
             );
 
             -- Updated attachments
             CREATE TABLE ngw_updated_attachments (
                 'aid' INTEGER PRIMARY KEY, -- Unique updated attachment ID
-                'data_has_changed' BOOLEAN, -- Indicates if the data has changed
+                'backup' TEXT, -- Backup information
+                FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
+            );
+
+            -- Restored attachments
+            CREATE TABLE ngw_restored_attachments (
+                'aid' INTEGER PRIMARY KEY, -- Unique restored attachment ID
+                'backup' TEXT, -- Backup information
                 FOREIGN KEY (aid) REFERENCES ngw_features_attachments(aid) ON DELETE CASCADE
             );
 
@@ -425,8 +443,8 @@ class DetachedLayerFactory:
         fid_field = metadata.fid_field
         cursor.execute(
             f"""
-            INSERT INTO ngw_features_metadata
-                SELECT {fid_field}, {fid_field}, NULL, NULL
+            INSERT INTO ngw_features_metadata (fid, ngw_fid)
+                SELECT {fid_field}, {fid_field}
                 FROM {wrap_sql_table_name(table_name)}
             """
         )
