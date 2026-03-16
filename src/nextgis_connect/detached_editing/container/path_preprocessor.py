@@ -6,7 +6,7 @@ from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QDir
 
 from nextgis_connect.detached_editing.container.container_factory import (
-    DetachedLayerFactory,
+    DetachedContainerFactory,
 )
 from nextgis_connect.detached_editing.utils import (
     detached_layer_uri,
@@ -175,6 +175,6 @@ class DetachedEditingPathPreprocessor:
         ngw_layer = resources_factory.get_resource(resource_id)
         assert isinstance(ngw_layer, NGWVectorLayer)
 
-        detached_factory = DetachedLayerFactory()
+        detached_factory = DetachedContainerFactory()
         cached_layer_path.parent.mkdir(exist_ok=True, parents=True)
         detached_factory.create_initial_container(ngw_layer, cached_layer_path)

@@ -30,7 +30,7 @@ from qgis.PyQt.QtGui import QFont
 
 from nextgis_connect import utils
 from nextgis_connect.detached_editing.container.container_factory import (
-    DetachedLayerFactory,
+    DetachedContainerFactory,
 )
 from nextgis_connect.exceptions import ErrorCode, NgwConnectionError, NgwError
 from nextgis_connect.logging import logger
@@ -207,7 +207,7 @@ class NgwCreateVectorLayersStubs(NGWResourceModelJob):
 
         cache_manager = NgConnectCacheManager()
 
-        detached_factory = DetachedLayerFactory()
+        detached_factory = DetachedContainerFactory()
 
         total = str(len(self.ngw_resources))
         for i, ngw_resource in enumerate(self.ngw_resources):

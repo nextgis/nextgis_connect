@@ -35,7 +35,7 @@ from nextgis_connect.settings import NgConnectSettings
 from nextgis_connect.utils import wrap_sql_table_name, wrap_sql_value
 
 
-class DetachedLayerFactory:
+class DetachedContainerFactory:
     def create_initial_container(
         self, ngw_layer: NGWVectorLayer, container_path: Path
     ) -> None:

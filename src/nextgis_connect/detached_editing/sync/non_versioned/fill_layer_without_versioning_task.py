@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import cast
 
 from nextgis_connect.detached_editing.container.container_factory import (
-    DetachedLayerFactory,
+    DetachedContainerFactory,
 )
 from nextgis_connect.detached_editing.sync.common.detached_editing_task import (
     DetachedEditingTask,
@@ -100,7 +100,7 @@ class FillLayerWithoutVersioningTask(DetachedEditingTask):
         resources_factory = NGWResourceFactory(ngw_connection)
         ngw_layer = resources_factory.get_resource(self._metadata.resource_id)
 
-        detached_factory = DetachedLayerFactory()
+        detached_factory = DetachedContainerFactory()
         detached_factory.fill_container(
             cast(NGWVectorLayer, ngw_layer),
             source_path=self.__temp_path,
