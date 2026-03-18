@@ -1,15 +1,14 @@
-from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from qgis.gui import QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer, pyqtSlot
-from qgis.PyQt.QtGui import QIcon
 
 from nextgis_connect.detached_editing.container.ui.layer_status_dialog import (
     DetachedLayerStatusDialog,
 )
 from nextgis_connect.detached_editing.utils import DetachedLayerState
 from nextgis_connect.logging import logger
+from nextgis_connect.ui.icon import plugin_icon
 
 if TYPE_CHECKING:
     from nextgis_connect.detached_editing.container.container import (
@@ -45,8 +44,6 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
 
     @pyqtSlot(DetachedLayerState, name="onStateChanged")
     def __on_state_changed(self, state: DetachedLayerState) -> None:
-        icons_path = Path(__file__).parents[1] / "icons" / "detached_layers"
-
         self.__timer.stop()
         self.__tick = 0
 
@@ -69,18 +66,18 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
             DetachedLayerState.NotInitialized,
             DetachedLayerState.NotSynchronized,
         ):
-            self.setIcon(QIcon(str(icons_path / "not_synchronized.svg")))
+            self.setIcon(plugin_icon("detached_layers/not_synchronized.svg"))
             status_tooltip = self.tr("Layer is not synchronized!")
             tooltip = f"{status_tooltip}{date_tooltip}"
         elif state == DetachedLayerState.Synchronized:
-            self.setIcon(QIcon(str(icons_path / "synchronized.svg")))
+            self.setIcon(plugin_icon("detached_layers/synchronized.svg"))
             status_tooltip = self.tr("Layer is synchronized")
             tooltip = f"{status_tooltip}{date_tooltip}"
         elif state == DetachedLayerState.Synchronization:
-            self.setIcon(QIcon(str(icons_path / "synchronization.svg")))
+            self.setIcon(plugin_icon("detached_layers/synchronization.svg"))
             tooltip = self.tr("Layer is syncing")
         elif state == DetachedLayerState.Error:
-            self.setIcon(QIcon(str(icons_path / "error.svg")))
+            self.setIcon(plugin_icon("detached_layers/error.svg"))
             if self.__container.error_code.is_synchronization_error:
                 status_tooltip = self.tr("Synchronization error!")
             elif self.__container.error_code.is_container_error:
@@ -104,8 +101,7 @@ class DetachedLayerIndicator(QgsLayerTreeViewIndicator):
     def __sync_tick(self) -> None:
         self.__tick += 1
 
-        icons_path = Path(__file__).parents[1] / "icons" / "detached_layers"
         if self.__tick % 5 == 0:
-            self.setIcon(QIcon(str(icons_path / "empty.svg")))
+            self.setIcon(plugin_icon("detached_layers/empty.svg"))
         else:
-            self.setIcon(QIcon(str(icons_path / "synchronization.svg")))
+            self.setIcon(plugin_icon("detached_layers/synchronization.svg"))
