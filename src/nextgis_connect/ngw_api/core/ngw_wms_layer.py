@@ -22,7 +22,11 @@ from typing import Tuple
 
 from qgis.core import QgsApplication, QgsProviderRegistry
 
-from nextgis_connect.exceptions import ErrorCode, NgwError
+from nextgis_connect.exceptions import (
+    ErrorCode,
+    NgwError,
+    ResourcePermissionError,
+)
 
 from .ngw_resource import NGWResource
 from .ngw_wms_connection import NGWWmsConnection
@@ -40,9 +44,10 @@ class NGWWmsLayer(NGWResource):
         self, wms_connection: NGWWmsConnection
     ) -> Tuple[str, str, str]:
         connection_info = wms_connection.connection_info
-        if len(connection_info) == 0:
-            raise NgwError(
-                "Can't get connection params", code=ErrorCode.PermissionsError
+        if len(connection_info) == 0 or not connection_info.get("url"):
+            raise ResourcePermissionError(
+                "Can't get connection params",
+                resource_url=wms_connection.get_absolute_url(),
             )
 
         layer_params = self._json.get(self.type_id, {})

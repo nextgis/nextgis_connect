@@ -322,7 +322,7 @@ class NgwResourcesAdder(QObject):
             added_layers = len(self.__layers)
 
         except NgwError as error:
-            NgConnectInterface.instance().show_error(error)
+            NgConnectInterface.instance().notifier.display_exception(error)
             return False
 
         except Exception as error:

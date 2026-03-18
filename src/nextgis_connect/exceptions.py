@@ -6,6 +6,8 @@ from http import HTTPStatus
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from qgis.core import QgsApplication, QgsEditError
+from qgis.PyQt.QtCore import QUrl
+from qgis.PyQt.QtGui import QDesktopServices
 
 from nextgis_connect.utils import locale, nextgis_domain
 
@@ -34,6 +36,7 @@ class ErrorCode(IntEnum):
     InvalidConnection = auto()
 
     ServerError = 500
+    ResourcePermissionsError = 598
     IncorrectAnswer = 599
 
     DetachedEditingError = 1000
@@ -413,6 +416,35 @@ class NgwError(NgConnectError):
         return error
 
 
+class ResourcePermissionError(NgwError):
+    def __init__(
+        self,
+        log_message: Optional[str] = None,
+        *,
+        user_message: Optional[str] = None,
+        detail: Optional[str] = None,
+        resource_url: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            log_message,
+            user_message=user_message,
+            detail=detail,
+            code=ErrorCode.ResourcePermissionsError,
+        )
+
+        if resource_url is not None:
+            resource_id = resource_url.rstrip("/").split("/")[-1]
+            self.add_note(f"Resource ID: {resource_id}")
+            button_label = QgsApplication.translate(
+                "Errors", "Open resource in Web GIS"
+            )
+            self.add_action(
+                button_label,
+                lambda: QDesktopServices.openUrl(QUrl(resource_url)),
+            )
+            self._need_logs = False
+
+
 class NgwConnectionError(NgConnectError):
     def __init__(
         self,
@@ -576,6 +608,7 @@ def _default_log_message(code: ErrorCode) -> str:
         ErrorCode.QuotaExceeded: "You have reached the limit of layers allowed",
         ErrorCode.InvalidConnection: "Invalid connection",
         ErrorCode.ServerError: "Server error",
+        ErrorCode.ResourcePermissionsError: "Resource permissions error",
         ErrorCode.IncorrectAnswer: "Incorrect answer",
         ErrorCode.UnsupportedRasterType: "COG is disabled",
         ErrorCode.DetachedEditingError: "Detached editing error",
@@ -630,6 +663,9 @@ def default_user_message(code: ErrorCode) -> str:
         ),
         ErrorCode.PermissionsError: QgsApplication.translate(
             "Errors", "Invalid permissions."
+        ),
+        ErrorCode.ResourcePermissionsError: QgsApplication.translate(
+            "Errors", "You do not have the necessary permissions to access this resource."
         ),
         ErrorCode.DetachedEditingError: QgsApplication.translate(
             "Errors", "Detached editing error occurred."

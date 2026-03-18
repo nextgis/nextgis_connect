@@ -22,7 +22,11 @@ from typing import Any, Dict
 
 from qgis.core import QgsApplication, QgsProviderRegistry
 
-from nextgis_connect.exceptions import ErrorCode, NgwError
+from nextgis_connect.exceptions import (
+    ErrorCode,
+    NgwError,
+    ResourcePermissionError,
+)
 
 from .ngw_resource import NGWResource, dict_to_object, list_dict_to_list_object
 
@@ -66,6 +70,17 @@ class NGWWmsConnection(NGWResource):
         assert provider_regstry is not None
         wms_metadata = provider_regstry.providerMetadata("wms")
         assert wms_metadata is not None
+        if (
+            not hasattr(self, "wms")
+            or self.wms is None
+            or not hasattr(self.wms, "url")
+            or self.wms.url is None
+        ):
+            raise ResourcePermissionError(
+                "Can't get connection params",
+                resource_url=self.get_absolute_url(),
+            )
+
         uri_params = {
             "format": "image/png",
             "crs": "EPSG:3857",
