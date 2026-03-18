@@ -3,7 +3,7 @@ from pathlib import Path, PurePath, PurePosixPath, PureWindowsPath
 from typing import List, Optional, Tuple
 
 from qgis.core import QgsProject
-from qgis.PyQt.QtCore import QDir
+from qgis.PyQt.QtCore import QDir, QObject, QTimer, pyqtSignal
 
 from nextgis_connect.detached_editing.container.container_factory import (
     DetachedContainerFactory,
@@ -24,42 +24,50 @@ from nextgis_connect.settings.ng_connect_cache_manager import (
 )
 
 
-class DetachedEditingPathPreprocessor:
+class DetachedEditingPathPreprocessor(QObject):
+    error_occurred = pyqtSignal(Exception)
+
     def __call__(self, old_source: str) -> str:
         new_source = old_source
 
         try:
-            new_source = self.__fix_path_or_create_container(old_source)
+            new_source = self._fix_path_or_create_container(old_source)
         except Exception:
             logger.exception("An error occurred while path preprocessing")
+            self._emit_error(
+                Exception("An error occurred while path preprocessing")
+            )
 
         if old_source != new_source:
             logger.debug(f"<b>Fixed source</b>: {old_source} -> {new_source}")
 
         return new_source
 
-    def __fix_path_or_create_container(self, old_source: str) -> str:
+    def _fix_path_or_create_container(self, old_source: str) -> str:
         source_parts = old_source.split("|")
         source_path_str = source_parts[0]
         source_layer_name = source_parts[1] if len(source_parts) > 1 else None
+
+        if not source_path_str.endswith(".gpkg"):
+            return old_source
 
         source_path = (
             PureWindowsPath(source_path_str)
             if "\\" in source_path_str or ":" in source_path_str
             else PurePosixPath(source_path_str)
         )
-        domain_uuid, resource_id = self.__extract_domain_uuid_and_resource_id(
+        domain_uuid, resource_id = self._extract_domain_uuid_and_resource_id(
             source_path
         )
         if domain_uuid is None or resource_id is None:
             # Currently supported only layers in cache folder
             return old_source
 
-        cached_layer_path = self.__cached_layer_path(domain_uuid, resource_id)
+        cached_layer_path = self._cached_layer_path(domain_uuid, resource_id)
 
         if not cached_layer_path.exists():
             logger.warning(f"Found deleted container: {cached_layer_path}")
-            is_created = self.__find_connection_and_create_container(
+            is_created = self._find_connection_and_create_container(
                 domain_uuid, resource_id, cached_layer_path
             )
             if not is_created:
@@ -81,16 +89,20 @@ class DetachedEditingPathPreprocessor:
         )
         return f"{layer_path}{layer_name}"
 
-    def __extract_domain_uuid_and_resource_id(
+    def _emit_error(self, error: Exception) -> None:
+        QTimer.singleShot(0, lambda: self.error_occurred.emit(error))
+
+    def _extract_domain_uuid_and_resource_id(
         self, source_path: PurePath
     ) -> Tuple[Optional[str], Optional[int]]:
         if len(source_path.parts) < 2:
             return None, None
 
-        uuid_candidates = (
-            source_path.parts[-4],  # New scheme
-            source_path.parts[-2],  # Old scheme
-        )
+        uuid_candidates = []
+        if len(source_path.parts) >= 4:
+            uuid_candidates.append(source_path.parts[-4])  # New scheme
+        uuid_candidates.append(source_path.parts[-2])  # Old scheme
+
         file_candidate = source_path.parts[-1]
 
         uuid_pattern = re.compile(
@@ -110,29 +122,29 @@ class DetachedEditingPathPreprocessor:
 
         return uuid_candidate, int(source_path.stem)
 
-    def __cached_layer_path(self, domain_uuid: str, resource_id: int) -> Path:
+    def _cached_layer_path(self, domain_uuid: str, resource_id: int) -> Path:
         return NgConnectCacheManager().detached_container_path(
             domain_uuid, resource_id
         )
 
-    def __find_connection_and_create_container(
+    def _find_connection_and_create_container(
         self, domain_uuid: str, resource_id: int, cached_layer_path: Path
     ) -> bool:
-        connection_id = self.__best_connection(domain_uuid, resource_id)
+        connection_id = self._best_connection(domain_uuid, resource_id)
         if connection_id is None:
             logger.warning("There are no suitable connections")
             return False
 
-        self.__create_empty_container(
+        self._create_empty_container(
             connection_id, resource_id, cached_layer_path
         )
 
         return True
 
-    def __best_connection(
+    def _best_connection(
         self, domain_uuid: str, resource_id: int
     ) -> Optional[str]:
-        connections_id = self.__connections(domain_uuid)
+        connections_id = self._connections(domain_uuid)
         if len(connections_id) == 0:
             return None
 
@@ -159,7 +171,7 @@ class DetachedEditingPathPreprocessor:
 
         return best_connection
 
-    def __connections(self, domain_uuid: str) -> List[str]:
+    def _connections(self, domain_uuid: str) -> List[str]:
         connections_manager = NgwConnectionsManager()
         return [
             connection.id
@@ -167,7 +179,7 @@ class DetachedEditingPathPreprocessor:
             if connection.domain_uuid == domain_uuid
         ]
 
-    def __create_empty_container(
+    def _create_empty_container(
         self, connection_id: str, resource_id: int, cached_layer_path: Path
     ) -> None:
         ngw_connection = QgsNgwConnection(connection_id)

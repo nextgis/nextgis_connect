@@ -1,12 +1,12 @@
 import hashlib
 import shutil
-import tempfile
 import unittest
 import uuid
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from qgis.core import (
+    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsFields,
     QgsPathResolver,
@@ -35,10 +35,13 @@ from tests.utils import safe_move
 class TestPathPreprocessor(NgConnectTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.__path_preprocessor = DetachedEditingPathPreprocessor()
-        self.__path_preprocessor_id = QgsPathResolver.setPathPreprocessor(
-            self.__path_preprocessor  # type: ignore
+        self._path_preprocessor = DetachedEditingPathPreprocessor()
+        self._path_preprocessor_id = QgsPathResolver.setPathPreprocessor(
+            self._path_preprocessor  # type: ignore
         )
+
+        self._error_mock = MagicMock()
+        self._path_preprocessor.error_occurred.connect(self._error_mock)
 
         cache_manager = NgConnectCacheManager()
         self.cache_directory = self.create_temp_dir("-Cache")
@@ -49,10 +52,18 @@ class TestPathPreprocessor(NgConnectTestCase):
         project.write(f"{self.project_directory}/project.qgs")
 
     def tearDown(self) -> None:
-        QgsPathResolver.removePathPreprocessor(self.__path_preprocessor_id)
-        del self.__path_preprocessor
+        QgsPathResolver.removePathPreprocessor(self._path_preprocessor_id)
+        del self._path_preprocessor
         shutil.rmtree(str(self.cache_directory))
         super().tearDown()
+
+    def _assert_error_emitted(self) -> None:
+        QgsApplication.instance().processEvents()
+        self._error_mock.assert_called()
+
+    def _assert_no_error_emitted(self) -> None:
+        QgsApplication.instance().processEvents()
+        self._error_mock.assert_not_called()
 
     def test_not_a_container(self) -> None:
         with self.subTest("WMS"):
@@ -60,12 +71,14 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(wms_source), wms_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("PostGIS"):
             postgis_source = "dbname='demo' host=sandbox.nextgis.com port=54321 user='demo' password='demo123' key='id' checkPrimaryKeyUnicity='1' table=\"public\".\"madcity\" (geom)"
             self.assertEqual(
                 QgsPathResolver().readPath(postgis_source), postgis_source
             )
+            self._assert_no_error_emitted()
 
         connection = self.connection(TestConnection.SandboxGuest)
         (self.cache_directory / connection.domain_uuid).mkdir(
@@ -81,6 +94,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(raster_source), raster_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Simple GPKG"):
             options = QgsVectorFileWriter.SaveVectorOptions()
@@ -108,32 +122,15 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(gpkg_source), gpkg_source
             )
-
-        with self.subTest("Broken GPKG"):
-            connection = self.connection(TestConnection.SandboxGuest)
-            (self.cache_directory / connection.domain_uuid).mkdir(
-                exist_ok=True, parents=True
-            )
-            gpkg_path_with_layer_name = (
-                self.cache_directory / connection.domain_uuid / "1.gpkg"
-            )
-            gpkg_path_with_layer_name.touch()
-            gpkg_source_with_layer_name = (
-                f"{gpkg_path_with_layer_name}|layername=not_existed"
-            )
-            self.assertEqual(
-                QgsPathResolver().readPath(gpkg_source_with_layer_name),
-                gpkg_source_with_layer_name,
-            )
+            self._assert_error_emitted()
 
     def test_wrong_path(self) -> None:
         connection = self.connection(TestConnection.SandboxGuest)
 
-        with self.subTest("Not in cache directory"):
-            source = str(
-                Path(tempfile.gettempdir()) / connection.domain_uuid / "1.gpkg"
-            )
+        with self.subTest("Without uuid"):
+            source = str(self.cache_directory / "abc" / "1.gpkg")
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
         with self.subTest("Without id"):
             domain_uuid = connection.domain_uuid
@@ -147,6 +144,18 @@ class TestPathPreprocessor(NgConnectTestCase):
 
             source = str(temp_file)
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
+
+    def test_relative_non_container_path(self) -> None:
+        path = Path("some_file.gpkg")
+        for i in range(3):
+            with self.subTest(f"With {i + 1} parent directories"):
+                self.assertEqual(
+                    QgsPathResolver().readPath(str(path)), str(path)
+                )
+                self._assert_no_error_emitted()
+
+            path = Path(str(i)) / path
 
     def test_without_connections(self) -> None:
         domain_uuid = str(uuid.uuid4())
@@ -156,17 +165,19 @@ class TestPathPreprocessor(NgConnectTestCase):
 
         with self.subTest("Not existed container"):
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
             self.assertFalse(temp_file.exists())
 
         with self.subTest("Existed container"):
             temp_file.touch()
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
     @mock_container(TestData.Points)
     def test_existed(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
 
         table_name = container_mock.metadata.table_name
         layername = f"|layername={table_name}"
@@ -175,6 +186,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertTrue(container_mock.path.is_absolute())
             source = str(container_mock.path)
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             source = QDir(str(self.project_directory)).relativeFilePath(
@@ -184,11 +196,13 @@ class TestPathPreprocessor(NgConnectTestCase):
                 source.startswith("..") and source.endswith(".gpkg")
             )
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
         with self.subTest("Absolute path with layer name"):
             self.assertTrue(container_mock.path.is_absolute())
             source = f"{container_mock.path}{layername}"
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path with layer name"):
             source = (
@@ -202,12 +216,13 @@ class TestPathPreprocessor(NgConnectTestCase):
                 and source.endswith(".gpkg" + layername)
             )
             self.assertEqual(QgsPathResolver().readPath(source), source)
+            self._assert_no_error_emitted()
 
     @mock_container(TestData.Points)
     def test_old_existed(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
         old_layername = "|layername=old_layer_name"
         table_name = container_mock.metadata.table_name
         new_layername = f"|layername={table_name}"
@@ -219,6 +234,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(old_source), new_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             relative_path = QDir(str(self.project_directory)).relativeFilePath(
@@ -235,12 +251,13 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(old_source), new_source
             )
+            self._assert_no_error_emitted()
 
     @patch(
-        "nextgis_connect.detached_editing.path_preprocessor.NGWResourceFactory"
+        "nextgis_connect.detached_editing.container.path_preprocessor.NGWResourceFactory"
     )
     @patch(
-        "nextgis_connect.detached_editing.path_preprocessor.QgsNgwConnection"
+        "nextgis_connect.detached_editing.container.path_preprocessor.QgsNgwConnection"
     )
     def test_not_existed(
         self, connection_mock: MagicMock, factory_mock: MagicMock
@@ -250,7 +267,9 @@ class TestPathPreprocessor(NgConnectTestCase):
         layer_name = f"|layername=vector_layer_{resource.resource_id}"
 
         creation_mock = MagicMock()
-        creation_mock.get_resource.return_value = resource
+        creation_mock.get_resource.side_effect = lambda *_args, **_kwargs: (
+            self.resource(TestData.Points)
+        )
         factory_mock.return_value = creation_mock
 
         permissions_mock = MagicMock()
@@ -270,6 +289,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             source = str(container_path)
             restored_source = QgsPathResolver().readPath(source)
             self.assertEqual(restored_source, source)
+            self._assert_no_error_emitted()
 
             layer = QgsVectorLayer(restored_source, "test layer", "ogr")
             self.assertTrue(layer.isValid())
@@ -286,6 +306,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             )
             restored_source = QgsPathResolver().readPath(source)
             self.assertEqual(restored_source, source)
+            self._assert_no_error_emitted()
 
             layer = QgsVectorLayer(str(container_path), "test layer", "ogr")
             self.assertTrue(layer.isValid())
@@ -297,6 +318,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             source = f"{container_path}{layer_name}"
             restored_source = QgsPathResolver().readPath(source)
             self.assertEqual(restored_source, source)
+            self._assert_no_error_emitted()
 
             layer = QgsVectorLayer(restored_source, "test layer", "ogr")
             self.assertTrue(layer.isValid())
@@ -315,6 +337,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             source += layer_name
             restored_source = QgsPathResolver().readPath(source)
             self.assertEqual(restored_source, source)
+            self._assert_no_error_emitted()
 
             layer = QgsVectorLayer(str(container_path), "test layer", "ogr")
             self.assertTrue(layer.isValid())
@@ -326,7 +349,7 @@ class TestPathPreprocessor(NgConnectTestCase):
     def test_from_windows_to_current(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
         connection = self.connection(TestConnection.SandboxGuest)
         resource = self.resource(TestData.Points)
         layer_name = container_mock.metadata.table_name
@@ -350,6 +373,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Absolute path with backslashes"):
             windows_source = (
@@ -366,6 +390,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             posix_source = (
@@ -385,6 +410,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path with backslashes"):
             posix_source = (
@@ -405,12 +431,13 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
     @mock_container(TestData.Points)
     def test_from_windows_hashed_to_current(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
         connection = self.connection(TestConnection.SandboxGuest)
         resource = self.resource(TestData.Points)
         layer_name = container_mock.metadata.table_name
@@ -438,6 +465,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Absolute path with backslashes"):
             windows_source = (
@@ -454,6 +482,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(windows_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             posix_source = (
@@ -473,6 +502,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path with backslashes"):
             posix_source = (
@@ -493,12 +523,13 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
     @mock_container(TestData.Points)
     def test_from_unix_to_current(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
         connection = self.connection(TestConnection.SandboxGuest)
         resource = self.resource(TestData.Points)
         layer_name = container_mock.metadata.table_name
@@ -522,12 +553,13 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
     @mock_container(TestData.Points)
     def test_from_unix_hashed_to_current(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
-        self.__move_container(container_mock)
+        self._move_container(container_mock)
         connection = self.connection(TestConnection.SandboxGuest)
         resource = self.resource(TestData.Points)
         layer_name = container_mock.metadata.table_name
@@ -555,6 +587,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             posix_source = (
@@ -574,6 +607,7 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
         with self.subTest("Relative path"):
             posix_source = (
@@ -593,8 +627,9 @@ class TestPathPreprocessor(NgConnectTestCase):
             self.assertEqual(
                 QgsPathResolver().readPath(posix_source), current_source
             )
+            self._assert_no_error_emitted()
 
-    def __move_container(self, container_mock: MagicMock) -> None:
+    def _move_container(self, container_mock: MagicMock) -> None:
         resource = self.resource(TestData.Points)
         connection = self.connection(TestConnection.SandboxGuest)
 
