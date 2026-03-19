@@ -362,6 +362,7 @@ class NgConnectPlugin(NgConnectInterface):
         # Tools for NGW communicate
         layer_actions = [
             self.__ng_resources_tree_dock.actionOpenInNGWFromLayer,
+            self.__ng_resources_tree_dock.actionOpenLayerHistoryFromLayer,
             self.__ng_resources_tree_dock.layer_menu_separator,
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,
@@ -394,6 +395,7 @@ class NgConnectPlugin(NgConnectInterface):
 
         layer_actions = [
             self.__ng_resources_tree_dock.actionOpenInNGWFromLayer,
+            self.__ng_resources_tree_dock.actionOpenLayerHistoryFromLayer,
             self.__ng_resources_tree_dock.layer_menu_separator,
             self.__ng_resources_tree_dock.actionUploadSelectedResources,
             self.__ng_resources_tree_dock.actionUpdateStyle,

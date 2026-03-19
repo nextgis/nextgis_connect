@@ -1289,7 +1289,7 @@ Please be aware that your current connections will be converted to the new forma
     </message>
     <message>
         <location filename="../ng_connect_dock.py" line="731"/>
-        <source>Display in browser</source>
+        <source>View in browser</source>
         <translation>Просмотр в браузере</translation>
     </message>
     <message>
