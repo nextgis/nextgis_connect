@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Set
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
 
 from qgis.core import (
     Qgis,
@@ -9,7 +9,29 @@ from qgis.core import (
     QgsMapLayerType,
     QgsWkbTypes,
 )
-from qgis.PyQt.QtCore import QMetaType, QVariant
+from qgis.PyQt.QtCore import QT_VERSION_STR, QMetaType, QVariant
+
+if TYPE_CHECKING:
+
+    class UndoCommand:
+        def __init__(self, text: str = "") -> None: ...
+
+        def id(self) -> int: ...
+
+        def mergeWith(self, other: Optional["UndoCommand"]) -> bool: ...
+
+        def redo(self) -> None: ...
+
+        def undo(self) -> None: ...
+
+elif QT_VERSION_STR[0] == "5":
+    from qgis.PyQt.QtWidgets import (
+        QUndoCommand as UndoCommand,  # pyright: ignore[reportAttributeAccessIssue] # noqa: F401, RUF100
+    )
+else:
+    from qgis.PyQt.QtGui import (
+        QUndoCommand as UndoCommand,  # pyright: ignore[reportAttributeAccessIssue] # noqa: F401, RUF100
+    )
 
 QGIS_3_30 = 33000
 QGIS_3_32 = 33200

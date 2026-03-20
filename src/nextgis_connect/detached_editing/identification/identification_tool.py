@@ -19,13 +19,13 @@ class IdentificationTool(QgsMapToolIdentify):
     detached editing workflows.
 
     :ivar geometry_changed: Signal emitted when selection geometry changes.
-    :vartype geometry_changed: pyqtSignal(QgsGeometry, Qt.MouseButton, Qt.KeyboardModifiers)
+    :vartype geometry_changed: pyqtSignal(QgsGeometry, Qt.MouseButton, Qt.KeyboardModifier)
     :ivar clear: Signal emitted to request clearing current selection.
     :vartype clear: pyqtSignal
     """
 
     geometry_changed = pyqtSignal(
-        QgsGeometry, Qt.MouseButton, Qt.KeyboardModifiers
+        QgsGeometry, Qt.MouseButton, Qt.KeyboardModifier
     )
     clear = pyqtSignal()
 

@@ -1,7 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
-from qgis.PyQt.QtWidgets import QUndoCommand
-
+from nextgis_connect.compat import UndoCommand
 from nextgis_connect.detached_editing.container.editing.commands.base import (
     DetachedLayerBaseCommand,
 )
@@ -154,11 +153,11 @@ class AttachmentRemoveCommand(DetachedLayerBaseCommand):
         """
         return -1  # int(UndoCommandType.ATTACHMENT_REMOVE)
 
-    def mergeWith(self, other: Optional[QUndoCommand]) -> bool:
+    def mergeWith(self, other: Optional[UndoCommand]) -> bool:
         """Attempts to merge this command with another command.
 
         :param other: The other command to merge with.
-        :type other: Optional[QUndoCommand]
+        :type other: Optional[UndoCommand]
         :return: True if the commands were merged, False otherwise.
         :rtype: bool
         """

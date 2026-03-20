@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from qgis.core import Qgis, QgsApplication
-from qgis.PyQt.QtGui import QCursor
+from qgis.PyQt.QtGui import QCursor, QFontMetrics
 
 from nextgis_connect.ui.icon import plugin_icon
 
@@ -55,11 +55,8 @@ def create_cursor(cursor: NgConnectCursor) -> QCursor:
     if icon is None or icon.isNull():
         return QCursor()
 
-    scale = (
-        Qgis.UI_SCALE_FACTOR
-        * QgsApplication.fontMetrics().height()
-        / DEFAULT_ICON_SIZE
-    )
+    font_metrics = QFontMetrics(QgsApplication.font())
+    scale = Qgis.UI_SCALE_FACTOR * font_metrics.height() / DEFAULT_ICON_SIZE
     cursor = QCursor(
         icon.pixmap(
             math.ceil(DEFAULT_ICON_SIZE * scale),

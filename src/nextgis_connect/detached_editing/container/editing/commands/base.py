@@ -1,7 +1,7 @@
 from enum import IntEnum, auto
 from typing import TYPE_CHECKING
 
-from qgis.PyQt.QtWidgets import QUndoCommand
+from nextgis_connect.compat import UndoCommand
 
 if TYPE_CHECKING:
     from nextgis_connect.detached_editing.detached_layer import DetachedLayer
@@ -17,8 +17,8 @@ class UndoCommandType(IntEnum):
     ATTACHMENT_UPDATE = auto()
 
 
-class DetachedLayerBaseCommand(QUndoCommand):
-    """Provide base QUndoCommand for DetachedLayer operations.
+class DetachedLayerBaseCommand(UndoCommand):
+    """Provide base UndoCommand for DetachedLayer operations.
 
     Subclasses implement specific editing actions and integrate with the QGIS
     vector layer undo/redo stack. The command stores a reference to the target
