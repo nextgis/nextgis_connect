@@ -374,6 +374,14 @@ def container_changes(path: Path) -> DetachedContainerChangesInfo:
         )
 
 
+def is_feature_new(feature_id: QgsFeatureId) -> bool:
+    return feature_id < 0
+
+
+def is_attachment_new(attachment_id: AttachmentId) -> bool:
+    return attachment_id < 0
+
+
 @qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
 def ngw_feature_id(
     feature: QgsFeature, context: QgsExpressionContext
