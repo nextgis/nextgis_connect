@@ -151,12 +151,15 @@ class DetachedEditing(QObject):
     def disable_synchronization(self) -> None:
         self.__is_synchronization_enabled = False
 
-    def layer(self, layer: QgsVectorLayer) -> Optional[DetachedLayer]:
+    def layer(self, layer: QgsMapLayer) -> Optional[DetachedLayer]:
         """Return detached layer for QGIS layer.
 
         :param layer: Vector layer.
         :return: Detached layer or ``None`` if layer is not detached.
         """
+        if not isinstance(layer, QgsVectorLayer):
+            return None
+
         container = self.__containers_by_layer_id.get(layer.id())
         if container is None:
             return None
