@@ -16,8 +16,8 @@ from nextgis_connect.detached_editing.conflicts.conflict_resolving_item import (
 from nextgis_connect.detached_editing.conflicts.ui.base_feature_conflict_tab import (
     ConflictTabBase,
 )
-from nextgis_connect.detached_editing.identification.ui.feature_description_text_editor import (
-    FeatureDescriptionTextEditor,
+from nextgis_connect.shared.ui.description_text_editor import (
+    DescriptionTextEditor,
 )
 from nextgis_connect.types import UnsetType
 from nextgis_connect.ui.icon import draw_icon, material_icon
@@ -81,7 +81,7 @@ class DescriptionConflictTab(
         draw_icon(self._marker, self._unresolved_marker_icon)
         grid_layout.addWidget(self._marker, 1, 0)
 
-        self._local_editor = FeatureDescriptionTextEditor(self._grid_widget)
+        self._local_editor = DescriptionTextEditor(self._grid_widget)
         self._local_editor.set_read_only(True)
         self._local_editor.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -94,7 +94,7 @@ class DescriptionConflictTab(
         self._apply_local_button.clicked.connect(self._apply_local)
         grid_layout.addWidget(self._apply_local_button, 1, 2)
 
-        self._result_editor = FeatureDescriptionTextEditor(self._grid_widget)
+        self._result_editor = DescriptionTextEditor(self._grid_widget)
         self._result_editor.set_read_only(False)
         self._result_editor.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -108,7 +108,7 @@ class DescriptionConflictTab(
         self._apply_remote_button.clicked.connect(self._apply_remote)
         grid_layout.addWidget(self._apply_remote_button, 1, 4)
 
-        self._remote_editor = FeatureDescriptionTextEditor(self._grid_widget)
+        self._remote_editor = DescriptionTextEditor(self._grid_widget)
         self._remote_editor.set_read_only(True)
         self._remote_editor.setSizePolicy(
             QSizePolicy.Policy.Expanding,
