@@ -421,19 +421,55 @@ def ngw_feature_description(
     </ul>
     """
 
-    fid = feature.id()
     layer = context.variable("layer")
-    if layer is None or not is_ngw_container(layer):
+    if layer is None:
         return None
 
     try:
         detached_editing = NgConnectInterface.instance().detached_editing
         detached_layer = detached_editing.layer(layer)
-        if detached_layer is None:
+        if (
+            detached_layer is None
+            or not detached_layer.container.metadata.is_versioning_enabled
+        ):
             return None
-        return detached_layer.feature_description(fid)
+        return detached_layer.feature_description(feature)
 
     except Exception:
         logger.exception("Error occurred while querying feature description")
+
+    return None
+
+
+@qgsfunction(group="NextGIS Connect", referenced_columns=["fid"])
+def ngw_feature_attachments_count(
+    feature: QgsFeature, context: QgsExpressionContext
+) -> Optional[int]:
+    """
+    Returns NextGIS Web feature attachments count
+    <h2>Example usage:</h2>
+    <ul>
+      <li>ngw_feature_attachments_count()</li>
+    </ul>
+    """
+
+    layer = context.variable("layer")
+    if layer is None:
+        return None
+
+    try:
+        detached_editing = NgConnectInterface.instance().detached_editing
+        detached_layer = detached_editing.layer(layer)
+        if (
+            detached_layer is None
+            or not detached_layer.container.metadata.is_versioning_enabled
+        ):
+            return None
+        return detached_layer.feature_attachments_count(feature)
+
+    except Exception:
+        logger.exception(
+            "Error occurred while querying feature attachments count"
+        )
 
     return None
