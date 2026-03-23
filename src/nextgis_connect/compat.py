@@ -101,6 +101,8 @@ else:
     FieldType.QTime.is_monkey_patched = True
     FieldType.QDateTime = QVariant.Type.DateTime
     FieldType.QDateTime.is_monkey_patched = True
+    FieldType.Bool = QVariant.Type.Bool
+    FieldType.Bool.is_monkey_patched = True
 
 try:
     from packaging import version

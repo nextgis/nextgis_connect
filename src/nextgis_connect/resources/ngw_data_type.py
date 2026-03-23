@@ -14,6 +14,7 @@ class NgwDataType(IntEnum):
     TIME = FieldType.QTime
     DATE = FieldType.QDate
     DATETIME = FieldType.QDateTime
+    BOOLEAN = FieldType.Bool
 
     @property
     def icon(self) -> QIcon:

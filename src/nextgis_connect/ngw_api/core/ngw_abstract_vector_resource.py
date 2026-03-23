@@ -54,7 +54,17 @@ class NGWAbstractVectorResource(ABC, NGWResource):
         FieldTypeDate,
         FieldTypeTime,
         FieldTypeDatetime,
-    ) = ["INTEGER", "BIGINT", "REAL", "STRING", "DATE", "TIME", "DATETIME"]  # noqa: RUF012
+        FieldTypeBoolean,
+    ) = [  # noqa: RUF012
+        "INTEGER",
+        "BIGINT",
+        "REAL",
+        "STRING",
+        "DATE",
+        "TIME",
+        "DATETIME",
+        "BOOLEAN",
+    ]
 
     def __init__(self, resource_factory, resource_json):
         super().__init__(resource_factory, resource_json)

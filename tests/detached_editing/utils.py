@@ -151,6 +151,8 @@ def random_feature(
                         random.randint(0, 59),
                     ).isoformat(),
                 )
+            elif field.type() == NgwDataType.BOOLEAN:
+                feature.setAttribute(i, random.choice([True, False]))
             else:
                 raise NotImplementedError
 
