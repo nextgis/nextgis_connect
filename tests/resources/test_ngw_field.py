@@ -29,6 +29,7 @@ class TestNgwField(NgConnectTestCase):
             "DATE": FieldType.QDate,
             "TIME": FieldType.QTime,
             "DATETIME": FieldType.QDateTime,
+            "BOOLEAN": FieldType.Bool,
             # ---
             "UNKNOWN": FieldType.QString,
         }
