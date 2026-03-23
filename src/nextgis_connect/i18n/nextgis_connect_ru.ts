@@ -136,8 +136,8 @@ p, li { white-space: pre-wrap; }
     <name>AuthConfigEditDialogBase</name>
     <message>
         <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="82"/>
-        <source>Login</source>
-        <translation>Логин</translation>
+        <source>NextGIS ID</source>
+        <translation>NextGIS ID</translation>
     </message>
     <message>
         <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="96"/>

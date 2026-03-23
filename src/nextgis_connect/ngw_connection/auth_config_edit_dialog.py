@@ -150,6 +150,8 @@ class AuthConfigEditDialog(QDialog, WIDGET):
         pixmap = logo.pixmap(logo.actualSize(QSize(width, height)))
         self.logo_label.setPixmap(pixmap)
 
+        self.forgot_label.linkActivated.connect(self.__forgot_password_clicked)
+
         # Sign up button
         # ngw_button = NgwButton(self.tr("Sign Up"), self)
         # ngw_button.clicked.connect(self.__sign_up)
@@ -311,6 +313,21 @@ class AuthConfigEditDialog(QDialog, WIDGET):
         self.username_lineedit.clear()
         self.password_lineedit.clear()
         self.realm_lineedit.clear()
+
+    @pyqtSlot(str)
+    def __forgot_password_clicked(self, url: str) -> None:
+        if url != "#forgot":
+            logger.error(f"Unexpected ID for forgot password: {url}")
+            return
+
+        username = self.username_lineedit.text()
+        if "@" not in username:
+            username = ""
+        utm = utm_tags("authentication")
+        url = f"https://my.nextgis.com/password/reset/?email={username}&{utm}"
+
+        logger.debug(f"Open reset link: {url}")
+        QDesktopServices.openUrl(QUrl(url))
 
     @pyqtSlot()
     def __sign_up(self) -> None:

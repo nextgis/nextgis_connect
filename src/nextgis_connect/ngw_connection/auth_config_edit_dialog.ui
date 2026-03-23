@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>300</height>
+    <height>420</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -75,32 +75,58 @@
       </property>
       <item>
        <widget class="QGroupBox" name="auth_params_groupbox">
-        <layout class="QFormLayout" name="formLayout">
-         <item row="0" column="0">
-          <widget class="QLabel" name="login_label">
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <item>
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="0">
+            <widget class="QLabel" name="login_label">
+             <property name="toolTip">
+              <string>Email address you used to sign up for NextGIS</string>
+             </property>
+             <property name="text">
+              <string>NextGIS ID</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="username_lineedit">
+             <property name="toolTip">
+              <string>Email address you used to sign up for NextGIS</string>
+             </property>
+             <property name="placeholderText">
+              <string>username@example.com</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="password_label">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Password for your NextGIS ID. &lt;br/&gt;&lt;br/&gt;Signed up for NextGIS via &lt;span style=&quot; font-weight:700;&quot;&gt;Google&lt;/span&gt;? You need a separate password for NextGIS Connect. Use &lt;span style=&quot; font-weight:700;&quot;&gt;Forgot password&lt;/span&gt; to set one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="text">
+              <string>Password</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QgsPasswordLineEdit" name="password_lineedit">
+             <property name="toolTip">
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Password for your NextGIS ID. &lt;br/&gt;&lt;br/&gt;Signed up for NextGIS via &lt;span style=&quot; font-weight:700;&quot;&gt;Google&lt;/span&gt;? You need a separate password for NextGIS Connect. Use &lt;span style=&quot; font-weight:700;&quot;&gt;Forgot password&lt;/span&gt; to set one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             </property>
+             <property name="placeholderText">
+              <string>●●●●●●</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QLabel" name="forgot_label">
            <property name="text">
-            <string>Login</string>
+            <string>&lt;a href=&quot;#forgot&quot;&gt;Forgot password?&lt;/a&gt;</string>
            </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QgsPasswordLineEdit" name="password_lineedit">
-           <property name="placeholderText">
-            <string>●●●●●●</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="password_label">
-           <property name="text">
-            <string>Password</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="username_lineedit">
-           <property name="placeholderText">
-            <string>username@example.com</string>
+           <property name="alignment">
+            <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
            </property>
           </widget>
          </item>
