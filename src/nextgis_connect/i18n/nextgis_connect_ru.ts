@@ -127,7 +127,7 @@ p, li { white-space: pre-wrap; }
         <translation>Аутентификация</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.py" line="211"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.py" line="213"/>
         <source>Authentication config id is not loaded: {}</source>
         <translation>Параметры аутентификации не были загружены: {}</translation>
     </message>
@@ -135,54 +135,64 @@ p, li { white-space: pre-wrap; }
 <context>
     <name>AuthConfigEditDialogBase</name>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="82"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="87"/>
         <source>NextGIS ID</source>
         <translation>NextGIS ID</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="96"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="107"/>
         <source>Password</source>
         <translation>Пароль</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="119"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="145"/>
         <source>Additional params</source>
         <translation>Дополнительные параметры</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="128"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="154"/>
         <source>Name</source>
         <translation>Имя</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="135"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="161"/>
         <source>Resource</source>
         <translation>Ресурс</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="145"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="171"/>
         <source>Realm</source>
         <translation>Область действия</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="168"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="194"/>
         <source>Id</source>
         <translation>ID</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="206"/>
-        <source>Note: Saving writes directly to authentication database</source>
-        <translation>Внимание: сохраняется прямо в базу данных аутентификации</translation>
-    </message>
-    <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="89"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="117"/>
         <source>●●●●●●</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="103"/>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="97"/>
         <source>username@example.com</source>
         <translation></translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="94"/>
+        <source>Email address you used to sign up for NextGIS</source>
+        <translation>Адрес электронной почты, указанный при регистрации в NextGIS</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="114"/>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Password for your NextGIS ID. &lt;br/&gt;&lt;br/&gt;Signed up for NextGIS via &lt;span style=&quot; font-weight:700;&quot;&gt;Google&lt;/span&gt;? You need a separate password for NextGIS Connect. Use &lt;span style=&quot; font-weight:700;&quot;&gt;Forgot password&lt;/span&gt; to set one.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <translation>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Пароль для вашего NextGIS ID.&lt;br/&gt;&lt;br/&gt;Регистрировались в NextGIS через &lt;span style=&quot; font-weight:700;&quot;&gt;Google&lt;/span&gt;? Для NextGIS Connect требуется отдельный пароль. Используйте &lt;span style=&quot; font-weight:700;&quot;&gt;Забыли пароль&lt;/span&gt;, чтобы задать его.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/auth_config_edit_dialog.ui" line="126"/>
+        <source>&lt;a href=&quot;#forgot&quot;&gt;Forgot password?&lt;/a&gt;</source>
+        <translation>&lt;a href=&quot;#forgot&quot;&gt;Забыли пароль?&lt;/a&gt;</translation>
     </message>
 </context>
 <context>
@@ -768,7 +778,7 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>MigrationOverlay</name>
     <message>
-        <location filename="../tree_widget/view.py" line="110"/>
+        <location filename="../tree_widget/view.py" line="140"/>
         <source>We are transitioning to the QGIS Authentication System to enhance security and streamline your experience. This change requires the conversion of existing connections.
 
 Please be aware that your current connections will be converted to the new format automatically. This is a one-time process and should not affect your workflow.
@@ -779,7 +789,7 @@ Please be aware that your current connections will be converted to the new forma
 </translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="130"/>
+        <location filename="../tree_widget/view.py" line="160"/>
         <source>Convert connections and authentication data</source>
         <translation>Конвертировать соединения и данные аутентификации</translation>
     </message>
@@ -1618,54 +1628,59 @@ Are you sure you want to continue?</source>
 <context>
     <name>NgwConnectionEditDialog</name>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="98"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="108"/>
         <source>Edit the NextGIS Web Connection</source>
         <translation>Редактирование подключения NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="399"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="412"/>
         <source>Connection failed</source>
         <translation>Ошибка подключения</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="320"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="331"/>
         <source>Authentication error</source>
         <translation>Ошибка аутентификации</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="384"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="396"/>
         <source>Connection successful</source>
         <translation>Подключение успешно</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="403"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="416"/>
         <source>Request timeout</source>
         <translation>Время ожидания запроса истекло</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="81"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="91"/>
         <source>NextGIS authentication is not supported for my.nextgis.com yet. Please choose Basic authentication or change authentication endpoint.</source>
         <translation>Аутентификация NextGIS пока не поддерживается для my.nextgis.com. Пожалуйста, выберите аутентификацию типа Basic или измените сервер аутентификации.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="546"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="574"/>
         <source>As guest</source>
         <translation>Как гость</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="427"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="454"/>
         <source>Web GIS access was not granted for the</source>
         <translation>Доступ к Веб ГИС не был предоставлен для</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="429"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="456"/>
         <source> guest users.</source>
         <translation> гостевых пользователей.</translation>
     </message>
     <message>
-        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="431"/>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="458"/>
         <source> selected authentication parameters.</source>
         <translation> выбранных параметров аутентификации.</translation>
+    </message>
+    <message>
+        <location filename="../ngw_connection/ngw_connection_edit_dialog.py" line="440"/>
+        <source>If you signed up for NextGIS via &lt;i&gt;Google&lt;/i&gt;, you need a separate password for NextGIS Connect. Use &lt;i&gt;Forgot password&lt;/i&gt; to set one. See &lt;a href=&apos;{}&apos;&gt;documentation&lt;/a&gt; for more details.</source>
+        <translation>Если вы зарегистрировались в NextGIS через &lt;i&gt;Google&lt;/i&gt;, вам необходимо задать отдельный пароль для NextGIS Connect. Используйте &lt;i&gt;Забыли пароль&lt;/i&gt;, чтобы создать его. Подробнее см. в &lt;a href=&apos;{}&apos;&gt;документации&lt;/a&gt;.</translation>
     </message>
 </context>
 <context>
@@ -1777,14 +1792,14 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>NoNgstdAuthOverlay</name>
     <message>
-        <location filename="../tree_widget/view.py" line="170"/>
+        <location filename="../tree_widget/view.py" line="200"/>
         <source>Sign in with your NextGIS account to get access to your Web GIS
 </source>
         <translation>Войдите в свой аккаунт NextGIS для получения доступа к Веб ГИС
 </translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="180"/>
+        <location filename="../tree_widget/view.py" line="210"/>
         <source>Open NextGIS QGIS settings</source>
         <translation>Открыть настройки NextGIS QGIS</translation>
     </message>
@@ -1800,29 +1815,29 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>QNGWResourceTreeView</name>
     <message>
-        <location filename="../tree_widget/view.py" line="443"/>
+        <location filename="../tree_widget/view.py" line="473"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="446"/>
+        <location filename="../tree_widget/view.py" line="476"/>
         <source>Enter new name for selected resource</source>
         <translation>Введите новое имя для выбранного ресурса</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="447"/>
+        <location filename="../tree_widget/view.py" line="477"/>
         <source>Resource already exists</source>
         <translation>Ресурс уже существует</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="329"/>
+        <location filename="../tree_widget/view.py" line="359"/>
         <source>No resources were found matching your search query</source>
         <translation>Не найдены ресурсы, соответствующие вашему запросу</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="308"/>
-        <source>No connections to nextgis.com. Please create a connection. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</source>
-        <translation>Нет подключений к nextgis.com. Пожалуйста, создайте подключение. Вы можете создать свою Веб ГИС бесплатно на  &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
+        <location filename="../tree_widget/view.py" line="338"/>
+        <source>No connections to nextgis.com. Please &lt;a href=&apos;{}&apos;&gt;create a connection&lt;/a&gt;. You can get your free Web GIS at &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</source>
+        <translation>Нет подключений к nextgis.com. Пожалуйста, &lt;a href=&apos;{}&apos;&gt;создайте подключение&lt;/a&gt;. Вы можете создать свою Веб ГИС бесплатно на &lt;a href=&quot;https://my.nextgis.com/?{}&quot;&gt;nextgis.com&lt;/a&gt;!</translation>
     </message>
 </context>
 <context>
@@ -2028,17 +2043,17 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>UnsupportedVersionOverlay</name>
     <message>
-        <location filename="../tree_widget/view.py" line="270"/>
+        <location filename="../tree_widget/view.py" line="300"/>
         <source>NextGIS Connect version is outdated. Please update the plugin via Plugins - Manage and install plugins menu.</source>
         <translation>Версия плагина NextGIS Connect устарела. Пожалуйста, обновите его через меню Модули - Управление модулями.</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="275"/>
+        <location filename="../tree_widget/view.py" line="305"/>
         <source>NextGIS Web service version is outdated and not supported by NextGIS Connect. Please contact your server administrator for further assistance.</source>
         <translation>Версия сервиса NextGIS Web устарела и не поддерживается NextGIS Connect. Обратитесь к администратору вашего сервера за дополнительной помощью.</translation>
     </message>
     <message>
-        <location filename="../tree_widget/view.py" line="281"/>
+        <location filename="../tree_widget/view.py" line="311"/>
         <source>NextGIS Connect version: {}
 NextGIS Web version: {}</source>
         <translation>Версия NextGIS Connect: {}
