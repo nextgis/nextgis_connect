@@ -216,27 +216,6 @@
        </spacer>
       </item>
       <item>
-       <widget class="QLabel" name="note_label">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="font">
-         <font>
-          <italic>true</italic>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color: rgb(128, 128, 128);</string>
-        </property>
-        <property name="text">
-         <string>Note: Saving writes directly to authentication database</string>
-        </property>
-        <property name="alignment">
-         <set>Qt::AlignCenter</set>
-        </property>
-       </widget>
-      </item>
-      <item>
        <widget class="QDialogButtonBox" name="button_box">
         <property name="standardButtons">
          <set>QDialogButtonBox::Cancel|QDialogButtonBox::Reset|QDialogButtonBox::Save</set>
