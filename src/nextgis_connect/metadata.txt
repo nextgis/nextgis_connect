@@ -605,6 +605,4 @@ changelog=
 		* Russian translation added
 		* New tool for open web map
 		* New tool for refresh resource tree
-
 		* Some bug fixing
-
