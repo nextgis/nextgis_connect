@@ -3,10 +3,17 @@ import json
 import os.path
 import re
 import uuid
-from typing import Optional
+from math import ceil
+from typing import Optional, cast
 from urllib.parse import urljoin, urlparse
 
-from qgis.core import Qgis, QgsApplication, QgsNetworkAccessManager
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsAuthMethodConfig,
+    QgsNetworkAccessManager,
+)
+from qgis.gui import QgsMessageBar
 from qgis.PyQt import uic
 from qgis.PyQt.QtCore import (
     QMetaObject,
@@ -24,6 +31,8 @@ from qgis.PyQt.QtWidgets import (
     QCompleter,
     QDialog,
     QDialogButtonBox,
+    QSizePolicy,
+    QTextBrowser,
     QToolButton,
     QWidget,
 )
@@ -33,6 +42,7 @@ from nextgis_connect.logging import logger
 from nextgis_connect.ngw_connection.auth_config_edit_dialog import (
     AuthConfigEditDialog,
 )
+from nextgis_connect.utils import nextgis_domain
 
 from .ngw_connection import NgwConnection
 from .ngw_connections_manager import NgwConnectionsManager
@@ -178,6 +188,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     ) -> None:
         self.messageBar.clearWidgets()
         self.messageBar.pushMessage(text, level, duration)
+        self._expand_message_bar()
 
     def reject(self) -> None:
         if self.__timer is not None and self.__timer.isActive():
@@ -322,6 +333,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 self.tr("Authentication error"),
                 Qgis.MessageLevel.Warning,
             )
+            self._expand_message_bar()
             return
 
         self.__timer = QTimer(self)
@@ -384,6 +396,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.messageBar.pushMessage(
             self.tr("Connection successful"), Qgis.MessageLevel.Success
         )
+        self._expand_message_bar()
 
         self.__unlock_gui()
 
@@ -417,6 +430,20 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             if error is not None:
                 if not is_user_check:
                     message = error.user_message
+                    username = self._current_username() or ""
+                    if "@gmail.com" in username:
+                        docs_link = (
+                            nextgis_domain("docs")
+                            + "/docs_ngconnect/source/ngc_install.html#new-config"
+                        )
+                        message += " "
+                        message += self.tr(
+                            "If you signed up for NextGIS via <i>Google</i>, "
+                            "you need a separate password for NextGIS Connect."
+                            " Use <i>Forgot password</i> to set one. See "
+                            "<a href='{}'>documentation</a> for more details."
+                        ).format(docs_link)
+
                 elif error.code != ErrorCode.PermissionsError:
                     message = error.user_message
                     logger.exception(
@@ -437,6 +464,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         )
         self.messageBar.clearWidgets()
         self.messageBar.pushMessage(*arguments, Qgis.MessageLevel.Warning)
+        self._expand_message_bar()
         self.__unlock_gui()
 
     def __save_connection(self):
@@ -547,8 +575,47 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
     @pyqtSlot()
     def __open_help(self) -> None:
+        domain = nextgis_domain("docs")
         QDesktopServices.openUrl(
-            QUrl(
-                "https://docs.nextgis.com/docs_ngcom/source/ngqgis_connect.html#ngcom-ngqgis-connect-connection"
-            )
+            QUrl(f"{domain}/docs_ngconnect/source/ngc_install.html#new-config")
         )
+
+    def _current_username(self) -> Optional[str]:
+        config_id = self.authWidget.configId()
+        method = QgsApplication.authManager().configAuthMethodKey(config_id)
+        if method != "Basic":
+            return None
+
+        config = QgsApplication.authManager().configAuthMethod(config_id)
+        is_loaded, config = (
+            QgsApplication.authManager().loadAuthenticationConfig(config_id, QgsAuthMethodConfig(), full=True)
+        )
+        if not is_loaded:
+            return None
+
+        username = config.configMap().get("username", None)
+        if not username:
+            return None
+
+        return username
+
+    def _expand_message_bar(self) -> None:
+        QTimer.singleShot(0, self._expand_message_bar_later)
+
+    def _expand_message_bar_later(self) -> None:
+        message_bar = cast(QgsMessageBar, self.messageBar)
+        message_bar.setSizePolicy(
+            message_bar.sizePolicy().horizontalPolicy(),
+            QSizePolicy.Policy.Preferred,
+        )
+        item = message_bar.items()[-1]
+        browser = item.findChild(QTextBrowser)
+
+        text_height = browser.document().size().height()
+        margins = browser.contentsMargins()
+        max_margin = max(margins.top(), margins.bottom())
+        browser.setContentsMargins(
+            margins.left(), max_margin, margins.right(), max_margin
+        )
+        text_browser_height = ceil(text_height + 2 * max_margin)
+        browser.setFixedHeight(text_browser_height)
