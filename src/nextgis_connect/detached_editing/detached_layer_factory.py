@@ -369,7 +369,10 @@ class DetachedLayerFactory:
 
         try:
             target_fields = target_layer.fields()
-            fid_attribute = target_layer.fields().indexOf(metadata.fid_field)
+            fid_attribute = self._index_of_field_with_keyname(
+                target_layer.fields(), metadata.fid_field
+            )
+            assert fid_attribute is not None
 
             with edit(target_layer):
                 for source_feature in cast(
@@ -461,7 +464,7 @@ class DetachedLayerFactory:
         index = 0
 
         result_fields = QgsFields()
-        while fields.indexOf(fid_field) != -1:
+        while self._index_of_field_with_keyname(fields, fid_field) is not None:
             index += 1
             fid_field = f"{FID_PREFIX}_{index}"
 
@@ -471,3 +474,11 @@ class DetachedLayerFactory:
             result_fields.append(field)
 
         return fid_field, result_fields
+
+    def _index_of_field_with_keyname(
+        self, fields: QgsFields, keyname: str
+    ) -> Optional[int]:
+        for index, field in enumerate(fields.toList()):
+            if field.name().lower() == keyname.lower():
+                return index
+        return None

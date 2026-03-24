@@ -52,6 +52,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
 
         connection = self.connection(TestConnection.SandboxGuest)
         layer_json = self.resource_json(TestData.Points)
+        initial_fields = layer_json["feature_layer"]["fields"]
 
         factory = DetachedLayerFactory()
 
@@ -71,14 +72,15 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             self._check_fields(metadata, container_path)
 
         with self.subTest("2. Layer with fid field"):
-            layer_json["feature_layer"]["fields"].append(
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
                 {
                     "id": 50000,
                     "keyname": "fid",
                     "datatype": "INTEGER",
                     "display_name": "fid",
-                }
-            )
+                },
+            ]
 
             ngw_layer = cast(
                 NGWVectorLayer, self.resource(layer_json, connection)
@@ -94,7 +96,41 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             self.assertEqual(metadata.geom_field, "geom")
             self._check_fields(metadata, container_path)
 
-        with self.subTest("3. Layer with fid fields"):
+        with self.subTest("3. Layer with FID field"):
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
+                {
+                    "id": 50000,
+                    "keyname": "FID",
+                    "datatype": "INTEGER",
+                    "display_name": "FID",
+                },
+            ]
+
+            ngw_layer = cast(
+                NGWVectorLayer, self.resource(layer_json, connection)
+            )
+
+            container_path = self.create_temp_file(".gpkg")
+            factory.create_initial_container(ngw_layer, container_path)
+
+            metadata = container_metadata(container_path)
+            self._check_common_metadata(metadata, ngw_layer, connection)
+            check_test_metadata(metadata)
+            self.assertEqual(metadata.fid_field, "fid_1")
+            self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
+
+        with self.subTest("4. Layer with fid fields"):
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
+                {
+                    "id": 50000,
+                    "keyname": "fid",
+                    "datatype": "INTEGER",
+                    "display_name": "fid",
+                },
+            ]
             for i in range(1, 11):
                 layer_json["feature_layer"]["fields"].append(
                     {
@@ -119,7 +155,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.geom_field, "geom")
                 self._check_fields(metadata, container_path)
 
-        with self.subTest("4. Special symbols in layer name"):
+        with self.subTest("5. Special symbols in layer name"):
             for display_name in (
                 "point's_layer",
                 "point''s_layer",
@@ -171,6 +207,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
 
         connection = self.connection(TestConnection.SandboxGuest)
         layer_json = self.resource_json(TestData.Points)
+        initial_fields = layer_json["feature_layer"]["fields"]
 
         factory = DetachedLayerFactory()
 
@@ -190,14 +227,15 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             self._check_fields(metadata, container_path)
 
         with self.subTest("2. Layer with fid field"):
-            layer_json["feature_layer"]["fields"].append(
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
                 {
                     "id": 50000,
                     "keyname": "fid",
                     "datatype": "INTEGER",
                     "display_name": "fid",
-                }
-            )
+                },
+            ]
 
             ngw_layer = cast(
                 NGWVectorLayer, self.resource(layer_json, connection)
@@ -213,7 +251,41 @@ class TestDetachedLayerFactory(NgConnectTestCase):
             self.assertEqual(metadata.geom_field, "geom")
             self._check_fields(metadata, container_path)
 
-        with self.subTest("3. Layer with fid fields"):
+        with self.subTest("3. Layer with FID field"):
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
+                {
+                    "id": 50000,
+                    "keyname": "FID",
+                    "datatype": "INTEGER",
+                    "display_name": "FID",
+                },
+            ]
+
+            ngw_layer = cast(
+                NGWVectorLayer, self.resource(layer_json, connection)
+            )
+
+            container_path = self.create_temp_file(".gpkg")
+            factory.create_initial_container(ngw_layer, container_path)
+
+            metadata = container_metadata(container_path)
+            self._check_common_metadata(metadata, ngw_layer, connection)
+            check_test_metadata(metadata)
+            self.assertEqual(metadata.fid_field, "fid_1")
+            self.assertEqual(metadata.geom_field, "geom")
+            self._check_fields(metadata, container_path)
+
+        with self.subTest("4. Layer with fid fields"):
+            layer_json["feature_layer"]["fields"] = [
+                *initial_fields,
+                {
+                    "id": 50000,
+                    "keyname": "fid",
+                    "datatype": "INTEGER",
+                    "display_name": "fid",
+                },
+            ]
             for i in range(1, 11):
                 layer_json["feature_layer"]["fields"].append(
                     {
@@ -238,7 +310,7 @@ class TestDetachedLayerFactory(NgConnectTestCase):
                 self.assertEqual(metadata.geom_field, "geom")
                 self._check_fields(metadata, container_path)
 
-        with self.subTest("4. Special symbols in layer name"):
+        with self.subTest("5. Special symbols in layer name"):
             for display_name in (
                 "point's_layer",
                 "point''s_layer",
