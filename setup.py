@@ -45,6 +45,7 @@ class QgisPluginBuilder:
         compile_ui: Optional[bool] = None,
         compile_qrc: Optional[bool] = None,
         compile_ts: Optional[bool] = None,
+        fix_ui: Optional[bool] = None,
     ) -> None:
         if all(
             setting is None
@@ -60,6 +61,8 @@ class QgisPluginBuilder:
             self.compile_qrc()
         if compile_ts:
             self.compile_ts()
+        if fix_ui:
+            self.fix_ui()
 
     def compile_ui(self) -> None:
         if len(self.ui_settings) == 0 or not self.ui_settings.get(
@@ -114,6 +117,24 @@ class QgisPluginBuilder:
         )
 
         subprocess.check_output(command_args)
+
+    def fix_ui(self) -> None:
+        ENUMS = {
+            "Qt::AlignmentFlag",
+            "Qt::Orientation",
+            "QDialogButtonBox::StandardButton",
+        }
+        ui_patterns = self.ui_settings.get("ui-files", [])
+        ui_paths = [
+            ui_path
+            for ui_pattern in ui_patterns
+            for ui_path in Path(__file__).parent.rglob(ui_pattern)
+        ]
+        for ui_path in ui_paths:
+            content = ui_path.read_text(encoding="utf-8")
+            for enum in ENUMS:
+                content = content.replace(enum, enum[: enum.find(("::"))])
+            ui_path.write_text(content, encoding="utf-8")
 
     def build(self) -> None:
         self.bootstrap()
@@ -977,6 +998,13 @@ def create_parser():
         action="store_true",
         help="Compile only resources",
     )
+    parser_bootstrap.add_argument(
+        "--fix-ui",
+        dest="fix_ui",
+        default=None,
+        action="store_true",
+        help="Fix UI files",
+    )
 
     # build command
     subparsers.add_parser("build", help="Build the plugin")
@@ -1056,6 +1084,7 @@ def main() -> None:
                 compile_ui=args.compile_ui,
                 compile_qrc=args.compile_qrc,
                 compile_ts=args.compile_ts,
+                fix_ui=args.fix_ui,
             )
         elif args.command == "build":
             builder.build()
