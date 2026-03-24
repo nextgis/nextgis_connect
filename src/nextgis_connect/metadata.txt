@@ -2,9 +2,25 @@
 name=NextGIS Connect
 qgisMinimumVersion=3.22
 qgisMaximumVersion=4.99
-description=Create interactive web maps and manage your own fully-functional Web GIS at nextgis.com
+description=Turn QGIS into a collaborative GIS workspace. Publish projects, edit shared data, and sync in real time with NextGIS Web.
 description[ru]=Создавайте интерактивные веб-карты и управляйте своей собственной полнофункциональной Веб ГИС на nextgis.com
-about=Create interactive web maps and manage spatial data in your Web GIS. Add layers, maps, WMS/WFS/TMS services. Developed by NextGIS. Any feedback is welcome at https://nextgis.com/contact
+about=NextGIS Connect transforms QGIS into a multi-user, server-backed GIS environment integrated with NextGIS Web.
+	With NextGIS Connect you can:
+	- Publish QGIS projects to NextGIS Web while preserving layer structure, data sources, and styles.
+	- Deploy ready-to-work QGIS projects from resources hosted in NextGIS Web.
+	- Edit server-side data using standard QGIS editing tools.
+	- Multiple users can edit the same layers from different QGIS installations.
+	- See teammates’ edits as they happen and keep QGIS in sync with the server.
+	- Detect and resolve edit conflicts to avoid accidental data loss.
+	- Manage NextGIS Web resources from QGIS (create/rename/delete/organize).
+	- Update Web Map styles from QGIS to keep cartography consistent. 
+	- Search/filter NextGIS Web resources by attributes like name, type, owner, etc.
+
+	Create your own cloud instance of NextGIS Web: https://nextgis.com/pricing-base/
+	NextGIS Web on-premise: https://nextgis.com/pricing/
+	NextGIS Web GitHub: https://github.com/nextgis/nextgisweb
+
+	Contact us: nextgis.com/contact
 about[ru]=Создавайте интерактивные веб-карты и управляйте пространственными данными в своей Веб ГИС. Добавляйте слои, карты, сервисы WMS/WFS/TMS. Разработан компанией NextGIS. Любые отзывы приветствуются на https://nextgis.com/contact
 version=3.4.4
 author=NextGIS
