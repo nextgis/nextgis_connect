@@ -1,14 +1,22 @@
 from typing import TYPE_CHECKING, Optional, cast
 
-from qgis.gui import QgsNewNameDialog
+from qgis.gui import QgsDockWidget, QgsNewNameDialog
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QModelIndex,
     QSortFilterProxyModel,
     Qt,
+    QUrl,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QBrush, QKeyEvent, QPainter, QPalette, QPen
+from qgis.PyQt.QtGui import (
+    QBrush,
+    QDesktopServices,
+    QKeyEvent,
+    QPainter,
+    QPalette,
+    QPen,
+)
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QHBoxLayout,
@@ -24,6 +32,9 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.utils import iface
 
+from nextgis_connect.ngw_connection.ngw_connection_edit_dialog import (
+    NgwConnectionEditDialog,
+)
 from nextgis_connect.ngw_connection.ngw_connections_manager import (
     NgwConnectionsManager,
 )
@@ -89,9 +100,28 @@ class QMessageOverlay(QOverlay):
             | Qt.TextInteractionFlag.TextBrowserInteraction
         )
         layout.addWidget(self.text)
+        self.text.setOpenExternalLinks(False)
+        self.text.linkActivated.connect(self._open_link)
 
     def set_text(self, text: str) -> None:
         self.text.setText(text)
+
+    def _open_link(self, url: str) -> None:
+        if url == "#settings":
+            iface.showOptionsDialog(iface.mainWindow(), "NextGIS Connect")
+            return
+
+        elif url == "#create_connection":
+            dialog = NgwConnectionEditDialog(self)
+            result = dialog.exec()
+            if result != NgwConnectionEditDialog.DialogCode.Accepted:
+                return
+
+            dock = iface.mainWindow().findChild(QgsDockWidget, "NGConnectDock")
+            dock.reinit_tree(force=True)  # pyright: ignore[reportAttributeAccessIssue]
+            return
+
+        QDesktopServices.openUrl(QUrl(url))
 
 
 class MigrationOverlay(QOverlay):
@@ -308,10 +338,10 @@ class QNGWResourceTreeView(QTreeView):
         self.no_ngw_connections_overlay = QMessageOverlay(
             self,
             self.tr(
-                "No connections to nextgis.com. Please create a connection. "
+                "No connections to nextgis.com. Please <a href='{}'>create a connection</a>. "
                 "You can get your free Web GIS at "
                 '<a href="https://my.nextgis.com/?{}">nextgis.com</a>!'
-            ).format(utm_tags("start")),
+            ).format("#create_connection", utm_tags("start")),
         )
         self.no_ngw_connections_overlay.hide()
 
