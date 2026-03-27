@@ -84,7 +84,8 @@ class FetchDeltaTask(DetachedEditingTask):
                 check_result = ngw_connection.get(check_url)
             except NgwError as error:
                 if (
-                    error.ngw_exception_class.split(".")[-1]
+                    error.ngw_exception_class is None
+                    or error.ngw_exception_class.split(".")[-1]
                     != "FVersioningNotEnabled"
                 ):
                     raise
