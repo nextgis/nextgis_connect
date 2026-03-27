@@ -19,8 +19,12 @@ from qgis.PyQt.QtWidgets import (
 )
 from qgis.PyQt.QtXml import QDomDocument, QDomNode
 
-from nextgis_connect.compat import QGIS_3_42
+from nextgis_connect.compat import QGIS_3_42, QT_VERSION_MAJOR
 from nextgis_connect.ui.icon import material_icon
+
+QStringConverter = None
+if QT_VERSION_MAJOR == 6:
+    from qgis.PyQt.QtCore import QStringConverter
 
 
 class DescriptionTextEditor(QgsRichTextEditor):
@@ -88,7 +92,10 @@ class DescriptionTextEditor(QgsRichTextEditor):
 
         result_container = QByteArray()
         text_stream = QTextStream(result_container)
-        text_stream.setCodec("UTF-8")
+        if hasattr(text_stream, "setEncoding"):
+            text_stream.setEncoding(QStringConverter.Encoding.Utf8)
+        elif hasattr(text_stream, "setCodec"):
+            text_stream.setCodec("UTF-8")  # pyright: ignore[reportAttributeAccessIssue]
         body_node.save(text_stream, 0)
 
         result_data = result_container.data()

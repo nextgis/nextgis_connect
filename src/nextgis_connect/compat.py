@@ -11,6 +11,8 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QT_VERSION_STR, QMetaType, QVariant
 
+QT_VERSION_MAJOR = int(QT_VERSION_STR.split(".")[0])
+
 if TYPE_CHECKING:
 
     class UndoCommand:
@@ -24,11 +26,11 @@ if TYPE_CHECKING:
 
         def undo(self) -> None: ...
 
-elif QT_VERSION_STR[0] == "5":
+elif QT_VERSION_MAJOR == 5:
     from qgis.PyQt.QtWidgets import (
         QUndoCommand as UndoCommand,  # pyright: ignore[reportAttributeAccessIssue] # noqa: F401, RUF100
     )
-else:
+elif QT_VERSION_MAJOR == 6:
     from qgis.PyQt.QtGui import (
         QUndoCommand as UndoCommand,  # pyright: ignore[reportAttributeAccessIssue] # noqa: F401, RUF100
     )
