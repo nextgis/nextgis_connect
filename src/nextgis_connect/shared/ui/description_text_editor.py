@@ -34,10 +34,18 @@ class DescriptionTextEditor(QgsRichTextEditor):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.__collect_widgets()
+        self._collect_widgets()
         self.set_read_only(True)
 
-        QTimer.singleShot(0, self.__patch)
+        QTimer.singleShot(0, self._patch)
+
+    @property
+    def text_edit(self) -> QTextEdit:
+        """Get the internal QTextEdit widget of the rich text editor.
+
+        :return: The QTextEdit widget used for editing the description.
+        """
+        return self._text_edit
 
     def set_read_only(self, read_only: bool) -> None:
         """Set the read-only state of the text editor.
@@ -193,7 +201,7 @@ class DescriptionTextEditor(QgsRichTextEditor):
             self._remove_style_attr(child)
             child = child.nextSibling()
 
-    def __collect_widgets(self) -> None:
+    def _collect_widgets(self) -> None:
         self._text_edit = self.findChild(QTextEdit, "mTextEdit")
         self._action_undo = self.findChild(QAction, "mActionUndo")
         self._action_redo = self.findChild(QAction, "mActionRedo")
@@ -236,7 +244,7 @@ class DescriptionTextEditor(QgsRichTextEditor):
                 self._font_size_combo_box = combo_box
 
     @pyqtSlot()
-    def __patch(self) -> None:
+    def _patch(self) -> None:
         # Patch paragraph combobox
         self._paragraph_style_combo_box.removeItem(5)
         self._paragraph_style_combo_box.removeItem(4)
@@ -273,6 +281,14 @@ class DescriptionTextEditor(QgsRichTextEditor):
             material_icon("format_list_numbered")
         )
 
+        # Replace existing icons with material icons
+        self._action_bold.setIcon(material_icon("format_bold"))
+        self._action_italic.setIcon(material_icon("format_italic"))
+        self._action_underline.setIcon(material_icon("format_underlined"))
+        self._action_strike_out.setIcon(material_icon("format_strikethrough"))
+        self._action_insert_link.setIcon(material_icon("add_link"))
+        self._action_insert_image.setIcon(material_icon("add_photo_alternate"))
+
         hidden_actions = (
             self._action_undo,
             self._action_redo,
@@ -281,6 +297,7 @@ class DescriptionTextEditor(QgsRichTextEditor):
             self._action_paste,
             self._action_increase_indent,
             self._action_decrease_indent,
+            self._action_edit_source,
         )
         hidden_widgets = (self._font_size_combo_box,)
         for action in self._tool_bar.actions():
