@@ -2,7 +2,14 @@ from pathlib import Path
 from typing import Dict, Optional, Union
 
 from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QBuffer, QByteArray, QIODevice, QSize, Qt
+from qgis.PyQt.QtCore import (
+    QBuffer,
+    QByteArray,
+    QIODevice,
+    QRectF,
+    QSize,
+    Qt,
+)
 from qgis.PyQt.QtGui import QIcon, QPainter, QPixmap
 from qgis.PyQt.QtSvg import QSvgRenderer
 from qgis.PyQt.QtWidgets import QLabel
@@ -149,7 +156,10 @@ def render_svg_icon(
     pixmap.fill(Qt.GlobalColor.transparent)
 
     painter = QPainter(pixmap)
-    renderer.render(painter)
+    renderer.render(
+        painter,
+        QRectF(0, 0, target_size.width(), target_size.height()),
+    )
     painter.end()
 
     return QIcon(pixmap)
