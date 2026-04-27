@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, cast
 
-from osgeo import ogr
+from osgeo import gdal, ogr
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -557,7 +557,7 @@ class QGISResourceJob(NGWResourceModelJob):
         if (
             Path(source).exists()
             and Path(source).suffix in (".tif", ".tiff")
-            and source_crs.postgisSrid() == 3857
+            and source_crs.postgisSrid() != 0
         ):
             return False, source
 
@@ -586,9 +586,14 @@ class QGISResourceJob(NGWResourceModelJob):
 
         extent = qgs_raster_layer.extent()
 
-        output_crs = QgsCoordinateReferenceSystem.fromEpsgId(3857)
+        output_crs = (
+            QgsCoordinateReferenceSystem.fromEpsgId(3857)
+            if source_crs.postgisSrid() == 0
+            else source_crs
+        )
         transform_context = QgsProject.instance().transformContext()
 
+        transform_context = QgsProject.instance().transformContext()
         if source_crs != output_crs:
             projector = QgsRasterProjector()
             projector.setCrs(source_crs, output_crs, transform_context)
@@ -615,6 +620,19 @@ class QGISResourceJob(NGWResourceModelJob):
             output_crs,
             transform_context,
         )
+
+        if source_crs.postgisSrid() == 0:
+            tmp_ds = gdal.Open(output_path)
+            if tmp_ds:
+                fixed_output = output_path.replace(".tif", "_fixed.tif")
+                gdal.Translate(
+                    fixed_output,
+                    tmp_ds,
+                    outputType=qgs_raster_layer.dataProvider().dataType(1),
+                )
+                tmp_ds = None
+
+                os.replace(fixed_output, output_path)
 
         return True, output_path
 
@@ -1953,9 +1971,7 @@ class NGWUpdateRasterLayer(QGISResourceJob):
             total_size: int, readed_size: int, value: Optional[int] = None
         ) -> None:
             percent = (
-                int(readed_size * 100 / total_size)
-                if value is None
-                else value
+                int(readed_size * 100 / total_size) if value is None else value
             )
             self._layer_status(
                 self.qgis_layer.name(),
@@ -1972,9 +1988,7 @@ class NGWUpdateRasterLayer(QGISResourceJob):
 
         is_ok, file_path = self.prepareImportRasterFile(self.qgis_layer)
         if not is_ok:
-            raise JobError(
-                f'Can\'t prepare layer "{self.qgis_layer.name()}"'
-            )
+            raise JobError(f'Can\'t prepare layer "{self.qgis_layer.name()}"')
 
         connection = self.ngw_layer.res_factory.connection
         raster_file_desc = connection.tus_upload_file(
