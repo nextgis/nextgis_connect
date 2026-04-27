@@ -23,12 +23,16 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List
 
 from nextgis_connect.logging import logger
-from nextgis_connect.resources.utils import generate_unique_name
+from nextgis_connect.resources.utils import (
+    extract_closest_to_root,
+    generate_unique_name,
+)
 
 if TYPE_CHECKING:
     from nextgis_connect.ngw_api.qgis.qgis_ngw_connection import (
         QgsNgwConnection,
     )
+    from nextgis_connect.tree_widget.model import QNGWResourceTreeModel
 
 ICONS_DIR = Path(__file__).parents[1] / "icons"
 
@@ -96,6 +100,28 @@ class NGWResource:
         ngw_con = ngw_resource.res_factory.connection
         url = API_RESOURCE_URL(ngw_resource.resource_id)
         ngw_con.delete(url)
+
+    @classmethod
+    def delete_resources(
+        cls,
+        ngw_resources: List["NGWResource"],
+        model: "QNGWResourceTreeModel",
+    ):
+        if not ngw_resources:
+            return
+
+        resources_id = [res.resource_id for res in ngw_resources]
+        resources_id = extract_closest_to_root(model, resources_id)
+
+        indicies = ",".join(str(res) for res in resources_id)
+        ngw_con = ngw_resources[0].res_factory.connection
+        if ngw_con is None:
+            return
+
+        ngw_con.post(
+            f"{API_COLLECTION_URL}delete?resources={indicies}&partial=true",
+            params={"resources": indicies, "partial": "true"},
+        )
 
     # INSTANCE
     def __init__(self, resource_factory, resource_json):

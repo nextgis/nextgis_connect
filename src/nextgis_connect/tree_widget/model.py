@@ -67,6 +67,7 @@ from nextgis_connect.ngw_api.qt.qt_ngw_resource_model_job import (
     NGWGroupCreater,
     NGWMissingResourceUpdater,
     NGWRenameResource,
+    NGWResourceBatchDelete,
     NGWResourceDelete,
     NGWResourceModelJob,
     NGWResourceModelJobResult,
@@ -468,7 +469,9 @@ class NgwSearch(NGWResourceModelJob):
         if not self.is_new_api:
             return list(
                 map(
-                    lambda value: f"{tag.old_query_name}{operator}={quote_plus(str(value))}",
+                    lambda value: (
+                        f"{tag.old_query_name}{operator}={quote_plus(str(value))}"
+                    ),
                     values,
                 )
             )
@@ -1102,7 +1105,13 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             if job.model_response is not None:
                 job.model_response.done.emit(new_index)
 
+        deleted_resources_id = set(
+            r.resource_id for r in job_result.deleted_resources
+        )
         for ngw_resource in job_result.deleted_resources:
+            if ngw_resource.parent_id in deleted_resources_id:
+                continue
+
             resource_id = self.index_from_id(
                 ngw_resource.parent_id,
             )
@@ -1211,6 +1220,16 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(NGWResourceDelete(ngw_resource))
+
+    @modelRequest
+    def deleteResources(self, indexes):
+        resources = []
+        for index in indexes:
+            item = index.internalPointer()
+            ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
+            resources.append(ngw_resource)
+
+        return self._startJob(NGWResourceBatchDelete(resources, self))
 
     @modelRequest
     def createWfsOrOgcfForVector(
