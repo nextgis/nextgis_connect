@@ -344,7 +344,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         self.actionDeleteResource = QAction(
             QgsApplication.getThemeIcon("mActionDeleteSelected.svg"),
-            self.tr("Delete resource"),
+            self.tr("Delete selected"),
             self,
         )
         self.actionDeleteResource.triggered.connect(
@@ -1794,7 +1794,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     def delete_curent_ngw_resource(self):
         res = QMessageBox.question(
             self,
-            self.tr("Delete resource"),
+            self.tr("Delete selected resources"),
             self.tr("Are you sure you want to remove selected resources?"),
             QMessageBox.StandardButton.Yes and QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
