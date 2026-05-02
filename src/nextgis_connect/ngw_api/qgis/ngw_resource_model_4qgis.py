@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Set, Tuple, cast
 
-from osgeo import ogr
+from osgeo import gdal, ogr
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -616,7 +616,17 @@ class QGISResourceJob(NGWResourceModelJob):
             transform_context,
         )
 
+        tmp_ds = gdal.Open(output_path)
+        if tmp_ds:
+            fixed_output = output_path.replace(".tif", "_fixed.tif")
+            gdal.Translate(fixed_output, tmp_ds, outputType=gdal.GDT_Byte)
+            tmp_ds = None
+
+            os.replace(fixed_output, output_path)
+
         return True, output_path
+
+
 
     def checkGeometry(self, qgs_vector_layer):
         has_simple_geometries = False
