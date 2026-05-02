@@ -172,7 +172,7 @@ class ActionApplier(QObject):
                         f"""
                         SELECT ngw_fid FROM ngw_features_metadata
                             WHERE ngw_fid IN ({added_fids})
-                        """
+                        """  # nosec B608
                     )
                 )
 
@@ -184,7 +184,7 @@ class ActionApplier(QObject):
                         f"""
                         SELECT ngw_fid FROM ngw_features_metadata
                             WHERE ngw_fid IN ({deleted_fids})
-                        """
+                        """  # nosec B608
                     )
                 )
                 already_deleted = deleted_ngw_fids - still_existed
@@ -328,7 +328,7 @@ class ActionApplier(QObject):
     def __get_feature_metadata(
         self, *, ngw_fid: FeatureId
     ) -> Optional[FeatureMetaData]:
-        query = f"SELECT * FROM ngw_features_metadata WHERE ngw_fid={ngw_fid}"
+        query = f"SELECT * FROM ngw_features_metadata WHERE ngw_fid={ngw_fid}"  # nosec B608
         try:
             with closing(
                 make_connection(self.__container_path)

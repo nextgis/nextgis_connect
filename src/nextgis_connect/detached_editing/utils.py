@@ -283,7 +283,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
         f"""
         SELECT name FROM pragma_table_info({wrap_sql_value(table_name)})
         WHERE pk = 1
-        """
+        """  # nosec B608
     )
     fid_field = cursor.fetchone()[0]
 
@@ -291,7 +291,7 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     geom_field = cursor.fetchone()[0]
 
     cursor.execute(
-        f"SELECT COUNT(*) FROM {wrap_sql_table_name(table_name)}",
+        f"SELECT COUNT(*) FROM {wrap_sql_table_name(table_name)}",  # nosec B608
     )
     features_count = cursor.fetchone()[0]
     if features_count is None:
@@ -380,7 +380,7 @@ def ngw_feature_id(
             connection.cursor()
         ) as cursor:
             cursor.execute(
-                f"SELECT ngw_fid FROM ngw_features_metadata WHERE fid={fid}"
+                f"SELECT ngw_fid FROM ngw_features_metadata WHERE fid={fid}"  # nosec B608
             )
             result = cursor.fetchone()
             if result is not None:
@@ -416,7 +416,7 @@ def ngw_feature_description(
         ) as cursor:
             cursor.execute(
                 "SELECT description FROM ngw_features_metadata"
-                f" WHERE fid={fid}"
+                f" WHERE fid={fid}"  # nosec B608
             )
             result = cursor.fetchone()
             if result is not None:

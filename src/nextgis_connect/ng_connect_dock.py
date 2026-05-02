@@ -1924,8 +1924,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if ngw_src.type_id == NGWVectorLayer.type_id:
             try:
                 temp_path.unlink()
-            except Exception:
-                pass
+            except Exception as error:
+                logger.exception(
+                    "Failed to remove temporary GPKG %s: %s",
+                    temp_path,
+                    error,
+                )
         if ngw_src.type_id == NGWRasterLayer.type_id:
             raster_file.remove()
 

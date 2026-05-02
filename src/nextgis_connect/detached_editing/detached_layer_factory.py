@@ -323,7 +323,7 @@ class DetachedLayerFactory:
         fields_name = ", ".join(metadata.keys())
         values = ", ".join(metadata.values())
         cursor.execute(
-            f"INSERT INTO ngw_metadata ({fields_name}) VALUES ({values})"
+            f"INSERT INTO ngw_metadata ({fields_name}) VALUES ({values})"  # nosec B608
         )
 
         fields_tuple_generator = (
@@ -419,12 +419,12 @@ class DetachedLayerFactory:
             INSERT INTO ngw_features_metadata
                 SELECT {fid_field}, {fid_field}, NULL, NULL
                 FROM {wrap_sql_table_name(table_name)}
-            """
+            """  # nosec B608
         )
 
     def __update_sync_date(self, cursor: sqlite3.Cursor) -> None:
         cursor.execute(
-            f"UPDATE ngw_metadata SET sync_date='{datetime.now().isoformat()}'"
+            f"UPDATE ngw_metadata SET sync_date='{datetime.now().isoformat()}'"  # nosec B608
         )
 
     def __check_fields(

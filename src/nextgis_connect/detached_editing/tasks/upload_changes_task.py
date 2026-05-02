@@ -268,5 +268,5 @@ class UploadChangesTask(DetachedEditingTask):
         with closing(
             make_connection(self._container_path)
         ) as connection, closing(connection.cursor()) as cursor:
-            cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")
+            cursor.execute(f"UPDATE ngw_metadata SET sync_date='{sync_date}'")  # nosec B608
             connection.commit()

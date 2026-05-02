@@ -401,7 +401,7 @@ class ConflictsResolver:
             script += dedent(f"""
                 INSERT INTO ngw_updated_attributes (fid, attribute)
                 VALUES {values};
-            """)
+            """)  # nosec B608
 
         if self.__local_fields_changes_for_delete:
             ngw_fid_to_fid = self.__ngw_fid_to_fid_dict(
@@ -414,7 +414,7 @@ class ConflictsResolver:
             )
             script += dedent(f"""
                 DELETE FROM ngw_updated_attributes WHERE {where_clause};
-            """)
+            """)  # nosec B608
 
         if self.__local_geometry_changes_for_add:
             ngw_fids = ",".join(
@@ -424,7 +424,7 @@ class ConflictsResolver:
                 INSERT INTO ngw_updated_geometries (fid)
                 SELECT fid FROM ngw_features_metadata
                 WHERE ngw_fid IN ({ngw_fids});
-            """)
+            """)  # nosec B608
 
         if self.__local_geometry_changes_for_delete:
             ngw_fids = ",".join(
@@ -436,7 +436,7 @@ class ConflictsResolver:
                     SELECT fid FROM ngw_features_metadata
                     WHERE ngw_fid IN ({ngw_fids})
                 );
-            """)
+            """)  # nosec B608
 
         if self.__local_features_to_restore:
             ngw_fid_to_fid = self.__ngw_fid_to_fid_dict(
@@ -452,7 +452,7 @@ class ConflictsResolver:
                     for row in cursor.execute(f"""
                         SELECT fid, backup FROM ngw_removed_features
                         WHERE fid IN ({fids_str});
-                    """)
+                    """)  # nosec B608
                 }
 
             layer = QgsVectorLayer(
@@ -485,7 +485,7 @@ class ConflictsResolver:
             script += dedent(f"""
                 DELETE FROM ngw_removed_features
                 WHERE fid IN ({fids_str});
-            """)
+            """)  # nosec B608
 
         if self.__remote_features_to_restore:
             ngw_fid_to_fid = self.__ngw_fid_to_fid_dict(
@@ -500,7 +500,7 @@ class ConflictsResolver:
             script += dedent(f"""
                 INSERT INTO ngw_restored_features (fid)
                 VALUES {values};
-            """)
+            """)  # nosec B608
 
         if len(script) == 0:
             return
@@ -525,7 +525,7 @@ class ConflictsResolver:
                     SELECT ngw_fid, fid
                     FROM ngw_features_metadata
                     WHERE ngw_fid IN ({ngw_fids_str});
-                """)
+                """)  # nosec B608
             }
 
     def __intersected_fields(

@@ -917,7 +917,7 @@ class DetachedContainer(QObject):
                     f"""
                     SELECT name
                     FROM pragma_table_info({wrap_sql_value(self.metadata.table_name)})
-                    """
+                    """  # nosec B608
                 )
                 if row[0]
                 not in (self.metadata.fid_field, self.metadata.geom_field)

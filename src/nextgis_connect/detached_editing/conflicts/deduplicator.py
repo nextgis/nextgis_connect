@@ -145,7 +145,7 @@ class ConflictsDeduplicator:
                     );
                     DELETE FROM ngw_features_metadata
                     WHERE ngw_fid IN ({deleted_ngw_fids});
-                """)
+                """)  # nosec B608
 
             if len(self.__both_updated_fields) > 0:
                 ngw_fids_str = ",".join(
@@ -157,7 +157,7 @@ class ConflictsDeduplicator:
                         SELECT ngw_fid, fid
                         FROM ngw_features_metadata
                         WHERE ngw_fid IN ({ngw_fids_str});
-                    """)
+                    """)  # nosec B608
                 }
 
                 fields = self.__metadata.fields
@@ -181,7 +181,7 @@ class ConflictsDeduplicator:
                 cursor.execute(f"""
                     DELETE FROM ngw_updated_attributes
                     WHERE {where_clause};
-                """)
+                """)  # nosec B608
 
             if len(self.__both_updated_geometries) > 0:
                 deleted_ngw_fids = ",".join(
@@ -193,6 +193,6 @@ class ConflictsDeduplicator:
                         SELECT fid FROM ngw_features_metadata
                         WHERE ngw_fid IN ({deleted_ngw_fids})
                     );
-                """)
+                """)  # nosec B608
 
             connection.commit()

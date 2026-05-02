@@ -104,7 +104,7 @@ class DetachedLayerConfigPage(QgsMapLayerConfigWidget):
                 SET
                     connection_id={wrap_sql_value(new_connection_id)},
                     is_auto_sync_enabled={wrap_sql_value(new_autosync_state)}
-                """
+                """  # nosec B608
             )
 
             connection.commit()

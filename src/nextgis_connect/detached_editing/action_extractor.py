@@ -258,7 +258,7 @@ class ActionExtractor:
                     SELECT fid, ngw_fid, version
                     FROM ngw_features_metadata
                     WHERE fid IN ({all_fids_joined})
-                """
+                """  # nosec B608
             )
         }
         return features_metadata

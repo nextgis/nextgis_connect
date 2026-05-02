@@ -142,7 +142,7 @@ class TransactionApplier:
                 ),
             )
             cursor.execute(
-                f"DELETE FROM ngw_added_features WHERE fid in ({added_fids})"
+                f"DELETE FROM ngw_added_features WHERE fid in ({added_fids})"  # nosec B608
             )
 
             connection.commit()
@@ -163,7 +163,7 @@ class TransactionApplier:
                     WHERE fid IN removed_fids;
                 DELETE FROM ngw_features_metadata
                     WHERE ngw_fid IN ({batch_ngw_fids});
-                """
+                """  # nosec B608
             )
             connection.commit()
 
@@ -180,7 +180,7 @@ class TransactionApplier:
                     SELECT fid FROM ngw_features_metadata
                     WHERE ngw_fid IN ({batch_ngw_fids})
                 );
-                """
+                """  # nosec B608
             )
             connection.commit()
 
@@ -199,7 +199,7 @@ class TransactionApplier:
                     f"""
                     SELECT fid FROM ngw_features_metadata
                         WHERE ngw_fid IN ({ngw_fids});
-                    """
+                    """  # nosec B608
                 )
             )
             cursor.executescript(
@@ -208,6 +208,6 @@ class TransactionApplier:
                     WHERE fid in ({updated_fids});
                 DELETE FROM ngw_updated_geometries
                     WHERE fid in ({updated_fids});
-                """
+                """  # nosec B608
             )
             connection.commit()

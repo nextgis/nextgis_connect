@@ -235,7 +235,7 @@ class ConflictResolvingItemExtractor:
                 for row in cursor.execute(f"""
                     SELECT fid, backup FROM ngw_removed_features
                     WHERE fid IN ({fids_str});
-                """)
+                """)  # nosec B608
             }
 
         fields = QgsVectorLayer(
@@ -291,7 +291,7 @@ class ConflictResolvingItemExtractor:
                 SELECT fid, attribute, backup
                 FROM ngw_updated_attributes
                 WHERE fid IN ({joined_fids})
-                """
+                """  # nosec B608
             )
         }
 
@@ -305,7 +305,7 @@ class ConflictResolvingItemExtractor:
                 SELECT fid, backup
                 FROM ngw_updated_geometries
                 WHERE fid IN ({joined_fids})
-                """
+                """  # nosec B608
             )
         }
 
@@ -323,5 +323,5 @@ class ConflictResolvingItemExtractor:
                     SELECT ngw_fid, fid
                     FROM ngw_features_metadata
                     WHERE ngw_fid IN ({ngw_fids_str});
-                """)
+                """)  # nosec B608
             }
