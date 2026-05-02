@@ -1885,7 +1885,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 + urllib.parse.urlencode(export_params)
             )
 
-            temp_path = Path(tempfile.mktemp(suffix=".gpkg"))
+            temp_fd, temp_path_str = tempfile.mkstemp(suffix=".gpkg")
+            os.close(temp_fd)
+            temp_path = Path(temp_path_str)
 
             ngw_connection = QgsNgwConnection(ngw_src.connection_id)
             ngw_connection.download(export_url, str(temp_path))
@@ -2193,7 +2195,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self, ngw_style: NGWQGISStyle, path=None, mes_bar=True
     ):
         if not path:
-            path = tempfile.mktemp(suffix=".qml")
+            temp_file = tempfile.NamedTemporaryFile(
+                suffix=".qml", delete=False
+            )
+            path = temp_file.name
+            temp_file.close()
 
         url = ngw_style.download_qml_url()
         result = False

@@ -1,3 +1,4 @@
+import os
 import shutil
 import tempfile
 from contextlib import closing
@@ -377,7 +378,9 @@ class DetachedContainer(QObject):
 
         # Create stub
 
-        temp_file_path = tempfile.mktemp(suffix=".gpkg")
+        temp_file_fd, temp_file_path = tempfile.mkstemp(suffix=".gpkg")
+        os.close(temp_file_fd)
+        Path(temp_file_path).unlink(missing_ok=True)
 
         detached_factory = DetachedLayerFactory()
         try:

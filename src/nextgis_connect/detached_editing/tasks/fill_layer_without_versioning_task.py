@@ -1,6 +1,7 @@
 import tempfile
 import urllib.parse
 from contextlib import closing
+from os import close
 from pathlib import Path
 from typing import cast
 
@@ -46,7 +47,9 @@ class FillLayerWithoutVersioningTask(DetachedEditingTask):
             f"<b>Start GPKG downloading</b> for layer {self._metadata}"
         )
 
-        self.__temp_path = Path(tempfile.mktemp(suffix=".gpkg"))
+        temp_fd, temp_path = tempfile.mkstemp(suffix=".gpkg")
+        close(temp_fd)
+        self.__temp_path = Path(temp_path)
 
         try:
             connection_id = self._metadata.connection_id
