@@ -39,7 +39,7 @@ about[ru]=NextGIS Connect превращает QGIS в многопользов�
 	NextGIS Web на GitHub: https://github.com/nextgis/nextgisweb
 
 	Связаться с нами: https://nextgis.ru/contact
-version=4.0.4
+version=4.0.5
 author=NextGIS
 email=info@nextgis.com
 
@@ -56,6 +56,10 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+	4.0.5
+		- Updated translations
+		- Fixed typo in the connection settings dialog
+		! Supported NGW versions: 5.3.0 - 5.6.0
 	4.0.4
 		- Added default style creation for vector layers
 		- Fixed web map creation for layers without style
