@@ -35,9 +35,9 @@ class PluginOverlayResolver:
         if facts.is_loading:
             return OverlayState(
                 kind=OverlayKind.LOADING,
-                title=facts.loading_title or self._translate("Please wait"),
+                title=facts.loading_title or self.tr("Please wait"),
                 message=facts.loading_message
-                or self._translate("The resource tree is being updated."),
+                or self.tr("The resource tree is being updated."),
                 details=facts.loading_details,
                 secondary_action=facts.loading_action,
                 logo_action=(
@@ -53,16 +53,16 @@ class PluginOverlayResolver:
         if facts.has_auth_error:
             return OverlayState(
                 kind=OverlayKind.AUTH_REQUIRED,
-                title=self._translate("Sign in to continue"),
-                message=self._translate(
+                title=self.tr("Sign in to continue"),
+                message=self.tr(
                     "The selected connection uses a NextGIS account."
                 ),
-                details=self._translate(
+                details=self.tr(
                     "Open NextGIS settings in QGIS and sign in, then reload the resource tree."
                 ),
                 primary_action=OverlayButtonState(
                     action=OverlayAction.OPEN_NEXTGIS_SETTINGS,
-                    text=self._translate("Open NextGIS settings"),
+                    text=self.tr("Open NextGIS settings"),
                 ),
                 logo_action=OverlayAction.OPEN_NEXTGIS_SITE,
             )
@@ -72,7 +72,7 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.UNAVAILABLE,
                 title=facts.unavailable_title
-                or self._translate("Web GIS is unavailable"),
+                or self.tr("Web GIS is unavailable"),
                 message=facts.unavailable_message,
                 details=facts.unavailable_details,
                 title_icon_name=(
@@ -88,7 +88,7 @@ class PluginOverlayResolver:
         if facts.has_error:
             return OverlayState(
                 kind=OverlayKind.ERROR,
-                title=facts.error_title or self._translate("Request failed"),
+                title=facts.error_title or self.tr("Request failed"),
                 message=facts.error_message,
                 details=facts.error_details,
                 illustration_name=facts.error_icon,
@@ -100,16 +100,16 @@ class PluginOverlayResolver:
         if facts.has_pending_migration:
             return OverlayState(
                 kind=OverlayKind.MIGRATION_REQUIRED,
-                title=self._translate("Update saved connections"),
-                message=self._translate(
+                title=self.tr("Update saved connections"),
+                message=self.tr(
                     "Saved connections need to be converted to the QGIS authentication system before the tree can be loaded."
                 ),
-                details=self._translate(
+                details=self.tr(
                     "The conversion is performed once and keeps the existing connections available in the plugin."
                 ),
                 primary_action=OverlayButtonState(
                     action=OverlayAction.CONVERT_CONNECTIONS,
-                    text=self._translate("Convert connections"),
+                    text=self.tr("Convert connections"),
                 ),
                 logo_action=OverlayAction.OPEN_NEXTGIS_SITE,
             )
@@ -118,9 +118,9 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.UNAVAILABLE,
                 title=facts.plugin_update_title
-                or self._translate("Update NextGIS Connect"),
+                or self.tr("Update NextGIS Connect"),
                 message=facts.plugin_update_message
-                or self._translate("A newer plugin version is available."),
+                or self.tr("A newer plugin version is available."),
                 details=facts.plugin_update_details,
                 title_icon_name=facts.plugin_update_icon or "update",
                 primary_action=facts.plugin_update_action,
@@ -131,30 +131,30 @@ class PluginOverlayResolver:
         if not facts.has_connections:
             return OverlayState(
                 kind=OverlayKind.WELCOME,
-                title=self._translate(
+                title=self.tr(
                     'Connect your first <span style="color: #0c65af;">Web GIS</span>'
                 ),
-                message=self._translate(
+                message=self.tr(
                     "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."
                 ),
-                details=self._translate(
+                details=self.tr(
                     "Your resources will appear here after you add a connection."
                 ),
                 primary_action=OverlayButtonState(
                     action=OverlayAction.CREATE_CONNECTION,
-                    text=self._translate("Add connection"),
+                    text=self.tr("Add connection"),
                 ),
                 secondary_action=OverlayButtonState(
                     action=OverlayAction.CREATE_WEB_GIS,
-                    text=self._translate("Create Web GIS"),
-                    tooltip=self._translate(
+                    text=self.tr("Create Web GIS"),
+                    tooltip=self.tr(
                         "Open the web interface to create a new Web GIS."
                     ),
                 ),
                 footer_action=OverlayButtonState(
                     action=OverlayAction.CREATE_SANDBOX_CONNECTION,
-                    text=self._translate("Try sandbox"),
-                    tooltip=self._translate(
+                    text=self.tr("Try sandbox"),
+                    tooltip=self.tr(
                         "Create a connection to the sandbox Web GIS."
                     ),
                 ),
@@ -168,28 +168,28 @@ class PluginOverlayResolver:
                 )
                 return OverlayState(
                     kind=OverlayKind.SEARCH_CONNECTION,
-                    title=self._translate("Search in another Web GIS"),
-                    message=self._translate(
+                    title=self.tr("Search in another Web GIS"),
+                    message=self.tr(
                         "Switch to the saved connection to continue searching."
                     ),
                     details=connection_name,
                     primary_action=OverlayButtonState(
                         action=OverlayAction.SWITCH_SEARCH_CONNECTION,
-                        text=self._translate("Switch connection"),
+                        text=self.tr("Switch connection"),
                     ),
                     draw_background=True,
                 )
 
             return OverlayState(
                 kind=OverlayKind.SEARCH_CONNECTION,
-                title=self._translate("Connection required"),
-                message=self._translate(
+                title=self.tr("Connection required"),
+                message=self.tr(
                     "Create a connection to this Web GIS to continue searching."
                 ),
                 details=facts.search_connection_url,
                 primary_action=OverlayButtonState(
                     action=OverlayAction.CREATE_SEARCH_CONNECTION,
-                    text=self._translate("Add connection"),
+                    text=self.tr("Add connection"),
                 ),
                 draw_background=True,
             )
@@ -197,8 +197,8 @@ class PluginOverlayResolver:
         if facts.search_empty:
             return OverlayState(
                 kind=OverlayKind.SEARCH_EMPTY,
-                title=self._translate("Nothing found"),
-                message=self._translate(
+                title=self.tr("Nothing found"),
+                message=self.tr(
                     "No resources match the current search query."
                 ),
                 title_icon_name="inbox",
@@ -210,7 +210,7 @@ class PluginOverlayResolver:
     def create_web_gis_url(self) -> str:
         return f"https://my.nextgis.com/?{utm_tags('start')}"
 
-    def _translate(self, text: str) -> str:
+    def tr(self, text: str) -> str:
         return QCoreApplication.translate("PluginOverlayResolver", text)
 
 

@@ -1815,7 +1815,7 @@ If a layer contains important changes that were not sent to the server, they wil
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="68"/>
-        <source>connection addres (e.g. mygis.nextgis.com)</source>
+        <source>connection address (e.g. mygis.nextgis.com)</source>
         <translation>адрес подключения (например, mygis.nextgis.com)</translation>
     </message>
     <message>
@@ -3322,6 +3322,154 @@ Are you sure you want to continue?</source>
         <location filename="../legacy/tree_widget/overlay/widgets/surface.py" line="528"/>
         <source>Increase the panel size to display this content.</source>
         <translation>Увеличьте размер панели, чтобы отобразить это содержимое.</translation>
+    </message>
+</context>
+<context>
+    <name>PluginOverlayResolver</name>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="36"/>
+        <source>Please wait</source>
+        <translation>Пожалуйста, подождите</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="36"/>
+        <source>The resource tree is being updated.</source>
+        <translation>Дерево ресурсов обновляется.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="54"/>
+        <source>Sign in to continue</source>
+        <translation>Войдите, чтобы продолжить</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="54"/>
+        <source>The selected connection uses a NextGIS account.</source>
+        <translation>Выбранное подключение использует учётную запись NextGIS.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="54"/>
+        <source>Open NextGIS settings in QGIS and sign in, then reload the resource tree.</source>
+        <translation>Откройте настройки NextGIS в QGIS, выполните вход и затем перезагрузите дерево ресурсов.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="54"/>
+        <source>Open NextGIS settings</source>
+        <translation>Открыть настройки NextGIS</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="72"/>
+        <source>Web GIS is unavailable</source>
+        <translation>Web GIS недоступна</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="89"/>
+        <source>Request failed</source>
+        <translation>Запрос завершился ошибкой</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="101"/>
+        <source>Update saved connections</source>
+        <translation>Обновите сохранённые подключения</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="101"/>
+        <source>Saved connections need to be converted to the QGIS authentication system before the tree can be loaded.</source>
+        <translation>Перед загрузкой дерева сохранённые подключения нужно преобразовать в систему аутентификации QGIS.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="101"/>
+        <source>The conversion is performed once and keeps the existing connections available in the plugin.</source>
+        <translation>Преобразование выполняется один раз и сохраняет доступность существующих подключений в плагине.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="101"/>
+        <source>Convert connections</source>
+        <translation>Преобразовать подключения</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
+        <source>Update NextGIS Connect</source>
+        <translation>Обновите NextGIS Connect</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
+        <source>A newer plugin version is available.</source>
+        <translation>Доступна более новая версия плагина.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Connect your first &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
+        <translation>Подключите свою первую &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync.</source>
+        <translation>Настройте подключение к вашей Web GIS или создайте новую, чтобы синхронизировать геоданные, карты и командные процессы.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Your resources will appear here after you add a connection.</source>
+        <translation>После добавления подключения здесь появятся ваши ресурсы.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="183"/>
+        <source>Add connection</source>
+        <translation>Добавить подключение</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Create Web GIS</source>
+        <translation>Создать Web GIS</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Open the web interface to create a new Web GIS.</source>
+        <translation>Откройте веб-интерфейс, чтобы создать новую Web GIS.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Try sandbox</source>
+        <translation>Попробовать sandbox</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
+        <source>Create a connection to the sandbox Web GIS.</source>
+        <translation>Создать подключение к sandbox Web GIS.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="169"/>
+        <source>Search in another Web GIS</source>
+        <translation>Искать в другой Web GIS</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="169"/>
+        <source>Switch to the saved connection to continue searching.</source>
+        <translation>Переключитесь на сохранённое подключение, чтобы продолжить поиск.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="169"/>
+        <source>Switch connection</source>
+        <translation>Переключить подключение</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="183"/>
+        <source>Connection required</source>
+        <translation>Требуется подключение</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="183"/>
+        <source>Create a connection to this Web GIS to continue searching.</source>
+        <translation>Создайте подключение к этой Web GIS, чтобы продолжить поиск.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="198"/>
+        <source>Nothing found</source>
+        <translation>Ничего не найдено</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="198"/>
+        <source>No resources match the current search query.</source>
+        <translation>Ни один ресурс не соответствует текущему поисковому запросу.</translation>
     </message>
 </context>
 <context>
