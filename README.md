@@ -55,6 +55,18 @@ It creates a multi-user, server-backed environment where teams work on the same 
 
 ---
 
+### Manage feature attachments and descriptions from QGIS
+
+![NextGIS Web QGIS integration](assets/attachments.webp)
+
+- **Access, download, and manage feature attachments**  
+  Use the NextGIS Connect Identify tool to view, download, and delete files attached to NextGIS Web features, as well as view and edit feature descriptions.
+
+- **Attach new documents and photos**  
+  Upload new files of any type directly from your local QGIS environment to features stored in NextGIS Web.
+
+---
+
 ### Real-time updates and conflict resolution
 
 - **Real-time server-side data updates**  
