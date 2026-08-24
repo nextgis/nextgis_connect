@@ -235,6 +235,32 @@ class TestIdentificationResultsWidget:
             tab.deleteLater()
             _restore_plugin_mock(previous_plugin)
 
+    def test_add_files_notifies_when_attachment_file_is_unavailable(
+        self,
+    ) -> None:
+        plugin, previous_plugin = _install_plugin_mock()
+        detached_layer = Mock()
+        detached_layer.add_attachment.side_effect = FileNotFoundError()
+        tab = AttachmentsTab()
+        tab._detached_layer = detached_layer
+        tab._feature_id = 1
+        tab._ensure_edit_mode_for_attachment_changes = Mock(return_value=True)
+
+        try:
+            tab._add_files(["/unavailable/photo.jpg"])
+
+            detached_layer.add_attachment.assert_called_once_with(
+                1, Path("/unavailable/photo.jpg")
+            )
+            plugin.notifier.display_message.assert_called_once()
+            call_args = plugin.notifier.display_message.call_args
+            assert "photo.jpg" in call_args.args[0]
+            assert call_args.kwargs["level"] == Qgis.MessageLevel.Critical
+        finally:
+            tab.close()
+            tab.deleteLater()
+            _restore_plugin_mock(previous_plugin)
+
     def test_thumbnail_loading_uses_item_progress_without_overlay(
         self,
         qgis_app: QgsApplication,

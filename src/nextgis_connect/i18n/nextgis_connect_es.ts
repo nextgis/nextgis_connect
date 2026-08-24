@@ -193,12 +193,12 @@
         <translation type="obsolete">Obteniendo archivos adjuntos.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1381"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1391"/>
         <source>Save Attachment As</source>
         <translation>Guardar adjunto como</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1404"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1414"/>
         <source>Save Feature Attachments As</source>
         <translation>Guardar adjuntos de la entidad como</translation>
     </message>
@@ -218,9 +218,14 @@
         <translation>Cachear todos los adjuntos</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="918"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="928"/>
         <source>Edit mode enabled automatically for layer &quot;{}&quot;.</source>
         <translation>Modo de edición activado automáticamente para la capa &quot;{}&quot;.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="884"/>
+        <source>Cannot add attachment &quot;{}&quot; because its file is unavailable.</source>
+        <translation>No se puede agregar el adjunto «{}» porque su archivo no está disponible.</translation>
     </message>
 </context>
 <context>

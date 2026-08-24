@@ -878,7 +878,17 @@ class AttachmentsTab(QWidget):
         for file_path in paths:
             path = Path(file_path)
             logger.info(f"Added file: {path}")
-            detached_layer.add_attachment(self._feature_id, path)
+            try:
+                detached_layer.add_attachment(self._feature_id, path)
+            except OSError:
+                message = self.tr(
+                    'Cannot add attachment "{}" because its file is unavailable.'
+                ).format(path.name)
+                logger.exception(message)
+                NgConnectInterface.instance().notifier.display_message(
+                    message,
+                    level=Qgis.MessageLevel.Critical,
+                )
 
     def _remove_attachment(self, index: QModelIndex) -> None:
         if not index.isValid():

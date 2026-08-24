@@ -193,12 +193,12 @@
         <translation type="obsolete">Получение файлов вложений.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1381"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1391"/>
         <source>Save Attachment As</source>
         <translation>Сохранить вложение как</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1404"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1414"/>
         <source>Save Feature Attachments As</source>
         <translation>Сохранить вложения объекта как</translation>
     </message>
@@ -218,9 +218,14 @@
         <translation>Кэшировать все вложения</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="918"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="928"/>
         <source>Edit mode enabled automatically for layer &quot;{}&quot;.</source>
         <translation>Режим редактирования автоматически включён для слоя &quot;{}&quot;.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="884"/>
+        <source>Cannot add attachment &quot;{}&quot; because its file is unavailable.</source>
+        <translation>Не удалось добавить вложение «{}»: файл недоступен.</translation>
     </message>
 </context>
 <context>
