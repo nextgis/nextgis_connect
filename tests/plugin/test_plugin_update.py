@@ -18,12 +18,13 @@ from qgis.core import QgsFeedback, QgsSettings
 from qgis.PyQt.QtNetwork import QNetworkReply
 
 from nextgis_connect.legacy.plugin_update import (
-    NEXTGIS_REPOSITORY_URL,
     OFFICIAL_REPOSITORY_URL,
     PLUGIN_REPOSITORIES_GROUP,
     PluginRepository,
     PluginRepositoryUrlBuilder,
     PluginUpdateChecker,
+    PluginUpdateCheckResult,
+    PluginUpdateCheckTask,
     QgisPluginRepositoryPayloadFetcher,
     QgisPluginRepositorySettingsReader,
 )
@@ -180,7 +181,7 @@ def test_plugin_repository_fetcher_updates_user_agent_suffix(
     assert len(updated_requests) == 1
 
 
-def test_read_plugin_repositories_returns_enabled_qgis_repositories(
+def test_read_plugin_repositories_uses_settings_and_official_fallback(
     qgis_app,
     reset_qgis_settings,
 ) -> None:
@@ -199,9 +200,44 @@ def test_read_plugin_repositories_returns_enabled_qgis_repositories(
         settings.endGroup()
 
     repositories = QgisPluginRepositorySettingsReader(settings).read()
-
     by_url = {repository.url: repository for repository in repositories}
+
     assert by_url["https://custom.example.com/repo.xml"].can_check is True
     assert by_url["https://disabled.example.com/repo.xml"].can_check is False
     assert by_url[OFFICIAL_REPOSITORY_URL].can_check is True
-    assert by_url[NEXTGIS_REPOSITORY_URL].can_check is True
+
+
+def test_update_task_uses_repository_reader(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+
+    checked_repositories = []
+
+    def check(repositories, installed_version, feedback):
+        del installed_version, feedback
+        checked_repositories.extend(repositories)
+        return PluginUpdateCheckResult(None, 1, tuple())
+
+    class RepositoryReader(QgisPluginRepositorySettingsReader):
+        def read(self):
+            return [
+                PluginRepository(
+                    "Custom",
+                    "https://custom.example.com/repo.xml",
+                )
+            ]
+
+    task = PluginUpdateCheckTask(repository_reader=RepositoryReader())
+    monkeypatch.setattr(task._update_checker, "check", check)
+    monkeypatch.setattr(
+        "nextgis_connect.legacy.plugin_update.PluginVersionProvider"
+        ".current_version",
+        lambda: "1.0.0",
+    )
+
+    assert task.run()
+    assert [repository.url for repository in checked_repositories] == [
+        "https://custom.example.com/repo.xml"
+    ]

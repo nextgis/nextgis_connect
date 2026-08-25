@@ -3436,13 +3436,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
-        <source>Update NextGIS Connect</source>
-        <translation>Actualizar NextGIS Connect</translation>
+        <source>Update is available</source>
+        <translation>Hay una actualización disponible</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
-        <source>A newer plugin version is available.</source>
-        <translation>Una versión más reciente del plugin se encuentra disponible.</translation>
+        <source>A newer version of NextGIS Connect is available.</source>
+        <translation>Hay una nueva versión disponible de NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
@@ -3730,22 +3730,30 @@ Are you sure you want to continue?</source>
         <translation>Hay una actualización disponible</translation>
     </message>
     <message>
+        <location filename="../legacy/tree_widget/view.py" line="292"/>
+        <source>Plugin update required</source>
+        <translation>Se requiere actualizar el plugin</translation>
+    </message>
+    <message>
         <location filename="../legacy/tree_widget/view.py" line="284"/>
-        <source>Please update the plugin from the QGIS plugin manager.</source>
-        <translation>Actualice el plugin desde el administrador de plugins de QGIS.</translation>
+        <source>A newer version of NextGIS Connect is available.</source>
+        <translation>Hay una nueva versión disponible de NextGIS Connect.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/view.py" line="284"/>
+        <source>This version of NextGIS Web requires a newer version of NextGIS Connect.</source>
+        <translation>Esta versión de NextGIS Web requiere una versión más reciente de NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="252"/>
-        <source>NextGIS Connect: {installed_version}
-Available version: {available_version}
-Repository: {repository_name}</source>
-        <translation>NextGIS Connect: {installed_version}
-Versión disponible: {available_version}
-Repositorio: {repository_name}</translation>
+        <source>Current version: {installed_version}
+Available version: {available_version}</source>
+        <translation>Versión actual: {installed_version}
+Versión disponible: {available_version}</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="287"/>
-        <source>Upgrade plugin</source>
+        <source>Update plugin</source>
         <translation>Actualizar plugin</translation>
     </message>
     <message>
@@ -3755,15 +3763,13 @@ Repositorio: {repository_name}</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="294"/>
-        <source>The connected Web GIS version is no longer supported by this plugin.
-Contact the server administrator.</source>
-        <translation>La versión del Web GIS conectado ya no es compatible con este plugin.
-Contacte al administrador del servidor.</translation>
+        <source>Ask the administrator to update NextGIS Web.</source>
+        <translation>Solicite al administrador que actualice NextGIS Web.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="299"/>
-        <source>Version mismatch</source>
-        <translation>La versión no coincide</translation>
+        <source>Server update required</source>
+        <translation>Se requiere actualizar el servidor</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="301"/>
@@ -4483,18 +4489,18 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="120"/>
-        <source>Server version {version} is supported.</source>
-        <translation>La versión del servidor {version} es compatible.</translation>
+        <source>NextGIS Web {version} is supported.</source>
+        <translation>NextGIS Web {version} es compatible.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
-        <source>Server version {version} is older than the supported range.</source>
-        <translation>La versión del servidor {version} es más antigua que el rango compatible.</translation>
+        <source>NextGIS Web {version} needs an update.</source>
+        <translation>NextGIS Web {version} necesita una actualización.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
-        <source>The connected server is outdated.</source>
-        <translation>El servidor conectado está desactualizado.</translation>
+        <source>Server update required</source>
+        <translation>Se requiere actualizar el servidor</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
@@ -4503,18 +4509,18 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>Server version {version} is newer than supported by this plugin.</source>
-        <translation>La versión del servidor {version} es más reciente de lo que soporta este plugin.</translation>
+        <source>NextGIS Web {version} requires a newer NextGIS Connect.</source>
+        <translation>NextGIS Web {version} requiere una versión más reciente de NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>This plugin version does not support the connected server.</source>
-        <translation>Esta versión del plugin no soporta el servidor conectado.</translation>
+        <source>Plugin update required</source>
+        <translation>Se requiere actualizar el plugin</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>Update NextGIS Connect to a newer version and rerun the diagnostics.</source>
-        <translation>Actualice NextGIS Connect a una versión más reciente y vuelva a ejecutar el diagnóstico.</translation>
+        <source>Update NextGIS Connect and rerun the diagnostics.</source>
+        <translation>Actualice NextGIS Connect y vuelva a ejecutar el diagnóstico.</translation>
     </message>
 </context>
 <context>

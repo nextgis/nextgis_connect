@@ -18,7 +18,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from qgis.PyQt.QtCore import QSize
+from qgis.PyQt.QtCore import QSize, Qt
 from qgis.PyQt.QtWidgets import QApplication, QBoxLayout
 
 from nextgis_connect.legacy.tree_widget.overlay.state import (
@@ -94,6 +94,31 @@ def test_action_overlay_switches_button_layout_on_resize(
         widget._buttons_layout.direction() == QBoxLayout.Direction.LeftToRight
     )
     assert widget._card_stack.currentWidget() is widget._content_widget
+
+
+def test_action_overlay_centers_title_with_icon(
+    qgis_app,
+    overlay_widget_environment,
+) -> None:
+    del qgis_app, overlay_widget_environment
+
+    widget = ActionOverlayWidget()
+    widget.set_state(
+        OverlayState(
+            kind=OverlayKind.UNAVAILABLE,
+            title="Plugin update required",
+            title_icon_name="update",
+        )
+    )
+
+    assert not widget._title_icon_label.isHidden()
+    assert not widget._title_icon_spacer.isHidden()
+    assert widget._title_icon_label.size() == widget._title_icon_spacer.size()
+    assert (
+        widget._title_layout.itemAtPosition(0, 0).alignment()
+        == Qt.AlignmentFlag.AlignVCenter
+    )
+    assert widget._title_label.alignment() == Qt.AlignmentFlag.AlignCenter
 
 
 def test_loading_overlay_elides_dynamic_status_and_reflows_title(

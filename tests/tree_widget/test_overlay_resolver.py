@@ -165,7 +165,7 @@ def test_unavailable_update_state_uses_title_icon() -> None:
             unavailable_icon="update",
             unavailable_action=OverlayButtonState(
                 action=OverlayAction.OPEN_PLUGIN_MANAGER,
-                text="Upgrade plugin",
+                text="Update plugin",
             ),
         )
     )
@@ -191,7 +191,7 @@ def test_plugin_update_state_reuses_update_overlay_with_skip_action() -> None:
             plugin_update_icon="update",
             plugin_update_action=OverlayButtonState(
                 action=OverlayAction.OPEN_PLUGIN_MANAGER,
-                text="Upgrade plugin",
+                text="Update plugin",
             ),
             plugin_update_footer_action=OverlayButtonState(
                 action=OverlayAction.SKIP_PLUGIN_UPDATE,
@@ -226,7 +226,7 @@ def test_unsupported_version_state_has_priority_over_skippable_update() -> (
             unavailable_icon="update",
             unavailable_action=OverlayButtonState(
                 action=OverlayAction.OPEN_PLUGIN_MANAGER,
-                text="Upgrade plugin",
+                text="Update plugin",
             ),
             has_plugin_update=True,
             plugin_update_footer_action=OverlayButtonState(

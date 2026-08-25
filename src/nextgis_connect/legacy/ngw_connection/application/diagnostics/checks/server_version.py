@@ -118,7 +118,7 @@ class ServerVersionCheck(BaseConnectionCheck):
         payload = ServerVersionInfo(version, support_status)
         if support_status == SupportStatus.SUPPORTED:
             return self._success(
-                self.tr("Server version {version} is supported.").format(
+                self.tr("NextGIS Web {version} is supported.").format(
                     version=version
                 ),
                 payload=payload,
@@ -126,11 +126,11 @@ class ServerVersionCheck(BaseConnectionCheck):
 
         if support_status == SupportStatus.OLD_NGW:
             return self._failure(
-                self.tr(
-                    "Server version {version} is older than the supported range."
-                ).format(version=version),
+                self.tr("NextGIS Web {version} needs an update.").format(
+                    version=version
+                ),
                 issue=self._server_issue(
-                    self.tr("The connected server is outdated."),
+                    self.tr("Server update required"),
                     self.tr(
                         "Ask the administrator to update NextGIS Web to a supported version."
                     ),
@@ -140,15 +140,11 @@ class ServerVersionCheck(BaseConnectionCheck):
 
         return self._failure(
             self.tr(
-                "Server version {version} is newer than supported by this plugin."
+                "NextGIS Web {version} requires a newer NextGIS Connect."
             ).format(version=version),
             issue=self._client_issue(
-                self.tr(
-                    "This plugin version does not support the connected server."
-                ),
-                self.tr(
-                    "Update NextGIS Connect to a newer version and rerun the diagnostics."
-                ),
+                self.tr("Plugin update required"),
+                self.tr("Update NextGIS Connect and rerun the diagnostics."),
             ),
             payload=payload,
         )

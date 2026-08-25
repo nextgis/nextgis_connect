@@ -836,7 +836,6 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.set_plugin_update_state(
             update.installed_version,
             update.available_version,
-            update.repository_name,
         )
 
     def __set_search_empty(self, resources) -> None:

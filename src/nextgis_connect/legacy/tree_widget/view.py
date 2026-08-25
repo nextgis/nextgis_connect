@@ -247,25 +247,23 @@ class QNGWResourceTreeView(QTreeView):
         self,
         installed_version: str,
         available_version: str,
-        repository_name: str,
     ) -> None:
         self._overlay_state_model.update(
             has_plugin_update=True,
             plugin_update_title=self.tr("Update is available"),
             plugin_update_message=self.tr(
-                "Please update the plugin from the QGIS plugin manager."
+                "A newer version of NextGIS Connect is available."
             ),
             plugin_update_details=self.tr(
-                "NextGIS Connect: {installed_version}\nAvailable version: {available_version}\nRepository: {repository_name}"
+                "Current version: {installed_version}\nAvailable version: {available_version}"
             ).format(
                 installed_version=installed_version,
                 available_version=available_version,
-                repository_name=repository_name,
             ),
             plugin_update_icon="update",
             plugin_update_action=OverlayButtonState(
                 action=OverlayAction.OPEN_PLUGIN_MANAGER,
-                text=self.tr("Upgrade plugin"),
+                text=self.tr("Update plugin"),
             ),
             plugin_update_footer_action=OverlayButtonState(
                 action=OverlayAction.SKIP_PLUGIN_UPDATE,
@@ -282,21 +280,19 @@ class QNGWResourceTreeView(QTreeView):
     ) -> None:
         if status == SupportStatus.OLD_CONNECT:
             message = self.tr(
-                "Please update the plugin from the QGIS plugin manager."
+                "This version of NextGIS Web requires a newer version of NextGIS Connect."
             )
             action = OverlayButtonState(
                 action=OverlayAction.OPEN_PLUGIN_MANAGER,
-                text=self.tr("Upgrade plugin"),
+                text=self.tr("Update plugin"),
             )
             icon_name = "update"
-            title = self.tr("Update is available")
+            title = self.tr("Plugin update required")
         else:
-            message = self.tr(
-                "The connected Web GIS version is no longer supported by this plugin.\nContact the server administrator."
-            )
+            message = self.tr("Ask the administrator to update NextGIS Web.")
             action = OverlayButtonState()
-            icon_name = ""
-            title = self.tr("Version mismatch")
+            icon_name = "update"
+            title = self.tr("Server update required")
 
         details = self.tr(
             "NextGIS Connect: {ngc_version}\nNextGIS Web: {ngw_version}"

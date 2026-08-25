@@ -3436,13 +3436,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
-        <source>Update NextGIS Connect</source>
-        <translation>Обновите NextGIS Connect</translation>
+        <source>Update is available</source>
+        <translation>Доступно обновление</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="118"/>
-        <source>A newer plugin version is available.</source>
-        <translation>Доступна более новая версия плагина.</translation>
+        <source>A newer version of NextGIS Connect is available.</source>
+        <translation>Доступна новая версия NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="132"/>
@@ -3730,22 +3730,30 @@ Are you sure you want to continue?</source>
         <translation>Доступно обновление</translation>
     </message>
     <message>
+        <location filename="../legacy/tree_widget/view.py" line="292"/>
+        <source>Plugin update required</source>
+        <translation>Требуется обновление модуля</translation>
+    </message>
+    <message>
         <location filename="../legacy/tree_widget/view.py" line="284"/>
-        <source>Please update the plugin from the QGIS plugin manager.</source>
-        <translation>Обновите модуль через менеджер модулей QGIS.</translation>
+        <source>A newer version of NextGIS Connect is available.</source>
+        <translation>Доступна новая версия NextGIS Connect.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/view.py" line="284"/>
+        <source>This version of NextGIS Web requires a newer version of NextGIS Connect.</source>
+        <translation>Для этой версии NextGIS Web требуется более новая версия NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="252"/>
-        <source>NextGIS Connect: {installed_version}
-Available version: {available_version}
-Repository: {repository_name}</source>
-        <translation>NextGIS Connect: {installed_version}
-Доступная версия: {available_version}
-Репозиторий: {repository_name}</translation>
+        <source>Current version: {installed_version}
+Available version: {available_version}</source>
+        <translation>Текущая версия: {installed_version}
+Доступная версия: {available_version}</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="287"/>
-        <source>Upgrade plugin</source>
+        <source>Update plugin</source>
         <translation>Обновить модуль</translation>
     </message>
     <message>
@@ -3755,15 +3763,13 @@ Repository: {repository_name}</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="294"/>
-        <source>The connected Web GIS version is no longer supported by this plugin.
-Contact the server administrator.</source>
-        <translation>Версия подключённой Веб ГИС больше не поддерживается этим модулем.
-Обратитесь к администратору сервера.</translation>
+        <source>Ask the administrator to update NextGIS Web.</source>
+        <translation>Попросите администратора обновить NextGIS Web.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="299"/>
-        <source>Version mismatch</source>
-        <translation>Несоответствие версий</translation>
+        <source>Server update required</source>
+        <translation>Требуется обновление сервера</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/view.py" line="301"/>
@@ -4486,18 +4492,18 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="120"/>
-        <source>Server version {version} is supported.</source>
-        <translation>Версия сервера {version} поддерживается.</translation>
+        <source>NextGIS Web {version} is supported.</source>
+        <translation>NextGIS Web {version} поддерживается.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
-        <source>Server version {version} is older than the supported range.</source>
-        <translation>Версия сервера {version} старше поддерживаемого диапазона.</translation>
+        <source>NextGIS Web {version} needs an update.</source>
+        <translation>NextGIS Web {version} требуется обновить.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
-        <source>The connected server is outdated.</source>
-        <translation>Подключённый сервер устарел.</translation>
+        <source>Server update required</source>
+        <translation>Требуется обновление сервера</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="128"/>
@@ -4506,18 +4512,18 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>Server version {version} is newer than supported by this plugin.</source>
-        <translation>Версия сервера {version} новее, чем поддерживает этот модуль.</translation>
+        <source>NextGIS Web {version} requires a newer NextGIS Connect.</source>
+        <translation>Для NextGIS Web {version} требуется более новая версия NextGIS Connect.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>This plugin version does not support the connected server.</source>
-        <translation>Эта версия модуля не поддерживает подключённый сервер.</translation>
+        <source>Plugin update required</source>
+        <translation>Требуется обновление модуля</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/server_version.py" line="141"/>
-        <source>Update NextGIS Connect to a newer version and rerun the diagnostics.</source>
-        <translation>Обновите NextGIS Connect до новой версии и повторно запустите диагностику.</translation>
+        <source>Update NextGIS Connect and rerun the diagnostics.</source>
+        <translation>Обновите NextGIS Connect и повторно запустите диагностику.</translation>
     </message>
 </context>
 <context>

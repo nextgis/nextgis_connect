@@ -118,9 +118,9 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.UNAVAILABLE,
                 title=facts.plugin_update_title
-                or self.tr("Update NextGIS Connect"),
+                or self.tr("Update is available"),
                 message=facts.plugin_update_message
-                or self.tr("A newer plugin version is available."),
+                or self.tr("A newer version of NextGIS Connect is available."),
                 details=facts.plugin_update_details,
                 title_icon_name=facts.plugin_update_icon or "update",
                 primary_action=facts.plugin_update_action,

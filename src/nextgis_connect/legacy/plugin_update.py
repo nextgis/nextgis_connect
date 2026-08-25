@@ -18,12 +18,7 @@ import re
 from dataclasses import dataclass
 from typing import Callable, Iterable, List, Optional, Sequence
 
-from qgis.core import (
-    Qgis,
-    QgsFeedback,
-    QgsNetworkAccessManager,
-    QgsSettings,
-)
+from qgis.core import Qgis, QgsFeedback, QgsNetworkAccessManager, QgsSettings
 from qgis.PyQt.QtCore import QObject, QUrl, pyqtSignal
 from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 
@@ -42,8 +37,6 @@ from nextgis_connect.platform.xml_utils import XmlParseError
 PLUGIN_REPOSITORIES_GROUP = "app/plugin_repositories"
 OFFICIAL_REPOSITORY_NAME = "QGIS Official Plugin Repository"
 OFFICIAL_REPOSITORY_URL = "https://plugins.qgis.org/plugins/plugins.xml"
-NEXTGIS_REPOSITORY_NAME = "NextGIS Plugin Repository"
-NEXTGIS_REPOSITORY_URL = "https://rm.nextgis.com/api/repo/1/qgis_xml"
 
 
 @dataclass(frozen=True)
@@ -129,14 +122,13 @@ class QgisPluginRepositorySettingsReader:
                 )
                 repositories[repository.url] = repository
 
-            for name, url in (
-                (OFFICIAL_REPOSITORY_NAME, OFFICIAL_REPOSITORY_URL),
-                (NEXTGIS_REPOSITORY_NAME, NEXTGIS_REPOSITORY_URL),
-            ):
-                repositories.setdefault(
-                    url,
-                    PluginRepository(name=name, url=url),
-                )
+            repositories.setdefault(
+                OFFICIAL_REPOSITORY_URL,
+                PluginRepository(
+                    name=OFFICIAL_REPOSITORY_NAME,
+                    url=OFFICIAL_REPOSITORY_URL,
+                ),
+            )
 
             return list(repositories.values())
         finally:
