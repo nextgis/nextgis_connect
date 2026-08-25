@@ -193,12 +193,12 @@
         <translation type="obsolete">Получение файлов вложений.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1405"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1404"/>
         <source>Save Attachment As</source>
         <translation>Сохранить вложение как</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1428"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1427"/>
         <source>Save Feature Attachments As</source>
         <translation>Сохранить вложения объекта как</translation>
     </message>
@@ -226,6 +226,29 @@
         <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="888"/>
         <source>Cannot add attachment &quot;{}&quot; because its file is unavailable.</source>
         <translation>Не удалось добавить вложение «{}»: файл недоступен.</translation>
+    </message>
+</context>
+<context>
+    <name>AttachmentsViewWrapper</name>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="349"/>
+        <source>Cannot add attachments when layer is not in edit mode</source>
+        <translation>Нельзя добавлять вложения, когда слой не находится в режиме редактирования</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="362"/>
+        <source>Drop a file here to attach</source>
+        <translation>Перетащите файл сюда, чтобы прикрепить</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="366"/>
+        <source>Drop files here to attach</source>
+        <translation>Перетащите файлы сюда, чтобы прикрепить</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="379"/>
+        <source>No attachments yet</source>
+        <translation>Вложений пока нет</translation>
     </message>
 </context>
 <context>
@@ -722,12 +745,12 @@ Editing may break existing references.</source>
 <context>
     <name>DetachedLayer</name>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1291"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1295"/>
         <source>Layer structure changed</source>
         <translation>Была изменена структура слоя</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1260"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1264"/>
         <source>Added columns in QGIS will not be added to NextGIS Web layer.
 
 If you want to change the layer structure, please do so in the NextGIS Web interface and reset the layer in sync status window.</source>
@@ -736,7 +759,7 @@ If you want to change the layer structure, please do so in the NextGIS Web inter
 Если вы хотите изменить структуру слоя, сделайте это в интерфейсе NextGIS Web и сбросьте слой в окне состояния синхронизации.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1291"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1295"/>
         <source>Deleting a column is only possible from the NextGIS Web interface.
 
 Further work with the layer is possible only after the layer reset. You can do this from the sync status window.</source>
@@ -750,17 +773,17 @@ Further work with the layer is possible only after the layer reset. You can do t
         <translation>Изменить описание объекта {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="591"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="595"/>
         <source>Add attachment {}</source>
         <translation>Добавить вложение {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="614"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="618"/>
         <source>Update attachment {} for feature {}</source>
         <translation>Обновить вложение {} для объекта {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="637"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="641"/>
         <source>Remove attachment {} from feature {}</source>
         <translation>Удалить вложение {} у объекта {}</translation>
     </message>
@@ -1548,99 +1571,109 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>ImagePreviewDialog</name>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1164"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1262"/>
         <source>First image</source>
         <translation>Первое изображение</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1181"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1279"/>
         <source>Last image</source>
         <translation>Последнее изображение</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1279"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1383"/>
         <source>Zoom in</source>
         <translation>Увеличить</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1280"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1384"/>
         <source>Zoom out</source>
         <translation>Уменьшить</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1281"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1385"/>
         <source>Rotate left</source>
         <translation>Повернуть влево</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1282"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1386"/>
         <source>Rotate right</source>
         <translation>Повернуть вправо</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1285"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1389"/>
         <source>Previous image</source>
         <translation>Предыдущее изображение</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1286"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1390"/>
         <source>Next image</source>
         <translation>Следующее изображение</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1502"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1736"/>
         <source>more</source>
         <translation>ещё</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1579"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1813"/>
         <source>Image preview</source>
         <translation>Предпросмотр изображения</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1598"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1832"/>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1603"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1837"/>
         <source>Show in Folder</source>
         <translation>Показать в папке</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1608"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1842"/>
         <source>Copy</source>
         <translation>Копировать</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1613"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1847"/>
         <source>Save As…</source>
         <translation>Сохранить как…</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1648"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1882"/>
         <source>Copied</source>
         <translation>Скопировано</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1660"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1894"/>
         <source>Save Image As</source>
         <translation>Сохранить изображение как</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1662"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1896"/>
         <source>Images (*)</source>
         <translation>Изображения (*)</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1423"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1607"/>
         <source>Show image</source>
         <translation>Показать изображение</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1423"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1607"/>
         <source>Show panorama</source>
         <translation>Показать панораму</translation>
+    </message>
+    <message>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1485"/>
+        <source>Exit full screen</source>
+        <translation>Выйти из полноэкранного режима</translation>
+    </message>
+    <message>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1485"/>
+        <source>Show full screen</source>
+        <translation>Показать в полноэкранном режиме</translation>
     </message>
 </context>
 <context>
@@ -1654,12 +1687,12 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>LoadingOverlayWidget</name>
     <message>
-        <location filename="../legacy/tree_widget/overlay/widgets/loading.py" line="141"/>
+        <location filename="../legacy/tree_widget/overlay/widgets/loading.py" line="140"/>
         <source>Waiting for cancellation to finish.</source>
         <translation>Ожидание завершения отмены.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/widgets/loading.py" line="141"/>
+        <location filename="../legacy/tree_widget/overlay/widgets/loading.py" line="140"/>
         <source>Cancel current operation.</source>
         <translation>Отменить текущую операцию.</translation>
     </message>
@@ -2195,12 +2228,12 @@ If a layer contains important changes that were not sent to the server, they wil
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="516"/>
         <source>Uploading layer...</source>
-        <translation>Загрузка ресурса…</translation>
+        <translation>Загрузка слоя на сервер…</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="517"/>
         <source>Uploading project...</source>
-        <translation>Загрузка проекта…</translation>
+        <translation>Загрузка проекта на сервер…</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="518"/>
@@ -2210,7 +2243,7 @@ If a layer contains important changes that were not sent to the server, they wil
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="519"/>
         <source>Creating OGC API Features service...</source>
-        <translation>Создание сервиса OGC API Features...</translation>
+        <translation>Создание сервиса OGC API Features…</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="522"/>
@@ -2235,7 +2268,7 @@ If a layer contains important changes that were not sent to the server, they wil
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="529"/>
         <source>Updating resource...</source>
-        <translation>Загрузка ресурса…</translation>
+        <translation>Обновление ресурса…</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="530"/>
@@ -3313,28 +3346,28 @@ Are you sure you want to continue?</source>
     <message>
         <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="348"/>
         <source>Cannot add attachments when layer is not in edit mode</source>
-        <translation>Нельзя добавлять вложения, когда слой не находится в режиме редактирования</translation>
+        <translation type="obsolete">Нельзя добавлять вложения, когда слой не находится в режиме редактирования</translation>
     </message>
     <message>
         <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="361"/>
         <source>Drop a file here to attach</source>
-        <translation>Перетащите файл сюда, чтобы прикрепить</translation>
+        <translation type="obsolete">Перетащите файл сюда, чтобы прикрепить</translation>
     </message>
     <message>
         <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="365"/>
         <source>Drop files here to attach</source>
-        <translation>Перетащите файлы сюда, чтобы прикрепить</translation>
+        <translation type="obsolete">Перетащите файлы сюда, чтобы прикрепить</translation>
     </message>
     <message>
         <location filename="../legacy/detached_editing/identification/ui/attachments_view_wrapper.py" line="378"/>
         <source>No attachments yet</source>
-        <translation>Вложений пока нет</translation>
+        <translation type="obsolete">Вложений пока нет</translation>
     </message>
 </context>
 <context>
     <name>OverlaySurfaceWidget</name>
     <message>
-        <location filename="../legacy/tree_widget/overlay/widgets/surface.py" line="528"/>
+        <location filename="../legacy/tree_widget/overlay/widgets/surface.py" line="573"/>
         <source>Increase the panel size to display this content.</source>
         <translation>Увеличьте размер панели, чтобы отобразить это содержимое.</translation>
     </message>
@@ -3589,87 +3622,87 @@ Are you sure you want to continue?</source>
 <context>
     <name>QGISResourceJob</name>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="426"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="432"/>
         <source>create WMS connection</source>
         <translation>создание соединения WMS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="472"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="478"/>
         <source>creating WMS layer</source>
         <translation>создание слоя WMS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1897"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1913"/>
         <source>creating</source>
         <translation>создание</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2209"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2225"/>
         <source>adding aliases</source>
         <translation>добавление псевдонимов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2361"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2377"/>
         <source>finishing</source>
         <translation>завершение</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="813"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="819"/>
         <source>preparing</source>
         <translation>подготовка</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1173"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1179"/>
         <source>Style for &quot;{}&quot;</source>
         <translation>Стиль для &quot;{}&quot;</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1316"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1332"/>
         <source>removing all features</source>
         <translation>удаление всех объектов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2298"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2314"/>
         <source>uploading ({}%)</source>
         <translation>загрузка ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="843"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="849"/>
         <source>checking geometry ({}%)</source>
         <translation>проверка геометрии ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="967"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="973"/>
         <source>preparing layer ({}%)</source>
         <translation>подготовка слоя ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1087"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1093"/>
         <source>Feature {} haven&apos;t been added. Please check geometry</source>
         <translation>Объект {} не был добавлен. Пожалуйста, проверьте геометрию</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1335"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1351"/>
         <source>adding features ({}%)</source>
         <translation>добавление объектов ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="762"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="768"/>
         <source>adding lookup tables</source>
         <translation>добавление словарей</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1577"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1593"/>
         <source>A group tree is being created</source>
         <translation>Создаётся дерево ресурсов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1920"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1936"/>
         <source>Failed to load any resource to the NextGIS Web. Webmap will not be created</source>
         <translation>При загрузке ресурсов в NextGIS Web произошла ошибка. Веб-карта не будет создана</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2161"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2177"/>
         <source>replacing features</source>
         <translation>замена объектов</translation>
     </message>
@@ -3768,12 +3801,12 @@ NextGIS Web: {ngw_version}</translation>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="651"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="658"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="987"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="994"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
@@ -3810,42 +3843,42 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1233"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1240"/>
         <source>Layer &quot;{raster_layer.display_name}&quot; was not added to the map</source>
         <translation>Слой &quot;{raster_layer.display_name}&quot; не был добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1236"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1243"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="749"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="756"/>
         <source>Resource</source>
         <translation>Ресурс</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="770"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="777"/>
         <source>Service layer</source>
         <translation>Сервисный слой</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="853"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="860"/>
         <source>Resource &quot;{}&quot; is not accessible because you do not have the necessary permissions</source>
         <translation>Ресурс &quot;{}&quot; недоступен, так как у вас нет необходимых прав</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="857"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="864"/>
         <source>Resource ID: {resource_id}</source>
         <translation>ID ресурса: {resource_id}</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1288"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1295"/>
         <source>Layer &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Слой &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1080"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1087"/>
         <source>The linked layer or style resource is not available.</source>
         <translation>Связанный слой или ресурс стиля недоступен.</translation>
     </message>
@@ -3876,17 +3909,17 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>QgsNgwConnection</name>
     <message>
-        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="754"/>
+        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="771"/>
         <source>File is too large for uploading</source>
         <translation>Загружаемый файл слишком большой</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="564"/>
+        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="568"/>
         <source>Connection was closed by QGIS. Please check your internet connection or increase timeout (Settings -&gt; Options -&gt; Network) and retry.</source>
         <translation>Соединение было закрыто QGIS. Пожалуйста, проверьте настройки вашего интернет-соединения или увеличьте таймаут для сетевых запросов (Установки -&gt; Параметры -&gt; Сеть) и повторите попытку.</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="586"/>
+        <location filename="../legacy/ngw/qgis/qgis_ngw_connection.py" line="590"/>
         <source>The SSL/TLS handshake failed and the encrypted channel could not be established.</source>
         <translation>Сбой SSL/TLS-рукопожатия: не удалось установить защищённый канал.</translation>
     </message>

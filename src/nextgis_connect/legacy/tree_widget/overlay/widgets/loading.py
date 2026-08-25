@@ -31,6 +31,7 @@ from nextgis_connect.legacy.tree_widget.overlay.state import (
     OverlayState,
 )
 from nextgis_connect.legacy.tree_widget.overlay.widgets.surface import (
+    ElidedLabel,
     OverlaySurfaceWidget,
 )
 from nextgis_connect.ui_kit.buttons import CancelButton
@@ -48,8 +49,7 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
     _NORMAL_CONTENT_SPACING = 4
     _COMPACT_CONTENT_SPACING = 3
     _MINIMUM_CONTENT_SPACING = 2
-    _MAXIMUM_TOP_CARD_PADDING = 10
-    _MAXIMUM_BOTTOM_CARD_PADDING = 12
+    _MAXIMUM_VERTICAL_CARD_PADDING = 10
     _PROGRESS_CANCEL_SPACING = 6
     _MINIMUM_PROGRESS_CANCEL_SPACING = 2
     _LAYOUT_RESERVE = 24
@@ -67,8 +67,8 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._title_label.setFont(title_font)
         self._title_label.setWordWrap(True)
         self._title_label.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding,
-            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
         )
 
         self._progress_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
@@ -91,11 +91,9 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._cancel_button.hide()
         self._cancel_button.clicked.connect(self._emit_cancel_action)
 
-        self._message_label = QLabel(self._content_widget)
-        self._message_label.setWordWrap(True)
+        self._message_label = ElidedLabel(self._content_widget)
 
-        self._details_label = QLabel(self._content_widget)
-        self._details_label.setWordWrap(True)
+        self._details_label = ElidedLabel(self._content_widget)
 
         self._progress_layout.addWidget(self._progress_bar)
         self._progress_layout.addWidget(self._cancel_button)
@@ -148,10 +146,11 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         else:
             self._cancel_button.setToolTip("")
 
-        self._freeze_header_heights()
+        self._set_minimum_header_heights()
         self.sync_layout()
 
-    def _freeze_header_heights(self) -> None:
+    def _set_minimum_header_heights(self) -> None:
+        """Keep the header baseline stable while allowing wrapped title growth."""
         title_height = self._title_label.sizeHint().height()
         progress_height = self._progress_bar.sizeHint().height()
         if self._title_height_anchor is None:
@@ -159,7 +158,7 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         if self._progress_height_anchor is None:
             self._progress_height_anchor = progress_height
 
-        self._title_label.setFixedHeight(self._title_height_anchor)
+        self._title_label.setMinimumHeight(self._title_height_anchor)
         self._progress_bar.setFixedHeight(self._progress_height_anchor)
 
     def _set_content_metrics(
@@ -167,20 +166,19 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         padding: int,
         spacing: int,
     ) -> None:
-        top_padding = min(padding, self._MAXIMUM_TOP_CARD_PADDING)
-        bottom_padding = min(padding, self._MAXIMUM_BOTTOM_CARD_PADDING)
+        vertical_padding = min(padding, self._MAXIMUM_VERTICAL_CARD_PADDING)
         margins = self._content_layout.contentsMargins()
         if (
             margins.left() != padding
-            or margins.top() != top_padding
+            or margins.top() != vertical_padding
             or margins.right() != padding
-            or margins.bottom() != bottom_padding
+            or margins.bottom() != vertical_padding
         ):
             self._content_layout.setContentsMargins(
                 padding,
-                top_padding,
+                vertical_padding,
                 padding,
-                bottom_padding,
+                vertical_padding,
             )
 
         if self._content_layout.spacing() != spacing:
@@ -226,6 +224,8 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
             self._progress_layout.setSpacing(spacing)
 
         self._progress_layout.invalidate()
+        self._content_layout.invalidate()
+        self._content_widget.updateGeometry()
 
     def _minimum_content_width_for_readable_layout(self) -> int:
         minimum_width = self._progress_bar.minimumSizeHint().width()

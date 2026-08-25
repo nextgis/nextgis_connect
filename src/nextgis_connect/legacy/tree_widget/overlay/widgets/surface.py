@@ -14,9 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import html
 import math
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import ClassVar, Optional
@@ -323,6 +321,55 @@ class MaterialIllustrationWidget(QWidget):
         self.setFixedSize(self._size_hint)
 
 
+class ElidedLabel(QLabel):
+    """Display dynamic status text without contributing its full width."""
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self._full_text = ""
+        self.setWordWrap(False)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
+
+    def setText(self, text: str) -> None:
+        """Set the complete status text and display an elided version."""
+        self._full_text = text
+        self._update_elided_text()
+
+    def minimumSizeHint(self) -> QSize:
+        """Return a height without imposing the full status width."""
+        return QSize(0, super().minimumSizeHint().height())
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._update_elided_text()
+
+    def changeEvent(self, event) -> None:
+        if event.type() in (QEvent.Type.FontChange, QEvent.Type.StyleChange):
+            self._update_elided_text()
+
+        super().changeEvent(event)
+
+    def _update_elided_text(self) -> None:
+        available_width = max(0, self.contentsRect().width())
+        metrics = self.fontMetrics()
+        text = "\n".join(
+            metrics.elidedText(
+                line,
+                Qt.TextElideMode.ElideMiddle,
+                available_width,
+            )
+            for line in self._full_text.split("\n")
+        )
+        if super().text() != text:
+            super().setText(text)
+            self.updateGeometry()
+
+        self.setToolTip(self._full_text if text != self._full_text else "")
+
+
 class FooterLinkLabel(QLabel):
     """Rich-text footer label that emits the configured overlay action."""
 
@@ -459,8 +506,6 @@ class OverlaySurfaceWidget(QWidget):
     """
 
     MINIMUM_OVERLAY_HEIGHT = 160
-    _MINIMUM_READABLE_TEXT_WIDTH = 260
-    _READABLE_WORD_RESERVE = 24
     _WRAP_RESERVE = 16
     _NORMAL_CARD_PADDING = max(
         NextgisDecorator.CARD_PADDING_HORIZONTAL,
@@ -475,7 +520,6 @@ class OverlaySurfaceWidget(QWidget):
     _COMPACT_CONTENT_SPACING = 10
     _MINIMUM_CONTENT_SPACING = 8
     _LOGO_MARGIN_NORMAL = 12
-    _LOGO_MARGIN_MIN = 2
     _CARD_HEIGHT_SLACK = 2
     _MINIMUM_COMPACT_CARD_WIDTH = 220
     _MINIMUM_COMPACT_CARD_HEIGHT = 72
@@ -696,15 +740,6 @@ class OverlaySurfaceWidget(QWidget):
             size.width(),
             preferred_content_width,
         )
-
-        if (
-            preferred_content_width > minimum_content_width
-            and width_metrics.content_width < preferred_content_width
-        ):
-            width_metrics = self._width_metrics_for_target(
-                size.width(),
-                minimum_content_width,
-            )
 
         for card_padding in self._padding_candidates_from(
             width_metrics.card_padding
@@ -1003,12 +1038,7 @@ class OverlaySurfaceWidget(QWidget):
         )
 
     def _minimum_readable_content_width(self) -> int:
-        return max(
-            self._MINIMUM_READABLE_TEXT_WIDTH,
-            self._longest_unbreakable_text_width()
-            + self._READABLE_WORD_RESERVE,
-            self._minimum_content_width_for_readable_layout(),
-        )
+        return self._minimum_content_width_for_readable_layout()
 
     def _minimum_readable_card_width(self, padding: int) -> int:
         return padding + self._minimum_readable_content_width() + padding
@@ -1047,7 +1077,11 @@ class OverlaySurfaceWidget(QWidget):
     def _height_measurement_slack(self) -> int:
         line_spacing = 0
         for label in self._content_widget.findChildren(QLabel):
-            if label.isHidden() or label.text() == "":
+            if (
+                label.isHidden()
+                or label.text() == ""
+                or isinstance(label, ElidedLabel)
+            ):
                 continue
 
             line_spacing = max(line_spacing, label.fontMetrics().lineSpacing())
@@ -1056,29 +1090,6 @@ class OverlaySurfaceWidget(QWidget):
             return self._CARD_HEIGHT_SLACK
 
         return self._CARD_HEIGHT_SLACK + math.ceil(line_spacing * 0.25)
-
-    def _longest_unbreakable_text_width(self) -> int:
-        longest_width = 0
-        for label in self._content_widget.findChildren(QLabel):
-            if label.isHidden() or label.text() == "":
-                continue
-
-            metrics = label.fontMetrics()
-            for word in self._plain_label_words(label):
-                longest_width = max(
-                    longest_width,
-                    metrics.horizontalAdvance(word),
-                )
-
-        return longest_width
-
-    def _plain_label_words(self, label: QLabel) -> list:
-        text = label.text()
-        if label.textFormat() == Qt.TextFormat.RichText:
-            text = re.sub(r"<[^>]*>", " ", text)
-
-        text = html.unescape(text).replace("\u00a0", " ")
-        return [word for word in re.split(r"\s+", text) if word]
 
     def _logo_geometry_for_card(
         self,
@@ -1090,18 +1101,12 @@ class OverlaySurfaceWidget(QWidget):
 
         logo_size = self._logo_widget.sizeHint()
         space_below_card = size.height() - card_bottom
-        required_space = logo_size.height() + 2 * self._LOGO_MARGIN_MIN
-        if space_below_card <= required_space:
+        required_space = logo_size.height() + 2 * self._LOGO_MARGIN_NORMAL
+        if space_below_card < required_space:
             return None
 
-        margin_space = space_below_card - logo_size.height()
-        if margin_space >= 2 * self._LOGO_MARGIN_NORMAL:
-            bottom_margin = self._LOGO_MARGIN_NORMAL
-        else:
-            bottom_margin = max(self._LOGO_MARGIN_MIN, margin_space // 2)
-
         logo_x = (size.width() - logo_size.width()) // 2
-        logo_y = size.height() - logo_size.height() - bottom_margin
+        logo_y = size.height() - logo_size.height() - self._LOGO_MARGIN_NORMAL
         return QRect(logo_x, logo_y, logo_size.width(), logo_size.height())
 
     def _is_logo_requested(self) -> bool:

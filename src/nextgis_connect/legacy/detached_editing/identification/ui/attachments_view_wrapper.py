@@ -51,6 +51,13 @@ from nextgis_connect.platform.logging import logger
 from nextgis_connect.ui_kit.icons import draw_icon, material_icon
 
 
+class OverlayMode(Enum):
+    HIDDEN = auto()
+    EMPTY_LIST = auto()
+    DRAG_AND_DROP = auto()
+    DRAG_AND_DROP_MULTIPLE = auto()
+
+
 class AttachmentsViewWrapper(QWidget):
     """Wrap the attachments view with overlay and drag-and-drop handling.
 
@@ -60,12 +67,6 @@ class AttachmentsViewWrapper(QWidget):
 
     :ivar files_dropped: Emit local file paths dropped onto the wrapper.
     """
-
-    class OverlayMode(Enum):
-        HIDDEN = auto()
-        EMPTY_LIST = auto()
-        DRAG_AND_DROP = auto()
-        DRAG_AND_DROP_MULTIPLE = auto()
 
     OVERLAY_ICON_SIZE = 32
 
@@ -81,7 +82,7 @@ class AttachmentsViewWrapper(QWidget):
         """
         super().__init__(parent)
         self._is_read_only = True
-        self._overlay_mode = self.OverlayMode.HIDDEN
+        self._overlay_mode = OverlayMode.HIDDEN
         self._is_loading = False
         self._pending_loading_state: Optional[OverlayState] = None
         self._model: Optional[QAbstractItemModel] = None
@@ -268,8 +269,8 @@ class AttachmentsViewWrapper(QWidget):
         :param event: Drag move event dispatched to the wrapper.
         """
         if self._overlay_mode in (
-            self.OverlayMode.DRAG_AND_DROP,
-            self.OverlayMode.DRAG_AND_DROP_MULTIPLE,
+            OverlayMode.DRAG_AND_DROP,
+            OverlayMode.DRAG_AND_DROP_MULTIPLE,
         ):
             event.acceptProposedAction()
         else:
@@ -282,7 +283,7 @@ class AttachmentsViewWrapper(QWidget):
 
         :param event: Drag leave event dispatched to the wrapper.
         """
-        self._overlay_mode = self.OverlayMode.HIDDEN
+        self._overlay_mode = OverlayMode.HIDDEN
         self._refresh_overlay()
         super().dragLeaveEvent(event)
 
@@ -292,10 +293,10 @@ class AttachmentsViewWrapper(QWidget):
         :param event: Drop event dispatched to the wrapper.
         """
         if self._is_read_only or self._overlay_mode not in (
-            self.OverlayMode.DRAG_AND_DROP,
-            self.OverlayMode.DRAG_AND_DROP_MULTIPLE,
+            OverlayMode.DRAG_AND_DROP,
+            OverlayMode.DRAG_AND_DROP_MULTIPLE,
         ):
-            self._overlay_mode = self.OverlayMode.HIDDEN
+            self._overlay_mode = OverlayMode.HIDDEN
             self._refresh_overlay()
             event.ignore()
             return
@@ -315,7 +316,7 @@ class AttachmentsViewWrapper(QWidget):
         else:
             event.ignore()
 
-        self._overlay_mode = self.OverlayMode.HIDDEN
+        self._overlay_mode = OverlayMode.HIDDEN
         self._refresh_overlay()
 
     def _init_drag_and_drop(self, event: QDropEvent) -> None:
@@ -325,14 +326,14 @@ class AttachmentsViewWrapper(QWidget):
         """
         local_files_count = self._local_files_count(event)
         if local_files_count == 0:
-            self._overlay_mode = self.OverlayMode.HIDDEN
+            self._overlay_mode = OverlayMode.HIDDEN
             event.ignore()
             return
 
         self._overlay_mode = (
-            self.OverlayMode.DRAG_AND_DROP
+            OverlayMode.DRAG_AND_DROP
             if local_files_count == 1
-            else self.OverlayMode.DRAG_AND_DROP_MULTIPLE
+            else OverlayMode.DRAG_AND_DROP_MULTIPLE
         )
         event.acceptProposedAction()
 
@@ -357,7 +358,7 @@ class AttachmentsViewWrapper(QWidget):
                 self._attach_file_add_icon,
                 size=self.OVERLAY_ICON_SIZE,
             )
-            if self._overlay_mode == self.OverlayMode.DRAG_AND_DROP:
+            if self._overlay_mode == OverlayMode.DRAG_AND_DROP:
                 self._overlay_text_label.setText(
                     self.tr("Drop a file here to attach")
                 )
@@ -388,18 +389,18 @@ class AttachmentsViewWrapper(QWidget):
             return
 
         if self._overlay_mode in (
-            self.OverlayMode.DRAG_AND_DROP,
-            self.OverlayMode.DRAG_AND_DROP_MULTIPLE,
+            OverlayMode.DRAG_AND_DROP,
+            OverlayMode.DRAG_AND_DROP_MULTIPLE,
         ):
             self._render_drag_and_drop_overlay()
             return
 
         if self._is_model_initialized() and not self._has_attachments():
-            self._overlay_mode = self.OverlayMode.EMPTY_LIST
+            self._overlay_mode = OverlayMode.EMPTY_LIST
             self._render_empty_overlay()
             return
 
-        self._overlay_mode = self.OverlayMode.HIDDEN
+        self._overlay_mode = OverlayMode.HIDDEN
         self._overlay.hide()
 
     def _sync_loading_overlay_geometry(self) -> None:

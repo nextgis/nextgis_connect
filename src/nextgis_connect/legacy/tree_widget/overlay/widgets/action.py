@@ -79,7 +79,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self._title_label.setTextFormat(Qt.TextFormat.RichText)
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title_label.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding,
+            QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Fixed,
         )
 
@@ -95,9 +95,17 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
         self._message_label = QLabel(self._content_widget)
         self._message_label.setWordWrap(True)
+        self._message_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
 
         self._details_label = QLabel(self._content_widget)
         self._details_label.setWordWrap(True)
+        self._details_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
 
         details_palette = QPalette(self._details_label.palette())
         details_palette.setColor(
@@ -293,6 +301,8 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
             self._buttons_layout.setContentsMargins(0, 8, 0, 0)
 
         self._buttons_layout.invalidate()
+        self._content_layout.invalidate()
+        self._content_widget.updateGeometry()
         self._footer_link.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self._update_icon_layout(card_width)
 
