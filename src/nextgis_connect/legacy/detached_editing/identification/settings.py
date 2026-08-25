@@ -39,6 +39,7 @@ class IdentificationSettings:
     KEY_AUTO_ZOOM = f"{FEATURE_GROUP}/autoZoomToFeature"
     KEY_ATTACHMENTS_SORT_MODE = f"{FEATURE_GROUP}/attachmentsSortMode"
     KEY_ATTACHMENTS_SORT_ORDER = f"{FEATURE_GROUP}/attachmentsSortOrder"
+    KEY_IMAGE_PREVIEW_MODE = f"{FEATURE_GROUP}/imagePreviewMode"
 
     def __init__(self) -> None:
         self.__settings = QgsSettings()
@@ -137,3 +138,18 @@ class IdentificationSettings:
     @attachments_sort_order.setter
     def attachments_sort_order(self, value: Qt.SortOrder) -> None:
         self.__settings.setValue(self.KEY_ATTACHMENTS_SORT_ORDER, value)
+
+    @property
+    def image_preview_mode(self) -> str:
+        mode = self.__settings.value(
+            self.KEY_IMAGE_PREVIEW_MODE,
+            "panorama",
+            type=str,
+        )
+        return mode if mode in ("flat", "panorama") else "panorama"
+
+    @image_preview_mode.setter
+    def image_preview_mode(self, value: str) -> None:
+        if value not in ("flat", "panorama"):
+            raise ValueError(f"Unsupported image preview mode: {value}")
+        self.__settings.setValue(self.KEY_IMAGE_PREVIEW_MODE, value)

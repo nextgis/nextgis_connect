@@ -1791,6 +1791,9 @@ class TestDetachedLayerAttachments(NgConnectTestCase):
                         "mime_type": "image/png",
                         "size": 1001,
                         "fileobj": 501,
+                        "file_meta": {
+                            "panorama": {"ProjectionType": "equirectangular"}
+                        },
                     },
                     {
                         "id": 102,
@@ -1835,6 +1838,10 @@ class TestDetachedLayerAttachments(NgConnectTestCase):
         self.assertEqual(
             [attachment.ngw_aid for attachment in second_attachments],
             [102, 103],
+        )
+        self.assertEqual(
+            first_attachments[0].file_meta,
+            {"panorama": {"ProjectionType": "equirectangular"}},
         )
 
         second_by_ngw_aid = {

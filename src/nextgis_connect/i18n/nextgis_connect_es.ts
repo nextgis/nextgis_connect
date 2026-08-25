@@ -103,27 +103,27 @@
 <context>
     <name>AttachmentsTab</name>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="200"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="204"/>
         <source>Loading feature attachments</source>
         <translation>Cargando adjuntos de la entidad</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="246"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="250"/>
         <source>Loading attachment previews</source>
         <translation>Cargando previsualizaciones de adjuntos</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="392"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="396"/>
         <source>Loading attachments</source>
         <translation>Cargando adjuntos</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="392"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="396"/>
         <source>Fetching the attachment list.</source>
         <translation>Obteniendo la lista de adjuntos.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="493"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="497"/>
         <source>Add attachment</source>
         <translation>Añadir adjunto</translation>
     </message>
@@ -133,32 +133,32 @@
         <translation type="obsolete">Descargar todos los adjuntos</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="528"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="532"/>
         <source>Save all attachments as...</source>
         <translation>Guardar todos los adjuntos como...</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="534"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="538"/>
         <source>Sort By</source>
         <translation>Ordenar por</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="537"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="541"/>
         <source>Name</source>
         <translation>Nombre</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="541"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="545"/>
         <source>Type</source>
         <translation>Tipo</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="550"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="554"/>
         <source>A-Z</source>
         <translation>A-Z</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="554"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="558"/>
         <source>Z-A</source>
         <translation>Z-A</translation>
     </message>
@@ -173,12 +173,12 @@
         <translation type="obsolete">Obteniendo previsualizaciones de imagen.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="861"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="865"/>
         <source>All Files (*)</source>
         <translation>Todos los archivos (*)</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="862"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="866"/>
         <source>Select Attachments</source>
         <translation>Seleccionar adjuntos</translation>
     </message>
@@ -193,12 +193,12 @@
         <translation type="obsolete">Obteniendo archivos adjuntos.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1391"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1405"/>
         <source>Save Attachment As</source>
         <translation>Guardar adjunto como</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1414"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="1428"/>
         <source>Save Feature Attachments As</source>
         <translation>Guardar adjuntos de la entidad como</translation>
     </message>
@@ -213,17 +213,17 @@
         <translation type="obsolete">Obteniendo archivo adjunto.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="523"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="527"/>
         <source>Cache all attachments</source>
         <translation>Cachear todos los adjuntos</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="928"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="932"/>
         <source>Edit mode enabled automatically for layer &quot;{}&quot;.</source>
         <translation>Modo de edición activado automáticamente para la capa &quot;{}&quot;.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="884"/>
+        <location filename="../legacy/detached_editing/identification/ui/attachments_tab.py" line="888"/>
         <source>Cannot add attachment &quot;{}&quot; because its file is unavailable.</source>
         <translation>No se puede agregar el adjunto «{}» porque su archivo no está disponible.</translation>
     </message>
@@ -722,12 +722,12 @@ La edición puede romper referencias existentes.</translation>
 <context>
     <name>DetachedLayer</name>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1280"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1291"/>
         <source>Layer structure changed</source>
         <translation>La estructura de la capa ha cambiado</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1249"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1260"/>
         <source>Added columns in QGIS will not be added to NextGIS Web layer.
 
 If you want to change the layer structure, please do so in the NextGIS Web interface and reset the layer in sync status window.</source>
@@ -736,7 +736,7 @@ If you want to change the layer structure, please do so in the NextGIS Web inter
 Si desea cambiar la estructura de la capa, hágalo en la interfaz de NextGIS Web y restablezca la capa en la ventana de estado de sincronización.</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="1280"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="1291"/>
         <source>Deleting a column is only possible from the NextGIS Web interface.
 
 Further work with the layer is possible only after the layer reset. You can do this from the sync status window.</source>
@@ -750,17 +750,17 @@ El trabajo posterior con la capa solo es posible después de restablecer la capa
         <translation>Cambiar descripción de la entidad {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="580"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="591"/>
         <source>Add attachment {}</source>
         <translation>Añadir adjunto {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="603"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="614"/>
         <source>Update attachment {} for feature {}</source>
         <translation>Actualizar adjunto {} para la entidad {}</translation>
     </message>
     <message>
-        <location filename="../legacy/detached_editing/detached_layer.py" line="626"/>
+        <location filename="../legacy/detached_editing/detached_layer.py" line="637"/>
         <source>Remove attachment {} from feature {}</source>
         <translation>Eliminar adjunto {} de la entidad {}</translation>
     </message>
@@ -1548,89 +1548,99 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
 <context>
     <name>ImagePreviewDialog</name>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1052"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1164"/>
         <source>First image</source>
         <translation>Primera imagen</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1069"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1181"/>
         <source>Last image</source>
         <translation>Última imagen</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1157"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1279"/>
         <source>Zoom in</source>
         <translation>Acercar</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1158"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1280"/>
         <source>Zoom out</source>
         <translation>Alejar</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1159"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1281"/>
         <source>Rotate left</source>
         <translation>Girar a la izquierda</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1160"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1282"/>
         <source>Rotate right</source>
         <translation>Girar a la derecha</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1163"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1285"/>
         <source>Previous image</source>
         <translation>Imagen anterior</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1164"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1286"/>
         <source>Next image</source>
         <translation>Imagen siguiente</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1300"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1502"/>
         <source>more</source>
         <translation>más</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1377"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1579"/>
         <source>Image preview</source>
         <translation>Vista previa de imagen</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1396"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1598"/>
         <source>Open</source>
         <translation>Abrir</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1401"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1603"/>
         <source>Show in Folder</source>
         <translation>Mostrar en carpeta</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1406"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1608"/>
         <source>Copy</source>
         <translation>Copiar</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1411"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1613"/>
         <source>Save As…</source>
         <translation>Guardar como…</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1446"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1648"/>
         <source>Copied</source>
         <translation>Copiado</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1458"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1660"/>
         <source>Save Image As</source>
         <translation>Guardar imagen como</translation>
     </message>
     <message>
-        <location filename="../ui_kit/widgets/image_preview.py" line="1460"/>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1662"/>
         <source>Images (*)</source>
         <translation>Imágenes (*)</translation>
+    </message>
+    <message>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1423"/>
+        <source>Show image</source>
+        <translation>Mostrar imagen</translation>
+    </message>
+    <message>
+        <location filename="../ui_kit/widgets/image_preview.py" line="1423"/>
+        <source>Show panorama</source>
+        <translation>Mostrar panorama</translation>
     </message>
 </context>
 <context>

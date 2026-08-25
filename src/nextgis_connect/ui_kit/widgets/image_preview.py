@@ -17,6 +17,7 @@
 import re
 import shutil
 from dataclasses import dataclass
+from enum import Enum
 from html import escape
 from pathlib import Path
 from typing import Callable, Optional, Sequence, Set
@@ -27,16 +28,19 @@ from qgis.PyQt.QtCore import (
     QObject,
     QPoint,
     QPropertyAnimation,
+    QRect,
     QSize,
     Qt,
     QTimer,
     QUrl,
 )
 from qgis.PyQt.QtGui import (
+    QCloseEvent,
     QCursor,
     QDesktopServices,
     QFontMetrics,
     QIcon,
+    QImage,
     QImageReader,
     QKeyEvent,
     QKeySequence,
@@ -57,6 +61,7 @@ from qgis.PyQt.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
+    QMessageBox,
     QPushButton,
     QScrollArea,
     QShortcut,
@@ -69,10 +74,17 @@ from qgis.PyQt.QtWidgets import (
 
 from nextgis_connect.platform.clipboard import Clipboard
 from nextgis_connect.platform.filesystem import reveal_in_file_manager
+from nextgis_connect.platform.logging import logger
+from nextgis_connect.platform.qgis.opengl import panorama_renderer_available
 from nextgis_connect.ui_kit.icons import material_icon, qgis_icon
+from nextgis_connect.ui_kit.widgets.image_projection import (
+    is_equirectangular_projection,
+    projection_type_from_image,
+)
 from nextgis_connect.ui_kit.widgets.loading_indicator import (
     LoadingIndicatorWidget,
 )
+from nextgis_connect.ui_kit.widgets.panorama import PanoramaWidget
 
 
 @dataclass(frozen=True)
@@ -80,6 +92,14 @@ class ImagePreviewItem:
     file_path: Optional[Path]
     file_name: str
     description: Optional[str] = None
+    projection_type: Optional[str] = None
+
+
+class ImagePreviewMode(Enum):
+    """Available image-preview renderers."""
+
+    FLAT = "flat"
+    PANORAMA = "panorama"
 
 
 class ImagePreviewDialog(QDialog):
@@ -89,18 +109,20 @@ class ImagePreviewDialog(QDialog):
     ACTIVE_PANEL_OPACITY = 1.0
     IDLE_PANEL_OPACITY = 0.48
     MOUSE_IDLE_DELAY_MS = 1600
+    RESIZE_DEBOUNCE_MS = 100
     PANEL_FADE_MS = 260
     SIDE_BUTTON_WIDTH = 42
     SIDE_BUTTON_HEIGHT = 42
     PANEL_MARGIN = 16
-    PANEL_MAX_WIDTH = 340
+    PANEL_MAX_WIDTH = 400
     DESCRIPTION_HEIGHT = 20
     COUNTER_LABEL_MIN_WIDTH = 44
     COUNTER_LABEL_HORIZONTAL_PADDING = 20
     NAVIGATION_SPACING = 8
     TOOL_BUTTON_SIZE = 28
     TOOL_ICON_SIZE = 18
-    ZOOM_LABEL_MIN_WIDTH = 92
+    TOOL_BUTTON_SPACING = 8
+    ZOOM_LABEL_MIN_WIDTH = 0
     ZOOM_LABEL_HEIGHT = 34
     ZOOM_LABEL_VISIBLE_MS = 1400
     ZOOM_LABEL_FADE_MS = 220
@@ -125,6 +147,10 @@ class ImagePreviewDialog(QDialog):
         ensure_item_ready: Optional[Callable[[int], Optional[bool]]] = None,
         prefetch_radius: int = 0,
         window_title_suffix: str = "",
+        initial_mode: ImagePreviewMode = ImagePreviewMode.PANORAMA,
+        preview_mode_changed: Optional[
+            Callable[[ImagePreviewMode], None]
+        ] = None,
     ) -> None:
         super().__init__(parent)
 
@@ -133,8 +159,13 @@ class ImagePreviewDialog(QDialog):
         self._ensure_item_ready = ensure_item_ready
         self._prefetch_radius = max(0, prefetch_radius)
         self._window_title_suffix = window_title_suffix.strip()
+        self._preferred_preview_mode = initial_mode
+        self._preview_mode = ImagePreviewMode.FLAT
+        self._preview_mode_changed = preview_mode_changed
         self._clipboard = Clipboard()
         self._source_pixmap = QPixmap()
+        self._panorama_image = QImage()
+        self._panorama_widget: Optional[PanoramaWidget] = None
         self._zoom = 1.0
         self._rotation = 0
         self._is_fit_to_window = True
@@ -145,12 +176,25 @@ class ImagePreviewDialog(QDialog):
         self._is_description_expanded = False
         self._requested_item_indices: Set[int] = set()
         self._loading_attempts_remaining = 0
+        self._is_panorama_available = False
+        self._is_panorama_renderer_available = panorama_renderer_available()
+        self._panorama_renderer_failed = False
+        self._flat_view_initialized = False
+        self._view_mode_positioning_scheduled = False
+        self._base_panel_width = 0
+        self._expanded_panel_width = 0
+        self._was_maximized_before_fullscreen = False
 
         self.setObjectName("imagePreviewDialog")
         self._idle_timer = QTimer(self)
         self._idle_timer.setSingleShot(True)
         self._idle_timer.setInterval(self.MOUSE_IDLE_DELAY_MS)
         self._idle_timer.timeout.connect(self._set_idle_panel_opacity)
+
+        self._resize_timer = QTimer(self)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.setInterval(self.RESIZE_DEBOUNCE_MS)
+        self._resize_timer.timeout.connect(self._update_after_resize)
 
         self._zoom_label_timer = QTimer(self)
         self._zoom_label_timer.setSingleShot(True)
@@ -191,6 +235,19 @@ class ImagePreviewDialog(QDialog):
     def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         self._refit_current_image()
+        if (
+            self._is_panorama_available
+            and self._is_panorama_renderer_available
+            and self._preferred_preview_mode == ImagePreviewMode.PANORAMA
+        ):
+            QTimer.singleShot(0, self._activate_preferred_panorama_mode)
+        if self._view_mode_button.isHidden():
+            self._schedule_expanded_panel_position()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        if self._panorama_widget is not None:
+            self._panorama_widget.shutdown()
+        super().closeEvent(event)
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if event.type() in (
@@ -209,6 +266,13 @@ class ImagePreviewDialog(QDialog):
 
         if not hasattr(self, "_scroll_area") or not hasattr(self, "_overlay"):
             return False
+
+        if (
+            event.type() == QEvent.Type.Resize
+            and isinstance(watched, QWidget)
+            and watched in (self._content, self._scroll_area.viewport())
+        ):
+            self._sync_overlay_geometry()
 
         interactive_view_widgets = (
             self._image_label,
@@ -233,6 +297,9 @@ class ImagePreviewDialog(QDialog):
             if event.type() == QEvent.Type.MouseButtonRelease:
                 self._finish_panning(event)
                 return event.isAccepted()
+            if event.type() == QEvent.Type.MouseButtonDblClick:
+                self._toggle_fullscreen(event)
+                return event.isAccepted()
 
         if isinstance(event, QWheelEvent):
             self._handle_wheel(event)
@@ -241,6 +308,10 @@ class ImagePreviewDialog(QDialog):
         return False
 
     def keyPressEvent(self, event: QKeyEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        if event.key() == Qt.Key.Key_Escape and self.isFullScreen():
+            self._toggle_fullscreen()
+            event.accept()
+            return
         if event.key() in (Qt.Key.Key_Right, Qt.Key.Key_L):
             self._show_next_item()
             return
@@ -277,6 +348,15 @@ class ImagePreviewDialog(QDialog):
 
         super().mouseReleaseEvent(event)
 
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
+        if self._is_control_event(self, event):
+            super().mouseDoubleClickEvent(event)
+            return
+        self._toggle_fullscreen(event)
+        if event.isAccepted():
+            return
+        super().mouseDoubleClickEvent(event)
+
     def wheelEvent(self, event: QWheelEvent) -> None:  # pyright: ignore[reportIncompatibleMethodOverride]
         self._handle_wheel(event)
         if event.isAccepted():
@@ -288,10 +368,16 @@ class ImagePreviewDialog(QDialog):
         if self._source_pixmap.isNull():
             return
 
-        if event.button() not in (
-            Qt.MouseButton.LeftButton,
-            Qt.MouseButton.MiddleButton,
-        ):
+        if event.button() != Qt.MouseButton.LeftButton:
+            return
+
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._panorama_widget
+            if panorama_widget is None:
+                return
+            panorama_widget.start_drag(event.pos())
+            self.setCursor(Qt.CursorShape.ClosedHandCursor)
+            event.accept()
             return
 
         self._is_panning = True
@@ -336,6 +422,14 @@ class ImagePreviewDialog(QDialog):
 
     def _continue_panning(self, event: QMouseEvent) -> None:
         self._set_active_panel_opacity()
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._panorama_widget
+            if panorama_widget is None:
+                return
+            panorama_widget.drag_to(event.pos())
+            if panorama_widget.is_dragging:
+                event.accept()
+            return
         if not self._is_panning:
             return
 
@@ -345,6 +439,15 @@ class ImagePreviewDialog(QDialog):
         event.accept()
 
     def _finish_panning(self, event: QMouseEvent) -> None:
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            if event.button() == Qt.MouseButton.LeftButton:
+                panorama_widget = self._panorama_widget
+                if panorama_widget is None:
+                    return
+                panorama_widget.end_drag()
+                self.setCursor(Qt.CursorShape.OpenHandCursor)
+                event.accept()
+            return
         if (
             event.button()
             not in (Qt.MouseButton.LeftButton, Qt.MouseButton.MiddleButton)
@@ -370,15 +473,37 @@ class ImagePreviewDialog(QDialog):
 
         event.accept()
 
+    def _toggle_fullscreen(self, event: Optional[QMouseEvent] = None) -> None:
+        if event is not None and event.button() != Qt.MouseButton.LeftButton:
+            return
+        if self._source_pixmap.isNull():
+            return
+
+        if self.isFullScreen():
+            if self._was_maximized_before_fullscreen:
+                self.showMaximized()
+            else:
+                self.showNormal()
+        else:
+            self._was_maximized_before_fullscreen = self.isMaximized()
+            self.showFullScreen()
+        self._update_fullscreen_button()
+        QTimer.singleShot(0, self._restore_overlay_interaction)
+        if event is not None:
+            event.accept()
+
+    def _restore_overlay_interaction(self) -> None:
+        self._sync_overlay_geometry()
+        self._overlay.raise_()
+        self._panel.raise_()
+        if self._loading_overlay.isVisible():
+            self._loading_overlay.raise_()
+        self._update_fullscreen_button()
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
-        if hasattr(self, "_zoom_label") and self._zoom_label.isVisible():
-            self._position_zoom_label()
-        if hasattr(self, "_description_label"):
-            self._update_description_text()
-        if self._is_fit_to_window:
-            self._fit_to_window()
-            self._update_image()
+        if hasattr(self, "_resize_timer"):
+            self._resize_timer.start()
 
     def _load_ui(self) -> None:
         layout = QStackedLayout(self)
@@ -399,7 +524,12 @@ class ImagePreviewDialog(QDialog):
             self._show_context_menu
         )
 
-        self._scroll_area = QScrollArea(self)
+        self._content = QWidget(self)
+        self._content.installEventFilter(self)
+        self._content_layout = QStackedLayout(self._content)
+        self._content_layout.setContentsMargins(0, 0, 0, 0)
+
+        self._scroll_area = QScrollArea(self._content)
         self._scroll_area.setWidget(self._image_label)
         self._scroll_area.setWidgetResizable(False)
         self._scroll_area.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -422,7 +552,9 @@ class ImagePreviewDialog(QDialog):
         self._scroll_area.viewport().customContextMenuRequested.connect(
             self._show_context_menu
         )
-        layout.addWidget(self._scroll_area)
+        self._content_layout.addWidget(self._scroll_area)
+
+        layout.addWidget(self._content)
 
         self._overlay = QWidget(self)
         self._overlay.installEventFilter(self)
@@ -538,7 +670,7 @@ class ImagePreviewDialog(QDialog):
 
         tools_layout = QHBoxLayout()
         tools_layout.setContentsMargins(0, 0, 0, 0)
-        tools_layout.setSpacing(8)
+        tools_layout.setSpacing(self.TOOL_BUTTON_SPACING)
         self._previous_button = self._tool_button(icon_name="chevron_left")
         self._previous_button.clicked.connect(self._show_previous_item)
         self._next_button = self._tool_button(icon_name="chevron_right")
@@ -555,6 +687,12 @@ class ImagePreviewDialog(QDialog):
             icon_name="rotate_90_degrees_cw"
         )
         self._rotate_right_button.clicked.connect(self._rotate_right)
+        self._fullscreen_button = self._tool_button(icon_name="fullscreen")
+        self._fullscreen_button.clicked.connect(
+            lambda: self._toggle_fullscreen()
+        )
+        self._view_mode_button = self._tool_button(icon_name="vrpano")
+        self._view_mode_button.clicked.connect(self._toggle_preview_mode)
 
         self._navigation_widget = QWidget(self._panel)
         self._navigation_widget.setSizePolicy(
@@ -583,17 +721,13 @@ class ImagePreviewDialog(QDialog):
             self._zoom_out_button,
             self._rotate_left_button,
             self._rotate_right_button,
+            self._fullscreen_button,
+            self._view_mode_button,
         ):
             tools_layout.addWidget(widget)
 
         panel_layout.addLayout(tools_layout)
-        overlay_layout.addWidget(
-            self._panel,
-            2,
-            1,
-            alignment=Qt.AlignmentFlag.AlignHCenter
-            | Qt.AlignmentFlag.AlignBottom,
-        )
+        self._view_mode_button.hide()
 
         self._zoom_label = QFrame(self)
         self._zoom_label.setMinimumWidth(self.ZOOM_LABEL_MIN_WIDTH)
@@ -640,8 +774,6 @@ class ImagePreviewDialog(QDialog):
         )
         self._zoom_label_fade_animation.finished.connect(self._hide_zoom_label)
         self._zoom_label.hide()
-        layout.addWidget(self._overlay)
-
         self._loading_overlay = QWidget(self)
         self._loading_overlay.setStyleSheet(
             f"background: {self.BACKGROUND_COLOR};"
@@ -775,6 +907,8 @@ class ImagePreviewDialog(QDialog):
         )
         button.setToolTip("")
         button.pressed.connect(self._set_active_panel_opacity)
+        button.released.connect(lambda button=button: button.setDown(False))
+        button.clicked.connect(self._raise_interactive_panel)
         return button
 
     def _navigation_icon(self, icon_name: str, available: bool) -> QIcon:
@@ -787,8 +921,13 @@ class ImagePreviewDialog(QDialog):
 
     def _raise_overlays(self) -> None:
         self._overlay.raise_()
+        self._panel.raise_()
         self._zoom_label.raise_()
         self._loading_overlay.raise_()
+
+    def _raise_interactive_panel(self) -> None:
+        self._overlay.raise_()
+        self._panel.raise_()
 
     def _show_current_item(self) -> None:
         if not self._items:
@@ -801,7 +940,12 @@ class ImagePreviewDialog(QDialog):
         self._is_fit_to_window = True
         self._temporary_pan_offset = QPoint()
         self._source_pixmap = QPixmap()
+        self._panorama_image = QImage()
         self._image_label.clear()
+        self._is_panorama_available = False
+        self._is_panorama_renderer_available = False
+        self._flat_view_initialized = False
+        self._set_preview_mode(ImagePreviewMode.FLAT, persist=False)
         self._is_description_expanded = False
         self._set_image_controls_enabled(False)
         self._image_ready_check_timer.stop()
@@ -885,6 +1029,7 @@ class ImagePreviewDialog(QDialog):
     def _show_empty_state(self) -> None:
         self._source_pixmap = QPixmap()
         self._image_label.clear()
+        self._flat_view_initialized = False
         self._description = ""
         self._description_label.setVisible(False)
         self._set_counter_text("0 / 0")
@@ -893,8 +1038,10 @@ class ImagePreviewDialog(QDialog):
         self._next_button.setEnabled(False)
         self._next_area.setEnabled(False)
         self._set_image_controls_enabled(False)
+        self._update_view_mode_button()
         self._update_window_title()
         self._panel.adjustSize()
+        self._schedule_expanded_panel_position()
 
     def _load_pixmap(self, image_path: Optional[Path]) -> bool:
         if image_path is None or not image_path.is_file():
@@ -921,10 +1068,53 @@ class ImagePreviewDialog(QDialog):
             self._set_image_controls_enabled(False)
             return False
 
+        projection_type = self._current_projection_type(image_path)
+        is_equirectangular = is_equirectangular_projection(projection_type)
+        logger.debug(
+            "Image preview probe: projection=%s, panorama_renderer_available=%s, "
+            "renderer_failed=%s",
+            projection_type or "none",
+            self._is_panorama_renderer_available,
+            self._panorama_renderer_failed,
+        )
+        self._is_panorama_available = is_equirectangular
+        self._is_panorama_renderer_available = (
+            panorama_renderer_available()
+            and not self._panorama_renderer_failed
+        )
+        if is_equirectangular and not self._is_panorama_renderer_available:
+            logger.warning(
+                "Panorama renderer unavailable; opening the image in flat mode"
+            )
+        if self._is_panorama_available:
+            self._panorama_image = QImage(image)
+            if (
+                self._is_panorama_renderer_available
+                and self._panorama_widget is not None
+            ):
+                self._panorama_widget.set_image(self._panorama_image)
+                self._panorama_widget.reset_view()
+            mode = (
+                self._preferred_preview_mode
+                if self.isVisible() and self._is_panorama_renderer_available
+                else ImagePreviewMode.FLAT
+            )
+            self._set_preview_mode(mode, persist=False)
+        else:
+            self._panorama_image = QImage()
+            self._set_preview_mode(ImagePreviewMode.FLAT, persist=False)
+
         self._update_window_title()
         self._set_image_controls_enabled(True)
+        self._update_view_mode_button()
         self._refit_current_image()
         return True
+
+    def _current_projection_type(self, image_path: Path) -> Optional[str]:
+        item = self._current_item()
+        if item is None:
+            return None
+        return item.projection_type or projection_type_from_image(image_path)
 
     def _refit_current_image(self) -> None:
         if self._source_pixmap.isNull():
@@ -934,6 +1124,8 @@ class ImagePreviewDialog(QDialog):
         self._update_image()
 
     def _update_image(self) -> None:
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            return
         if self._source_pixmap.isNull():
             self._image_label.clear()
             return
@@ -950,9 +1142,19 @@ class ImagePreviewDialog(QDialog):
         )
         self._image_label.setPixmap(scaled_pixmap)
         self._image_label.resize(scaled_pixmap.size())
+        self._flat_view_initialized = True
         self._raise_overlays()
 
+    def _update_after_resize(self) -> None:
+        self._update_description_text()
+        if self._is_fit_to_window:
+            self._refit_current_image()
+        if self._zoom_label.isVisible():
+            self._position_zoom_label()
+
     def _fit_to_window(self) -> None:
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            return
         if self._source_pixmap.isNull():
             return
 
@@ -978,6 +1180,15 @@ class ImagePreviewDialog(QDialog):
         )
 
     def _show_zoom_label(self) -> None:
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._panorama_widget
+            if panorama_widget is None:
+                return
+            self._show_transient_status(
+                f"{round(panorama_widget.fov)}°",
+                "vrpano",
+            )
+            return
         self._show_transient_status(
             f"{round(self._zoom * 100)}%",
             "zoom_in",
@@ -1001,20 +1212,38 @@ class ImagePreviewDialog(QDialog):
             )
         )
         self._zoom_label_text.setText(text)
-        self._position_zoom_label()
         self._zoom_label_opacity.setOpacity(1.0)
+        self._zoom_label_timer.start()
+        QTimer.singleShot(0, self._show_positioned_zoom_label)
+
+    def _show_positioned_zoom_label(self) -> None:
+        self._position_zoom_label()
         self._zoom_label.show()
         self._zoom_label.raise_()
-        self._zoom_label_timer.start()
 
     def _position_zoom_label(self) -> None:
-        size = self._zoom_label.sizeHint()
-        width = max(self.ZOOM_LABEL_MIN_WIDTH, size.width())
+        self._zoom_label_text.setMinimumWidth(0)
+        self._zoom_label_text.setMaximumWidth(16777215)
+        self._zoom_label_text.setFixedWidth(
+            self._zoom_label_text.sizeHint().width()
+        )
+        self._zoom_label.adjustSize()
+        width = max(
+            self.ZOOM_LABEL_MIN_WIDTH, self._zoom_label.sizeHint().width()
+        )
         height = self.ZOOM_LABEL_HEIGHT
+        panel_position = self._panel.mapTo(self, QPoint())
+        if self._preview_mode == ImagePreviewMode.FLAT:
+            viewport = self._scroll_area.viewport()
+            right_edge = viewport.mapTo(self, QPoint()).x() + viewport.width()
+        else:
+            right_edge = (
+                self._content.mapTo(self, QPoint()).x() + self._content.width()
+            )
         self._zoom_label.setFixedSize(width, height)
         self._zoom_label.move(
-            max(0, self.width() - width - self.PANEL_MARGIN),
-            max(0, self.height() - height - self.PANEL_MARGIN),
+            max(0, right_edge - width - self.PANEL_MARGIN),
+            max(0, panel_position.y() + (self._panel.height() - height) // 2),
         )
 
     def _fade_zoom_label(self) -> None:
@@ -1082,6 +1311,14 @@ class ImagePreviewDialog(QDialog):
         if self._source_pixmap.isNull():
             return
 
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._panorama_widget
+            if panorama_widget is None:
+                return
+            panorama_widget.zoom_in()
+            self._show_zoom_label()
+            return
+
         self._is_fit_to_window = False
         self._temporary_pan_offset = QPoint()
         self._zoom = min(self.MAX_ZOOM, self._zoom * self.ZOOM_STEP)
@@ -1090,6 +1327,14 @@ class ImagePreviewDialog(QDialog):
 
     def _zoom_out(self) -> None:
         if self._source_pixmap.isNull():
+            return
+
+        if self._preview_mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._panorama_widget
+            if panorama_widget is None:
+                return
+            panorama_widget.zoom_out()
+            self._show_zoom_label()
             return
 
         self._is_fit_to_window = False
@@ -1239,10 +1484,251 @@ class ImagePreviewDialog(QDialog):
         for button in (
             self._zoom_in_button,
             self._zoom_out_button,
-            self._rotate_left_button,
-            self._rotate_right_button,
+            self._fullscreen_button,
         ):
             button.setEnabled(enabled)
+        rotations_enabled = (
+            enabled and self._preview_mode == ImagePreviewMode.FLAT
+        )
+        self._rotate_left_button.setEnabled(rotations_enabled)
+        self._rotate_right_button.setEnabled(rotations_enabled)
+
+    def _update_fullscreen_button(self) -> None:
+        is_fullscreen = self.isFullScreen()
+        self._fullscreen_button.setIcon(
+            material_icon(
+                "fullscreen_exit" if is_fullscreen else "fullscreen",
+                color=self.ACTIVE_ICON_COLOR,
+            )
+        )
+        self._fullscreen_button.setToolTip(
+            self.tr("Exit full screen")
+            if is_fullscreen
+            else self.tr("Show full screen")
+        )
+
+    def _toggle_preview_mode(self) -> None:
+        if not self._is_panorama_available:
+            return
+        mode = (
+            ImagePreviewMode.FLAT
+            if self._preview_mode == ImagePreviewMode.PANORAMA
+            else ImagePreviewMode.PANORAMA
+        )
+        if (
+            mode == ImagePreviewMode.PANORAMA
+            and not self._is_panorama_renderer_available
+        ):
+            QMessageBox.warning(
+                self,
+                self.tr("Panorama preview unavailable"),
+                self.tr(
+                    "Panorama preview is unavailable because OpenGL is not "
+                    "supported by this QGIS runtime. The image is shown in "
+                    "flat mode."
+                ),
+            )
+            return
+        self._set_preview_mode(mode, persist=True)
+
+    def _on_panorama_initialization_failed(self) -> None:
+        panorama_widget = self._panorama_widget
+        self._panorama_renderer_failed = True
+        self._is_panorama_renderer_available = False
+        self._set_preview_mode(ImagePreviewMode.FLAT, persist=True)
+        if panorama_widget is not None:
+            self._content_layout.removeWidget(panorama_widget)
+            panorama_widget.shutdown()
+            panorama_widget.hide()
+            panorama_widget.deleteLater()
+            self._panorama_widget = None
+        self._refit_current_image()
+        logger.warning("Panorama renderer failed; switched to flat preview")
+
+    def _activate_preferred_panorama_mode(self) -> None:
+        if (
+            not self._is_panorama_available
+            or not self._is_panorama_renderer_available
+            or not self.isVisible()
+        ):
+            return
+        self._set_preview_mode(self._preferred_preview_mode, persist=False)
+
+    def _ensure_panorama_widget(self) -> Optional[PanoramaWidget]:
+        if self._panorama_widget is not None:
+            return self._panorama_widget
+        if not self._is_panorama_renderer_available:
+            return None
+
+        logger.debug("Creating panorama OpenGL widget")
+        panorama_widget = PanoramaWidget(self._content)
+        panorama_widget.setContextMenuPolicy(
+            Qt.ContextMenuPolicy.CustomContextMenu
+        )
+        panorama_widget.customContextMenuRequested.connect(
+            self._show_context_menu
+        )
+        panorama_widget.initialization_failed.connect(
+            self._on_panorama_initialization_failed
+        )
+        panorama_widget.rendering_failed.connect(
+            self._on_panorama_initialization_failed
+        )
+        self._content_layout.addWidget(panorama_widget)
+        panorama_widget.set_image(self._panorama_image)
+        panorama_widget.reset_view()
+        self._panorama_widget = panorama_widget
+        return panorama_widget
+
+    def _set_preview_mode(
+        self,
+        mode: ImagePreviewMode,
+        *,
+        persist: bool,
+    ) -> None:
+        if (
+            mode == ImagePreviewMode.PANORAMA
+            and not self._is_panorama_renderer_available
+        ):
+            mode = ImagePreviewMode.FLAT
+
+        panorama_widget = None
+        if mode == ImagePreviewMode.PANORAMA:
+            panorama_widget = self._ensure_panorama_widget()
+            if panorama_widget is None:
+                mode = ImagePreviewMode.FLAT
+
+        self._preview_mode = mode
+        if mode == ImagePreviewMode.PANORAMA:
+            assert panorama_widget is not None
+            self._content_layout.setCurrentWidget(panorama_widget)
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
+        else:
+            self._content_layout.setCurrentWidget(self._scroll_area)
+            self.unsetCursor()
+            if (
+                not self._flat_view_initialized
+                and not self._source_pixmap.isNull()
+            ):
+                self._refit_current_image()
+        self._sync_overlay_geometry()
+        if persist:
+            self._preferred_preview_mode = mode
+            if self._preview_mode_changed is not None:
+                self._preview_mode_changed(mode)
+        self._set_image_controls_enabled(not self._source_pixmap.isNull())
+        self._update_view_mode_button()
+
+    def _sync_overlay_geometry(self) -> None:
+        parent = (
+            self._content
+            if self._preview_mode == ImagePreviewMode.PANORAMA
+            else self._scroll_area.viewport()
+        )
+        self._overlay.setGeometry(
+            QRect(parent.mapTo(self, QPoint()), parent.size())
+        )
+        if hasattr(self, "_panel"):
+            self._position_panel()
+        self._overlay.raise_()
+        self._panel.raise_()
+        if (
+            hasattr(self, "_loading_overlay")
+            and self._loading_overlay.isVisible()
+        ):
+            self._loading_overlay.raise_()
+
+    def _update_view_mode_button(self) -> None:
+        is_visible = (
+            self._is_panorama_available and not self._source_pixmap.isNull()
+        )
+        if not is_visible:
+            self._view_mode_button.hide()
+            self._panel.setMinimumWidth(0)
+            self._panel.setMaximumWidth(self.PANEL_MAX_WIDTH)
+            self._panel.adjustSize()
+            self._position_panel()
+            return
+
+        is_panorama = self._preview_mode == ImagePreviewMode.PANORAMA
+        self._set_view_mode_button_icon(
+            "vrpano" if is_panorama else "panorama_photosphere"
+        )
+        self._view_mode_button.setToolTip(
+            self.tr("Show image") if is_panorama else self.tr("Show panorama")
+        )
+        if self._view_mode_button.isVisible():
+            return
+        if self._expanded_panel_width:
+            self._panel.setFixedWidth(self._expanded_panel_width)
+            self._view_mode_button.show()
+            self._position_panel()
+            return
+        self._schedule_expanded_panel_position()
+
+    def _set_view_mode_button_icon(self, icon_name: str) -> None:
+        self._view_mode_button.setIcon(
+            material_icon(icon_name, color=self.ACTIVE_ICON_COLOR)
+        )
+        self._view_mode_button.setIconSize(
+            QSize(self.TOOL_ICON_SIZE, self.TOOL_ICON_SIZE)
+        )
+
+    def _schedule_expanded_panel_position(self) -> None:
+        if (
+            self._view_mode_positioning_scheduled
+            or not self._is_panorama_available
+            or self._source_pixmap.isNull()
+        ):
+            return
+
+        self._view_mode_positioning_scheduled = True
+        self._view_mode_button.hide()
+        self._panel.setMinimumWidth(0)
+        self._panel.setMaximumWidth(self.PANEL_MAX_WIDTH)
+        self._panel.adjustSize()
+        self._position_panel()
+
+        # Let Qt finish the flat layout before measuring its actual position.
+        QTimer.singleShot(0, self._expand_panel_for_view_mode)
+
+    def _expand_panel_for_view_mode(self) -> None:
+        self._view_mode_positioning_scheduled = False
+        if not self._is_panorama_available or self._source_pixmap.isNull():
+            return
+
+        self._base_panel_width = self._panel.width()
+        self._panel.setMaximumWidth(
+            self.PANEL_MAX_WIDTH
+            + self.TOOL_BUTTON_SIZE
+            + self.TOOL_BUTTON_SPACING
+        )
+        self._view_mode_button.show()
+        self._panel.adjustSize()
+
+        # Record Qt's expanded size once, then reuse it for all resizes.
+        QTimer.singleShot(0, self._store_expanded_panel_size)
+
+    def _store_expanded_panel_size(self) -> None:
+        if not self._view_mode_button.isVisible():
+            return
+        self._expanded_panel_width = self._panel.width()
+        self._panel.setFixedWidth(self._expanded_panel_width)
+        self._position_panel()
+
+    def _position_panel(self) -> None:
+        if self._overlay.size().isEmpty():
+            return
+        reference_width = self._base_panel_width or self._panel.width()
+        self._panel.move(
+            max(0, (self._overlay.width() - reference_width) // 2),
+            max(
+                0,
+                self._overlay.height()
+                - self._panel.height()
+                - self.PANEL_MARGIN,
+            ),
+        )
 
     def _update_description_text(self) -> None:
         if not self._description:

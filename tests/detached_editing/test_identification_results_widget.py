@@ -349,6 +349,7 @@ class TestIdentificationResultsWidget:
             tab._open_image_preview(tab._attachments_proxy.index(0, 0))
 
             dialog_class.assert_called_once()
+            assert len(dialog_class.call_args.args) == 2
             call_kwargs = dialog_class.call_args.kwargs
             assert call_kwargs.get("prefetch_radius", 0) == 0
             dialog.exec.assert_called_once()

@@ -102,6 +102,10 @@ from nextgis_connect.ui_kit.icons import material_icon, qgis_icon
 from nextgis_connect.ui_kit.widgets.image_preview import (
     ImagePreviewDialog,
     ImagePreviewItem,
+    ImagePreviewMode,
+)
+from nextgis_connect.ui_kit.widgets.image_projection import (
+    projection_type_from_file_meta,
 )
 
 AttachmentThumbnailKey = Tuple[
@@ -877,7 +881,7 @@ class AttachmentsTab(QWidget):
 
         for file_path in paths:
             path = Path(file_path)
-            logger.info(f"Added file: {path}")
+            logger.debug(f"Added file: {path}")
             try:
                 detached_layer.add_attachment(self._feature_id, path)
             except OSError:
@@ -1118,11 +1122,17 @@ class AttachmentsTab(QWidget):
         dialog = ImagePreviewDialog(
             items,
             image_row,
-            self,
             ensure_item_ready=self._cache_image_preview_item,
             window_title_suffix=PLUGIN_NAME,
+            initial_mode=ImagePreviewMode(
+                IdentificationSettings().image_preview_mode
+            ),
+            preview_mode_changed=self._save_image_preview_mode,
         )
         dialog.exec()
+
+    def _save_image_preview_mode(self, mode: ImagePreviewMode) -> None:
+        IdentificationSettings().image_preview_mode = mode.value
 
     def _image_preview_items(self) -> List[ImagePreviewItem]:
         items = []
@@ -1139,6 +1149,9 @@ class AttachmentsTab(QWidget):
                     file_path=attachment.file_path,
                     file_name=attachment.name or "",
                     description=attachment.description,
+                    projection_type=projection_type_from_file_meta(
+                        attachment.file_meta
+                    ),
                 )
             )
 

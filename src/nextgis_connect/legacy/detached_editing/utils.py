@@ -21,7 +21,7 @@ from datetime import datetime
 from enum import Enum, auto
 from functools import singledispatch
 from pathlib import Path
-from typing import Optional, Set, Union
+from typing import Any, Dict, Optional, Set, Union
 
 from qgis.core import (
     QgsExpressionContext,
@@ -351,6 +351,7 @@ class AttachmentMetadata:
     mime_type: Optional[str] = None
     size: Optional[int] = None
     sha256: Optional[str] = None
+    file_meta: Optional[Dict[str, Any]] = None
     file_path: Optional[Path] = None
     thumbnail_path: Optional[Path] = None
 

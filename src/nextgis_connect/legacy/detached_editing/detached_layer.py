@@ -443,27 +443,42 @@ class DetachedLayer(QObject):
     ) -> List[AttachmentMetadata]:
         """Return attachments for identification UI.
 
-        Non-versioned layers do not receive attachment deltas during sync, so
-        refresh their base attachment list from NGW before applying local
-        changes from the container and edit buffer.
+        The attachment collection is also the only endpoint that exposes
+        ``file_meta``. Refresh it for both layer types so image viewers can
+        use server-side panorama metadata before downloading the file.
         """
         if isinstance(feature, QgsFeature):
             feature_id = feature.id()
         else:
             feature_id = feature
 
-        if (
-            not self.__container.metadata.is_versioning_enabled
-            and not is_feature_new(feature_id)
-        ):
+        remote_attachments: List[AttachmentMetadata] = []
+        if not is_feature_new(feature_id):
             try:
-                self.__refresh_feature_attachments(feature_id)
+                remote_attachments = self.__refresh_feature_attachments(
+                    feature_id
+                )
             except Exception:
                 logger.exception(
                     "Failed to refresh feature attachments from NGW"
                 )
 
-        return self.feature_attachments(feature_id)
+        metadata_by_ngw_aid = {
+            attachment.ngw_aid: attachment.file_meta
+            for attachment in remote_attachments
+            if attachment.ngw_aid is not None
+        }
+        return [
+            replace(
+                attachment,
+                file_meta=(
+                    metadata_by_ngw_aid.get(attachment.ngw_aid)
+                    if attachment.ngw_aid is not None
+                    else None
+                ),
+            )
+            for attachment in self.feature_attachments(feature_id)
+        ]
 
     def feature_attachment(
         self, feature_id: QgsFeatureId, attachment_id: AttachmentId
@@ -1792,17 +1807,22 @@ class DetachedLayer(QObject):
             )
         return path
 
-    def __refresh_feature_attachments(self, feature_id: QgsFeatureId) -> None:
+    def __refresh_feature_attachments(
+        self,
+        feature_id: QgsFeatureId,
+    ) -> List[AttachmentMetadata]:
         ngw_fid = self.__feature_ngw_fid(feature_id)
         if ngw_fid is None:
-            return
+            return []
 
         remote_attachments = self.__fetch_feature_attachments_from_ngw(
             feature_id, ngw_fid
         )
-        self.__save_feature_attachments_from_ngw(
-            feature_id, remote_attachments
-        )
+        if not self.__container.metadata.is_versioning_enabled:
+            self.__save_feature_attachments_from_ngw(
+                feature_id, remote_attachments
+            )
+        return remote_attachments
 
     def __feature_ngw_fid(
         self, feature_id: QgsFeatureId
@@ -1856,6 +1876,9 @@ class DetachedLayer(QObject):
                     mime_type=item.get("mime_type"),
                     size=item.get("size"),
                     sha256=item.get("sha256"),
+                    file_meta=item.get("file_meta")
+                    if isinstance(item.get("file_meta"), dict)
+                    else None,
                 )
             )
 
