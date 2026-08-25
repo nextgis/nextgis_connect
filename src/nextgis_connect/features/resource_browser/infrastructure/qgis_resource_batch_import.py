@@ -342,7 +342,14 @@ class QgisResourceBatchImporter(QObject):
         style_resource: NGWResource = index.data(
             QNGWResourceItem.NGWResourceRole
         )
-        layer.styleManager().setCurrentStyle(style_resource.display_name)
+        layer_name = layer.name()
+        style_name = style_resource.display_name
+        layer.styleManager().setCurrentStyle(style_name)
+        layer.setName(
+            style_name
+            if layer_name in style_name
+            else f"{layer_name} — {style_name}"
+        )
 
     def __add_group(self, group_index: QModelIndex) -> None:
         group_resource: NGWGroupResource = group_index.data(

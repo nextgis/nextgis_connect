@@ -97,3 +97,42 @@ def test_add_service_with_one_available_layer_does_not_create_group() -> None:
     importer._QgisResourceBatchImporter__add_service_layer.assert_called_once_with(
         service_resource, added_layer
     )
+
+
+def test_add_layer_from_style_appends_style_name() -> None:
+    importer = _create_importer()
+    layer = mock.Mock()
+    layer.name.return_value = "Roads"
+    layer_node = mock.Mock()
+    layer_node.layer.return_value = layer
+    importer._QgisResourceBatchImporter__add_layer = mock.Mock(
+        return_value=layer_node
+    )
+    style_resource = mock.Mock()
+    style_resource.display_name = "Night"
+    style_index = _create_service_index(style_resource)
+
+    importer._QgisResourceBatchImporter__add_layer_from_style(style_index)
+
+    layer.styleManager().setCurrentStyle.assert_called_once_with("Night")
+    layer.setName.assert_called_once_with("Roads — Night")
+
+
+def test_add_layer_from_style_uses_style_name_when_it_includes_layer_name() -> (
+    None
+):
+    importer = _create_importer()
+    layer = mock.Mock()
+    layer.name.return_value = "Roads"
+    layer_node = mock.Mock()
+    layer_node.layer.return_value = layer
+    importer._QgisResourceBatchImporter__add_layer = mock.Mock(
+        return_value=layer_node
+    )
+    style_resource = mock.Mock()
+    style_resource.display_name = "Roads - Night"
+    style_index = _create_service_index(style_resource)
+
+    importer._QgisResourceBatchImporter__add_layer_from_style(style_index)
+
+    layer.setName.assert_called_once_with("Roads - Night")
