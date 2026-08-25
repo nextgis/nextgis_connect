@@ -3976,13 +3976,13 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="271"/>
-        <source>Expand recursively</source>
-        <translation>Развернуть рекурсивно</translation>
+        <source>Expand All</source>
+        <translation>Развернуть всё</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="272"/>
-        <source>Collapse recursively</source>
-        <translation>Свернуть рекурсивно</translation>
+        <source>Collapse All</source>
+        <translation>Свернуть всё</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="273"/>

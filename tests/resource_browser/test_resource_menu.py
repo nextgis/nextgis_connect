@@ -165,7 +165,6 @@ class TestResourceMenuPolicy:
             ResourceMenuSubmenuKind.ADD_TO_QGIS_AS
         )
         assert layout.sections[0].submenus[0].actions == (
-            ResourceMenuAction.ADD_TO_QGIS,
             ResourceMenuAction.ADD_MVT_LAYER,
             ResourceMenuAction.ADD_TMS_LAYER,
             ResourceMenuAction.ADD_EXPERIMENTAL_NGW_LAYER,
@@ -795,7 +794,6 @@ class TestResourceContextMenuFactory:
         ]
         assert all(isinstance(submenu, QMenu) for submenu in submenus)
         assert [action.text() for action in submenus[0].actions()] == [
-            "Synchronizable layer",
             "MVT",
             "TMS layer",
         ]

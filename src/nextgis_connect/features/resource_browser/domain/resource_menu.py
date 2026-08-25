@@ -669,10 +669,7 @@ class ResourceMenuPolicy:
             entries.append(
                 ResourceMenuSubmenu(
                     kind=ResourceMenuSubmenuKind.ADD_TO_QGIS_AS,
-                    actions=(
-                        ResourceMenuAction.ADD_TO_QGIS,
-                        *alternative_actions,
-                    ),
+                    actions=alternative_actions,
                 )
             )
 

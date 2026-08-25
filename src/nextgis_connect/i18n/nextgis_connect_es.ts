@@ -3976,13 +3976,13 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="271"/>
-        <source>Expand recursively</source>
-        <translation>Expandir recursivamente</translation>
+        <source>Expand All</source>
+        <translation>Expandir todo</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="272"/>
-        <source>Collapse recursively</source>
-        <translation>Contraer recursivamente</translation>
+        <source>Collapse All</source>
+        <translation>Contraer todo</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="273"/>
