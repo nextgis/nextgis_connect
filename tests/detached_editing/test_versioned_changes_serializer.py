@@ -49,7 +49,6 @@ class TestVersionedChangesSerializer(NgConnectTestCase):
                 source_type="file_upload",
                 data={
                     "id": "uploaded-file-id",
-                    "size": 128,
                 },
             ),
             name="photo.jpg",
@@ -73,12 +72,9 @@ class TestVersionedChangesSerializer(NgConnectTestCase):
                         "source": {
                             "type": "file_upload",
                             "id": "uploaded-file-id",
-                            "size": 128,
                         },
-                        "name": "photo.jpg",
                         "description": "Attachment description",
                         "keyname": "photo",
-                        "mime_type": "image/jpeg",
                     },
                 ]
             ],

@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
+from typing import Optional
 
 
 def FEATURE_URL(res_id, feature_id):
@@ -45,8 +46,15 @@ class NGWFeature:
             self.get_feature_attachmets_url()
         )
 
-    def link_attachment(self, name: str, uploaded_file_info):
+    def link_attachment(
+        self,
+        name: str,
+        uploaded_file_info,
+        mime_type: Optional[str] = None,
+    ):
         json_data = dict(name=name, file_upload=uploaded_file_info)
+        if mime_type:
+            json_data["mime_type"] = mime_type
         res = self.ngw_vector_layer.res_factory.connection.post(
             self.get_feature_attachmets_url(), json=json_data
         )

@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, DefaultDict, Dict, List, Optional, Set
 from qgis.core import Qgis
 from qgis.PyQt.QtCore import (
     QFile,
+    QIODevice,
     QMimeDatabase,
     QObject,
     pyqtSignal,
@@ -222,11 +223,29 @@ class DetachedLayerEditBuffer(QObject):
         :param file_path: Source file path selected by the user.
         :return: AttachmentMetadata instance for the new attachment.
         """
-        file = QFile(str(file_path))
         mime_database = QMimeDatabase()
-        mime_type = mime_database.mimeTypeForFileNameAndData(
-            str(file_path), file
-        )
+        mime_type_name = ""
+        file = QFile(str(file_path))
+        if file.open(QIODevice.OpenModeFlag.ReadOnly):
+            try:
+                mime_type = mime_database.mimeTypeForFileNameAndData(
+                    str(file_path), file
+                )
+                if mime_type.isValid():
+                    mime_type_name = mime_type.name()
+            finally:
+                file.close()
+
+        if not mime_type_name:
+            for mime_type in mime_database.mimeTypesForFileName(
+                file_path.name
+            ):
+                if mime_type.isValid() and mime_type.name():
+                    mime_type_name = mime_type.name()
+                    break
+
+        if not mime_type_name:
+            mime_type_name = "application/octet-stream"
 
         storage_service = DetachedStorageServiceFactory.create()
         attachment_id = self._next_attachment_id
@@ -236,7 +255,7 @@ class DetachedLayerEditBuffer(QObject):
             attachment_id,
             file_path,
             file_name=file_path.name,
-            mime_type=mime_type.name(),
+            mime_type=mime_type_name,
             feature_local_id=int(feature_id),
         )
 
@@ -245,7 +264,7 @@ class DetachedLayerEditBuffer(QObject):
             aid=attachment_id,
             name=file_path.name,
             file_path=temp_file_path,
-            mime_type=mime_type.name(),
+            mime_type=mime_type_name,
             size=temp_file_path.stat().st_size,
         )
         self._staged_attachments[attachment_id] = attachment

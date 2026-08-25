@@ -298,13 +298,17 @@ class UploadChangesTask(DetachedEditingTask):
                 change.ngw_fid = self.__added_fids_mapping[change.fid]
 
             assert not isinstance(change.source, UnsetType)
-            payload = {
-                "keyname": change.keyname,
-                "name": change.name,
-                "description": change.description,
-                "file_upload": change.source.data,
-                "mime_type": change.mime_type,
-            }
+            payload: Dict[str, Any] = {"file_upload": change.source.data}
+            if (
+                not isinstance(change.description, UnsetType)
+                and change.description is not None
+            ):
+                payload["description"] = change.description
+            if (
+                not isinstance(change.keyname, UnsetType)
+                and change.keyname is not None
+            ):
+                payload["keyname"] = change.keyname
             url = f"{feature_url}/{change.ngw_fid}/attachment/"
             result = ngw_connection.post(url, payload)
 
@@ -656,14 +660,16 @@ class UploadChangesTask(DetachedEditingTask):
                 is_dirty=True,
             )
 
+            upload_name = change.name if isinstance(change.name, str) else None
             uploaded_file = ngw_connection.tus_upload_file(
-                str(path), lambda _1=None, _2=None, _3=None: None
+                str(path),
+                lambda _1=None, _2=None, _3=None: None,
+                upload_name=upload_name,
             )
 
             change.source = AttachmentSource(
-                source_type="file_upload", data=uploaded_file
+                source_type="file_upload", data={"id": uploaded_file["id"]}
             )
-            change.source.data.pop("name")  # Drop auto-generated name
 
     def __upload_with_transaction(
         self,

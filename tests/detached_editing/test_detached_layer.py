@@ -1969,6 +1969,40 @@ class TestDetachedLayerAttachments(NgConnectTestCase):
             qgs_layer.rollBack()
 
     @mock_container(TestData.Points)
+    def test_new_attachment_uses_filename_mime_fallback(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        local_file_path = self.create_temp_file(".jpg")
+        local_file_path.write_bytes(b"jpeg")
+
+        content_mime_type = MagicMock()
+        content_mime_type.isValid.return_value = False
+        fallback_mime_type = MagicMock()
+        fallback_mime_type.isValid.return_value = True
+        fallback_mime_type.name.return_value = "image/jpeg"
+        module = "nextgis_connect.legacy.detached_editing.detached_layer_edit_buffer"
+
+        with patch(f"{module}.QMimeDatabase") as mime_database_class:
+            mime_database = mime_database_class.return_value
+            mime_database.mimeTypeForFileNameAndData.return_value = (
+                content_mime_type
+            )
+            mime_database.mimeTypesForFileName.return_value = [
+                fallback_mime_type
+            ]
+
+            self.assertTrue(qgs_layer.startEditing())
+            try:
+                attachment = layer.add_attachment(
+                    self.FEATURE_1, local_file_path
+                )
+            finally:
+                qgs_layer.rollBack()
+
+        self.assertEqual(attachment.mime_type, "image/jpeg")
+
+    @mock_container(TestData.Points)
     def test_rollback_removes_new_attachment_from_storage_cache(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:

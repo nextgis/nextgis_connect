@@ -272,11 +272,17 @@ class VersionedChangesSerializer:
         :param result: Mapping to update with attachment fields.
         :param change: Attachment-related change instance to inspect.
         """
-        if not isinstance(change.name, UnsetType):
+        has_file_source = not isinstance(change.source, UnsetType)
+        if not has_file_source and not isinstance(change.name, UnsetType):
             result["name"] = change.name
-        if not isinstance(change.description, UnsetType):
+        is_creation = isinstance(change, AttachmentCreation)
+        if not isinstance(change.description, UnsetType) and (
+            not is_creation or change.description is not None
+        ):
             result["description"] = change.description
-        if not isinstance(change.keyname, UnsetType):
+        if not isinstance(change.keyname, UnsetType) and (
+            not is_creation or change.keyname is not None
+        ):
             result["keyname"] = change.keyname
-        if not isinstance(change.mime_type, UnsetType):
+        if not has_file_source and not isinstance(change.mime_type, UnsetType):
             result["mime_type"] = change.mime_type

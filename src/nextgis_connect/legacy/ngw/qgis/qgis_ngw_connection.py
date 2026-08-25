@@ -50,6 +50,7 @@ from qgis.PyQt.QtCore import (
     QByteArray,
     QEventLoop,
     QFile,
+    QFileInfo,
     QIODevice,
     QObject,
     QTimer,
@@ -248,6 +249,7 @@ class QgsNgwConnection(QObject):
         params=None,
         *,
         is_lunkwill: bool = False,
+        headers: Optional[Dict[str, str]] = None,
         feedback: Optional[QgsFeedback] = None,
         **kwargs,
     ) -> Any:
@@ -256,6 +258,7 @@ class QgsNgwConnection(QObject):
             "PUT",
             params,
             is_lunkwill=is_lunkwill,
+            headers=headers,
             feedback=feedback,
             **kwargs,
         )
@@ -326,6 +329,7 @@ class QgsNgwConnection(QObject):
         params=None,
         *,
         is_lunkwill: bool = False,
+        headers: Optional[Dict[str, str]] = None,
         feedback: Optional[QgsFeedback] = None,
         **kwargs,
     ):
@@ -336,6 +340,7 @@ class QgsNgwConnection(QObject):
                 method,
                 params,
                 is_lunkwill=is_lunkwill,
+                headers=headers,
                 feedback=feedback,
                 **kwargs,
             )
@@ -360,12 +365,12 @@ class QgsNgwConnection(QObject):
         params: Optional[Any] = None,
         *,
         is_lunkwill: bool = False,
+        headers: Optional[Dict[str, str]] = None,
         feedback: Optional[QgsFeedback] = None,
         **kwargs,
     ) -> Any:
-        headers = None
         if is_lunkwill:
-            headers = {"X-Lunkwill": "suggest"}
+            headers = dict(headers or {}, **{"X-Lunkwill": "suggest"})
 
         reply, result = self.__request_and_decode(
             sub_url,
@@ -690,15 +695,29 @@ class QgsNgwConnection(QObject):
 
         return reply, response_data
 
-    def upload_file(self, filename, callback, *, feedback=None):
+    def upload_file(
+        self,
+        filename: str,
+        callback: Any,
+        *,
+        mime_type: Optional[str] = None,
+        feedback: Optional[QgsFeedback] = None,
+    ) -> Any:
         self.uploadProgressCallback = callback
-        return self.put(UPLOAD_FILE_URL, file=filename, feedback=feedback)
+        headers = {"Content-Type": mime_type} if mime_type else None
+        return self.put(
+            UPLOAD_FILE_URL,
+            file=filename,
+            headers=headers,
+            feedback=feedback,
+        )
 
     def tus_upload_file(
         self,
         filename: str,
         callback: Any,
         *,
+        upload_name: Optional[str] = None,
         feedback: Optional[QgsFeedback] = None,
     ) -> Any:
         """
@@ -714,6 +733,8 @@ class QgsNgwConnection(QObject):
         :type filename: str
         :param callback: Callback function for upload progress.
         :type callback: Any
+        :param upload_name: File name to store in the upload metadata.
+        :type upload_name: Optional[str]
 
         :return: NGW server response after successful upload.
         :rtype: Any
@@ -733,7 +754,8 @@ class QgsNgwConnection(QObject):
 
         # Initiate upload process by sending specific "create" request with a
         # void body.
-        encoded_filename = b64encode(file.fileName().encode()).decode()
+        upload_name = upload_name or QFileInfo(filename).fileName()
+        encoded_filename = b64encode(upload_name.encode()).decode()
         create_hdrs = {
             "Tus-Resumable": TUS_VERSION,
             "Content-Length": "0",

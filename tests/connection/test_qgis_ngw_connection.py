@@ -15,7 +15,10 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
+
+from qgis.PyQt.QtCore import QByteArray
+from qgis.PyQt.QtNetwork import QNetworkReply
 
 from nextgis_connect.platform.qgis.errors import NgwError
 from tests.ng_connect_testcase import NgConnectTestCase, TestConnection
@@ -106,6 +109,62 @@ class TestQgsNgwConnection(NgConnectTestCase):
         self.assertTrue(
             f"URL: {request_url}" in error_notes
             or f"URL: {request_url}" in str(error)
+        )
+
+    def test_upload_file_passes_declared_mime_type(self) -> None:
+        connection_id = self.connection_id(TestConnection.SandboxGuest)
+        connection = self.qgs_ngw_connection_class(connection_id)
+        upload_callback = Mock()
+
+        with patch.object(connection, "put") as mock_put:
+            connection.upload_file(
+                "/tmp/photo.png",
+                upload_callback,
+                mime_type="image/png",
+            )
+
+        mock_put.assert_called_once_with(
+            "/api/component/file_upload/",
+            file="/tmp/photo.png",
+            headers={"Content-Type": "image/png"},
+            feedback=None,
+        )
+
+    def test_tus_upload_file_uses_declared_upload_name(self) -> None:
+        connection_id = self.connection_id(TestConnection.SandboxGuest)
+        connection = self.qgs_ngw_connection_class(connection_id)
+        upload_path = self.create_temp_file(".jpg")
+        upload_path.write_bytes(b"jpeg")
+
+        create_reply = Mock()
+        create_reply.attribute.return_value = 201
+        create_reply.rawHeader.return_value = QByteArray(
+            b"/api/component/file_upload/upload-id"
+        )
+        chunk_reply = Mock()
+        chunk_reply.attribute.return_value = 204
+        chunk_reply.error.return_value = QNetworkReply.NetworkError.NoError
+        request_method = "_QgsNgwConnection__request_rep"
+
+        with patch.object(
+            connection,
+            request_method,
+            side_effect=[(None, create_reply), (None, chunk_reply)],
+        ) as mock_request, patch.object(
+            connection,
+            "get",
+            return_value={"id": "upload-id"},
+        ):
+            connection.tus_upload_file(
+                str(upload_path),
+                Mock(),
+                upload_name="max.jpg",
+            )
+
+        create_headers = mock_request.call_args_list[0].kwargs["headers"]
+        self.assertEqual(
+            create_headers["Upload-Metadata"],
+            "name bWF4LmpwZw==",
         )
 
     def test_reset_model_invalidates_cached_versions(self) -> None:

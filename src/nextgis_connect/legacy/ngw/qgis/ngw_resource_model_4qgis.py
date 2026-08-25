@@ -110,7 +110,13 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import QgisInterface, QgsFileWidget
-from qgis.PyQt.QtCore import QCoreApplication, QUrl, QVariant
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QFile,
+    QMimeDatabase,
+    QUrl,
+    QVariant,
+)
 
 from .compat_qgis import CompatQt
 
@@ -1286,17 +1292,27 @@ class QGISResourceJob(NGWResourceModelJob):
                         ngw_ftrs = ngw_resource.get_features()
 
                     logger.debug(f"Load file: {full_path}")
+                    mime_type = (
+                        QMimeDatabase()
+                        .mimeTypeForFileNameAndData(
+                            str(full_path), QFile(str(full_path))
+                        )
+                        .name()
+                    )
+                    if mime_type == "application/octet-stream":
+                        mime_type = None
                     uploaded_file_info = ngw_ftrs[
                         finx
                     ].ngw_vector_layer.res_factory.connection.upload_file(
                         str(full_path),
                         uploadFileCallback,
+                        mime_type=mime_type,
                         feedback=self._feedback,
                     )
                     self._raise_if_canceled()
                     logger.debug(f"Uploaded file info: {uploaded_file_info}")
                     ngw_ftrs[finx].link_attachment(
-                        full_path.name, uploaded_file_info
+                        full_path.name, uploaded_file_info, mime_type
                     )
 
     def overwriteQGISMapLayer(self, qgs_map_layer, ngw_layer_resource):
