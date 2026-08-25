@@ -22,9 +22,10 @@ from urllib.parse import quote, urlparse
 from qgis.core import (
     QgsApplication,
     QgsAuthMethodConfig,
+    QgsNetworkAccessManager,
     QgsNetworkRequestParameters,
 )
-from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtNetwork import QNetworkCookie, QNetworkRequest
 
 from nextgis_connect.plugin.plugin_interface import NgConnectInterface
 from nextgis_connect.shared.constants import PLUGIN_NAME
@@ -61,6 +62,23 @@ def update_user_agent_suffix(request: QNetworkRequest) -> None:
     request.setAttribute(user_agent_suffix_attribute, plugin_user_agent)
 
 
+def update_qgis_locale(request: QNetworkRequest) -> None:
+    """Make NGW localize this request using the active QGIS language."""
+    application = QgsApplication.instance()
+    locale = application.locale() if application is not None else "en"
+    language = locale.replace("-", "_").split("_", maxsplit=1)[0].lower()
+    if language in ("", "c"):
+        language = "en"
+
+    request.setRawHeader(b"Accept-Language", language.encode("ascii"))
+
+    # NGW gives this cookie precedence over Accept-Language and user language.
+    locale_cookie = QNetworkCookie(b"ngw_slg", language.encode("ascii"))
+    locale_cookie.setPath("/")
+    cookie_jar = QgsNetworkAccessManager.instance().cookieJar()
+    cookie_jar.setCookiesFromUrl([locale_cookie], request.url())
+
+
 @dataclass(frozen=True)
 class NgwConnection:
     NEXTGIS_DOMAIN = ".nextgis.com"
@@ -91,6 +109,7 @@ class NgwConnection:
             return False
 
         update_user_agent_suffix(request)
+        update_qgis_locale(request)
 
         if self.auth_config_id is None:
             return False

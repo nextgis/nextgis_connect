@@ -278,24 +278,26 @@ class TestNgwConnection(NgConnectTestCase):
         return_value="4.0.0",
     )
     def test_update_network_request_guest(self, mock_plugin_version):
-        del mock_plugin_version
-
         connection = self.connection(TestConnection.SandboxGuest)
         url = f"{connection.url}/api/component/auth/current_user"
-        request_before = QNetworkRequest(QUrl(url))
         request_after = QNetworkRequest(QUrl(url))
-        is_updated = connection.update_network_request(request_after)
+        with patch(
+            "nextgis_connect.legacy.ngw_connection.domain.connection."
+            "QgsNetworkAccessManager.instance"
+        ) as mock_network_access_manager:
+            cookie_jar = (
+                mock_network_access_manager.return_value.cookieJar.return_value
+            )
+            is_updated = connection.update_network_request(request_after)
+
         self.assertFalse(is_updated)
-
+        self._assert_qgis_locale(request_after, cookie_jar, url)
         user_agent_suffix_attribute = self._user_agent_suffix_attribute()
-        if user_agent_suffix_attribute is None:
-            self.assertEqual(request_before, request_after)
-            return
-
-        self.assertEqual(
-            request_after.attribute(user_agent_suffix_attribute),
-            "NextGIS-Connect/4.0.0",
-        )
+        if user_agent_suffix_attribute is not None:
+            self.assertEqual(
+                request_after.attribute(user_agent_suffix_attribute),
+                "NextGIS-Connect/4.0.0",
+            )
 
     @patch(
         "nextgis_connect.legacy.ngw_connection.domain.connection."
@@ -303,18 +305,24 @@ class TestNgwConnection(NgConnectTestCase):
         return_value="4.0.0",
     )
     def test_update_network_request_login(self, mock_plugin_version):
-        del mock_plugin_version
-
         connection = self.connection(TestConnection.SandboxWithLogin)
         url = f"{connection.url}/api/component/auth/current_user"
         request_before = QNetworkRequest(QUrl(url))
         request = QNetworkRequest(QUrl(url))
-        is_updated = connection.update_network_request(request)
+        with patch(
+            "nextgis_connect.legacy.ngw_connection.domain.connection."
+            "QgsNetworkAccessManager.instance"
+        ) as mock_network_access_manager:
+            cookie_jar = (
+                mock_network_access_manager.return_value.cookieJar.return_value
+            )
+            is_updated = connection.update_network_request(request)
         self.assertTrue(is_updated)
         self.assertNotEqual(request_before, request)
         self.assertTrue(
             request.rawHeader(b"Authorization").startsWith(b"Basic")
         )
+        self._assert_qgis_locale(request, cookie_jar, url)
         user_agent_suffix_attribute = self._user_agent_suffix_attribute()
         if user_agent_suffix_attribute is not None:
             self.assertEqual(
@@ -430,6 +438,25 @@ class TestNgwConnection(NgConnectTestCase):
             return None
 
         return QNetworkRequest.Attribute(user_agent_suffix_flag)
+
+    def _assert_qgis_locale(self, request, cookie_jar, url: str) -> None:
+        application = QgsApplication.instance()
+        assert application is not None
+        language = application.locale().replace("-", "_").split("_", 1)[0]
+        language = (
+            language.lower() if language.lower() not in ("", "c") else "en"
+        )
+
+        self.assertEqual(
+            request.rawHeader(b"Accept-Language"), language.encode()
+        )
+        cookie_jar.setCookiesFromUrl.assert_called_once()
+        cookies, cookie_url = cookie_jar.setCookiesFromUrl.call_args.args
+        self.assertEqual(cookie_url, QUrl(url))
+        self.assertEqual(len(cookies), 1)
+        self.assertEqual(bytes(cookies[0].name()), b"ngw_slg")
+        self.assertEqual(bytes(cookies[0].value()), language.encode())
+        self.assertEqual(cookies[0].path(), "/")
 
     @patch.object(QgsApplication, "authManager")
     def test_update_uri_config_without_expand_basic(self, mock_auth_manager):
