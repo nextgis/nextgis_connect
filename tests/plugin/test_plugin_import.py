@@ -22,6 +22,7 @@ from unittest.mock import MagicMock
 
 import qgis.utils
 from qgis import core as qgis_core
+from qgis.gui import QgsRubberBand
 from qgis.PyQt.QtWidgets import QToolBar
 
 import nextgis_connect
@@ -109,6 +110,9 @@ def test_unload_ignores_deleted_cache_purge_task(monkeypatch) -> None:
 
 
 def test_plugin_reload_cleans_ui_resources(qgis_iface) -> None:
+    from nextgis_connect.legacy.detached_editing.identification.identification_tool import (
+        IdentificationTool,
+    )
     from nextgis_connect.legacy.shell.presentation.dock.ng_connect_dock import (
         NgConnectDock,
     )
@@ -116,6 +120,10 @@ def test_plugin_reload_cleans_ui_resources(qgis_iface) -> None:
 
     qgis_platform_utils.iface = qgis_iface
     main_window = qgis_iface.mainWindow()
+    initial_rubber_band_count = sum(
+        isinstance(item, QgsRubberBand)
+        for item in qgis_iface.mapCanvas().scene().items()
+    )
     qgis_iface.addDockWidget.side_effect = main_window.addDockWidget
     qgis_iface.removeDockWidget.side_effect = main_window.removeDockWidget
     initial_layer_action_additions = (
@@ -139,12 +147,25 @@ def test_plugin_reload_cleans_ui_resources(qgis_iface) -> None:
         try:
             assert main_window.findChildren(QToolBar, "NgConnectToolBar")
             assert main_window.findChildren(NgConnectDock, "NGConnectDock")
+            identify_tools = qgis_iface.mapCanvas().findChildren(
+                IdentificationTool
+            )
+            assert len(identify_tools) == 1
+            qgis_iface.mapCanvas().setMapTool(identify_tools[0])
         finally:
             plugin._unload()
             qgis.utils.plugins.pop(PACKAGE_NAME, None)
 
         assert main_window.findChildren(QToolBar, "NgConnectToolBar") == []
         assert main_window.findChildren(NgConnectDock, "NGConnectDock") == []
+        assert qgis_iface.mapCanvas().findChildren(IdentificationTool) == []
+        assert (
+            sum(
+                isinstance(item, QgsRubberBand)
+                for item in qgis_iface.mapCanvas().scene().items()
+            )
+            == initial_rubber_band_count
+        )
 
     layer_action_additions = (
         qgis_iface.addCustomActionForLayerType.call_count

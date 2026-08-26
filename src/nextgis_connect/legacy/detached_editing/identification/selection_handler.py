@@ -18,6 +18,7 @@ from typing import ClassVar, Optional
 
 from qgis.core import QgsApplication, QgsGeometry, QgsPointXY
 from qgis.gui import QgsMapCanvas, QgsMapMouseEvent, QgsRubberBand
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import (
     QObject,
     QPoint,
@@ -95,12 +96,12 @@ class IdentificationSelectionHandler(QObject):
             self._on_point_fade_animation_finished
         )
 
-    def __del__(self) -> None:
-        """Release transient selection resources.
-
-        Clear rubber bands and stop the point highlight animation.
-        """
-        self.cancel()
+    def unload(self) -> None:
+        """Remove selection feedback from the canvas before deletion."""
+        self.cancel(emit_clear=False)
+        for rubber_band in (self._rubber_band, self._point_rubber_band):
+            self._canvas.scene().removeItem(rubber_band)
+            sip.delete(rubber_band)
 
     def cancel(self, emit_clear: bool = True) -> None:
         """Cancel the current selection interaction.

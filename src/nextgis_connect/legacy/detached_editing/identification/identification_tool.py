@@ -64,6 +64,10 @@ class IdentificationTool(QgsMapToolIdentify):
         self._selection_handler.clear.connect(self.clear)
         self.deactivated.connect(self._cancel_selection_on_deactivate)
 
+    def unload(self) -> None:
+        """Clear selection feedback before the canvas deletes this tool."""
+        self._selection_handler.unload()
+
     def canvasPressEvent(self, e: Optional[QgsMapMouseEvent]) -> None:
         """Forward canvas press events to the selection handler.
 

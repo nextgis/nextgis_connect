@@ -38,6 +38,8 @@ from qgis.gui import (
     QgsMapToolIdentify,
 )
 from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QEvent,
     QObject,
     QPoint,
     Qt,
@@ -181,7 +183,9 @@ class IdentificationManager(QObject):
             self._results_dialog = None  # type: ignore
 
         iface = self._iface
-        iface.unregisterMapToolHandler(self._tool_handler)
+        if self._tool_handler is not None:
+            iface.unregisterMapToolHandler(self._tool_handler)
+            self._tool_handler = None
         try:
             iface.layerTreeView().selectionModel().selectionChanged.disconnect(
                 self._update_action_enabled
@@ -195,8 +199,16 @@ class IdentificationManager(QObject):
         except TypeError:
             pass
 
-        if self._tool_handler is not None:
-            self._identify_tool.deleteLater()
+        if self._identify_tool is not None:
+            identify_tool = self._identify_tool
+            self._canvas.unsetMapTool(identify_tool)
+            identify_tool.unload()
+            identify_tool.identifyMenu().removeCustomActions()
+            identify_tool.deleteLater()
+            QCoreApplication.sendPostedEvents(
+                identify_tool,
+                QEvent.Type.DeferredDelete,
+            )
             self._identify_tool = None  # type: ignore
 
         if self._action is not None:
