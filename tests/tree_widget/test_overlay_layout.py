@@ -100,6 +100,49 @@ def test_action_overlay_switches_button_layout_on_resize(
     assert widget._card_stack.currentWidget() is widget._content_widget
 
 
+def test_action_overlay_does_not_reset_stacked_buttons_before_layout(
+    qgis_app,
+    overlay_widget_environment,
+) -> None:
+    del qgis_app, overlay_widget_environment
+
+    compact_title = 'Connect <span style="color: #0c65af;">Web GIS</span>'
+    widget = ActionOverlayWidget()
+    widget.set_state(
+        OverlayState(
+            kind=OverlayKind.WELCOME,
+            title="Connect your first Web GIS",
+            compact_title=compact_title,
+            primary_action=OverlayButtonState(
+                action=OverlayAction.CREATE_CONNECTION,
+                text="Add connection",
+            ),
+            secondary_action=OverlayButtonState(
+                action=OverlayAction.CREATE_WEB_GIS,
+                text="Create Web GIS",
+            ),
+        )
+    )
+    metrics = widget._title_label.fontMetrics()
+    compact_width = metrics.horizontalAdvance("Connect Web GIS")
+    widget._sync_title_text(compact_width + metrics.horizontalAdvance("M"))
+    assert widget._title_label.text() == compact_title.replace(
+        "Web GIS",
+        "Web\u00a0GIS",
+    )
+
+    widget._update_responsive_layout(content_width=1, card_width=1)
+    assert (
+        widget._buttons_layout.direction() == QBoxLayout.Direction.TopToBottom
+    )
+
+    widget._prepare_content_for_layout()
+
+    assert (
+        widget._buttons_layout.direction() == QBoxLayout.Direction.TopToBottom
+    )
+
+
 def test_background_grid_is_darker_in_light_theme(
     qgis_app,
     overlay_widget_environment,

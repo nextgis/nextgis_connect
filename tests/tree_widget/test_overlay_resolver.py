@@ -129,6 +129,9 @@ def test_first_connection_state_has_expected_actions_and_copy() -> None:
 
     assert state.kind == OverlayKind.WELCOME
     assert "Web GIS" in state.title
+    assert state.compact_title == (
+        'Connect <span style="color: #0c65af;">Web GIS</span>'
+    )
     assert (
         state.message
         == "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."

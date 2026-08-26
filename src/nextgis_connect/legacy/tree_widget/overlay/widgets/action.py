@@ -510,25 +510,6 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         )
 
     def _prepare_content_for_layout(self) -> None:
-        self._buttons_direction = (
-            QBoxLayout.Direction.TopToBottom
-            if self._stack_actions
-            else QBoxLayout.Direction.LeftToRight
-        )
-        if self._buttons_layout.direction() != self._buttons_direction:
-            self._buttons_layout.setDirection(self._buttons_direction)
-
-        if self._buttons_layout.spacing() != (
-            self._MINIMUM_BUTTON_SPACING
-            if self._stack_actions
-            else NextgisDecorator.CARD_BUTTON_SPACING
-        ):
-            self._buttons_layout.setSpacing(
-                self._MINIMUM_BUTTON_SPACING
-                if self._stack_actions
-                else NextgisDecorator.CARD_BUTTON_SPACING
-            )
-
         if self._illustration_widget.has_icon():
             self._is_icon_visible_by_layout = True
             self._illustration_widget.set_icon_visible(True)

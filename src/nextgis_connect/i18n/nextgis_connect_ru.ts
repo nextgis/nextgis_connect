@@ -1936,12 +1936,12 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Переименовать</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="449"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="450"/>
         <source>Add to QGIS</source>
         <translation>Добавить в QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="384"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="385"/>
         <source>Add to Web GIS</source>
         <translation>Добавить в Веб ГИС</translation>
     </message>
@@ -1971,7 +1971,7 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Перезаписать выбранный слой</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3201"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3202"/>
         <source>Create resource group</source>
         <translation>Создать группу ресурсов</translation>
     </message>
@@ -2001,7 +2001,7 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Создать сервис WMS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4064"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4080"/>
         <source>Duplicate Resource</source>
         <translation>Дублировать ресурс</translation>
     </message>
@@ -2021,47 +2021,47 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Открыть Веб-карту в браузере</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="410"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="411"/>
         <source>Refresh</source>
         <translation>Обновить</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="417"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="418"/>
         <source>Settings</source>
         <translation>Настройки</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="424"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="425"/>
         <source>Help</source>
         <translation>Справка</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1557"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1558"/>
         <source>Access denied. Enter your login.</source>
         <translation>Доступ запрещен. Введите корректные данные авторизации.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4519"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4535"/>
         <source>Error</source>
         <translation>Ошибка</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3194"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3195"/>
         <source>Please select parent resource group for a new resource group</source>
         <translation>Пожалуйста, выберите родительскую группу ресурсов для новой группы ресурсов</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3201"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3202"/>
         <source>New resource group</source>
         <translation>Новая группа ресурсов</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3306"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3307"/>
         <source>Uploading parameters</source>
         <translation>Параметры загрузки</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3309"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3310"/>
         <source>Enter name for resource group</source>
         <translation>Введите новое имя для группы ресурсов</translation>
     </message>
@@ -2071,97 +2071,97 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Создать веб-карту</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3688"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3704"/>
         <source>Overwrite resource</source>
         <translation>Перезаписать ресурс</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3670"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3686"/>
         <source>Resource &quot;{}&quot; will be overwritten with QGIS layer &quot;{}&quot;. Current data will be lost.&lt;br/&gt;Are you sure you want to overwrite it?</source>
         <translation>Ресурс &quot;{}&quot; будет перезаписан слоем QGIS &quot;{}&quot; . Текущие данные будут потеряны.&lt;br/&gt;Вы уверены, что хотите перезаписать его?</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3676"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3692"/>
         <source>Resource &quot;{}&quot; will be overwritten with QGIS layer &quot;{}&quot;. Current data and layer history will be lost.&lt;br/&gt;&lt;br/&gt;Are you ready to lose the layer history and overwrite it?</source>
         <translation>Ресурс &quot;{}&quot; будет перезаписан слоем QGIS &quot;{}&quot;. Текущие данные и история слоя будут потеряны.&lt;br/&gt;&lt;br/&gt;Вы готовы потерять историю слоя и перезаписать его?</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3716"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3732"/>
         <source>Overwrite</source>
         <translation>Перезаписать</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3912"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3928"/>
         <source>Failed to download raster source:</source>
         <translation>Ошибка загрузки растрового файла:</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3947"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3963"/>
         <source>Can&apos;t open file to write raster!</source>
         <translation>Ошибка записи растрового файла!</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3958"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3974"/>
         <source>Style for &quot;{}&quot; - Upload ({}%)</source>
         <translation>Стиль слоя &quot;{}&quot; - Загрузка ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4064"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4080"/>
         <source>Are you sure you want to duplicate this resource?</source>
         <translation>Вы уверены, что хотите дублировать этот ресурс?</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4115"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4131"/>
         <source>You are trying to create a WFS service for a layer that contains Z geometries. WFS in QGIS doesn&apos;t fully support editing such geometries. To fix this, change geometry type of your layer to non-Z and create a WFS service again.</source>
         <translation>Вы собираетесь создать сервис WFS для слоя, содержащий измерение Z. Редактирование таких геометрий по протоколу WFS в QGIS не поддерживается. Чтобы исправить это, измените тип геометрии вашего слоя на двумерный и пересоздайте сервис WFS.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4126"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4142"/>
         <source>The number of objects returned by default</source>
         <translation>Количество объектов, возвращаемых по умолчанию</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4188"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4204"/>
         <source>Create WMS service for layer</source>
         <translation>Создать сервис WMS для слоя</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4297"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4313"/>
         <source>Create Web map for layer</source>
         <translation>Создать Веб-карту для слоя</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4362"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4378"/>
         <source>QML file downloaded</source>
         <translation>Файл QML загружен</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4366"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4382"/>
         <source>QML file could not be downloaded</source>
         <translation>Файл QML не может быть загружен</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4384"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
         <source>Save QML</source>
         <translation>Сохранить QML</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4384"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
         <source>QGIS Layer Style File</source>
         <translation>Файлы стилей QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4476"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4492"/>
         <source>{error_message} at line {line} column {column}</source>
         <translation>{error_message} строка {line} столбец {column}</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4509"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4525"/>
         <source>Information</source>
         <translation>Информация</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3201"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3202"/>
         <source>Resource group name</source>
         <translation>Название группы ресурсов</translation>
     </message>
@@ -2171,32 +2171,32 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Создать сервис OGC API - Features</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1159"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1160"/>
         <source>Failed to connect. Please check your connection details</source>
         <translation>Ошибка подключения. Пожалуйста, проверьте параметры соединения</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1545"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1546"/>
         <source>Error occurred while communicating with Web GIS</source>
         <translation>При обращении к Веб ГИС происзошла ошибка</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4329"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4345"/>
         <source>NextGIS Connect operation errors</source>
         <translation>Ошибки операций NextGIS Connect</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1589"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1590"/>
         <source>Internal plugin error occurred.</source>
         <translation>В плагине произошла ошибка.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4126"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4142"/>
         <source>Create </source>
         <translation>Создать </translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4481"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4497"/>
         <source>An error occurred when copying the style</source>
         <translation>При копировании стиля произошла ошибка</translation>
     </message>
@@ -2206,7 +2206,7 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Загрузить в NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="388"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="389"/>
         <source>Upload project to NextGIS Web</source>
         <translation>Загрузить проект в NextGIS Web</translation>
     </message>
@@ -2216,117 +2216,117 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Свойства ресурса…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="516"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="517"/>
         <source>Creating resource...</source>
         <translation>Создание ресурса…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="517"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="518"/>
         <source>Deleting resource...</source>
         <translation>Удаление ресурса…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="518"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="519"/>
         <source>Deleting resources...</source>
         <translation>Удаление ресурсов…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="519"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="520"/>
         <source>Uploading layer...</source>
         <translation>Загрузка слоя на сервер…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="520"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="521"/>
         <source>Uploading project...</source>
         <translation>Загрузка проекта на сервер…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="521"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="522"/>
         <source>Creating WFS service...</source>
         <translation>Создание сервиса WFS…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="522"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="523"/>
         <source>Creating OGC API Features service...</source>
         <translation>Создание сервиса OGC API Features…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="525"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="526"/>
         <source>Creating WMS service...</source>
         <translation>Создание сервиса WMS…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="527"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="528"/>
         <source>Creating Web map...</source>
         <translation>Создание Веб-карты…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="529"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="530"/>
         <source>Creating style for a layer...</source>
         <translation>Создание стиля для слоя…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="530"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="531"/>
         <source>Renaming resource...</source>
         <translation>Переименование ресурса…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="532"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="533"/>
         <source>Updating resource...</source>
         <translation>Обновление ресурса…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="533"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="534"/>
         <source>Downloading resources...</source>
         <translation>Скачивание ресурсов…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="534"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="535"/>
         <source>Processing vector layers...</source>
         <translation>Обработка векторных слоёв…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="537"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="538"/>
         <source>Downloading linked resources...</source>
         <translation>Загрузка связанных ресурсов…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="538"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="539"/>
         <source>Downloading styles...</source>
         <translation>Загрузка стилей…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="539"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="540"/>
         <source>Adding resources to QGIS...</source>
         <translation>Добавление ресурсов в QGIS…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="540"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="541"/>
         <source>Searching resources...</source>
         <translation>Поиск ресурсов…</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3822"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3838"/>
         <source>Choose style</source>
         <translation>Выбор стиля</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4685"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4701"/>
         <source>Search type</source>
         <translation>Тип поиска</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4690"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4706"/>
         <source>By name</source>
         <translation>По названию</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4697"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4713"/>
         <source>By metadata</source>
         <translation>По метаданным</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4704"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4720"/>
         <source>Search</source>
         <translation>Поиск</translation>
     </message>
@@ -2341,82 +2341,82 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Новый векторный слой NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="959"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="960"/>
         <source>View in browser</source>
         <translation>Просмотр в браузере</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4910"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4926"/>
         <source>&lt;b&gt;50% off&lt;/b&gt; all subscriptions and data</source>
         <translation>&lt;b&gt;50% скидка&lt;/b&gt; на подписки и данные</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="368"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="369"/>
         <source>Open layer history</source>
         <translation>Открыть историю слоя</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="616"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="617"/>
         <source>Create you own Web GIS!</source>
         <translation>Создайте собственную Веб ГИС!</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1258"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1259"/>
         <source>Loading Web GIS resources...</source>
         <translation>Загрузка ресурсов Веб ГИС...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1258"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1259"/>
         <source>Loading resources...</source>
         <translation>Загрузка ресурсов...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1230"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1231"/>
         <source>Loading the root resource.</source>
         <translation>Загрузка корневого ресурса.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1258"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1259"/>
         <source>Loading the root resource contents.</source>
         <translation>Загрузка содержимого корневого ресурса.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1309"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1310"/>
         <source>The root resource loading was canceled.</source>
         <translation>Загрузка корневого ресурса была отменена.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1309"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1310"/>
         <source>Loading canceled</source>
         <translation>Загрузка отменена</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1309"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1310"/>
         <source>Try loading the resource tree again when the connection becomes available.</source>
         <translation>Попробуйте загрузить дерево ресурсов снова, когда соединение станет доступно.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1391"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1392"/>
         <source>Try again</source>
         <translation>Повторить</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1325"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1326"/>
         <source>The server returned an internal error while loading the root resource.</source>
         <translation>Сервер вернул внутреннюю ошибку при загрузке корневого ресурса.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1371"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1372"/>
         <source>Unable to load resources</source>
         <translation>Не удалось загрузить ресурсы</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1325"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1326"/>
         <source>Contact support for the current Web GIS instance.</source>
         <translation>Обратитесь в поддержку текущего экземпляра Веб ГИС.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1325"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1326"/>
         <source>Contact support</source>
         <translation>Обратиться в поддержку</translation>
     </message>
@@ -2436,42 +2436,42 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Открыть настройки</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1364"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1365"/>
         <source>Run diagnostics to check the connection and server availability.</source>
         <translation>Запустите диагностику, чтобы проверить соединение и доступность сервера.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1371"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1372"/>
         <source>The root resource could not be loaded.</source>
         <translation>Не удалось загрузить корневой ресурс.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1391"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1392"/>
         <source>Run diagnostics</source>
         <translation>Запустить диагностику</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1391"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1392"/>
         <source>Unable to connect</source>
         <translation>Не удалось подключиться</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1526"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1527"/>
         <source>Sandbox</source>
         <translation>Песочница</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4639"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4655"/>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1931"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1932"/>
         <source>The resource tree could not be refreshed.</source>
         <translation>Не удалось обновить дерево ресурсов.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1970"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1971"/>
         <source>Canceling...</source>
         <translation>Отмена...</translation>
     </message>
@@ -2501,84 +2501,84 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Добавить как группу</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3348"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3364"/>
         <source>No layer selected</source>
         <translation>Слой не выбран</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3389"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3405"/>
         <source>Source was not replaced</source>
         <translation>Источник не был заменён</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3395"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3411"/>
         <source>Local layer sources were replaced with Web GIS layers</source>
         <translation>Источники локальных слоёв были заменены слоями Веб ГИС</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3403"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3419"/>
         <source>Some uploaded layers were not replaced:
 {}</source>
         <translation>Некоторые загруженные слои не были заменены:
 {}</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3457"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3473"/>
         <source>Replace local layers</source>
         <translation>Заменить локальные слои</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3443"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3459"/>
         <source>... and {} more</source>
         <translation>... и ещё {}</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3449"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3465"/>
         <source>Replace local layer sources with the uploaded Web GIS layers?</source>
         <translation>Заменить источники локальных слоёв загруженными слоями Веб ГИС?</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3489"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3505"/>
         <source>Layer and resource types are incompatible</source>
         <translation>Типы слоя и ресурса несовместимы</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3499"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3515"/>
         <source>Layer is in edit mode. Save or discard edits first.</source>
         <translation>Слой находится в режиме редактирования. Сначала сохраните или отмените правки.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3523"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3539"/>
         <source>Detached layer container is invalid</source>
         <translation>Контейнер отключённого слоя недействителен</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3555"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3571"/>
         <source>Layer was not attached to detached editing</source>
         <translation>Слой не был подключён к отключённому редактированию</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3578"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3594"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3602"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3618"/>
         <source>Web GIS connection is not accessible</source>
         <translation>Соединение с Веб ГИС недоступно</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3637"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3653"/>
         <source>Layer source was not replaced</source>
         <translation>Источник слоя не был заменён</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3749"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3765"/>
         <source>Loading metadata</source>
         <translation>Загрузка метаданных</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4079"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4095"/>
         <source>Duplicating resource</source>
         <translation>Дублирование ресурса</translation>
     </message>
@@ -2588,64 +2588,64 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation type="obsolete">Запустите диагностику, чтобы проверить выбранное соединение.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2762"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2763"/>
         <source>The Web map has no layers</source>
         <translation>Веб-карта не содержит слоёв</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2926"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2927"/>
         <source>A QGIS vector style is required to add this layer as TMS</source>
         <translation>Для добавления этого слоя как TMS требуется векторный стиль QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2935"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2936"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2993"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2994"/>
         <source>The resource could not be added to QGIS</source>
         <translation>Не удалось добавить ресурс в QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4420"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
         <source>Save NGFP</source>
         <translation>Сохранить NGFP</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4420"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
         <source>NextGIS Form Package</source>
         <translation>Пакет форм NextGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4440"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4456"/>
         <source>NGFP file could not be downloaded</source>
         <translation>Не удалось скачать файл NGFP</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4450"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4466"/>
         <source>NGFP file downloaded</source>
         <translation>Файл NGFP скачан</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4709"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4725"/>
         <source>Show resource search by name or metadata</source>
         <translation>Показать поиск ресурсов по имени или метаданным</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="358"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="359"/>
         <source>Open resource page</source>
         <translation>Открыть страницу ресурса</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4290"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4306"/>
         <source>Layer &quot;{layer_name}&quot; has no styles.
 Create a default style and continue creating the Web map?</source>
         <translation>Слой &quot;{layer_name}&quot; не имеет стилей.
 Создать стиль по умолчанию и продолжить создание веб-карты?</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4307"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4323"/>
         <source>Create default style</source>
         <translation>Создать стиль по умолчанию</translation>
     </message>
@@ -2660,7 +2660,7 @@ Create a default style and continue creating the Web map?</source>
         <translation type="obsolete">Запустите диагностику, чтобы проверить настройки соединения и доступность сервера.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1408"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1409"/>
         <source>The selected connection is invalid or unavailable.
 
 Run diagnostics to check the connection settings and server availability.</source>
@@ -2669,47 +2669,47 @@ Run diagnostics to check the connection settings and server availability.</sourc
 Запустите диагностику, чтобы проверить настройки соединения и доступность сервера.</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="554"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="555"/>
         <source>Creating...</source>
         <translation>Создание...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="545"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="546"/>
         <source>Deleting...</source>
         <translation>Удаление...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="547"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="548"/>
         <source>Uploading...</source>
         <translation>Загрузка...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="555"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="556"/>
         <source>Renaming...</source>
         <translation>Переименование...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="557"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="558"/>
         <source>Updating...</source>
         <translation>Обновление...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="561"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="562"/>
         <source>Downloading...</source>
         <translation>Скачивание...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="559"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="560"/>
         <source>Processing...</source>
         <translation>Обработка...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="562"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="563"/>
         <source>Adding...</source>
         <translation>Добавление...</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="563"/>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="564"/>
         <source>Searching...</source>
         <translation>Поиск...</translation>
     </message>
@@ -3534,7 +3534,7 @@ Are you sure you want to continue?</source>
         <translation>После добавления подключения здесь появятся ваши ресурсы.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="184"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="187"/>
         <source>Add connection</source>
         <translation>Добавить подключение</translation>
     </message>
@@ -3559,39 +3559,49 @@ Are you sure you want to continue?</source>
         <translation>Создать подключение к sandbox Web GIS.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="170"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
         <source>Search in another Web GIS</source>
         <translation>Искать в другой Web GIS</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="170"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
         <source>Switch to the saved connection to continue searching.</source>
         <translation>Переключитесь на сохранённое подключение, чтобы продолжить поиск.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="170"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
         <source>Switch connection</source>
         <translation>Переключить подключение</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="184"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="187"/>
         <source>Connection required</source>
         <translation>Требуется подключение</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="184"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="187"/>
         <source>Create a connection to this Web GIS to continue searching.</source>
         <translation>Создайте подключение к этой Web GIS, чтобы продолжить поиск.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="199"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="202"/>
         <source>Nothing found</source>
         <translation>Ничего не найдено</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/overlay/controller.py" line="199"/>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="202"/>
         <source>No resources match the current search query.</source>
         <translation>Ни один ресурс не соответствует текущему поисковому запросу.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
+        <source>Connect Web GIS</source>
+        <translation type="obsolete">Подключите Веб ГИС</translation>
+    </message>
+    <message>
+        <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
+        <source>Connect &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
+        <translation>Подключите &lt;span style=&quot;color: #0c65af;&quot;&gt;Веб ГИС&lt;/span&gt;</translation>
     </message>
 </context>
 <context>
@@ -3696,87 +3706,87 @@ Are you sure you want to continue?</source>
 <context>
     <name>QGISResourceJob</name>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="432"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="433"/>
         <source>create WMS connection</source>
         <translation>создание соединения WMS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="478"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="479"/>
         <source>creating WMS layer</source>
         <translation>создание слоя WMS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1913"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1935"/>
         <source>creating</source>
         <translation>создание</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2225"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2252"/>
         <source>adding aliases</source>
         <translation>добавление псевдонимов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2377"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2404"/>
         <source>finishing</source>
         <translation>завершение</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="819"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="820"/>
         <source>preparing</source>
         <translation>подготовка</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1179"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1180"/>
         <source>Style for &quot;{}&quot;</source>
         <translation>Стиль для &quot;{}&quot;</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1332"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1333"/>
         <source>removing all features</source>
         <translation>удаление всех объектов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2314"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2341"/>
         <source>uploading ({}%)</source>
         <translation>загрузка ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="849"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="850"/>
         <source>checking geometry ({}%)</source>
         <translation>проверка геометрии ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="973"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="974"/>
         <source>preparing layer ({}%)</source>
         <translation>подготовка слоя ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1093"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1094"/>
         <source>Feature {} haven&apos;t been added. Please check geometry</source>
         <translation>Объект {} не был добавлен. Пожалуйста, проверьте геометрию</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1351"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1352"/>
         <source>adding features ({}%)</source>
         <translation>добавление объектов ({}%)</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="768"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="769"/>
         <source>adding lookup tables</source>
         <translation>добавление словарей</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1593"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1594"/>
         <source>A group tree is being created</source>
         <translation>Создаётся дерево ресурсов</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1936"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="1962"/>
         <source>Failed to load any resource to the NextGIS Web. Webmap will not be created</source>
         <translation>При загрузке ресурсов в NextGIS Web произошла ошибка. Веб-карта не будет создана</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2177"/>
+        <location filename="../legacy/ngw/qgis/ngw_resource_model_4qgis.py" line="2204"/>
         <source>replacing features</source>
         <translation>замена объектов</translation>
     </message>
@@ -3784,86 +3794,86 @@ Are you sure you want to continue?</source>
 <context>
     <name>QNGWResourceTreeView</name>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="553"/>
+        <location filename="../legacy/tree_widget/view.py" line="554"/>
         <source>Change resource name</source>
         <translation>Изменение имени ресурса</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="556"/>
+        <location filename="../legacy/tree_widget/view.py" line="557"/>
         <source>Enter new name for selected resource</source>
         <translation>Введите новое имя для выбранного ресурса</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="557"/>
+        <location filename="../legacy/tree_widget/view.py" line="558"/>
         <source>Resource already exists</source>
         <translation>Ресурс уже существует</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="255"/>
+        <location filename="../legacy/tree_widget/view.py" line="256"/>
         <source>Update is available</source>
         <translation>Доступно обновление</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="294"/>
+        <location filename="../legacy/tree_widget/view.py" line="295"/>
         <source>Plugin update required</source>
         <translation>Требуется обновление модуля</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="255"/>
+        <location filename="../legacy/tree_widget/view.py" line="256"/>
         <source>A newer version of NextGIS Connect is available.</source>
         <translation>Доступна новая версия NextGIS Connect.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="286"/>
+        <location filename="../legacy/tree_widget/view.py" line="287"/>
         <source>This version of NextGIS Web requires a newer version of NextGIS Connect.</source>
         <translation>Для этой версии NextGIS Web требуется более новая версия NextGIS Connect.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="255"/>
+        <location filename="../legacy/tree_widget/view.py" line="256"/>
         <source>Current version: {installed_version}
 Available version: {available_version}</source>
         <translation>Текущая версия: {installed_version}
 Доступная версия: {available_version}</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="289"/>
+        <location filename="../legacy/tree_widget/view.py" line="290"/>
         <source>Update plugin</source>
         <translation>Обновить модуль</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="255"/>
+        <location filename="../legacy/tree_widget/view.py" line="256"/>
         <source>Skip this time</source>
         <translation>Пропустить в этот раз</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="297"/>
+        <location filename="../legacy/tree_widget/view.py" line="298"/>
         <source>Ask the administrator to update NextGIS Web.</source>
         <translation>Попросите администратора обновить NextGIS Web.</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="300"/>
+        <location filename="../legacy/tree_widget/view.py" line="301"/>
         <source>Server update required</source>
         <translation>Требуется обновление сервера</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="303"/>
+        <location filename="../legacy/tree_widget/view.py" line="304"/>
         <source>NextGIS Connect: {ngc_version}
 NextGIS Web: {ngw_version}</source>
         <translation>NextGIS Connect: {ngc_version}
 NextGIS Web: {ngw_version}</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="345"/>
+        <location filename="../legacy/tree_widget/view.py" line="346"/>
         <source>Retry</source>
         <translation>Повторить</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="350"/>
+        <location filename="../legacy/tree_widget/view.py" line="351"/>
         <source>Unable to load resources</source>
         <translation>Не удалось загрузить ресурсы</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="454"/>
+        <location filename="../legacy/tree_widget/view.py" line="455"/>
         <source>Please wait while the current operation finishes.</source>
         <translation>Подождите, пока завершится текущая операция.</translation>
     </message>
@@ -3878,7 +3888,7 @@ NextGIS Web: {ngw_version}</translation>
         <translation type="obsolete">Обновление сервера</translation>
     </message>
     <message>
-        <location filename="../legacy/tree_widget/view.py" line="301"/>
+        <location filename="../legacy/tree_widget/view.py" line="302"/>
         <source>Update required</source>
         <translation>Требуется обновление</translation>
     </message>
@@ -3886,22 +3896,22 @@ NextGIS Web: {ngw_version}</translation>
 <context>
     <name>QgisResourceBatchImporter</name>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="293"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="294"/>
         <source>Resources can&apos;t be added to the map</source>
         <translation>Невозможно добавить ресурсы на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="299"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="300"/>
         <source>Resource &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Ресурс &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="676"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="688"/>
         <source>Basemaps</source>
         <translation>Подложки</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1012"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1027"/>
         <source>Select style</source>
         <translation>Выберите стиль</translation>
     </message>
@@ -3928,52 +3938,52 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <translation type="obsolete">Пропустить</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="206"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="207"/>
         <source>An error occurred while fetching resources</source>
         <translation>Возникла ошибка при получении ресурсов</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="227"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="228"/>
         <source>An error occurred while fetching styles</source>
         <translation>Возникла ошибка при получении стилей</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1258"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1273"/>
         <source>Layer &quot;{raster_layer.display_name}&quot; was not added to the map</source>
         <translation>Слой &quot;{raster_layer.display_name}&quot; не был добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1261"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1276"/>
         <source>Currently adding raster layers is not available for OAuth connections. Please use Basic authentication.</source>
         <translation>На текущий момент добавление растровых слоёв не доступно для соединений OAuth. Пожалуйста, используйте аутентификацию Basic.</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="774"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="789"/>
         <source>Resource</source>
         <translation>Ресурс</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="795"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="810"/>
         <source>Service layer</source>
         <translation>Сервисный слой</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="878"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="893"/>
         <source>Resource &quot;{}&quot; is not accessible because you do not have the necessary permissions</source>
         <translation>Ресурс &quot;{}&quot; недоступен, так как у вас нет необходимых прав</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="882"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="897"/>
         <source>Resource ID: {resource_id}</source>
         <translation>ID ресурса: {resource_id}</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1319"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1334"/>
         <source>Layer &quot;{}&quot; can&apos;t be added to the map</source>
         <translation>Слой &quot;{}&quot; не может быть добавлен на карту</translation>
     </message>
     <message>
-        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1105"/>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1120"/>
         <source>The linked layer or style resource is not available.</source>
         <translation>Связанный слой или ресурс стиля недоступен.</translation>
     </message>
@@ -4618,22 +4628,22 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>SizeUnits</name>
     <message>
-        <location filename="../platform/qgis/utils.py" line="244"/>
+        <location filename="../platform/qgis/utils.py" line="243"/>
         <source>KiB</source>
         <translation>КиБ</translation>
     </message>
     <message>
-        <location filename="../platform/qgis/utils.py" line="245"/>
+        <location filename="../platform/qgis/utils.py" line="244"/>
         <source>MiB</source>
         <translation>МиБ</translation>
     </message>
     <message>
-        <location filename="../platform/qgis/utils.py" line="246"/>
+        <location filename="../platform/qgis/utils.py" line="245"/>
         <source>GiB</source>
         <translation>ГиБ</translation>
     </message>
     <message>
-        <location filename="../platform/qgis/utils.py" line="247"/>
+        <location filename="../platform/qgis/utils.py" line="246"/>
         <source>TiB</source>
         <translation>ТиБ</translation>
     </message>

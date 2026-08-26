@@ -135,6 +135,9 @@ class PluginOverlayResolver:
                 title=self.tr(
                     'Connect your first <span style="color: #0c65af;">Web GIS</span>'
                 ),
+                compact_title=self.tr(
+                    'Connect <span style="color: #0c65af;">Web GIS</span>'
+                ),
                 message=self.tr(
                     "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."
                 ),
