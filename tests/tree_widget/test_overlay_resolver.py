@@ -44,6 +44,7 @@ def test_loading_has_highest_priority() -> None:
             has_connections=False,
             is_loading=True,
             loading_title="Loading",
+            loading_compact_title="Wait",
             loading_action=OverlayButtonState(
                 action=OverlayAction.CANCEL,
                 text="Cancel",
@@ -55,6 +56,7 @@ def test_loading_has_highest_priority() -> None:
     )
 
     assert state.kind == OverlayKind.LOADING
+    assert state.compact_title == "Wait"
     assert state.title == "Loading"
     assert state.secondary_action.action == OverlayAction.CANCEL
     assert state.logo_action == OverlayAction.OPEN_NEXTGIS_SITE
@@ -104,6 +106,20 @@ def test_auth_has_priority_over_unavailable() -> None:
 
     assert state.kind == OverlayKind.AUTH_REQUIRED
     assert state.primary_action.action == OverlayAction.OPEN_NEXTGIS_SETTINGS
+
+
+def test_error_overlay_has_background_without_logo() -> None:
+    state = PluginOverlayResolver().resolve(
+        OverlayFacts(
+            has_connections=True,
+            has_error=True,
+            error_message="The request failed.",
+        )
+    )
+
+    assert state.kind == OverlayKind.ERROR
+    assert state.draw_background is True
+    assert state.logo_action == OverlayAction.NONE
 
 
 def test_first_connection_state_has_expected_actions_and_copy() -> None:
@@ -158,6 +174,7 @@ def test_unavailable_update_state_uses_title_icon() -> None:
             has_connections=True,
             is_available=False,
             unavailable_title="Update is available",
+            unavailable_compact_title="Update available",
             unavailable_message=(
                 "Please update the plugin from the QGIS plugin manager."
             ),
@@ -172,6 +189,7 @@ def test_unavailable_update_state_uses_title_icon() -> None:
 
     assert state.kind == OverlayKind.UNAVAILABLE
     assert state.title == "Update is available"
+    assert state.compact_title == "Update available"
     assert "Update is available" not in state.message
     assert state.title_icon_name == "update"
     assert state.illustration_name == ""

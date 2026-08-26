@@ -16,7 +16,8 @@
 
 from typing import Optional
 
-from qgis.PyQt.QtCore import QSize, pyqtSignal
+from qgis.PyQt.QtCore import QEvent, QSize, Qt, pyqtSignal
+from qgis.PyQt.QtGui import QPalette
 from qgis.PyQt.QtWidgets import (
     QBoxLayout,
     QLabel,
@@ -43,16 +44,11 @@ from nextgis_connect.ui_kit.graphics.decorator import (
 class LoadingOverlayWidget(OverlaySurfaceWidget):
     """Overlay card for long-running loading and cancellation states."""
 
-    _NORMAL_CARD_PADDING = 16
-    _COMPACT_CARD_PADDING = 12
-    _MINIMUM_CARD_PADDING = 10
-    _NORMAL_CONTENT_SPACING = 4
-    _COMPACT_CONTENT_SPACING = 3
-    _MINIMUM_CONTENT_SPACING = 2
-    _MAXIMUM_VERTICAL_CARD_PADDING = 10
+    _WRAP_RESERVE = 0
     _PROGRESS_CANCEL_SPACING = 6
     _MINIMUM_PROGRESS_CANCEL_SPACING = 2
     _LAYOUT_RESERVE = 24
+    _CONTENT_WIDTH_RESERVE = 2
     _UNBOUNDED_WIDGET_HEIGHT = 16777215
 
     action_requested = pyqtSignal(object)
@@ -65,10 +61,11 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         title_font.setBold(True)
         title_font.setPointSize(title_font.pointSize() + 2)
         self._title_label.setFont(title_font)
-        self._title_label.setWordWrap(True)
+        self._title_label.setWordWrap(False)
+        self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed,
         )
 
         self._progress_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
@@ -91,14 +88,29 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._cancel_button.hide()
         self._cancel_button.clicked.connect(self._emit_cancel_action)
 
-        self._message_label = ElidedLabel(self._content_widget)
+        self._message_label = QLabel(self._content_widget)
+        self._message_label.setWordWrap(True)
+        self._message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._message_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
+        self._apply_secondary_text_palette()
 
         self._details_label = ElidedLabel(self._content_widget)
+        self._details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._details_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Fixed,
+        )
 
         self._progress_layout.addWidget(self._progress_bar)
         self._progress_layout.addWidget(self._cancel_button)
 
-        self._content_layout.addWidget(self._title_label)
+        self._content_layout.addWidget(
+            self._title_label,
+            alignment=Qt.AlignmentFlag.AlignTop,
+        )
         self._content_layout.addLayout(self._progress_layout)
         self._content_layout.addWidget(self._message_label)
         self._content_layout.addWidget(self._details_label)
@@ -109,6 +121,8 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._card_top_anchor_size: Optional[QSize] = None
         self._title_height_anchor: Optional[int] = None
         self._progress_height_anchor: Optional[int] = None
+        self._full_title = ""
+        self._compact_title = ""
 
     def reset_card_growth(self) -> None:
         self._card_top_anchor = None
@@ -117,6 +131,8 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._progress_height_anchor = None
         self._title_label.setMinimumHeight(0)
         self._title_label.setMaximumHeight(self._UNBOUNDED_WIDGET_HEIGHT)
+        self._message_label.setMinimumHeight(0)
+        self._message_label.setMaximumHeight(self._UNBOUNDED_WIDGET_HEIGHT)
         self._progress_bar.setMinimumHeight(0)
         self._progress_bar.setMaximumHeight(self._UNBOUNDED_WIDGET_HEIGHT)
         super().reset_card_growth()
@@ -126,7 +142,11 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self.set_draw_background(state.draw_background)
         self.set_logo_action(state.logo_action)
 
-        self._title_label.setText(self._display_text(state.title))
+        self._full_title = self._display_text(state.title)
+        self._compact_title = self._display_text(
+            state.compact_title or state.title
+        )
+        self._title_label.setText(self._full_title)
         self._message_label.setText(self._display_text(state.message))
         self._details_label.setVisible(bool(state.details))
         self._details_label.setText(self._display_text(state.details or ""))
@@ -149,6 +169,24 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         self._set_minimum_header_heights()
         self.sync_layout()
 
+    def changeEvent(self, event) -> None:
+        if event.type() in (
+            QEvent.Type.PaletteChange,
+            QEvent.Type.ApplicationPaletteChange,
+            QEvent.Type.StyleChange,
+        ):
+            self._apply_secondary_text_palette()
+
+        super().changeEvent(event)
+
+    def _apply_secondary_text_palette(self) -> None:
+        palette = QPalette(self._message_label.palette())
+        palette.setColor(
+            QPalette.ColorRole.WindowText,
+            NextgisDecorator.system_muted_text_color(self.palette()),
+        )
+        self._message_label.setPalette(palette)
+
     def _set_minimum_header_heights(self) -> None:
         """Keep the header baseline stable while allowing wrapped title growth."""
         title_height = self._title_label.sizeHint().height()
@@ -158,34 +196,8 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         if self._progress_height_anchor is None:
             self._progress_height_anchor = progress_height
 
-        self._title_label.setMinimumHeight(self._title_height_anchor)
+        self._title_label.setFixedHeight(self._title_height_anchor)
         self._progress_bar.setFixedHeight(self._progress_height_anchor)
-
-    def _set_content_metrics(
-        self,
-        padding: int,
-        spacing: int,
-    ) -> None:
-        vertical_padding = min(padding, self._MAXIMUM_VERTICAL_CARD_PADDING)
-        margins = self._content_layout.contentsMargins()
-        if (
-            margins.left() != padding
-            or margins.top() != vertical_padding
-            or margins.right() != padding
-            or margins.bottom() != vertical_padding
-        ):
-            self._content_layout.setContentsMargins(
-                padding,
-                vertical_padding,
-                padding,
-                vertical_padding,
-            )
-
-        if self._content_layout.spacing() != spacing:
-            self._content_layout.setSpacing(spacing)
-
-        if self._compact_label.margin() != padding:
-            self._compact_label.setMargin(padding)
 
     def _horizontal_content_width_for_preferred_layout(self) -> int:
         if self._cancel_button.isHidden():
@@ -204,6 +216,10 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
         card_width: int,
     ) -> None:
         del card_width
+        effective_content_width = max(
+            1,
+            content_width - self._CONTENT_WIDTH_RESERVE,
+        )
         progress_height = self._progress_bar.sizeHint().height()
         if progress_height > 0:
             self._cancel_button.set_button_height(progress_height)
@@ -222,6 +238,22 @@ class LoadingOverlayWidget(OverlaySurfaceWidget):
 
         if self._progress_layout.spacing() != spacing:
             self._progress_layout.setSpacing(spacing)
+
+        title = self._full_title
+        if (
+            self._compact_title != ""
+            and self._title_label.fontMetrics().horizontalAdvance(title)
+            > effective_content_width
+        ):
+            title = self._compact_title
+        if self._title_label.text() != title:
+            self._title_label.setText(title)
+
+        message_height = self._message_label.heightForWidth(
+            effective_content_width
+        )
+        if self._message_label.height() != message_height:
+            self._message_label.setFixedHeight(message_height)
 
         self._progress_layout.invalidate()
         self._content_layout.invalidate()

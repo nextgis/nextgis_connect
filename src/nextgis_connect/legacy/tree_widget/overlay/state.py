@@ -65,6 +65,7 @@ class OverlayButtonState:
 class OverlayState:
     kind: OverlayKind
     title: str = ""
+    compact_title: str = ""
     message: str = ""
     details: Optional[str] = None
     primary_action: OverlayButtonState = field(
@@ -79,7 +80,7 @@ class OverlayState:
     logo_action: OverlayAction = OverlayAction.NONE
     title_icon_name: str = ""
     illustration_name: str = ""
-    illustration_size: int = 64
+    illustration_size: int = 48
     illustration_themed: bool = True
     draw_background: bool = True
     show_progress: bool = False
@@ -92,6 +93,7 @@ class OverlayFacts:
     has_pending_migration: bool = False
     is_loading: bool = False
     loading_title: str = ""
+    loading_compact_title: str = ""
     loading_message: str = ""
     loading_details: Optional[str] = None
     loading_action: OverlayButtonState = field(
@@ -101,6 +103,7 @@ class OverlayFacts:
     loading_cancel_pending: bool = False
     is_available: bool = True
     unavailable_title: str = ""
+    unavailable_compact_title: str = ""
     unavailable_message: str = ""
     unavailable_details: Optional[str] = None
     unavailable_icon: str = ""

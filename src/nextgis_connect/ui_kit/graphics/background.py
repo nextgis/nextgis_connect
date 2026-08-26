@@ -36,6 +36,9 @@ class NextgisBackgroundPainter(QObject):
     areas using the active palette.
     """
 
+    _DARK_GRID_ALPHA = 50
+    _LIGHT_GRID_ALPHA = 64
+
     def __init__(
         self,
         isolines_path: Path,
@@ -100,8 +103,7 @@ class NextgisBackgroundPainter(QObject):
         rect: QRect,
         palette: QPalette,
     ) -> None:
-        color = NextgisDecorator.system_muted_text_color(palette)
-        color.setAlpha(50)
+        color = self._grid_color(palette)
 
         pen = QPen(color)
         pen.setWidthF(0.5)
@@ -120,6 +122,17 @@ class NextgisBackgroundPainter(QObject):
             shifted_y = y_coord + grid_size // 2
             painter.drawLine(rect.left(), shifted_y, rect.right(), shifted_y)
             y_coord += grid_size
+
+    @classmethod
+    def _grid_color(cls, palette: QPalette) -> QColor:
+        color = NextgisDecorator.system_muted_text_color(palette)
+        alpha = (
+            cls._DARK_GRID_ALPHA
+            if NextgisDecorator.is_dark_theme(palette)
+            else cls._LIGHT_GRID_ALPHA
+        )
+        color.setAlpha(alpha)
+        return color
 
     def _draw_isolines(
         self,

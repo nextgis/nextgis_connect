@@ -36,6 +36,7 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.LOADING,
                 title=facts.loading_title or self.tr("Please wait"),
+                compact_title=facts.loading_compact_title,
                 message=facts.loading_message
                 or self.tr("The resource tree is being updated."),
                 details=facts.loading_details,
@@ -73,6 +74,7 @@ class PluginOverlayResolver:
                 kind=OverlayKind.UNAVAILABLE,
                 title=facts.unavailable_title
                 or self.tr("Web GIS is unavailable"),
+                compact_title=facts.unavailable_compact_title,
                 message=facts.unavailable_message,
                 details=facts.unavailable_details,
                 title_icon_name=(
@@ -94,7 +96,6 @@ class PluginOverlayResolver:
                 illustration_name=facts.error_icon,
                 primary_action=facts.error_action,
                 secondary_action=facts.error_secondary_action,
-                logo_action=OverlayAction.OPEN_NEXTGIS_SITE,
             )
 
         if facts.has_pending_migration:

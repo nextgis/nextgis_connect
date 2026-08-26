@@ -15,7 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from dataclasses import dataclass
-from typing import Dict, Mapping, Tuple, Union
+from typing import Dict, Mapping, Optional, Tuple, Union
 
 from qgis.core import (
     QgsApplication,
@@ -23,6 +23,7 @@ from qgis.core import (
     QgsMapLayer,
     QgsProviderRegistry,
     QgsRasterLayer,
+    QgsTask,
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QEventLoop, QModelIndex
@@ -59,7 +60,7 @@ class QgisLayerCreatorTask(NgConnectTask):
         self,
         parameters: Mapping[BatchLayerId, QgisLayerCreationParameters],
     ) -> None:
-        super().__init__()
+        super().__init__(QgsTask.Flag.CanCancel)
         self._parameters = dict(parameters)
         self._layers: Dict[BatchLayerId, QgsMapLayer] = {}
 
@@ -75,6 +76,9 @@ class QgisLayerCreatorTask(NgConnectTask):
         for i, (insertion_id, parameters) in enumerate(
             self._parameters.items()
         ):
+            if self.isCanceled():
+                return False
+
             counter = f"[{i + 1}/{count}] " if count > 1 else ""
             logger.debug(
                 f"{counter}Creating {parameters.provider_key} layer "
@@ -88,6 +92,11 @@ class QgisLayerCreatorTask(NgConnectTask):
 
             layer.setParent(None)
             layer.moveToThread(main_thread)
+            if self.isCanceled():
+                # Keep ownership until the GUI thread clears the result.
+                self._layers[insertion_id] = layer
+                return False
+
             if not layer.isValid():
                 error = layer.error().summary()
                 logger.warning(
@@ -133,15 +142,26 @@ class QgisBatchLayerFactory:
 
     def __init__(self, task_manager) -> None:
         self._task_manager = task_manager
+        self._active_task: Optional[QgisLayerCreatorTask] = None
+
+    def cancel(self) -> None:
+        if self._active_task is not None:
+            self._active_task.cancel()
 
     def create(
         self,
         parameters: Mapping[BatchLayerId, QgisLayerCreationParameters],
     ) -> Dict[BatchLayerId, QgsMapLayer]:
         task = QgisLayerCreatorTask(parameters)
+        self._active_task = task
         event_loop = QEventLoop()
         task.taskCompleted.connect(event_loop.exit)
         task.taskTerminated.connect(event_loop.exit)
         self._task_manager.addTask(task)
         event_loop.exec()
-        return task.layers
+        try:
+            if task.isCanceled():
+                task.layers.clear()
+            return task.layers
+        finally:
+            self._active_task = None

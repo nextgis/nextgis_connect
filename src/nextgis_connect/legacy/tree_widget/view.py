@@ -26,7 +26,7 @@ from qgis.PyQt.QtCore import (
     QTimer,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QKeyEvent
+from qgis.PyQt.QtGui import QKeyEvent, QWheelEvent
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QHeaderView,
@@ -79,13 +79,16 @@ class QNGWResourceTreeView(QTreeView):
 
         self._jobs: Dict[str, str] = {}
         self._job_actions: Dict[str, OverlayButtonState] = {}
+        self._job_compact_titles: Dict[str, str] = {}
         self._manual_loading_title = ""
+        self._manual_loading_compact_title = ""
         self._manual_loading_message = ""
         self._manual_loading_details: Optional[str] = None
         self._manual_loading_action = OverlayButtonState()
         self._manual_loading_draw_background = False
         self._loading_cancel_pending = False
         self._loading_cancel_message = ""
+        self._is_loading = False
         self._is_overlay_visible = False
 
         self._overlay_host = OverlayHostWidget(self)
@@ -226,6 +229,7 @@ class QNGWResourceTreeView(QTreeView):
         self._overlay_state_model.update(
             is_available=True,
             unavailable_title="",
+            unavailable_compact_title="",
             unavailable_message="",
             unavailable_details=None,
             unavailable_icon="",
@@ -288,11 +292,13 @@ class QNGWResourceTreeView(QTreeView):
             )
             icon_name = "update"
             title = self.tr("Plugin update required")
+            compact_title = self.tr("Update required")
         else:
             message = self.tr("Ask the administrator to update NextGIS Web.")
             action = OverlayButtonState()
             icon_name = "update"
             title = self.tr("Server update required")
+            compact_title = self.tr("Update required")
 
         details = self.tr(
             "NextGIS Connect: {ngc_version}\nNextGIS Web: {ngw_version}"
@@ -303,6 +309,7 @@ class QNGWResourceTreeView(QTreeView):
         self._overlay_state_model.update(
             is_available=False,
             unavailable_title=title,
+            unavailable_compact_title=compact_title,
             unavailable_message=message,
             unavailable_details=details,
             unavailable_icon=icon_name,
@@ -354,8 +361,10 @@ class QNGWResourceTreeView(QTreeView):
         self,
         job_name,
         cancel_action: Optional[OverlayButtonState] = None,
+        compact_title: str = "",
     ):
         self._jobs[job_name] = ""
+        self._job_compact_titles[job_name] = compact_title or job_name
         self._job_actions[job_name] = (
             OverlayButtonState() if cancel_action is None else cancel_action
         )
@@ -371,6 +380,7 @@ class QNGWResourceTreeView(QTreeView):
         if job_name in self._jobs:
             self._jobs.pop(job_name)
             self._job_actions.pop(job_name, None)
+            self._job_compact_titles.pop(job_name, None)
             self._clear_loading_cancel_pending()
 
         if check_overlay:
@@ -383,12 +393,14 @@ class QNGWResourceTreeView(QTreeView):
         self,
         title: str,
         *,
+        compact_title: str = "",
         message: str = "",
         details: Optional[str] = None,
         cancel_action: Optional[OverlayButtonState] = None,
         draw_background: bool = False,
     ) -> None:
         self._manual_loading_title = title
+        self._manual_loading_compact_title = compact_title
         self._manual_loading_message = message
         self._manual_loading_details = details
         self._manual_loading_draw_background = draw_background
@@ -400,6 +412,7 @@ class QNGWResourceTreeView(QTreeView):
 
     def end_loading(self) -> None:
         self._manual_loading_title = ""
+        self._manual_loading_compact_title = ""
         self._manual_loading_message = ""
         self._manual_loading_details = None
         self._manual_loading_action = OverlayButtonState()
@@ -426,6 +439,7 @@ class QNGWResourceTreeView(QTreeView):
             self._overlay_state_model.update(
                 is_loading=True,
                 loading_title=self._manual_loading_title,
+                loading_compact_title=self._manual_loading_compact_title,
                 loading_message=loading_message,
                 loading_details=self._manual_loading_details,
                 loading_action=self._manual_loading_action,
@@ -446,6 +460,10 @@ class QNGWResourceTreeView(QTreeView):
             self._overlay_state_model.update(
                 is_loading=True,
                 loading_title=job_name,
+                loading_compact_title=self._job_compact_titles.get(
+                    job_name,
+                    job_name,
+                ),
                 loading_message=loading_message,
                 loading_details=details,
                 loading_action=self._job_actions.get(
@@ -460,6 +478,7 @@ class QNGWResourceTreeView(QTreeView):
         self._overlay_state_model.update(
             is_loading=False,
             loading_title="",
+            loading_compact_title="",
             loading_message="",
             loading_details=None,
             loading_action=OverlayButtonState(),
@@ -472,12 +491,25 @@ class QNGWResourceTreeView(QTreeView):
         self._loading_cancel_message = ""
 
     def _handle_overlay_state_changed(self, state) -> None:
+        is_loading = state.kind == OverlayKind.LOADING
+        if is_loading != self._is_loading:
+            self._is_loading = is_loading
+            self.verticalScrollBar().setEnabled(not is_loading)
+            self.horizontalScrollBar().setEnabled(not is_loading)
+
         is_visible = state.kind != OverlayKind.NONE
         if is_visible == self._is_overlay_visible:
             return
 
         self._is_overlay_visible = is_visible
         self.overlay_visibility_changed.emit(is_visible)
+
+    def wheelEvent(self, event: QWheelEvent) -> None:
+        if self._is_loading:
+            event.accept()
+            return
+
+        super().wheelEvent(event)
 
     def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
         is_f2 = event.key() == Qt.Key.Key_F2

@@ -201,7 +201,7 @@ class LogoLinkWidget(QWidget):
 class MaterialIllustrationWidget(QWidget):
     """Material SVG illustration with controllable render size."""
 
-    _MINIMUM_ICON_SIZE = 40
+    _MINIMUM_ICON_SIZE = 32
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -358,7 +358,7 @@ class ElidedLabel(QLabel):
         text = "\n".join(
             metrics.elidedText(
                 line,
-                Qt.TextElideMode.ElideMiddle,
+                Qt.TextElideMode.ElideRight,
                 available_width,
             )
             for line in self._full_text.split("\n")
@@ -517,8 +517,8 @@ class OverlaySurfaceWidget(QWidget):
     _COMPACT_OUTER_MARGIN = 20
     _MINIMUM_OUTER_MARGIN = 12
     _NORMAL_CONTENT_SPACING = NextgisDecorator.CARD_SPACING
-    _COMPACT_CONTENT_SPACING = 10
-    _MINIMUM_CONTENT_SPACING = 8
+    _COMPACT_CONTENT_SPACING = _NORMAL_CONTENT_SPACING
+    _MINIMUM_CONTENT_SPACING = _NORMAL_CONTENT_SPACING
     _LOGO_MARGIN_NORMAL = 12
     _CARD_HEIGHT_SLACK = 2
     _MINIMUM_COMPACT_CARD_WIDTH = 220
@@ -885,7 +885,7 @@ class OverlaySurfaceWidget(QWidget):
             card_width=card_width,
             card_padding=card_padding,
             content_width=content_width,
-            content_spacing=self._content_spacing_for_padding(card_padding),
+            content_spacing=self._NORMAL_CONTENT_SPACING,
         )
 
     def _card_padding_for_available_width(
@@ -893,15 +893,16 @@ class OverlaySurfaceWidget(QWidget):
         available_width: int,
         target_content_width: int,
     ) -> int:
+        del target_content_width
         card_width = min(available_width, NextgisDecorator.CARD_MAX_WIDTH)
-        for padding in (
-            self._NORMAL_CARD_PADDING,
-            self._COMPACT_CARD_PADDING,
-            self._MINIMUM_CARD_PADDING,
-        ):
-            content_width = card_width - 2 * padding
-            if content_width >= target_content_width:
-                return padding
+        if card_width >= NextgisDecorator.CARD_MAX_WIDTH:
+            return self._NORMAL_CARD_PADDING
+
+        compact_card_width = (
+            self._MINIMUM_COMPACT_CARD_WIDTH + 2 * self._COMPACT_CARD_PADDING
+        )
+        if card_width >= compact_card_width:
+            return self._COMPACT_CARD_PADDING
 
         return self._MINIMUM_CARD_PADDING
 
@@ -916,15 +917,6 @@ class OverlaySurfaceWidget(QWidget):
                 return paddings[index:]
 
         return [self._MINIMUM_CARD_PADDING]
-
-    def _content_spacing_for_padding(self, card_padding: int) -> int:
-        if card_padding >= self._NORMAL_CARD_PADDING:
-            return self._NORMAL_CONTENT_SPACING
-
-        if card_padding <= self._MINIMUM_CARD_PADDING:
-            return self._MINIMUM_CONTENT_SPACING
-
-        return self._COMPACT_CONTENT_SPACING
 
     def _horizontal_content_width_for_preferred_layout(self) -> int:
         return 0

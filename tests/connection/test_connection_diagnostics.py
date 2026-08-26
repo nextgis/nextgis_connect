@@ -15,6 +15,8 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import unittest
+from types import SimpleNamespace
+from typing import cast
 
 from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.current_user import (
     CurrentUserExpectation,
@@ -29,6 +31,25 @@ from nextgis_connect.legacy.ngw_connection.domain.parsers import (
     NgwServerTitleParser,
     suggested_connection_name,
 )
+
+
+class _FakeSignal:
+    def connect(self, callback) -> None:
+        del callback
+
+
+class _FakeDiagnosticsController:
+    def __init__(self, connection, parent) -> None:
+        del connection, parent
+        self.check_updated = _FakeSignal()
+        self.finished = _FakeSignal()
+        self.is_started = False
+
+    def initial_updates(self):
+        return []
+
+    def start(self) -> None:
+        self.is_started = True
 
 
 class TestConnectionDiagnosticsHelpers(unittest.TestCase):
@@ -172,6 +193,30 @@ class TestConnectionDiagnosticsHelpers(unittest.TestCase):
         self.assertEqual(ngw_connection.connection, connection)
         self.assertEqual(ngw_connection.server_url, connection.url)
         self.assertEqual(ngw_connection.connection_id, connection.id)
+
+
+def test_diagnostics_dialog_starts_when_requested(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    from nextgis_connect.legacy.ngw_connection.presentation.diagnostics import (
+        dialog as diagnostics_dialog,
+    )
+
+    monkeypatch.setattr(
+        diagnostics_dialog,
+        "NgwConnectionDiagnostics",
+        _FakeDiagnosticsController,
+    )
+    dialog = diagnostics_dialog.NgwConnectionDiagnosticsDialog(
+        SimpleNamespace(name="Demo Web GIS"),
+        start_immediately=True,
+    )
+
+    controller = cast(_FakeDiagnosticsController, dialog._controller)
+    assert controller.is_started
+    dialog.deleteLater()
 
 
 if __name__ == "__main__":

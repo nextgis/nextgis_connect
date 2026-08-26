@@ -27,6 +27,9 @@ from nextgis_connect.features.resource_browser.application import (
     ResourceAddingErrorContext,
     ResourceImportCancelledError,
 )
+from nextgis_connect.features.resource_browser.domain.resource_batch_import import (
+    ResourceBatchImportStatus,
+)
 from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batch_import import (
     QgisResourceBatchImporter,
 )
@@ -179,6 +182,23 @@ def test_webmap_permission_error_names_inaccessible_layer(qgis_app) -> None:
     assert "Restricted roads" in error.user_message
     assert "164" in (error.detail or "")
     assert "Restricted roads" in error.log_message
+
+
+def test_batch_import_can_be_cancelled_before_execution(qgis_app) -> None:
+    del qgis_app
+
+    importer = QgisResourceBatchImporter(
+        _ResourceModelProbe(),
+        [],
+        _insertion_point(),
+        interaction_module.QgisResourceImportInteraction(lambda text: text),
+    )
+
+    importer.cancel()
+    result = importer.execute()
+
+    assert result.status == ResourceBatchImportStatus.CANCELLED
+    assert result.added_layer_ids == ()
 
 
 def test_webmap_missing_resources_ignores_forbidden_ids(qgis_app) -> None:

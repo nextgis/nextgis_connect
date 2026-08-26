@@ -26,6 +26,7 @@ from nextgis_connect.legacy.tree_widget.model import (
     QNGWResourceTreeModelBase,
     ResourceTreeLoadingIndicatorRenderer,
 )
+from nextgis_connect.legacy.tree_widget.overlay import OverlayKind
 from nextgis_connect.legacy.tree_widget.proxy_model import NgConnectProxyModel
 from nextgis_connect.legacy.tree_widget.view import QNGWResourceTreeView
 from nextgis_connect.platform.qgis import utils
@@ -51,6 +52,59 @@ class _FailedFetchJob:
 
     def getJobId(self) -> str:
         return "NGWResourceUpdater"
+
+
+def test_loading_overlay_disables_tree_scrolling(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        NgConnectInterface,
+        "instance",
+        classmethod(
+            lambda cls: SimpleNamespace(path=Path("src/nextgis_connect"))
+        ),
+    )
+
+    view = QNGWResourceTreeView(None)
+    view._handle_overlay_state_changed(
+        SimpleNamespace(kind=OverlayKind.LOADING)
+    )
+
+    assert not view.verticalScrollBar().isEnabled()
+    assert not view.horizontalScrollBar().isEnabled()
+
+    view._handle_overlay_state_changed(SimpleNamespace(kind=OverlayKind.NONE))
+
+    assert view.verticalScrollBar().isEnabled()
+    assert view.horizontalScrollBar().isEnabled()
+    view.deleteLater()
+
+
+def test_blocked_job_propagates_compact_loading_title(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        NgConnectInterface,
+        "instance",
+        classmethod(
+            lambda cls: SimpleNamespace(path=Path("src/nextgis_connect"))
+        ),
+    )
+
+    view = QNGWResourceTreeView(None)
+    view.addBlockedJob(
+        "Downloading resources...",
+        compact_title="Downloading...",
+    )
+
+    facts = view._overlay_state_model.snapshot()
+    assert facts.loading_title == "Downloading resources..."
+    assert facts.loading_compact_title == "Downloading..."
+    view.deleteLater()
 
 
 def _resource(resource_id: int = 1):

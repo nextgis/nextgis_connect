@@ -140,6 +140,8 @@ class QgisResourceBatchImporter(QObject):
     __interaction: ResourceBatchImportInteraction
     __dependency_analyzer: ResourceDependencyAnalyzer
     __style_applicator: QgisResourceBatchStyleApplicator
+    __layer_factory: Optional[QgisBatchLayerFactory]
+    __cancel_requested: bool
 
     def __init__(
         self,
@@ -181,6 +183,18 @@ class QgisResourceBatchImporter(QObject):
         self.__interaction = interaction
         self.__dependency_analyzer = ResourceDependencyAnalyzer(model)
         self.__style_applicator = QgisResourceBatchStyleApplicator(model)
+        self.__layer_factory = None
+        self.__cancel_requested = False
+
+    def cancel(self) -> None:
+        """Request cancellation of layer preparation before project commit."""
+        self.__cancel_requested = True
+        if self.__layer_factory is not None:
+            self.__layer_factory.cancel()
+
+    def __raise_if_cancelled(self) -> None:
+        if self.__cancel_requested:
+            raise ResourceImportCancelledError
 
     def missing_resources(self) -> Tuple[bool, List[int]]:
         """Extract resources needed for layers to add to QGIS"""
@@ -251,10 +265,14 @@ class QgisResourceBatchImporter(QObject):
         added_layers = 0
 
         try:
+            self.__raise_if_cancelled()
             self.__collect_layers_params()
+            self.__raise_if_cancelled()
             self.__create_layers()
+            self.__raise_if_cancelled()
 
             for index in indices:
+                self.__raise_if_cancelled()
                 self.__add_resource_with_error_handling(index)
 
             added_layers = len(self.__layers)
@@ -1256,14 +1274,19 @@ class QgisResourceBatchImporter(QObject):
         if len(self.__layers_params) == 0:
             return
 
-        layer_factory = QgisBatchLayerFactory(
+        self.__layer_factory = QgisBatchLayerFactory(
             NgConnectInterface.instance().task_manager
         )
-        self.__layers = cast(
-            Dict[InsertionId, QgsMapLayer],
-            layer_factory.create(self.__layers_params),
-        )
+        try:
+            self.__layers = cast(
+                Dict[InsertionId, QgsMapLayer],
+                self.__layer_factory.create(self.__layers_params),
+            )
+        finally:
+            self.__layer_factory = None
+        self.__raise_if_cancelled()
         self.__remove_invalid_layers_after_user_choice()
+        self.__raise_if_cancelled()
 
         if len(self.__layers) == 0:
             return
@@ -1274,6 +1297,7 @@ class QgisResourceBatchImporter(QObject):
                 code=ErrorCode.AddingError, log_message=message
             )
 
+        self.__raise_if_cancelled()
         QgsProject.instance().addMapLayers(
             self.__layers.values(), addToLegend=False
         )

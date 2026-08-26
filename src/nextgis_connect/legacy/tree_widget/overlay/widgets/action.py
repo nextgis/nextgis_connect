@@ -14,11 +14,19 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from html import escape
 from typing import Optional
 
 from qgis.PyQt.QtCore import QEvent, QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QPalette
-from qgis.PyQt.QtWidgets import QBoxLayout, QLabel, QSizePolicy, QWidget
+from qgis.PyQt.QtGui import QIcon, QPalette, QTextDocument
+from qgis.PyQt.QtWidgets import (
+    QAbstractButton,
+    QBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QSpacerItem,
+    QWidget,
+)
 
 from nextgis_connect.legacy.tree_widget.overlay.state import (
     OverlayAction,
@@ -47,9 +55,9 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
     _BUTTON_LAYOUT_RESERVE = 24
     _MINIMUM_BUTTON_SPACING = 6
-    _ICON_HIDE_WIDTH = 360
-    _ICON_SHOW_WIDTH = 400
     _TITLE_ICON_SIZE = 24
+    _TITLE_TO_DETAILS_SPACING = 4
+    _PARAGRAPH_SPACING = 4
 
     action_requested = pyqtSignal(object)
 
@@ -75,19 +83,21 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         title_font.setBold(True)
         title_font.setPointSize(title_font.pointSize() + 3)
         self._title_label.setFont(title_font)
-        self._title_label.setWordWrap(True)
+        self._title_label.setWordWrap(False)
         self._title_label.setTextFormat(Qt.TextFormat.RichText)
         self._title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._title_label.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Fixed,
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Maximum,
         )
 
+        self._title_layout.addStretch(1)
         self._title_layout.addWidget(
             self._title_icon_label,
             alignment=Qt.AlignmentFlag.AlignVCenter,
         )
         self._title_layout.addWidget(self._title_label)
+        self._title_layout.addStretch(1)
 
         self._illustration_widget = MaterialIllustrationWidget(
             self._content_widget
@@ -95,6 +105,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
         self._message_label = QLabel(self._content_widget)
         self._message_label.setWordWrap(True)
+        self._message_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._message_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Preferred,
@@ -102,10 +113,12 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
         self._details_label = QLabel(self._content_widget)
         self._details_label.setWordWrap(True)
+        self._details_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._details_label.setSizePolicy(
             QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Preferred,
         )
+        self._details_label.setTextFormat(Qt.TextFormat.RichText)
 
         details_palette = QPalette(self._details_label.palette())
         details_palette.setColor(
@@ -115,15 +128,15 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self._details_label.setPalette(details_palette)
 
         self._buttons_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
-        self._buttons_layout.setContentsMargins(0, 8, 0, 0)
+        self._buttons_layout.setContentsMargins(0, 0, 0, 0)
         self._buttons_layout.setSpacing(NextgisDecorator.CARD_BUTTON_SPACING)
 
-        self._welcome_primary_button = ShiningButton("", self._content_widget)
+        self._shining_primary_button = ShiningButton("", self._content_widget)
         self._primary_button = PrimaryButton("", self._content_widget)
         self._secondary_button = SecondaryButton("", self._content_widget)
 
         for button in (
-            self._welcome_primary_button,
+            self._shining_primary_button,
             self._primary_button,
             self._secondary_button,
         ):
@@ -132,25 +145,55 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
                 QSizePolicy.Policy.Fixed,
             )
 
-        self._welcome_primary_button.clicked.connect(self._emit_primary_action)
+        self._shining_primary_button.clicked.connect(self._emit_primary_action)
         self._primary_button.clicked.connect(self._emit_primary_action)
         self._secondary_button.clicked.connect(self._emit_secondary_action)
 
         self._footer_link = FooterLinkLabel(self._content_widget)
+        self._footer_link.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Fixed,
+        )
         self._footer_link.action_requested.connect(self.action_requested.emit)
 
-        self._buttons_layout.addWidget(self._welcome_primary_button)
+        self._buttons_layout.addWidget(self._shining_primary_button)
         self._buttons_layout.addWidget(self._primary_button)
         self._buttons_layout.addWidget(self._secondary_button)
+
+        self._body_layout = QBoxLayout(QBoxLayout.Direction.TopToBottom)
+        self._body_layout.setContentsMargins(0, 0, 0, 0)
+        self._body_layout.setSpacing(0)
+        self._title_to_message_spacer = QSpacerItem(
+            0,
+            0,
+            QSizePolicy.Policy.Minimum,
+            QSizePolicy.Policy.Fixed,
+        )
+        self._message_to_details_spacer = QSpacerItem(
+            0,
+            0,
+            QSizePolicy.Policy.Minimum,
+            QSizePolicy.Policy.Fixed,
+        )
+        self._details_to_buttons_spacer = QSpacerItem(
+            0,
+            0,
+            QSizePolicy.Policy.Minimum,
+            QSizePolicy.Policy.Fixed,
+        )
+        self._body_layout.addLayout(self._title_layout)
+        self._body_layout.addItem(self._title_to_message_spacer)
+        self._body_layout.addWidget(self._message_label)
+        self._body_layout.addItem(self._message_to_details_spacer)
+        self._body_layout.addWidget(self._details_label)
+        self._body_layout.addItem(self._details_to_buttons_spacer)
+        self._body_layout.addLayout(self._buttons_layout)
 
         self._content_layout.addWidget(
             self._illustration_widget,
             alignment=Qt.AlignmentFlag.AlignHCenter,
         )
-        self._content_layout.addLayout(self._title_layout)
-        self._content_layout.addWidget(self._message_label)
-        self._content_layout.addWidget(self._details_label)
-        self._content_layout.addLayout(self._buttons_layout)
+        self._content_layout.addLayout(self._body_layout)
         self._content_layout.addWidget(
             self._footer_link,
             alignment=Qt.AlignmentFlag.AlignHCenter,
@@ -159,8 +202,11 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self._primary_action = OverlayButtonState()
         self._secondary_action = OverlayButtonState()
         self._buttons_direction = QBoxLayout.Direction.LeftToRight
+        self._stack_actions = False
         self._is_icon_visible_by_layout = True
         self._title_icon_name = ""
+        self._full_title = ""
+        self._compact_title = ""
 
     def set_state(self, state: OverlayState) -> None:
         """Apply a new state to the action overlay."""
@@ -168,12 +214,19 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self.set_logo_action(state.logo_action)
 
         self._set_title_icon(state.title_icon_name)
-        self._title_label.setText(self._display_text(state.title))
-        self._message_label.setText(self._display_text(state.message))
+        self._full_title = self._display_text(state.title)
+        self._compact_title = self._display_text(
+            state.compact_title or state.title
+        )
+        self._title_label.setText(self._full_title)
+        self._title_label.setToolTip("")
+        message = state.message or ""
+        self._message_label.setVisible(message != "")
+        self._message_label.setText(self._display_text(message))
 
         details = state.details or ""
         self._details_label.setVisible(details != "")
-        self._details_label.setText(self._display_text(details))
+        self._details_label.setText(self._display_details(details))
 
         self._illustration_widget.set_icon(
             state.illustration_name,
@@ -181,29 +234,35 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
             themed=state.illustration_themed,
         )
         self._is_icon_visible_by_layout = self._illustration_widget.has_icon()
-        if self._title_icon_name != "":
-            title_alignment = Qt.AlignmentFlag.AlignLeft
-        elif self._illustration_widget.has_icon():
-            title_alignment = Qt.AlignmentFlag.AlignCenter
-        else:
-            title_alignment = Qt.AlignmentFlag.AlignLeft
-        self._title_label.setAlignment(title_alignment)
+        self._title_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+            if self._title_icon_name != ""
+            else Qt.AlignmentFlag.AlignCenter
+        )
 
-        is_welcome = state.kind == OverlayKind.WELCOME
+        uses_shining_primary = (
+            state.kind == OverlayKind.WELCOME
+            or state.primary_action.action == OverlayAction.OPEN_PLUGIN_MANAGER
+        )
+        self._stack_actions = (
+            state.primary_action.action == OverlayAction.RUN_DIAGNOSTICS
+            and state.secondary_action.action == OverlayAction.RELOAD_TREE
+        )
         self._apply_button_state(
-            self._welcome_primary_button,
+            self._shining_primary_button,
             state.primary_action,
-            visible=is_welcome,
+            visible=uses_shining_primary,
         )
         self._apply_button_state(
             self._primary_button,
             state.primary_action,
-            visible=not is_welcome,
+            visible=not uses_shining_primary,
         )
         self._apply_button_state(
             self._secondary_button, state.secondary_action
         )
         self._footer_link.set_action(state.footer_action)
+        self._sync_body_spacers(message != "", details != "")
 
         self._primary_action = state.primary_action
         self._secondary_action = state.secondary_action
@@ -231,6 +290,63 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self._title_icon_label.setVisible(icon_name != "")
         self._sync_title_icon()
 
+    def _display_details(self, details: str) -> str:
+        display_details = self._display_text(details)
+        paragraphs = display_details.split("\n\n")
+        if len(paragraphs) == 1:
+            rendered_details = escape(display_details).replace("\n", "<br/>")
+            return f'<div align="center">{rendered_details}</div>'
+
+        rendered_paragraphs = []
+        for index, paragraph in enumerate(paragraphs):
+            bottom_margin = (
+                self._PARAGRAPH_SPACING if index < len(paragraphs) - 1 else 0
+            )
+            rendered_paragraph = escape(paragraph).replace("\n", "<br/>")
+            rendered_paragraphs.append(
+                '<p style="margin: 0px 0px '
+                f'{bottom_margin}px 0px;">'
+                f"{rendered_paragraph}</p>"
+            )
+
+        return '<div align="center">' + "".join(rendered_paragraphs) + "</div>"
+
+    def _sync_body_spacers(
+        self,
+        has_message: bool,
+        has_details: bool,
+    ) -> None:
+        has_buttons = bool(self._visible_buttons())
+        if has_message:
+            title_to_message_spacing = NextgisDecorator.CARD_SPACING
+        elif has_details:
+            # Title glyphs occupy a taller line box than helper text glyphs.
+            title_to_message_spacing = self._TITLE_TO_DETAILS_SPACING
+        else:
+            title_to_message_spacing = NextgisDecorator.CARD_SPACING
+
+        message_to_details_spacing = (
+            NextgisDecorator.CARD_SPACING if has_message and has_details else 0
+        )
+        details_to_buttons_spacing = (
+            NextgisDecorator.CARD_SPACING
+            if has_buttons and (has_message or has_details)
+            else 0
+        )
+        for spacer, height in (
+            (self._title_to_message_spacer, title_to_message_spacing),
+            (self._message_to_details_spacer, message_to_details_spacing),
+            (self._details_to_buttons_spacer, details_to_buttons_spacing),
+        ):
+            spacer.changeSize(
+                0,
+                height,
+                QSizePolicy.Policy.Minimum,
+                QSizePolicy.Policy.Fixed,
+            )
+
+        self._body_layout.invalidate()
+
     def _sync_title_icon(self) -> None:
         if self._title_icon_name == "":
             self._title_icon_label.clear()
@@ -242,10 +358,13 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         )
 
     def _horizontal_content_width_for_preferred_layout(self) -> int:
+        if self._stack_actions:
+            return 0
+
         visible_buttons = [
             button
             for button in (
-                self._welcome_primary_button,
+                self._shining_primary_button,
                 self._primary_button,
                 self._secondary_button,
             )
@@ -270,14 +389,17 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         visible_buttons = [
             button
             for button in (
-                self._welcome_primary_button,
+                self._shining_primary_button,
                 self._primary_button,
                 self._secondary_button,
             )
             if not button.isHidden()
         ]
         required_width = self._horizontal_content_width_for_preferred_layout()
-        if len(visible_buttons) <= 1 or content_width >= required_width:
+        if self._stack_actions:
+            direction = QBoxLayout.Direction.TopToBottom
+            spacing = self._MINIMUM_BUTTON_SPACING
+        elif len(visible_buttons) <= 1 or content_width >= required_width:
             direction = QBoxLayout.Direction.LeftToRight
             spacing = NextgisDecorator.CARD_BUTTON_SPACING
         else:
@@ -294,17 +416,58 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         margins = self._buttons_layout.contentsMargins()
         if (
             margins.left() != 0
-            or margins.top() != 8
+            or margins.top() != 0
             or margins.right() != 0
             or margins.bottom() != 0
         ):
-            self._buttons_layout.setContentsMargins(0, 8, 0, 0)
+            self._buttons_layout.setContentsMargins(0, 0, 0, 0)
 
         self._buttons_layout.invalidate()
+        self._sync_title_text(content_width)
         self._content_layout.invalidate()
         self._content_widget.updateGeometry()
         self._footer_link.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        self._update_icon_layout(card_width)
+        self._update_icon_layout()
+
+    def _sync_title_text(self, content_width: int) -> None:
+        available_width = content_width
+        if self._title_icon_name != "":
+            available_width -= (
+                self._TITLE_ICON_SIZE + self._title_layout.spacing()
+            )
+        available_width = max(0, available_width)
+
+        metrics = self._title_label.fontMetrics()
+        full_plain_text = self._plain_title(self._full_title)
+        title = self._full_title
+        plain_text = full_plain_text
+        if (
+            self._compact_title != ""
+            and metrics.horizontalAdvance(full_plain_text) > available_width
+        ):
+            title = self._compact_title
+            plain_text = self._plain_title(title)
+
+        elided_text = metrics.elidedText(
+            plain_text,
+            Qt.TextElideMode.ElideRight,
+            available_width,
+        )
+        is_elided = elided_text != plain_text
+        rendered_title = escape(elided_text) if is_elided else title
+        if self._title_label.text() != rendered_title:
+            self._title_label.setText(rendered_title)
+
+        self._title_label.setMaximumWidth(available_width)
+        self._title_label.setToolTip(
+            full_plain_text if title != self._full_title or is_elided else ""
+        )
+
+    @staticmethod
+    def _plain_title(title: str) -> str:
+        document = QTextDocument()
+        document.setHtml(title)
+        return document.toPlainText()
 
     def _minimum_content_width_for_readable_layout(self) -> int:
         visible_buttons = self._visible_buttons()
@@ -326,7 +489,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         return [
             button
             for button in (
-                self._welcome_primary_button,
+                self._shining_primary_button,
                 self._primary_button,
                 self._secondary_button,
             )
@@ -347,16 +510,23 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         )
 
     def _prepare_content_for_layout(self) -> None:
-        self._buttons_direction = QBoxLayout.Direction.LeftToRight
+        self._buttons_direction = (
+            QBoxLayout.Direction.TopToBottom
+            if self._stack_actions
+            else QBoxLayout.Direction.LeftToRight
+        )
         if self._buttons_layout.direction() != self._buttons_direction:
             self._buttons_layout.setDirection(self._buttons_direction)
 
-        if (
-            self._buttons_layout.spacing()
-            != NextgisDecorator.CARD_BUTTON_SPACING
+        if self._buttons_layout.spacing() != (
+            self._MINIMUM_BUTTON_SPACING
+            if self._stack_actions
+            else NextgisDecorator.CARD_BUTTON_SPACING
         ):
             self._buttons_layout.setSpacing(
-                NextgisDecorator.CARD_BUTTON_SPACING
+                self._MINIMUM_BUTTON_SPACING
+                if self._stack_actions
+                else NextgisDecorator.CARD_BUTTON_SPACING
             )
 
         if self._illustration_widget.has_icon():
@@ -411,38 +581,17 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
         return did_shrink
 
-    def _update_icon_layout(self, card_width: int) -> None:
+    def _update_icon_layout(self) -> None:
         if not self._illustration_widget.has_icon():
-            return
-
-        if card_width < self._ICON_HIDE_WIDTH:
-            self._is_icon_visible_by_layout = False
-            self._illustration_widget.set_icon_visible(False)
             return
 
         self._is_icon_visible_by_layout = True
         self._illustration_widget.set_icon_visible(True)
-        compact_range = self._ICON_SHOW_WIDTH - self._ICON_HIDE_WIDTH
-        if compact_range <= 0 or card_width >= self._ICON_SHOW_WIDTH:
-            self._illustration_widget.reset_size()
-            return
-
-        factor = max(
-            0.0,
-            min(
-                1.0,
-                (card_width - self._ICON_HIDE_WIDTH) / compact_range,
-            ),
-        )
-        minimum_size = self._illustration_widget.minimum_icon_size()
-        preferred_size = self._illustration_widget.preferred_size()
-        self._illustration_widget.set_render_size(
-            round(minimum_size + (preferred_size - minimum_size) * factor)
-        )
+        self._illustration_widget.reset_size()
 
     def _apply_button_state(
         self,
-        button: QWidget,
+        button: QAbstractButton,
         state: OverlayButtonState,
         *,
         visible: bool = True,
@@ -452,6 +601,14 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         )
         button.setVisible(is_visible)
         button.setText(state.text)
+        button.setIcon(
+            material_icon(
+                "troubleshoot",
+                color=NextgisDecorator.brand_on_color().name(),
+            )
+            if state.action == OverlayAction.RUN_DIAGNOSTICS
+            else QIcon()
+        )
         tooltip = state.tooltip if state.tooltip != state.text else ""
         button.setToolTip(tooltip if is_visible else "")
 

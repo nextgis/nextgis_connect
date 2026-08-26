@@ -313,7 +313,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
-        self.__active_cancelable_job_id: Optional[str] = None
+        self.__cancelable_job_ids: List[str] = []
+        self.__active_resource_importer: Optional[
+            QgisResourceBatchImporter
+        ] = None
         self.__cancel_pending_job_id: Optional[str] = None
         self.__canceled_job_ids: Set[str] = set()
         self.__root_loading_cancel_requested = False
@@ -535,6 +538,29 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "NgwStylesDownloader": self.tr("Downloading styles..."),
             "AddLayersStub": self.tr("Adding resources to QGIS..."),
             "NgwSearch": self.tr("Searching resources..."),
+        }
+        self.blocked_job_compact_titles = {
+            "NGWGroupCreater": self.tr("Creating..."),
+            "NGWResourceDelete": self.tr("Deleting..."),
+            "NGWResourceBatchDelete": self.tr("Deleting..."),
+            "QGISResourcesUploader": self.tr("Uploading..."),
+            "QGISProjectUploader": self.tr("Uploading..."),
+            "NGWCreateWfsService": self.tr("Creating..."),
+            "NGWCreateOgcfService": self.tr("Creating..."),
+            "NGWCreateWMSForVector": self.tr("Creating..."),
+            "NGWCreateMapForStyle": self.tr("Creating..."),
+            "MapForLayerCreater": self.tr("Creating..."),
+            "QGISStyleUpdater": self.tr("Creating..."),
+            "QGISStyleAdder": self.tr("Creating..."),
+            "NGWRenameResource": self.tr("Renaming..."),
+            "NGWUpdateVectorLayer": self.tr("Updating..."),
+            "NGWUpdateRasterLayer": self.tr("Updating..."),
+            "NGWMissingResourceUpdater": self.tr("Downloading..."),
+            "NgwCreateVectorLayersStubs": self.tr("Processing..."),
+            "ResourcesDownloader": self.tr("Downloading..."),
+            "NgwStylesDownloader": self.tr("Downloading..."),
+            "AddLayersStub": self.tr("Adding..."),
+            "NgwSearch": self.tr("Searching..."),
         }
         self._cancelable_blocked_jobs = {
             "QGISResourcesUploader",
@@ -1093,7 +1119,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if result == QDialog.DialogCode.Accepted:
                 self.reinit_tree(force=True)
             else:
-                self.__show_connection_parameters_error(message)
+                self.__show_connection_parameters_error()
             del dialog
             return
 
@@ -1143,7 +1169,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 if result == QDialog.DialogCode.Accepted:
                     self.reinit_tree(force=True)
                 else:
-                    self.__show_connection_parameters_error(message)
+                    self.__show_connection_parameters_error()
                 del dialog
                 return
 
@@ -1202,7 +1228,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__root_children_loading_parent_id = None
         self.__cancel_pending_job_id = None
         self.resources_tree_view.begin_loading(
-            self.tr("Loading Web GIS resources"),
+            self.tr("Loading Web GIS resources..."),
+            compact_title=self.tr("Loading resources..."),
             message=self.tr("Loading the root resource."),
             draw_background=True,
         )
@@ -1229,7 +1256,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__root_children_loading_parent_id = int(parent_id)
         self.__cancel_pending_job_id = None
         self.resources_tree_view.begin_loading(
-            self.tr("Loading Web GIS resources"),
+            self.tr("Loading Web GIS resources..."),
+            compact_title=self.tr("Loading resources..."),
             message=self.tr("Loading the root resource contents."),
             draw_background=True,
         )
@@ -1293,7 +1321,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
             return
 
-        if self.__is_internal_server_error(exception):
+        if self.__is_nextgis_cloud_http_500_error(exception):
             self.resources_tree_view.set_error_state(
                 self.tr(
                     "The server returned an internal error while loading the root resource."
@@ -1305,24 +1333,30 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 retry_enabled=False,
                 icon_name="cloud_alert",
                 action=OverlayButtonState(
+                    action=OverlayAction.RELOAD_TREE,
+                    text=self.tr("Try again"),
+                ),
+                secondary_action=OverlayButtonState(
                     action=OverlayAction.CONTACT_SUPPORT,
                     text=self.tr("Contact support"),
                 ),
             )
             return
 
-        if self.__is_invalid_connection_error(exception):
+        if self.__is_connection_error(exception):
             self.resources_tree_view.set_error_state(
-                self.tr("Invalid NextGIS Web connection."),
-                title=self.tr("Unable to load resources"),
-                details=self.tr(
-                    "Run diagnostics to check the selected connection."
-                ),
+                "",
+                title=self.tr("Unable to connect"),
+                details=self.__connection_error_details(),
                 retry_enabled=False,
                 icon_name="globe_2_cancel",
                 action=OverlayButtonState(
                     action=OverlayAction.RUN_DIAGNOSTICS,
                     text=self.tr("Run diagnostics"),
+                ),
+                secondary_action=OverlayButtonState(
+                    action=OverlayAction.RELOAD_TREE,
+                    text=self.tr("Try again"),
                 ),
             )
             return
@@ -1350,75 +1384,104 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ),
         )
 
-    def __show_connection_parameters_error(self, message: str) -> None:
+    def __show_connection_parameters_error(self) -> None:
         self.__root_children_loading_parent_id = None
         self.resources_tree_view.end_loading()
         self.disable_tools()
         self.resources_tree_view.set_error_state(
-            message,
+            "",
             title=self.tr("Unable to connect"),
-            details=self.tr(
-                "Run diagnostics to check the selected connection."
-            ),
+            details=self.__connection_error_details(),
             retry_enabled=False,
             icon_name="globe_2_cancel",
             action=OverlayButtonState(
                 action=OverlayAction.RUN_DIAGNOSTICS,
                 text=self.tr("Run diagnostics"),
             ),
+            secondary_action=OverlayButtonState(
+                action=OverlayAction.RELOAD_TREE,
+                text=self.tr("Try again"),
+            ),
         )
 
-    def __is_internal_server_error(self, exception: Exception) -> bool:
-        candidates = [
+    def __connection_error_details(self) -> str:
+        return self.tr(
+            "The selected connection is invalid or unavailable.\n\n"
+            "Run diagnostics to check the connection settings and server availability."
+        )
+
+    def __is_nextgis_cloud_http_500_error(
+        self,
+        exception: Exception,
+    ) -> bool:
+        has_http_500 = any(
+            getattr(candidate, "status_code", None) == 500
+            for candidate in self.__error_candidates(exception)
+        )
+        if not has_http_500:
+            return False
+
+        connection = NgwConnectionsManager().current_connection
+        return connection is not None and self.__is_nextgis_cloud_url(
+            connection.url
+        )
+
+    def __is_connection_error(self, exception: Exception) -> bool:
+        connection_error_codes = (
+            ErrorCode.NgwConnectionError,
+            ErrorCode.InvalidConnection,
+        )
+        return any(
+            getattr(candidate, "is_network_problem", False)
+            or getattr(candidate, "code", None) in connection_error_codes
+            for candidate in self.__error_candidates(exception)
+        )
+
+    @staticmethod
+    def __error_candidates(exception: Exception) -> Tuple[Exception, ...]:
+        candidates = (
             exception,
             getattr(exception, "wrapped_exception", None),
             getattr(exception, "__cause__", None),
-        ]
+        )
+        return tuple(
+            candidate
+            for candidate in candidates
+            if isinstance(candidate, Exception)
+        )
 
-        for candidate in candidates:
-            if candidate is None:
-                continue
+    @staticmethod
+    def __is_nextgis_cloud_url(url: str) -> bool:
+        try:
+            hostname = urllib.parse.urlparse(
+                NgwConnection.normalize_url(url)
+            ).hostname
+        except ValueError:
+            return False
 
-            if getattr(candidate, "is_server_unavailable", False):
-                return True
+        if hostname is None:
+            return False
 
-            text = " ".join(
-                part
-                for part in (
-                    str(candidate),
-                    getattr(candidate, "user_msg", None),
-                    getattr(candidate, "user_message", None),
-                    getattr(candidate, "detail", None),
-                )
-                if part
-            ).lower()
-            if "500" in text and "internal" in text:
-                return True
+        hostname = hostname.rstrip(".").lower()
+        return any(
+            hostname == domain or hostname.endswith(f".{domain}")
+            for domain in ("nextgis.com", "nextgis.ru")
+        )
 
-        return False
-
-    def __is_invalid_connection_error(self, exception: Exception) -> bool:
-        candidates = [
-            exception,
-            getattr(exception, "wrapped_exception", None),
-            getattr(exception, "__cause__", None),
-        ]
-
-        for candidate in candidates:
-            if candidate is None:
-                continue
-
-            if getattr(candidate, "code", None) == ErrorCode.InvalidConnection:
-                return True
-
-        return False
-
-    def __open_current_connection_diagnostics(self) -> None:
+    def __open_current_connection_diagnostics(
+        self,
+        *,
+        start_immediately: bool = False,
+    ) -> None:
         connection = NgwConnectionsManager().current_connection
         if connection is None:
             return
 
-        dialog = NgwConnectionDiagnosticsDialog(connection, self)
+        dialog = NgwConnectionDiagnosticsDialog(
+            connection,
+            self,
+            start_immediately=start_immediately,
+        )
         dialog.exec()
 
     @pyqtSlot()
@@ -1557,7 +1620,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.block_gui()
             cancel_action = None
             if job_id in self._cancelable_blocked_jobs:
-                self.__active_cancelable_job_id = job_id
+                self.__cancelable_job_ids.append(job_id)
                 cancel_action = OverlayButtonState(
                     action=OverlayAction.CANCEL,
                     text=self.tr("Cancel"),
@@ -1566,6 +1629,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.addBlockedJob(
                 self.blocked_jobs[job_id],
                 cancel_action=cancel_action,
+                compact_title=self.blocked_job_compact_titles[job_id],
             )
 
     @pyqtSlot(str, str)
@@ -1603,8 +1667,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.blocked_jobs[job_id], check_overlay=False
             )
             self.__canceled_job_ids.discard(job_id)
-            if self.__active_cancelable_job_id == job_id:
-                self.__active_cancelable_job_id = None
+            self.__remove_cancelable_job(job_id)
 
         if self.__cancel_pending_job_id == job_id:
             self.__cancel_pending_job_id = None
@@ -1734,7 +1797,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if action == OverlayAction.RUN_DIAGNOSTICS:
-            self.__open_current_connection_diagnostics()
+            self.__open_current_connection_diagnostics(start_immediately=True)
             return
 
         if action == OverlayAction.CONTACT_SUPPORT:
@@ -1878,20 +1941,29 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if self.__cancel_pending_job_id is not None:
             return
 
-        if self.__active_cancelable_job_id is None:
+        if len(self.__cancelable_job_ids) == 0:
             return
 
-        if self.__active_cancelable_job_id == "AddLayersStub":
-            self.__mark_loading_cancel_requested(
-                self.__active_cancelable_job_id
-            )
+        active_job_id = self.__cancelable_job_ids[-1]
+        if (
+            active_job_id == "AddLayersStub"
+            and self.__active_resource_importer is not None
+        ):
+            self.__active_resource_importer.cancel()
+            self.__mark_loading_cancel_requested("AddLayersStub")
             return
 
-        if not self.resource_model.cancel_job(self.__active_cancelable_job_id):
+        if not self.resource_model.cancel_job(active_job_id):
             return
 
-        self.__canceled_job_ids.add(self.__active_cancelable_job_id)
-        self.__mark_loading_cancel_requested(self.__active_cancelable_job_id)
+        self.__canceled_job_ids.add(active_job_id)
+        self.__mark_loading_cancel_requested(active_job_id)
+
+    def __remove_cancelable_job(self, job_id: str) -> None:
+        for position in range(len(self.__cancelable_job_ids) - 1, -1, -1):
+            if self.__cancelable_job_ids[position] == job_id:
+                self.__cancelable_job_ids.pop(position)
+                return
 
     def __mark_loading_cancel_requested(self, job_id: str) -> None:
         self.__cancel_pending_job_id = job_id
@@ -3084,13 +3156,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         job_id = "AddLayersStub"
         self.block_gui()
-        self.__active_cancelable_job_id = job_id
+        self.__cancelable_job_ids.append(job_id)
+        self.__active_resource_importer = importer
         self.resources_tree_view.addBlockedJob(
             self.blocked_jobs[job_id],
             cancel_action=OverlayButtonState(
                 action=OverlayAction.CANCEL,
                 text=self.tr("Cancel"),
             ),
+            compact_title=self.blocked_job_compact_titles[job_id],
         )
         QApplication.processEvents()
 
@@ -3103,8 +3177,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.removeBlockedJob(
                 self.blocked_jobs[job_id]
             )
-            if self.__active_cancelable_job_id == job_id:
-                self.__active_cancelable_job_id = None
+            self.__remove_cancelable_job(job_id)
+            if self.__active_resource_importer is importer:
+                self.__active_resource_importer = None
+            if self.__cancel_pending_job_id == job_id:
+                self.__cancel_pending_job_id = None
 
             tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
             plugin.enable_synchronization()
@@ -4557,13 +4634,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         job_id = "AddLayersStub"
         self.block_gui()
-        self.__active_cancelable_job_id = job_id
+        self.__cancelable_job_ids.append(job_id)
+        self.__active_resource_importer = importer
         self.resources_tree_view.addBlockedJob(
             self.blocked_jobs[job_id],
             cancel_action=OverlayButtonState(
                 action=OverlayAction.CANCEL,
                 text=self.tr("Cancel"),
             ),
+            compact_title=self.blocked_job_compact_titles[job_id],
         )
         QApplication.processEvents()
 
@@ -4576,8 +4655,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.removeBlockedJob(
                 self.blocked_jobs[job_id]
             )
-            if self.__active_cancelable_job_id == job_id:
-                self.__active_cancelable_job_id = None
+            self.__remove_cancelable_job(job_id)
+            if self.__active_resource_importer is importer:
+                self.__active_resource_importer = None
+            if self.__cancel_pending_job_id == job_id:
+                self.__cancel_pending_job_id = None
 
             tree_rigistry_bridge.setLayerInsertionPoint(backup_point)
             plugin.enable_synchronization()

@@ -51,7 +51,13 @@ class NgwConnectionDiagnosticsDialog(QDialog):
     _logs: str
     _is_finished: bool
 
-    def __init__(self, connection, parent: Optional[QWidget] = None) -> None:
+    def __init__(
+        self,
+        connection,
+        parent: Optional[QWidget] = None,
+        *,
+        start_immediately: bool = False,
+    ) -> None:
         super().__init__(parent)
         self._connection = connection
         self.setWindowTitle(self.tr("Web GIS diagnostics"))
@@ -95,6 +101,9 @@ class NgwConnectionDiagnosticsDialog(QDialog):
         self._widget.set_connection_title(connection.name)
         for update in self._controller.initial_updates():
             self._widget.apply_update(update)
+
+        if start_immediately:
+            self._start()
 
     def reject(self) -> None:
         if self._is_running:
