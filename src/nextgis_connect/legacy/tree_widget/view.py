@@ -71,6 +71,7 @@ class QNGWResourceTreeView(QTreeView):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setSelectionMode(QTreeView.SelectionMode.ExtendedSelection)
+        self.setIndentation(14)
 
         header = self.header()
         assert header is not None

@@ -54,6 +54,25 @@ class _FailedFetchJob:
         return "NGWResourceUpdater"
 
 
+def test_resource_tree_uses_compact_indentation(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        NgConnectInterface,
+        "instance",
+        classmethod(
+            lambda cls: SimpleNamespace(path=Path("src/nextgis_connect"))
+        ),
+    )
+
+    view = QNGWResourceTreeView(None)
+
+    assert view.indentation() == 14
+    view.deleteLater()
+
+
 def test_loading_overlay_disables_tree_scrolling(
     qgis_app,
     monkeypatch,
