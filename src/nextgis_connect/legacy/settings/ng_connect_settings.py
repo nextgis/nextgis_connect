@@ -103,6 +103,21 @@ class NgConnectSettings:
         self.__settings.endGroup()
 
     @property
+    def create_webmap_when_uploading_project(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/createWebMapForProject", defaultValue=True, type=bool
+        )
+        self.__settings.endGroup()
+        return result
+
+    @create_webmap_when_uploading_project.setter
+    def create_webmap_when_uploading_project(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/createWebMapForProject", value)
+        self.__settings.endGroup()
+
+    @property
     def open_web_map_after_creation(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(

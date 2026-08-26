@@ -87,5 +87,18 @@ def test_resource_creation_metadata_setting_can_be_disabled(
     assert NgConnectSettings().add_resource_creation_metadata is False
 
 
+def test_project_webmap_creation_setting_can_be_disabled(
+    reset_qgis_settings: None,
+) -> None:
+    del reset_qgis_settings
+
+    _reset_settings_migration()
+
+    settings = NgConnectSettings()
+    settings.create_webmap_when_uploading_project = False
+
+    assert NgConnectSettings().create_webmap_when_uploading_project is False
+
+
 def _reset_settings_migration() -> None:
     NgConnectSettings._NgConnectSettings__is_migrated = False

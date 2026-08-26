@@ -1624,7 +1624,9 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(QGISStyleAdder(qgs_map_layer, ngw_resource))
 
     @modelRequest
-    def uploadProjectResources(self, ngw_group_name, ngw_current_index, iface):
+    def uploadProjectResources(
+        self, ngw_group_name, ngw_current_index, iface, create_webmap=True
+    ):
         if not ngw_current_index.isValid():
             ngw_current_index = self.index(0, 0, ngw_current_index)
 
@@ -1636,7 +1638,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
 
         return self._startJob(
             QGISProjectUploader(
-                ngw_group_name, ngw_resource, iface, self.ngw_version
+                ngw_group_name,
+                ngw_resource,
+                iface,
+                self.ngw_version,
+                create_webmap=create_webmap,
             )
         )
 

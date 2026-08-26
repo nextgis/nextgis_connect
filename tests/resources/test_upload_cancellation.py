@@ -83,6 +83,38 @@ def test_project_upload_skips_webmap_after_cancellation(
     job.create_webmap.assert_not_called()
 
 
+def test_project_upload_can_skip_webmap(
+    monkeypatch: pytest.MonkeyPatch,
+    qgis_app: QgsApplication,
+) -> None:
+    del qgis_app
+
+    parent_group = Mock()
+    parent_group.get_children.return_value = []
+    created_group = Mock()
+
+    monkeypatch.setattr(
+        "nextgis_connect.legacy.ngw.qgis.ngw_resource_model_4qgis."
+        "ResourceCreator.create_group",
+        Mock(return_value=created_group),
+    )
+
+    job = QGISProjectUploader(
+        "Project", parent_group, Mock(), None, create_webmap=False
+    )
+    job._find_lookup_tables = Mock()
+    job._check_quote = Mock()
+    job._add_group_tree = Mock()
+    job._add_lookup_tables = Mock()
+    job.process_one_level_of_layers_tree = Mock()
+    job.create_webmap = Mock()
+
+    job._do()
+
+    job.create_webmap.assert_not_called()
+    assert job.result.main_resource_id == created_group.resource_id
+
+
 def test_raster_preparer_receives_upload_job_feedback(
     monkeypatch: pytest.MonkeyPatch,
     qgis_app: QgsApplication,

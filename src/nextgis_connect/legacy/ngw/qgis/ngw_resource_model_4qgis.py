@@ -1864,12 +1864,14 @@ class QGISProjectUploader(QGISResourcesUploader):
         parent_group_resource: NGWGroupResource,
         iface: QgisInterface,
         ngw_version,
+        create_webmap: bool = True,
     ) -> None:
         qgs_layer_tree_nodes = QgsProject.instance().layerTreeRoot().children()
         super().__init__(
             qgs_layer_tree_nodes, parent_group_resource, iface, ngw_version
         )
         self.new_group_name = new_group_name
+        self.should_create_webmap = create_webmap
 
     def _do(self):
         self._raise_if_canceled()
@@ -1887,7 +1889,9 @@ class QGISProjectUploader(QGISResourcesUploader):
             feedback=self._feedback,
         )
         self._raise_if_canceled()
-        self.putAddedResourceToResult(ngw_group_resource)
+        self.putAddedResourceToResult(
+            ngw_group_resource, is_main=not self.should_create_webmap
+        )
         self.parent_group_resource = ngw_group_resource
 
         self._add_group_tree()
@@ -1905,14 +1909,15 @@ class QGISProjectUploader(QGISResourcesUploader):
         )
         self._raise_if_canceled()
 
-        ngw_webmap = self.create_webmap(
-            ngw_group_resource,
-            self.new_group_name + " — webmap",
-            ngw_webmap_root_group.children,
-            ngw_webmap_basemaps,
-        )
-        self._raise_if_canceled()
-        self.putAddedResourceToResult(ngw_webmap, is_main=True)
+        if self.should_create_webmap:
+            ngw_webmap = self.create_webmap(
+                ngw_group_resource,
+                self.new_group_name + " — webmap",
+                ngw_webmap_root_group.children,
+                ngw_webmap_basemaps,
+            )
+            self._raise_if_canceled()
+            self.putAddedResourceToResult(ngw_webmap, is_main=True)
 
         # The group was attached resources,  therefore, it is necessary to upgrade for get children flag
         ngw_group_resource.update()

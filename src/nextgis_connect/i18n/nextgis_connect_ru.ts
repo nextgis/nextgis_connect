@@ -2066,6 +2066,11 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Введите новое имя для группы ресурсов</translation>
     </message>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3314"/>
+        <source>Create web map</source>
+        <translation>Создать веб-карту</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3688"/>
         <source>Overwrite resource</source>
         <translation>Перезаписать ресурс</translation>

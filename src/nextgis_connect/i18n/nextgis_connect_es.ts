@@ -2066,6 +2066,11 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
         <translation>Introduzca el nombre del grupo de recursos</translation>
     </message>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3314"/>
+        <source>Create web map</source>
+        <translation>Crear mapa web</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3688"/>
         <source>Overwrite resource</source>
         <translation>Sobrescribir recurso</translation>

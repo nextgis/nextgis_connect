@@ -66,6 +66,7 @@ from qgis.PyQt.QtWidgets import (
     QAction,
     QActionGroup,
     QApplication,
+    QCheckBox,
     QDialog,
     QFileDialog,
     QFrame,
@@ -3309,16 +3310,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         dialog.setHintString(self.tr("Enter name for resource group"))
         # dialog.setConflictingNameWarning(self.tr('Resource already exists'))
 
+        settings = NgConnectSettings()
+        create_webmap_checkbox = QCheckBox(self.tr("Create web map"), dialog)
+        create_webmap_checkbox.setChecked(
+            settings.create_webmap_when_uploading_project
+        )
+        dialog.layout().insertWidget(
+            dialog.layout().count() - 1, create_webmap_checkbox
+        )
+
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         project_name = dialog.name()
+        create_webmap = create_webmap_checkbox.isChecked()
+        settings.create_webmap_when_uploading_project = create_webmap
 
         self.qgis_proj_import_response = (
             self.resource_model.uploadProjectResources(
                 project_name,
                 ngw_current_index,
                 self.iface,
+                create_webmap=create_webmap,
             )
         )
         self.qgis_proj_import_response.done.connect(
@@ -3330,7 +3343,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.qgis_proj_import_response.done.connect(
             self.__replace_uploaded_layers_if_requested
         )
-        self.qgis_proj_import_response.done.connect(self.open_create_web_map)
+        if create_webmap:
+            self.qgis_proj_import_response.done.connect(
+                self.open_create_web_map
+            )
 
     def upload_selected_resources(self):
         ngw_current_index = self.proxy_model.mapToSource(
