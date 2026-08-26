@@ -18,6 +18,7 @@ import importlib
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import qgis.utils
 from qgis import core as qgis_core
@@ -87,6 +88,24 @@ def test_plugin_loads_without_vector_tile_layer(
     finally:
         plugin._unload()
         qgis.utils.plugins.pop(PACKAGE_NAME, None)
+
+
+def test_unload_ignores_deleted_cache_purge_task(monkeypatch) -> None:
+    from nextgis_connect.plugin import plugin_container
+    from nextgis_connect.plugin.plugin_container import PluginContainer
+
+    container = object.__new__(PluginContainer)
+    purge_cache_task = MagicMock()
+    task_attribute = "_PluginContainer__purge_cache_task"
+    unload_method = "_PluginContainer__unload_cache_purging"
+    setattr(container, task_attribute, purge_cache_task)
+    monkeypatch.setattr(plugin_container.sip, "isdeleted", lambda _: True)
+
+    getattr(container, unload_method)()
+
+    purge_cache_task.cancel.assert_not_called()
+    purge_cache_task.waitForFinished.assert_not_called()
+    assert getattr(container, task_attribute) is None
 
 
 def test_plugin_reload_cleans_ui_resources(qgis_iface) -> None:

@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Optional
 from osgeo import gdal
 from qgis.core import Qgis, QgsRuntimeProfiler, QgsTaskManager
 from qgis.gui import QgisInterface, QgsMessageBarItem
+from qgis.PyQt import sip
 from qgis.PyQt.QtCore import (
     QT_VERSION_STR,
     QAbstractItemModel,
@@ -602,9 +603,17 @@ class PluginContainer:
         if purge_cache_task is None:
             return
 
-        purge_cache_task.cancel()
-        purge_cache_task.waitForFinished(1000)
-        self.__purge_cache_task = None
+        try:
+            if sip.isdeleted(purge_cache_task):
+                return
+
+            purge_cache_task.cancel()
+            purge_cache_task.waitForFinished(1000)
+        except RuntimeError:
+            # The QGIS task manager can delete an already completed task.
+            pass
+        finally:
+            self.__purge_cache_task = None
 
     def __open_about(self) -> None:
         dialog = AboutDialog(
