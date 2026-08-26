@@ -20,6 +20,7 @@ from nextgis_connect.features.resource_browser.domain import (
     ResourceImportExtent,
 )
 from nextgis_connect.legacy.ngw.core import NGWWebMap
+from nextgis_connect.legacy.ngw.core.ngw_webmap import NGWWebMapGroup
 from nextgis_connect.legacy.shell.presentation.dock.ng_connect_dock import (
     NgConnectDock,
 )
@@ -58,6 +59,7 @@ def _webmap_resource_json() -> dict:
                         "item_type": "group",
                         "display_name": "Group",
                         "group_expanded": True,
+                        "group_enabled": False,
                         "group_exclusive": False,
                         "children": [
                             {
@@ -171,6 +173,16 @@ def _webmap_resource_json_like_map_18() -> dict:
 
 
 class TestWebMapTmsImport:
+    def test_reads_group_enabled(self, qgis_app) -> None:
+        del qgis_app
+        webmap = NGWWebMap(mock.Mock(), _webmap_resource_json())
+
+        group = webmap.root.children[2]
+
+        assert isinstance(group, NGWWebMapGroup)
+        assert group.is_visible is False
+        assert group.toDict()["group_enabled"] is False
+
     def test_collects_webmap_tms_layers_like_ngw(
         self,
         qgis_app,

@@ -66,6 +66,18 @@ class NGWWebMap(NGWResource):
         return self.__basemaps
 
     @property
+    def basemap_background_color(self) -> Optional[str]:
+        background_color = self._json.get("basemap_webmap", {}).get(
+            "background_color"
+        )
+        return background_color if isinstance(background_color, str) else None
+
+    @property
+    def basemap_disabled(self) -> Optional[bool]:
+        disabled = self._json.get("basemap_webmap", {}).get("disable")
+        return disabled if isinstance(disabled, bool) else None
+
+    @property
     def draw_order_enabled(self) -> bool:
         return bool(self._json[self.type_id].get("draw_order_enabled"))
 
@@ -153,8 +165,9 @@ class NGWWebMap(NGWResource):
     def __extract_group(self, group_item: Dict[str, Any]) -> "NGWWebMapGroup":
         group = NGWWebMapGroup(
             group_item["display_name"],
-            group_item.get("group_expanded", False),
-            group_item.get("group_exclusive", False),
+            expanded=group_item.get("group_expanded", False),
+            exclusive=group_item.get("group_exclusive", False),
+            is_visible=group_item.get("group_enabled", True),
         )
         if group.expanded is None:
             group.expanded = False
@@ -178,7 +191,7 @@ class NGWWebMap(NGWResource):
         name,
         ngw_group_resource: NGWGroupResource,
         ngw_webmap_items: List[Dict[str, Any]],
-        ngw_base_maps=None,
+        ngw_base_maps: Optional[List["WebMapBaseMap"]] = None,
         bbox: Union[
             Mapping[str, Any],
             QgsReferencedRectangle,
@@ -186,6 +199,7 @@ class NGWWebMap(NGWResource):
             None,
         ] = None,
         feedback: Optional[QgsFeedback] = None,
+        basemap_background_color: Optional[str] = None,
     ):
         if ngw_base_maps is None:
             ngw_base_maps = []
@@ -195,18 +209,18 @@ class NGWWebMap(NGWResource):
         connection = ngw_group_resource.res_factory.connection
         url = ngw_group_resource.get_api_collection_url()
 
-        base_maps = []
-        for ngw_base_map in ngw_base_maps:
-            base_maps.append(
-                {
-                    "display_name": ngw_base_map.display_name,
-                    "resource_id": ngw_base_map.resource_id,
-                    "enabled": True,
-                    "opacity": None,
-                }
-            )
+        base_maps = [
+            {
+                "display_name": basemap.display_name,
+                "resource_id": basemap.resource_id,
+                "enabled": basemap.enabled,
+                "opacity": basemap.opacity,
+            }
+            for basemap in ngw_base_maps
+        ]
         web_map_base_maps = dict(
             basemaps=base_maps,
+            background_color=basemap_background_color,
         )
 
         web_map: Dict[str, Any] = dict(
@@ -350,11 +364,18 @@ class NGWWebMapLayer(NGWWebMapItem):
 
 
 class NGWWebMapGroup(NGWWebMapItem):
-    def __init__(self, display_name, expanded=True, exclusive=False):
+    def __init__(
+        self,
+        display_name,
+        expanded=True,
+        exclusive=False,
+        is_visible=True,
+    ):
         super().__init__(NGWWebMapItem.ITEM_TYPE_GROUP)
         self.display_name = display_name
         self.expanded = expanded
         self.exclusive = exclusive
+        self.is_visible = is_visible
 
     def __repr__(self) -> str:
         class_name = self.__class__.__name__
@@ -364,6 +385,7 @@ class NGWWebMapGroup(NGWWebMapItem):
         return dict(
             display_name=self.display_name,
             group_expanded=self.expanded,
+            group_enabled=self.is_visible,
             group_exclusive=self.exclusive,
         )
 

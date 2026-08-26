@@ -28,6 +28,7 @@ from qgis.core import (
 )
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QModelIndex, QObject
+from qgis.PyQt.QtGui import QColor
 from qgis.utils import iface
 
 from nextgis_connect.features.resource_browser.application import (
@@ -556,6 +557,16 @@ class QgisResourceBatchImporter(QObject):
             QNGWResourceItem.NGWResourceRole
         )
 
+        background_color = webmap_resource.basemap_background_color
+        if background_color is not None and iface is not None:
+            color = QColor(
+                background_color
+                if background_color.startswith("#")
+                else f"#{background_color}"
+            )
+            if color.isValid():
+                iface.mapCanvas().setCanvasColor(color)
+
         # Set project CRS if no layers added previously
         if not self.__is_mass_adding and self.__project.count() == 0:
             self.__project.setCrs(
@@ -608,6 +619,7 @@ class QgisResourceBatchImporter(QObject):
 
         qgs_group.setExpanded(webmap_group.expanded)
         qgs_group.setIsMutuallyExclusive(webmap_group.exclusive)
+        qgs_group.setItemVisibilityChecked(webmap_group.is_visible)
 
         group_position = self.__insertion_stack.pop()
 
@@ -724,6 +736,9 @@ class QgisResourceBatchImporter(QObject):
 
         basemaps_group.setIsMutuallyExclusive(
             True, initialChildIndex=enabled_basemap_index
+        )
+        basemaps_group.setItemVisibilityChecked(
+            not bool(webmap.basemap_disabled)
         )
 
         self.__insertion_stack.pop()

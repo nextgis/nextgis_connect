@@ -19,6 +19,7 @@ from unittest import mock
 from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batch_import import (
     QgisResourceBatchImporter,
 )
+from nextgis_connect.legacy.ngw.core.ngw_webmap import NGWWebMapGroup
 from nextgis_connect.legacy.tree_widget.item import QNGWResourceItem
 
 
@@ -97,6 +98,27 @@ def test_add_service_with_one_available_layer_does_not_create_group() -> None:
     importer._QgisResourceBatchImporter__add_service_layer.assert_called_once_with(
         service_resource, added_layer
     )
+
+
+def test_add_webmap_group_applies_group_visibility() -> None:
+    webmap_group = NGWWebMapGroup("Hidden group", is_visible=False)
+    qgs_group = mock.Mock()
+    group_insertion_point = mock.Mock()
+    group_insertion_point.position = 1
+    importer = QgisResourceBatchImporter.__new__(QgisResourceBatchImporter)
+    importer._QgisResourceBatchImporter__insert_group = mock.Mock(
+        return_value=qgs_group
+    )
+    importer._QgisResourceBatchImporter__insertion_stack = [
+        mock.Mock(),
+        group_insertion_point,
+    ]
+
+    importer._QgisResourceBatchImporter__add_webmap_group(
+        mock.Mock(), webmap_group
+    )
+
+    qgs_group.setItemVisibilityChecked.assert_called_once_with(False)
 
 
 def test_add_layer_from_style_appends_style_name() -> None:

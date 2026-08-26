@@ -14,13 +14,17 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import ClassVar, List
+from typing import ClassVar, List, Optional
 from unittest import mock
 
 import pytest
 from qgis.core import QgsProject
 from qgis.PyQt.QtCore import QObject
-from qgis.PyQt.QtGui import QStandardItem, QStandardItemModel
+from qgis.PyQt.QtGui import (
+    QColor,
+    QStandardItem,
+    QStandardItemModel,
+)
 from qgis.PyQt.QtWidgets import QMessageBox
 
 from nextgis_connect.features.resource_browser.application import (
@@ -29,6 +33,9 @@ from nextgis_connect.features.resource_browser.application import (
 )
 from nextgis_connect.features.resource_browser.domain.resource_batch_import import (
     ResourceBatchImportStatus,
+)
+from nextgis_connect.features.resource_browser.infrastructure import (
+    qgis_resource_batch_import,
 )
 from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batch_import import (
     QgisResourceBatchImporter,
@@ -150,6 +157,96 @@ def _webmap() -> NGWWebMap:
             "webmap": {"root_item": {"children": []}},
         },
     )
+
+
+def _webmap_importer() -> QgisResourceBatchImporter:
+    importer = QgisResourceBatchImporter.__new__(QgisResourceBatchImporter)
+    importer._QgisResourceBatchImporter__is_mass_adding = True
+    importer._QgisResourceBatchImporter__insert_group = mock.Mock(
+        return_value=mock.Mock()
+    )
+    importer._QgisResourceBatchImporter__add_webmap_item = mock.Mock()
+    importer._QgisResourceBatchImporter__add_webmap_basemaps = mock.Mock()
+    importer._QgisResourceBatchImporter__insertion_stack = [mock.Mock()]
+    importer._QgisResourceBatchImporter__extent_coordinator = mock.Mock()
+    return importer
+
+
+@pytest.mark.parametrize(
+    ("background_color", "expected_color"),
+    [
+        ("1a2b3c", QColor("#1a2b3c")),
+        ("#1a2b3c", QColor("#1a2b3c")),
+        ("not-a-color", None),
+    ],
+)
+def test_webmap_applies_valid_basemap_background_color(
+    qgis_app,
+    monkeypatch,
+    background_color: str,
+    expected_color: Optional[QColor],
+) -> None:
+    del qgis_app
+    canvas = mock.Mock()
+    canvas.canvasColor.return_value = QColor("#ffffff")
+    interface = mock.Mock()
+    interface.mapCanvas.return_value = canvas
+    monkeypatch.setattr(qgis_resource_batch_import, "iface", interface)
+
+    webmap = _webmap()
+    webmap._json["basemap_webmap"] = {
+        "background_color": background_color,
+    }
+    webmap_index = mock.Mock()
+    webmap_index.data.return_value = webmap
+
+    _webmap_importer()._QgisResourceBatchImporter__add_webmap(webmap_index)
+
+    if expected_color is None:
+        canvas.setCanvasColor.assert_not_called()
+    else:
+        canvas.setCanvasColor.assert_called_once_with(expected_color)
+
+
+def test_webmap_enables_basemap_group_and_applies_opacity(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    webmap = _webmap()
+    webmap._json["basemap_webmap"] = {
+        "disable": False,
+        "basemaps": [
+            {
+                "resource_id": 100,
+                "display_name": "Basemap",
+                "enabled": True,
+                "opacity": 0.4,
+            }
+        ],
+    }
+    basemap = webmap.basemaps[0]
+    basemap_layer = mock.Mock()
+    basemaps_group = mock.Mock()
+    insertion_point = mock.Mock()
+    insertion_point.position = 0
+
+    importer = QgisResourceBatchImporter.__new__(QgisResourceBatchImporter)
+    importer._QgisResourceBatchImporter__skipped_resources = set()
+    importer._QgisResourceBatchImporter__layers = {id(basemap): basemap_layer}
+    importer._QgisResourceBatchImporter__insertion_stack = [insertion_point]
+    importer._QgisResourceBatchImporter__insert_group = mock.Mock(
+        return_value=basemaps_group
+    )
+    importer._QgisResourceBatchImporter__set_ngw_layer_properties = mock.Mock()
+    monkeypatch.setattr(
+        QgisResourceBatchImporter, "tr", lambda self, text: text
+    )
+
+    importer._QgisResourceBatchImporter__add_webmap_basemaps(webmap)
+
+    basemap_layer.setOpacity.assert_called_once_with(0.4)
+    basemaps_group.setItemVisibilityChecked.assert_called_once_with(True)
 
 
 def test_webmap_permission_error_names_inaccessible_layer(qgis_app) -> None:

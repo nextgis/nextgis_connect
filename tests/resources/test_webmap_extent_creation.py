@@ -18,12 +18,17 @@ from unittest import mock
 
 import pytest
 from qgis.core import QgsCoordinateReferenceSystem, QgsProject, QgsRectangle
+from qgis.PyQt.QtGui import QColor
 
 from nextgis_connect.legacy.ngw.core import NGWVectorLayer, NGWWebMap
 from nextgis_connect.legacy.ngw.core.ngw_resource_creator import (
     ResourceCreator,
 )
-from nextgis_connect.legacy.ngw.core.ngw_webmap import NGWWebMapLayer
+from nextgis_connect.legacy.ngw.core.ngw_webmap import (
+    NGWWebMapGroup,
+    NGWWebMapLayer,
+    WebMapBaseMap,
+)
 from nextgis_connect.legacy.ngw.qgis.ngw_resource_model_4qgis import (
     MapForLayerCreater,
     QGISProjectUploader,
@@ -107,6 +112,7 @@ def test_create_webmap_uses_canvas_extent(
     left, bottom, right, top = coordinates
     canvas = mock.Mock()
     canvas.extent.return_value = QgsRectangle(left, bottom, right, top)
+    canvas.canvasColor.return_value = QColor("#1a2b3c")
     canvas.mapSettings.return_value.destinationCrs.return_value = (
         QgsCoordinateReferenceSystem.fromEpsgId(4326)
     )
@@ -138,6 +144,10 @@ def test_create_webmap_uses_canvas_extent(
         )
 
     _assert_bbox(create_in_group_mock.call_args.args[4], coordinates)
+    assert (
+        create_in_group_mock.call_args.kwargs["basemap_background_color"]
+        == "1a2b3c"
+    )
 
 
 def test_create_webmap_transforms_canvas_extent_from_web_mercator(
@@ -147,6 +157,7 @@ def test_create_webmap_transforms_canvas_extent_from_web_mercator(
 
     canvas = mock.Mock()
     canvas.extent.return_value = _reported_web_mercator_rectangle()
+    canvas.canvasColor.return_value = QColor("#1a2b3c")
     canvas.mapSettings.return_value.destinationCrs.return_value = (
         QgsCoordinateReferenceSystem.fromEpsgId(3857)
     )
@@ -194,6 +205,7 @@ def test_create_webmap_falls_back_to_project_crs_for_projected_extent(
 
     canvas = mock.Mock()
     canvas.extent.return_value = _reported_web_mercator_rectangle()
+    canvas.canvasColor.return_value = QColor("#1a2b3c")
     canvas.mapSettings.return_value.destinationCrs.return_value = (
         QgsCoordinateReferenceSystem.fromEpsgId(4326)
     )
@@ -359,7 +371,7 @@ def test_create_in_group_preserves_world_extent(qgis_app) -> None:
     NGWWebMap.create_in_group(
         "Map",
         ngw_group,
-        [],
+        [NGWWebMapGroup("Hidden group", is_visible=False).toDict()],
         [],
         bbox=None,
     )
@@ -368,6 +380,50 @@ def test_create_in_group_preserves_world_extent(qgis_app) -> None:
     bbox = params["webmap"]
 
     _assert_bbox(bbox, (-180.0, -90.0, 180.0, 90.0))
+    assert bbox["root_item"]["children"][0]["group_enabled"] is False
+
+
+def test_create_in_group_preserves_basemap_settings(qgis_app) -> None:
+    del qgis_app
+    connection = mock.Mock()
+    connection.post.return_value = {"id": 100}
+    connection.get.return_value = _webmap_resource_json(100)
+    resource_factory = mock.Mock()
+    resource_factory.connection = connection
+    ngw_group = mock.Mock()
+    ngw_group.get_api_collection_url.return_value = "/api/resource/"
+    ngw_group.res_factory = resource_factory
+    ngw_group.resource_id = 1
+
+    NGWWebMap.create_in_group(
+        "Map",
+        ngw_group,
+        [],
+        [
+            WebMapBaseMap(
+                resource_id=42,
+                display_name="Hidden basemap",
+                enabled=False,
+                opacity=0.4,
+            )
+        ],
+        basemap_background_color="1a2b3c",
+    )
+
+    basemap_webmap = connection.post.call_args.kwargs["params"][
+        "basemap_webmap"
+    ]
+    assert basemap_webmap == {
+        "basemaps": [
+            {
+                "display_name": "Hidden basemap",
+                "resource_id": 42,
+                "enabled": False,
+                "opacity": 0.4,
+            }
+        ],
+        "background_color": "1a2b3c",
+    }
 
 
 def test_create_in_group_does_not_normalize_projected_values(qgis_app) -> None:

@@ -49,6 +49,7 @@ from nextgis_connect.legacy.ngw.core.ngw_webmap import (
     NGWWebMapGroup,
     NGWWebMapLayer,
     NGWWebMapRoot,
+    WebMapBaseMap,
 )
 from nextgis_connect.legacy.ngw.core.ngw_wms_connection import NGWWmsConnection
 from nextgis_connect.legacy.ngw.core.ngw_wms_layer import NGWWmsLayer
@@ -1789,7 +1790,22 @@ class QGISResourcesUploader(QGISResourceJob):
                 )
 
             elif ngw_resource.type_id == NGWBaseMap.type_id:
-                ngw_webmap_basemaps.append(ngw_resource)
+                qgs_map_layer = layer_tree_item.layer()
+                assert qgs_map_layer is not None
+                opacity = None
+                if isinstance(qgs_map_layer, QgsRasterLayer):
+                    qgs_raster_layer = cast(QgsRasterLayer, qgs_map_layer)
+                    renderer = qgs_raster_layer.renderer()
+                    if renderer is not None:
+                        opacity = renderer.opacity()
+                ngw_webmap_basemaps.append(
+                    WebMapBaseMap(
+                        ngw_resource.resource_id,
+                        ngw_resource.display_name,
+                        layer_tree_item.isVisible(),
+                        opacity=opacity,
+                    )
+                )
 
     def update_layer(self, qgsLayerTreeItem, ngwVectorLayer):
         self.overwriteQGISMapLayer(qgsLayerTreeItem.layer(), ngwVectorLayer)
@@ -1813,6 +1829,7 @@ class QGISResourcesUploader(QGISResourceJob):
             ngw_resource_child_group.display_name,
             qgsLayerTreeGroup.isExpanded(),
             qgsLayerTreeGroup.isMutuallyExclusive(),
+            qgsLayerTreeGroup.itemVisibilityChecked(),
         )
         ngw_webmap_item.appendChild(ngw_webmap_child_group)
 
@@ -1916,6 +1933,10 @@ class QGISProjectUploader(QGISResourcesUploader):
         )
 
         canvas = self.iface.mapCanvas()
+        canvas_color = canvas.canvasColor().name()
+        basemap_background_color = (
+            canvas_color[1:] if canvas_color.startswith("#") else canvas_color
+        )
         extent = ExtentCalculator.from_canvas_extent(
             canvas.extent(),
             canvas.mapSettings().destinationCrs(),
@@ -1948,6 +1969,7 @@ class QGISProjectUploader(QGISResourcesUploader):
             ngw_webmap_basemaps,
             bbox,
             feedback=self._feedback,
+            basemap_background_color=basemap_background_color,
         )
 
 
