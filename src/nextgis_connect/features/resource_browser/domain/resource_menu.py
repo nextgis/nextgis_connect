@@ -618,10 +618,6 @@ class ResourceMenuPolicy:
         if qgis_import_section is not None:
             sections.append(qgis_import_section)
 
-        web_gis_transfer_section = self._web_gis_transfer_section(context)
-        if web_gis_transfer_section is not None:
-            sections.append(web_gis_transfer_section)
-
         sections.append(self._navigation_section(resource))
 
         content_section = self._content_section(resource)
@@ -676,32 +672,6 @@ class ResourceMenuPolicy:
         return ResourceMenuSection(
             kind=ResourceMenuSectionKind.QGIS_IMPORT,
             entries=tuple(entries),
-        )
-
-    def _web_gis_transfer_section(
-        self,
-        context: ResourceMenuContext,
-    ) -> Optional[ResourceMenuSection]:
-        actions = tuple(
-            action_id
-            for action_id in self._ADD_TO_WEB_GIS_ACTIONS
-            if self.is_add_to_web_gis_action_available(context, action_id)
-        )
-        if len(actions) == 0:
-            return None
-
-        entries: Tuple[ResourceMenuEntry, ...] = actions
-        if len(actions) > 1:
-            entries = (
-                ResourceMenuSubmenu(
-                    kind=ResourceMenuSubmenuKind.ADD_TO_WEB_GIS,
-                    sections=self._add_to_web_gis_submenu_sections(actions),
-                ),
-            )
-
-        return ResourceMenuSection(
-            kind=ResourceMenuSectionKind.WEB_GIS_TRANSFER,
-            entries=entries,
         )
 
     def _navigation_section(
@@ -765,36 +735,6 @@ class ResourceMenuPolicy:
             actions.append(ResourceMenuAction.DOWNLOAD_NGFP)
 
         return actions
-
-    def _add_to_web_gis_submenu_sections(
-        self,
-        available_actions: Tuple[ResourceMenuAction, ...],
-    ) -> Tuple[ResourceMenuSubmenuSection, ...]:
-        section_definitions = (
-            (
-                ResourceMenuSectionLabel.WEB_GIS_UPLOAD,
-                self._ADD_TO_WEB_GIS_SECTIONS[0],
-            ),
-            (
-                ResourceMenuSectionLabel.WEB_GIS_MODIFICATION,
-                self._ADD_TO_WEB_GIS_SECTIONS[1],
-            ),
-        )
-        sections: List[ResourceMenuSubmenuSection] = []
-        for label, canonical_actions in section_definitions:
-            actions = tuple(
-                action_id
-                for action_id in canonical_actions
-                if action_id in available_actions
-            )
-            if len(actions) == 0:
-                continue
-
-            sections.append(
-                ResourceMenuSubmenuSection(label=label, actions=actions)
-            )
-
-        return tuple(sections)
 
     def _compact_submenus(
         self,

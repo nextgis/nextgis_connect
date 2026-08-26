@@ -169,28 +169,15 @@ class TestResourceMenuPolicy:
             ResourceMenuAction.ADD_TMS_LAYER,
             ResourceMenuAction.ADD_EXPERIMENTAL_NGW_LAYER,
         )
-        assert layout.sections[1].submenus[0].kind == (
-            ResourceMenuSubmenuKind.ADD_TO_WEB_GIS
-        )
-        assert layout.sections[1].submenus[0].sections == (
-            ResourceMenuSubmenuSection(
-                label=ResourceMenuSectionLabel.WEB_GIS_MODIFICATION,
-                actions=(
-                    ResourceMenuAction.ADD_STYLE,
-                    ResourceMenuAction.UPDATE_STYLE,
-                    ResourceMenuAction.OVERWRITE_LAYER,
-                ),
-            ),
-        )
-        assert layout.sections[2].actions == (
+        assert layout.sections[1].actions == (
             ResourceMenuAction.OPEN_IN_WEB_GIS,
             ResourceMenuAction.VIEW_IN_BROWSER,
             ResourceMenuAction.OPEN_LAYER_HISTORY,
         )
-        assert layout.sections[3].submenus[0].kind == (
+        assert layout.sections[2].submenus[0].kind == (
             ResourceMenuSubmenuKind.CREATE
         )
-        assert layout.sections[3].submenus[0].sections == (
+        assert layout.sections[2].submenus[0].sections == (
             ResourceMenuSubmenuSection(
                 label=ResourceMenuSectionLabel.CREATE_IN_RESOURCE,
                 actions=(ResourceMenuAction.CREATE_FORM,),
@@ -205,26 +192,25 @@ class TestResourceMenuPolicy:
                 ),
             ),
         )
-        assert layout.sections[3].actions == (
+        assert layout.sections[2].actions == (
             ResourceMenuAction.DUPLICATE_RESOURCE,
             ResourceMenuAction.RENAME_RESOURCE,
         )
-        assert layout.sections[4].actions == (
+        assert layout.sections[3].actions == (
             ResourceMenuAction.DELETE_RESOURCE,
         )
-        assert layout.sections[5].submenus[0].kind == (
+        assert layout.sections[4].submenus[0].kind == (
             ResourceMenuSubmenuKind.TREE
         )
-        assert layout.sections[5].submenus[0].actions == (
+        assert layout.sections[4].submenus[0].actions == (
             ResourceMenuAction.EXPAND_ALL,
             ResourceMenuAction.COLLAPSE_ALL,
         )
-        assert layout.sections[6].actions == (
+        assert layout.sections[5].actions == (
             ResourceMenuAction.SHOW_PROPERTIES,
         )
         assert tuple(section.kind for section in layout.sections) == (
             ResourceMenuSectionKind.QGIS_IMPORT,
-            ResourceMenuSectionKind.WEB_GIS_TRANSFER,
             ResourceMenuSectionKind.NAVIGATION,
             ResourceMenuSectionKind.MANAGEMENT,
             ResourceMenuSectionKind.DESTRUCTIVE,
@@ -654,20 +640,25 @@ class TestResourceMenuPolicy:
             style_layout
         )
 
-    def test_single_web_gis_action_is_not_wrapped_in_submenu(self) -> None:
+    def test_resource_menu_excludes_web_gis_transfer_actions(self) -> None:
         context = ResourceMenuContext(
             resources=(ResourceMenuItem(kind=ResourceKind.GROUP),),
             has_qgis_selection=True,
+            has_project_layers=True,
         )
 
         layout = ResourceMenuPolicy().create_layout(context)
-        web_gis_section = next(
-            section
-            for section in layout.sections
-            if section.kind == ResourceMenuSectionKind.WEB_GIS_TRANSFER
-        )
 
-        assert web_gis_section.entries == (ResourceMenuAction.UPLOAD_SELECTED,)
+        assert all(
+            section.kind != ResourceMenuSectionKind.WEB_GIS_TRANSFER
+            for section in layout.sections
+        )
+        assert ResourceMenuAction.UPLOAD_SELECTED not in self._all_actions(
+            layout
+        )
+        assert ResourceMenuAction.UPLOAD_PROJECT not in self._all_actions(
+            layout
+        )
 
     def test_upload_to_web_gis_requires_group_target(self) -> None:
         policy = ResourceMenuPolicy()
@@ -773,8 +764,6 @@ class TestResourceContextMenuFactory:
             "Add to QGIS",
             "Add to QGIS as",
             "<separator>",
-            "Add to Web GIS",
-            "<separator>",
             "Open resource page",
             "View in browser",
             "<separator>",
@@ -798,12 +787,7 @@ class TestResourceContextMenuFactory:
             "TMS layer",
         ]
         assert [action.text() for action in submenus[1].actions()] == [
-            "Add new style to layer",
-            "Update layer style",
-            "Overwrite with current layer",
-        ]
-        assert [action.text() for action in submenus[2].actions()] == [
-            "Create in resource",
+            "Create",
             "Form",
             "Create for resource",
             "Web map",
@@ -811,9 +795,9 @@ class TestResourceContextMenuFactory:
             "OGC API - Features service",
             "WMS service",
         ]
-        assert [action.text() for action in submenus[3].actions()] == [
-            "Expand recursively",
-            "Collapse recursively",
+        assert [action.text() for action in submenus[2].actions()] == [
+            "Expand All",
+            "Collapse All",
         ]
 
         parent.deleteLater()
@@ -1161,11 +1145,11 @@ class TestResourceContextMenuFactory:
             "Update layer style",
             "Overwrite with current layer",
         ]
-        assert all(
+        assert [
             action.isEnabled()
             for action in menu.actions()
             if not action.isSeparator()
-        )
+        ] == [False, False, True, True, True]
 
         parent.deleteLater()
 
