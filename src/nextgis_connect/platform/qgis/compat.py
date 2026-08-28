@@ -26,6 +26,7 @@ from qgis.core import (
     QgsGeometry,
     QgsMapLayerProxyModel,
     QgsMapLayerType,
+    QgsRasterFileWriter,  # noqa: F401
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QT_VERSION_STR, QMetaType, QVariant
@@ -222,6 +223,14 @@ class DataType(IntEnum):
     CFloat64 = Qgis.DataType.CFloat64
     ARGB32 = Qgis.DataType.ARGB32
     ARGB32_Premultiplied = Qgis.DataType.ARGB32_Premultiplied
+
+    @classmethod
+    def from_qgis(cls, qgis_data_type: Any) -> "DataType":
+        """Return the matching data type or ``UnknownDataType``."""
+        try:
+            return cls(qgis_data_type)
+        except (TypeError, ValueError):
+            return cls.UnknownDataType
 
     def to_gdal(self) -> int:
         """Return the corresponding GDAL data type.
