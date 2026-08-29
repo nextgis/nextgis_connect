@@ -16,13 +16,14 @@
 
 from typing import Any, Dict, Tuple
 
-from qgis.core import QgsDataSourceUri
+from qgis.core import QgsDataSourceUri, QgsWkbTypes
 
 from nextgis_connect.legacy.ngw.core.ngw_resource import NGWResource
 from nextgis_connect.platform.qgis.errors import ErrorCode, NgwError
 
 from .ngw_abstract_vector_resource import NGWAbstractVectorResource
 
+POSTGIS_DRIVER = "postgres"
 DEFAULT_POSTGRES_PORT = 5432
 
 
@@ -46,7 +47,8 @@ class NGWPostgisLayer(NGWAbstractVectorResource):
         self, postgis_connection: NGWPostgisConnection
     ) -> Tuple[str, str, str]:
         connection_info = postgis_connection.connection_info
-        if len(connection_info) == 0:
+        layer_info = self._json[self.type_id]
+        if len(connection_info) == 0 or len(layer_info) == 0:
             raise NgwError(
                 "Can't get connection params", code=ErrorCode.PermissionsError
             )
@@ -55,22 +57,36 @@ class NGWPostgisLayer(NGWAbstractVectorResource):
         if port is None or len(str(port).strip()) == 0:
             port = DEFAULT_POSTGRES_PORT
 
+        username = connection_info.get("username", "")
+        password = connection_info.get("password", "")
+        if not username or not password:
+            username = password = ""  # nosec B105
+
         uri = QgsDataSourceUri()
         uri.setConnection(
             connection_info["hostname"],
             str(port),
             connection_info["database"],
-            connection_info["username"],
-            connection_info["password"],
+            username,
+            password,
+            QgsDataSourceUri.decodeSslMode(
+                connection_info.get("sslmode") or "prefer"
+            ),
         )
-
-        layer_info = self._json[self.type_id]
         uri.setDataSource(
             layer_info["schema"],
             layer_info["table"],
-            layer_info["column_geom"],
-            None,
+            layer_info.get("column_geom", ""),
+            "",
             layer_info["column_id"],
         )
+        wkb_type = self.wkb_geom_type
+        if QgsWkbTypes.hasZ(wkb_type):
+            wkb_type = QgsWkbTypes.addZ(QgsWkbTypes.dropZ(wkb_type))
+        uri.setWkbType(wkb_type)
 
-        return uri.uri(False), self.display_name, "postgres"
+        geometry_srid = layer_info.get("geometry_srid")
+        if geometry_srid is not None:
+            uri.setSrid(str(geometry_srid))
+
+        return uri.uri(False), self.display_name, POSTGIS_DRIVER

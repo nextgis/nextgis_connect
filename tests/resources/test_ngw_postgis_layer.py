@@ -14,8 +14,10 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from typing import Optional
 from unittest import mock
 
+import pytest
 from qgis.core import QgsDataSourceUri
 
 from nextgis_connect.legacy.ngw.core.ngw_postgis_layer import (
@@ -23,9 +25,16 @@ from nextgis_connect.legacy.ngw.core.ngw_postgis_layer import (
     NGWPostgisConnection,
     NGWPostgisLayer,
 )
+from nextgis_connect.platform.qgis.compat import WkbType
 
 
-def test_layer_params_uses_default_port_for_null_port() -> None:
+@pytest.mark.parametrize(
+    ("sslmode", "expected_sslmode"),
+    ((None, "prefer"), ("verify-full", "verify-full")),
+)
+def test_layer_params_constructs_postgis_uri(
+    sslmode: Optional[str], expected_sslmode: str
+) -> None:
     postgis_connection = NGWPostgisConnection(
         mock.Mock(),
         {
@@ -43,6 +52,7 @@ def test_layer_params_uses_default_port_for_null_port() -> None:
                 "database": "gis",
                 "username": "alice",
                 "password": "secret",
+                "sslmode": sslmode,
             },
         },
     )
@@ -63,6 +73,8 @@ def test_layer_params_uses_default_port_for_null_port() -> None:
                 "table": "roads",
                 "column_geom": "geom",
                 "column_id": "id",
+                "geometry_type": "LINESTRINGZ",
+                "geometry_srid": 4326,
             },
         },
     )
@@ -70,10 +82,20 @@ def test_layer_params_uses_default_port_for_null_port() -> None:
     uri_string, layer_name, provider = postgis_layer.layer_params(
         postgis_connection
     )
-    uri = QgsDataSourceUri(uri_string)
+    expected_uri = QgsDataSourceUri()
+    expected_uri.setConnection(
+        "database.example.com",
+        str(DEFAULT_POSTGRES_PORT),
+        "gis",
+        "alice",
+        "secret",
+        QgsDataSourceUri.decodeSslMode(expected_sslmode),
+    )
+    expected_uri.setDataSource("public", "roads", "geom", "", "id")
+    expected_uri.setWkbType(WkbType.LineStringZ)
+    expected_uri.setSrid("4326")
 
-    assert uri.host() == "database.example.com"
-    assert uri.port() == str(DEFAULT_POSTGRES_PORT)
-    assert uri.database() == "gis"
+    assert QgsDataSourceUri(uri_string) == expected_uri
+    assert ("sslmode=" in uri_string) is (sslmode is not None)
     assert layer_name == "roads"
     assert provider == "postgres"
