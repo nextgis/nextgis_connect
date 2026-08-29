@@ -487,7 +487,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             toolbar_actions,
             self.content,
         )
-        self.main_tool_bar.settings_middle_clicked.connect(
+        self.main_tool_bar.settings_right_clicked.connect(
             self.__show_connection_switch_menu
         )
         self.content.layout().insertWidget(0, self.main_tool_bar)
@@ -679,7 +679,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__unregister_project_export_action()
         self.__close_connection_switch_menu()
         self.__safe_disconnect(
-            self.main_tool_bar.settings_middle_clicked,
+            self.main_tool_bar.settings_right_clicked,
             self.__show_connection_switch_menu,
         )
         self.__initialization_timer.stop()

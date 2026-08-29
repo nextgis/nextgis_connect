@@ -189,7 +189,7 @@ class TestPluginPanelToolBar:
 
         main_window.deleteLater()
 
-    def test_settings_middle_click_requests_popup_without_triggering_action(
+    def test_settings_right_click_requests_popup_without_triggering_action(
         self,
         qgis_app,
     ) -> None:
@@ -202,7 +202,7 @@ class TestPluginPanelToolBar:
         actions.settings.triggered.connect(
             lambda: triggered_actions.append(actions.settings)
         )
-        toolbar.settings_middle_clicked.connect(popup_positions.append)
+        toolbar.settings_right_clicked.connect(popup_positions.append)
         main_window.setCentralWidget(toolbar)
 
         main_window.show()
@@ -216,7 +216,7 @@ class TestPluginPanelToolBar:
 
         QTest.mouseClick(
             settings_button,
-            Qt.MouseButton.MiddleButton,
+            Qt.MouseButton.RightButton,
             Qt.KeyboardModifier.NoModifier,
             settings_button.rect().center(),
         )

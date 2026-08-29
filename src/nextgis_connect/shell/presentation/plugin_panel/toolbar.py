@@ -43,8 +43,8 @@ class PluginPanelToolBarActions:
     help: QAction
 
 
-class _MiddleClickFilter(QObject):
-    """Translate a complete middle-button click into a Qt signal."""
+class _RightClickFilter(QObject):
+    """Translate a complete right-button click into a Qt signal."""
 
     clicked = pyqtSignal()
 
@@ -56,7 +56,7 @@ class _MiddleClickFilter(QObject):
         if not isinstance(event, QMouseEvent):
             return super().eventFilter(watched, event)
 
-        if event.button() != Qt.MouseButton.MiddleButton:
+        if event.button() != Qt.MouseButton.RightButton:
             return super().eventFilter(watched, event)
 
         if event.type() == QEvent.Type.MouseButtonPress:
@@ -83,7 +83,7 @@ class _MiddleClickFilter(QObject):
 class PluginPanelToolBar(QToolBar):
     """Display plugin panel commands using native toolbar actions."""
 
-    settings_middle_clicked = pyqtSignal(QPoint)
+    settings_right_clicked = pyqtSignal(QPoint)
 
     ICON_SIZE = 20
 
@@ -126,12 +126,12 @@ class PluginPanelToolBar(QToolBar):
         self._add_action(actions.open_in_browser)
         self.addSeparator()
         self._settings_button = self._add_action(actions.settings)
-        self._settings_middle_click_filter = _MiddleClickFilter(self)
-        self._settings_middle_click_filter.clicked.connect(
-            self._emit_settings_middle_clicked
+        self._settings_right_click_filter = _RightClickFilter(self)
+        self._settings_right_click_filter.clicked.connect(
+            self._emit_settings_right_clicked
         )
         self._settings_button.installEventFilter(
-            self._settings_middle_click_filter
+            self._settings_right_click_filter
         )
         self._add_action(actions.help)
 
@@ -158,8 +158,8 @@ class PluginPanelToolBar(QToolBar):
         self.setIconSize(self._fixed_icon_size)
 
     @pyqtSlot()
-    def _emit_settings_middle_clicked(self) -> None:
+    def _emit_settings_right_clicked(self) -> None:
         popup_position = self._settings_button.mapToGlobal(
             QPoint(0, self._settings_button.height())
         )
-        self.settings_middle_clicked.emit(popup_position)
+        self.settings_right_clicked.emit(popup_position)
