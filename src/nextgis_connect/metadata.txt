@@ -39,7 +39,7 @@ about[ru]=NextGIS Connect превращает QGIS в многопользов�
 	NextGIS Web на GitHub: https://github.com/nextgis/nextgisweb
 
 	Связаться с нами: https://nextgis.ru/contact
-version=4.1.0
+version=4.1.1
 author=NextGIS
 email=info@nextgis.com
 
@@ -56,6 +56,11 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+	4.1.1
+		- Improved handling of PostGIS layer parameters
+		- Fixed adding dictionaries to PostGIS layers
+		- Changed the quick-switch shortcut from the middle mouse button to the right mouse button
+		! Supported NGW versions: 5.4.0 - 5.7.0
 	4.1.0
 		- Interactive panorama viewing
 		- Fullscreen viewing of images and panoramas
