@@ -16,10 +16,19 @@
 
 from unittest import mock
 
+from qgis.core import QgsVectorLayer
+
 from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batch_import import (
     QgisResourceBatchImporter,
 )
-from nextgis_connect.legacy.ngw.core.ngw_webmap import NGWWebMapGroup
+from nextgis_connect.legacy.ngw.core.ngw_abstract_vector_resource import (
+    NGWAbstractVectorResource,
+)
+from nextgis_connect.legacy.ngw.core.ngw_qgis_style import NGWQGISStyle
+from nextgis_connect.legacy.ngw.core.ngw_webmap import (
+    NGWWebMapGroup,
+    NGWWebMapLayer,
+)
 from nextgis_connect.legacy.tree_widget.item import QNGWResourceItem
 
 
@@ -119,6 +128,50 @@ def test_add_webmap_group_applies_group_visibility() -> None:
     )
 
     qgs_group.setItemVisibilityChecked.assert_called_once_with(False)
+
+
+def test_add_webmap_layer_applies_vector_layer_metadata() -> None:
+    layer_resource_id = 42
+    style_resource_id = 43
+    webmap_layer = NGWWebMapLayer(
+        style_resource_id,
+        "Roads",
+        is_visible=True,
+        transparency=None,
+        legend=False,
+        style_parent_id=layer_resource_id,
+    )
+    layer_resource = mock.Mock(spec=NGWAbstractVectorResource)
+    style_resource = mock.Mock(spec=NGWQGISStyle)
+    qgs_layer = mock.Mock(spec=QgsVectorLayer)
+    layer_node = mock.Mock()
+    insertion_point = mock.Mock()
+    insertion_point.position = 0
+
+    importer = QgisResourceBatchImporter.__new__(QgisResourceBatchImporter)
+    importer._QgisResourceBatchImporter__skipped_resources = set()
+    importer._QgisResourceBatchImporter__layers = {id(webmap_layer): qgs_layer}
+    importer._QgisResourceBatchImporter__insertion_stack = [insertion_point]
+    importer._QgisResourceBatchImporter__model = mock.Mock()
+    importer._QgisResourceBatchImporter__model.resource.side_effect = {
+        style_resource_id: style_resource,
+        layer_resource_id: layer_resource,
+    }.get
+    importer._QgisResourceBatchImporter__style_applicator = mock.Mock()
+    importer._QgisResourceBatchImporter__vector_layer_metadata_applicator = (
+        mock.Mock()
+    )
+    importer._QgisResourceBatchImporter__set_ngw_layer_properties = mock.Mock()
+    insertion_point.group.insertLayer.return_value = layer_node
+
+    importer._QgisResourceBatchImporter__add_webmap_layer(
+        mock.Mock(), webmap_layer
+    )
+
+    importer._QgisResourceBatchImporter__vector_layer_metadata_applicator.apply.assert_called_once_with(
+        layer_resource,
+        qgs_layer,
+    )
 
 
 def test_add_layer_from_style_appends_style_name() -> None:

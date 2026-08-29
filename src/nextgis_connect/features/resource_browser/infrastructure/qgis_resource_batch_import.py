@@ -662,6 +662,14 @@ class QgisResourceBatchImporter(QObject):
         else:
             layer_resource_id = webmap_layer.layer_style_id
 
+        layer_resource = self.__model.resource(layer_resource_id)
+        if isinstance(layer_resource, NGWAbstractVectorResource):
+            assert isinstance(layer, QgsVectorLayer)
+            self.__vector_layer_metadata_applicator.apply(
+                layer_resource,
+                layer,
+            )
+
         self.__set_ngw_layer_properties(
             layer,
             webmap.connection_id,
