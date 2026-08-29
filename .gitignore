@@ -231,3 +231,5 @@ compile_commands.json
 *_qmlcache.qrc
 
 refs/
+
+opencode.json
