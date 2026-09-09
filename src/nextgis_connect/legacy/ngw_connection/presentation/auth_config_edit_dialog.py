@@ -167,6 +167,7 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
         self.resource_lineedit.setVisible(is_visible)
         self.label.setVisible(is_visible)
         self.realm_lineedit.setVisible(is_visible)
+        self.formLayout_2.setVerticalSpacing(-1 if is_visible else 0)
         self.__update_group_box_minimum_heights()
         self.__schedule_resize()
 
@@ -180,9 +181,11 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
 
         body_layout = cast(QVBoxLayout, self.body.layout())
         body_layout.setContentsMargins(0, 0 if embedded else 3, 0, 0)
-        content_margins = (0, 0, 0, 0) if embedded else (4, 4, 4, 4)
-        self.auth_params_groupbox.layout().setContentsMargins(*content_margins)
-        self.additional_groupbox.layout().setContentsMargins(*content_margins)
+        auth_params_margins = (0, 0, 0, 0) if embedded else (4, 4, 4, 4)
+        self.auth_params_groupbox.layout().setContentsMargins(
+            *auth_params_margins
+        )
+        self.additional_groupbox.layout().setContentsMargins(4, 4, 4, 4)
         self.__update_auth_config_id_visibility()
         self.layoutChanged.emit()
 
