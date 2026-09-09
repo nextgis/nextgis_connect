@@ -294,7 +294,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         display_details = self._display_text(details)
         paragraphs = display_details.split("\n\n")
         if len(paragraphs) == 1:
-            rendered_details = escape(display_details).replace("\n", "<br/>")
+            rendered_details = display_details.replace("\n", "<br/>")
             return f'<div align="center">{rendered_details}</div>'
 
         rendered_paragraphs = []
@@ -302,7 +302,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
             bottom_margin = (
                 self._PARAGRAPH_SPACING if index < len(paragraphs) - 1 else 0
             )
-            rendered_paragraph = escape(paragraph).replace("\n", "<br/>")
+            rendered_paragraph = paragraph.replace("\n", "<br/>")
             rendered_paragraphs.append(
                 '<p style="margin: 0px 0px '
                 f'{bottom_margin}px 0px;">'
