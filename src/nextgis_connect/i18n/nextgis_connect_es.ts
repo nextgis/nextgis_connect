@@ -1133,18 +1133,18 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="47"/>
-        <source>Reading the server download settings.</source>
-        <translation>Leyendo la configuración de descarga del servidor.</translation>
+        <source>Checking the Lunkwill server setting.</source>
+        <translation>Comprobando la configuración de Lunkwill del servidor.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="56"/>
-        <source>Ask the administrator to inspect the server download settings response.</source>
-        <translation>Solicite al administrador que inspeccione la respuesta de configuración de descarga del servidor.</translation>
+        <source>Ask the administrator to inspect the Lunkwill setting in the server response.</source>
+        <translation>Solicite al administrador que inspeccione la configuración de Lunkwill en la respuesta del servidor.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="91"/>
-        <source>Unable to read the server download settings.</source>
-        <translation>No se pueden leer los ajustes de descarga del servidor.</translation>
+        <source>Unable to read the Lunkwill server setting.</source>
+        <translation>No se puede leer la configuración de Lunkwill del servidor.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="91"/>
@@ -1153,43 +1153,43 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="77"/>
-        <source>The server download settings endpoint returned an error.</source>
-        <translation>El endpoint de configuración de descarga del servidor devolvió un error.</translation>
+        <source>The server settings endpoint returned an error.</source>
+        <translation>El endpoint de configuración del servidor devolvió un error.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="77"/>
-        <source>The server did not return the expected download settings.</source>
-        <translation>El servidor no devolvió la configuración de descarga esperada.</translation>
+        <source>The server did not return the expected Lunkwill setting.</source>
+        <translation>El servidor no devolvió la configuración esperada de Lunkwill.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="106"/>
-        <source>The server download settings response has an unexpected format.</source>
-        <translation>La respuesta de configuración de descarga del servidor tiene un formato inesperado.</translation>
+        <source>The server settings response has an unexpected format.</source>
+        <translation>La respuesta de configuración del servidor tiene un formato inesperado.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="106"/>
-        <source>The server download settings payload is not an object.</source>
-        <translation>La carga útil de configuración de descarga del servidor no es un objeto.</translation>
+        <source>The server settings payload is not an object.</source>
+        <translation>La carga útil de configuración del servidor no es un objeto.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="125"/>
-        <source>Server-side download support is enabled.</source>
-        <translation>El soporte de descarga del lado del servidor está habilitado.</translation>
+        <source>Lunkwill is enabled in the server settings.</source>
+        <translation>Lunkwill está habilitado en la configuración del servidor.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Server-side download support is disabled or missing.</source>
-        <translation>El soporte de descarga del lado del servidor está deshabilitado o ausente.</translation>
+        <source>Lunkwill is disabled or missing in the server settings.</source>
+        <translation>Lunkwill está deshabilitado o falta en la configuración del servidor.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Long-running downloads may work slower without server-side download support.</source>
-        <translation>Las descargas largas pueden funcionar más lentamente sin soporte de descarga del lado del servidor.</translation>
+        <source>Long-running server operations may be processed synchronously.</source>
+        <translation>Las operaciones de servidor de larga duración pueden procesarse de forma síncrona.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Ask the administrator to enable server-side download support if long-running downloads are expected.</source>
-        <translation>Solicite al administrador que habilite el soporte de descarga del lado del servidor si se esperan descargas largas.</translation>
+        <source>Ask the administrator to enable Lunkwill if long-running server operations are expected.</source>
+        <translation>Solicite al administrador que habilite Lunkwill si se esperan operaciones de servidor de larga duración.</translation>
     </message>
 </context>
 <context>
