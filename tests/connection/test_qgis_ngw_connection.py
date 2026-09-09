@@ -17,8 +17,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
-from qgis.PyQt.QtCore import QByteArray
-from qgis.PyQt.QtNetwork import QNetworkReply
+from qgis.PyQt.QtCore import QByteArray, QTimer
+from qgis.PyQt.QtNetwork import QNetworkReply, QSslError
 
 from nextgis_connect.platform.qgis.errors import NgwError
 from tests.ng_connect_testcase import NgConnectTestCase, TestConnection
@@ -110,6 +110,186 @@ class TestQgsNgwConnection(NgConnectTestCase):
             f"URL: {request_url}" in error_notes
             or f"URL: {request_url}" in str(error)
         )
+
+    def test_get_reports_ssl_verification(self) -> None:
+        from nextgis_connect.legacy.ngw.qgis import qgis_ngw_connection
+
+        class _FinishedReply(QNetworkReply):
+            def abort(self) -> None:
+                pass
+
+            def readData(self, maxlen):
+                del maxlen
+                return b""
+
+        ssl_error = QSslError(QSslError.SslError.SelfSignedCertificate)
+        connection_id = self.connection_id(TestConnection.SandboxGuest)
+        connection = self.qgs_ngw_connection_class(connection_id)
+        verify_peer_method = "_QgsNgwConnection__verify_peer_certificate"
+        verified_with_error = qgis_ngw_connection.SslCertificateVerification(
+            (ssl_error,),
+            was_performed=True,
+        )
+        verification_unavailable = (
+            qgis_ngw_connection.SslCertificateVerification(
+                (),
+                was_performed=False,
+            )
+        )
+
+        cases = (
+            (
+                "handshake signal",
+                [ssl_error],
+                verification_unavailable,
+                verified_with_error,
+            ),
+            (
+                "peer certificate chain",
+                [],
+                verified_with_error,
+                verified_with_error,
+            ),
+            (
+                "verification unavailable",
+                [],
+                verification_unavailable,
+                verification_unavailable,
+            ),
+        )
+        for source, emitted_errors, fallback, expected in cases:
+            with self.subTest(source=source):
+                reply = _FinishedReply()
+
+                def finish_request(
+                    reply=reply,
+                    emitted_errors=emitted_errors,
+                ) -> None:
+                    if emitted_errors:
+                        reply.sslErrors.emit(emitted_errors)
+                    reply.setFinished(True)
+                    reply.finished.emit()
+
+                def start_request(
+                    request,
+                    reply=reply,
+                    finish_request=finish_request,
+                ):
+                    del request
+                    QTimer.singleShot(0, finish_request)
+                    return reply
+
+                network_manager = Mock()
+                network_manager.get.side_effect = start_request
+                ssl_verification_callback = Mock()
+
+                with patch.object(
+                    qgis_ngw_connection.QgsNetworkAccessManager,
+                    "instance",
+                    return_value=network_manager,
+                ), patch.object(
+                    qgis_ngw_connection.NgwConnection,
+                    "update_network_request",
+                    return_value=False,
+                ), patch.object(
+                    connection,
+                    verify_peer_method,
+                    return_value=fallback,
+                ):
+                    connection.get(
+                        "/",
+                        ssl_verification_callback=ssl_verification_callback,
+                    )
+
+                ssl_verification_callback.assert_called_once()
+                verification = ssl_verification_callback.call_args.args[0]
+                self.assertEqual(verification, expected)
+
+                # The observer must not retain state after the request.
+                reply.sslErrors.emit([ssl_error])
+                ssl_verification_callback.assert_called_once()
+                reply.deleteLater()
+
+    def test_peer_certificate_verification_uses_hostname_and_excludes_root(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw.qgis import qgis_ngw_connection
+
+        leaf_certificate = Mock()
+        leaf_certificate.isSelfSigned.return_value = False
+        root_certificate = Mock()
+        root_certificate.isSelfSigned.return_value = True
+        ssl_error = QSslError(QSslError.SslError.SelfSignedCertificate)
+        reply = Mock(spec=QNetworkReply)
+        reply.sslConfiguration.return_value.peerCertificateChain.return_value = [
+            leaf_certificate,
+            root_certificate,
+        ]
+        reply.url.return_value.host.return_value = "untrusted.example.com"
+        verify_peer = vars(self.qgs_ngw_connection_class)[
+            "_QgsNgwConnection__verify_peer_certificate"
+        ]
+        can_verify = "_QgsNgwConnection__can_verify_chain"
+
+        with patch.object(
+            self.qgs_ngw_connection_class,
+            can_verify,
+            return_value=True,
+        ), patch.object(
+            qgis_ngw_connection.QSslCertificate,
+            "verify",
+            return_value=[ssl_error],
+        ) as verify:
+            result = verify_peer(reply)
+
+        verify.assert_called_once_with(
+            [leaf_certificate],
+            "untrusted.example.com",
+        )
+        self.assertEqual(result.errors, (ssl_error,))
+        self.assertTrue(result.was_performed)
+
+    def test_peer_certificate_verification_reports_unavailable_backend(
+        self,
+    ) -> None:
+        reply = Mock(spec=QNetworkReply)
+        reply.sslConfiguration.return_value.peerCertificateChain.return_value = [
+            Mock()
+        ]
+        verify_peer = vars(self.qgs_ngw_connection_class)[
+            "_QgsNgwConnection__verify_peer_certificate"
+        ]
+        can_verify = "_QgsNgwConnection__can_verify_chain"
+
+        with patch.object(
+            self.qgs_ngw_connection_class,
+            can_verify,
+            return_value=False,
+        ):
+            result = verify_peer(reply)
+
+        self.assertEqual(result.errors, ())
+        self.assertFalse(result.was_performed)
+
+    def test_qt5_manual_certificate_verification_requires_openssl(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw.qgis import qgis_ngw_connection
+
+        can_verify = vars(self.qgs_ngw_connection_class)[
+            "_QgsNgwConnection__can_verify_chain"
+        ]
+        with patch.object(
+            qgis_ngw_connection.QSslSocket,
+            "supportedFeatures",
+            None,
+        ), patch.object(
+            qgis_ngw_connection.QSslSocket,
+            "sslLibraryVersionString",
+            side_effect=("SecureTransport", "OpenSSL 1.1.1"),
+        ):
+            self.assertFalse(can_verify())
+            self.assertTrue(can_verify())
 
     def test_upload_file_passes_declared_mime_type(self) -> None:
         connection_id = self.connection_id(TestConnection.SandboxGuest)
