@@ -511,6 +511,36 @@ La edición puede romper referencias existentes.</translation>
         <translation>El certificado del Web GIS es aceptado por QGIS con excepciones SSL personalizadas.</translation>
     </message>
     <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="191"/>
+        <source>The Web GIS certificate was accepted after SSL errors were ignored.</source>
+        <translation>El certificado del Web GIS fue aceptado después de ignorar errores SSL.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="195"/>
+        <source>The Web GIS is reachable, but certificate validation reported SSL errors.</source>
+        <translation>El Web GIS es accesible, pero la validación del certificado informó errores SSL.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="198"/>
+        <source>Review the server certificate chain and ignore SSL errors only if you trust this certificate.</source>
+        <translation>Revise la cadena de certificados del servidor e ignore los errores SSL solo si confía en este certificado.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="207"/>
+        <source>The server certificate could not be independently verified.</source>
+        <translation>No se pudo verificar de forma independiente el certificado del servidor.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="211"/>
+        <source>The TLS backend did not provide enough information to verify the server certificate.</source>
+        <translation>El módulo TLS no proporcionó información suficiente para verificar el certificado del servidor.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="214"/>
+        <source>Restart QGIS and retry the check, or inspect the server certificate with system tools.</source>
+        <translation>Reinicie QGIS y repita la comprobación, o inspeccione el certificado del servidor con herramientas del sistema.</translation>
+    </message>
+    <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="141"/>
         <source>The Web GIS is reachable, but QGIS stores SSL exceptions for this host.</source>
         <translation>El Web GIS es accesible, pero QGIS almacena excepciones SSL para este host.</translation>

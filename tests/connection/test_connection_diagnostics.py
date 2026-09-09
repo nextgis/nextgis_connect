@@ -16,7 +16,10 @@
 
 import unittest
 from types import SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
+from unittest.mock import patch
+
+from qgis.core import QgsFeedback
 
 from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.current_user import (
     CurrentUserExpectation,
@@ -27,10 +30,19 @@ from nextgis_connect.legacy.ngw_connection.application.diagnostics.parsers impor
 from nextgis_connect.legacy.ngw_connection.domain.connection import (
     NgwConnection,
 )
+from nextgis_connect.legacy.ngw_connection.domain.diagnostics import (
+    ConnectionCheckState,
+    ConnectionDiagnosticContext,
+)
 from nextgis_connect.legacy.ngw_connection.domain.parsers import (
     NgwServerTitleParser,
     suggested_connection_name,
 )
+
+if TYPE_CHECKING:
+    from nextgis_connect.legacy.ngw.qgis.qgis_ngw_connection import (
+        QgsNgwConnection,
+    )
 
 
 class _FakeSignal:
@@ -52,7 +64,289 @@ class _FakeDiagnosticsController:
         self.is_started = True
 
 
+class _NullSslConfig:
+    def isNull(self) -> bool:
+        return True
+
+    def sslIgnoredErrorEnums(self):
+        return []
+
+    def sslPeerVerifyMode(self):
+        return None
+
+
+class _AuthManager:
+    def sslCertCustomConfigByHost(self, host):
+        del host
+        return _NullSslConfig()
+
+
+class _Application:
+    @staticmethod
+    def authManager():
+        return _AuthManager()
+
+
 class TestConnectionDiagnosticsHelpers(unittest.TestCase):
+    def test_certificate_check_accepts_http_unauthorized_response(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks import (
+            certificate,
+        )
+        from nextgis_connect.platform.qgis.errors import NgwError
+
+        network_logging = []
+
+        class _UnauthorizedConnection:
+            def __init__(self, connection, *, log_network) -> None:
+                del connection
+                network_logging.append(log_network)
+
+            def get(
+                self,
+                url,
+                *,
+                feedback,
+                ssl_verification_callback,
+            ) -> None:
+                del url, feedback
+                ssl_verification_callback(
+                    SimpleNamespace(errors=(), was_performed=True)
+                )
+                raise NgwError(status_code=401)
+
+        with patch.object(
+            certificate, "QgsNgwConnection", _UnauthorizedConnection
+        ), patch.object(certificate, "QgsApplication", _Application):
+            connection = NgwConnection(
+                id="protected-id",
+                name="Protected",
+                url="https://protected.example.com",
+                auth_config_id="auth-id",
+            )
+            result = certificate.CertificateCheck(connection).execute(
+                ConnectionDiagnosticContext(connection),
+                cast("QgsNgwConnection", None),
+                QgsFeedback(),
+                lambda update: None,
+            )
+
+        self.assertEqual(result.state, ConnectionCheckState.SUCCESS)
+        self.assertEqual(network_logging, [True])
+
+    def test_certificate_check_rejects_error_without_http_response(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks import (
+            certificate,
+        )
+        from nextgis_connect.platform.qgis.errors import NgwError
+
+        class _NetworkErrorConnection:
+            def __init__(self, connection, *, log_network) -> None:
+                del connection, log_network
+
+            def get(
+                self,
+                url,
+                *,
+                feedback,
+                ssl_verification_callback,
+            ) -> None:
+                del url, feedback, ssl_verification_callback
+                raise NgwError(is_network_problem=True)
+
+        with patch.object(
+            certificate,
+            "QgsNgwConnection",
+            _NetworkErrorConnection,
+        ):
+            connection = NgwConnection(
+                id="unreachable-id",
+                name="Unreachable",
+                url="https://unreachable.example.com",
+                auth_config_id=None,
+            )
+            context = ConnectionDiagnosticContext(connection)
+            check = certificate.CertificateCheck(connection)
+            result = check.execute(
+                context,
+                cast("QgsNgwConnection", None),
+                QgsFeedback(),
+                lambda update: None,
+            )
+
+        self.assertEqual(result.state, ConnectionCheckState.FAILURE)
+
+    def test_certificate_check_reports_ignored_ssl_errors(self) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks import (
+            certificate,
+        )
+
+        ssl_error = SimpleNamespace(
+            error=lambda: SimpleNamespace(
+                name="SelfSignedCertificate",
+                value=9,
+            ),
+            errorString=lambda: "The certificate is self-signed",
+        )
+
+        class _IgnoredSslConnection:
+            def __init__(self, connection, *, log_network) -> None:
+                del connection, log_network
+
+            def get(
+                self,
+                url,
+                *,
+                feedback,
+                ssl_verification_callback,
+            ) -> None:
+                del url, feedback
+                ssl_verification_callback(
+                    SimpleNamespace(
+                        errors=(ssl_error,),
+                        was_performed=True,
+                    )
+                )
+
+        with patch.object(
+            certificate,
+            "QgsNgwConnection",
+            _IgnoredSslConnection,
+        ), patch.object(certificate, "QgsApplication", _Application):
+            connection = NgwConnection(
+                id="ignored-ssl-id",
+                name="Ignored SSL",
+                url="https://untrusted.example.com",
+                auth_config_id=None,
+            )
+            result = certificate.CertificateCheck(connection).execute(
+                ConnectionDiagnosticContext(connection),
+                cast("QgsNgwConnection", None),
+                QgsFeedback(),
+                lambda update: None,
+            )
+
+        self.assertEqual(result.state, ConnectionCheckState.WARNING)
+        self.assertIsNotNone(result.issue)
+        assert result.issue is not None
+        self.assertIn(
+            "SelfSignedCertificate (9): The certificate is self-signed",
+            result.issue.technical_details or "",
+        )
+
+    def test_certificate_check_rejects_ssl_handshake_errors(self) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks import (
+            certificate,
+        )
+        from nextgis_connect.platform.qgis.errors import ErrorCode, NgwError
+
+        ssl_error = SimpleNamespace(
+            error=lambda: SimpleNamespace(
+                name="CertificateUntrusted",
+                value=10,
+            ),
+            errorString=lambda: "The root certificate is untrusted",
+        )
+
+        class _RejectedSslConnection:
+            def __init__(self, connection, *, log_network) -> None:
+                del connection, log_network
+
+            def get(
+                self,
+                url,
+                *,
+                feedback,
+                ssl_verification_callback,
+            ) -> None:
+                del url, feedback
+                ssl_verification_callback(
+                    SimpleNamespace(
+                        errors=(ssl_error,),
+                        was_performed=True,
+                    )
+                )
+                raise NgwError(
+                    code=ErrorCode.SslHandshakeError,
+                    detail="SSL handshake failed",
+                )
+
+        with patch.object(
+            certificate,
+            "QgsNgwConnection",
+            _RejectedSslConnection,
+        ):
+            connection = NgwConnection(
+                id="rejected-ssl-id",
+                name="Rejected SSL",
+                url="https://untrusted.example.com",
+                auth_config_id=None,
+            )
+            result = certificate.CertificateCheck(connection).execute(
+                ConnectionDiagnosticContext(connection),
+                cast("QgsNgwConnection", None),
+                QgsFeedback(),
+                lambda update: None,
+            )
+
+        self.assertEqual(result.state, ConnectionCheckState.FAILURE)
+        self.assertIsNotNone(result.issue)
+        assert result.issue is not None
+        self.assertIn(
+            "CertificateUntrusted (10): The root certificate is untrusted",
+            result.issue.technical_details or "",
+        )
+
+    def test_certificate_check_warns_when_verification_is_unavailable(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks import (
+            certificate,
+        )
+
+        class _UnverifiedConnection:
+            def __init__(self, connection, *, log_network) -> None:
+                del connection, log_network
+
+            def get(
+                self,
+                url,
+                *,
+                feedback,
+                ssl_verification_callback,
+            ) -> None:
+                del url, feedback
+                ssl_verification_callback(
+                    SimpleNamespace(errors=(), was_performed=False)
+                )
+
+        with patch.object(
+            certificate,
+            "QgsNgwConnection",
+            _UnverifiedConnection,
+        ), patch.object(certificate, "QgsApplication", _Application):
+            connection = NgwConnection(
+                id="unverified-ssl-id",
+                name="Unverified SSL",
+                url="https://unverified.example.com",
+                auth_config_id=None,
+            )
+            result = certificate.CertificateCheck(connection).execute(
+                ConnectionDiagnosticContext(connection),
+                cast("QgsNgwConnection", None),
+                QgsFeedback(),
+                lambda update: None,
+            )
+
+        self.assertEqual(result.state, ConnectionCheckState.WARNING)
+        self.assertEqual(
+            result.description,
+            "The server certificate could not be independently verified.",
+        )
+
     def test_proxy_settings_are_formatted_as_single_log_message(self) -> None:
         from nextgis_connect.legacy.ngw_connection.domain.diagnostics import (
             ProxySettings,
