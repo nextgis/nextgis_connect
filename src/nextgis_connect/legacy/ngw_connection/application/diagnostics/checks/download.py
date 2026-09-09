@@ -44,7 +44,7 @@ class DownloadCheck(BaseConnectionCheck):
 
     @property
     def initial_description(self) -> str:
-        return self.tr("Reading the server download settings.")
+        return self.tr("Checking the Lunkwill server setting.")
 
     def run_check(
         self,
@@ -54,7 +54,7 @@ class DownloadCheck(BaseConnectionCheck):
         report_update: UpdateReporter,
     ) -> ConnectionCheckResult:
         resolution = self.tr(
-            "Ask the administrator to inspect the server download settings response."
+            "Ask the administrator to inspect the Lunkwill setting in the server response."
         )
         try:
             response = ngw_connection.get(
@@ -65,7 +65,7 @@ class DownloadCheck(BaseConnectionCheck):
             self._raise_if_canceled(feedback, error)
             if self._is_network_error(error):
                 return self._failure(
-                    self.tr("Unable to read the server download settings."),
+                    self.tr("Unable to read the Lunkwill server setting."),
                     issue=self._network_issue(
                         error,
                         self.tr(
@@ -75,12 +75,10 @@ class DownloadCheck(BaseConnectionCheck):
                 )
 
             return self._failure(
-                self.tr(
-                    "The server download settings endpoint returned an error."
-                ),
+                self.tr("The server settings endpoint returned an error."),
                 issue=self._server_issue(
                     self.tr(
-                        "The server did not return the expected download settings."
+                        "The server did not return the expected Lunkwill setting."
                     ),
                     resolution,
                     technical_details=error.detail,
@@ -89,7 +87,7 @@ class DownloadCheck(BaseConnectionCheck):
         except NgConnectError as error:
             self._raise_if_canceled(feedback, error)
             return self._failure(
-                self.tr("Unable to read the server download settings."),
+                self.tr("Unable to read the Lunkwill server setting."),
                 issue=self._network_issue(
                     error,
                     self.tr(
@@ -105,12 +103,10 @@ class DownloadCheck(BaseConnectionCheck):
         if not isinstance(response_json, dict):
             return self._failure(
                 self.tr(
-                    "The server download settings response has an unexpected format."
+                    "The server settings response has an unexpected format."
                 ),
                 issue=self._server_issue(
-                    self.tr(
-                        "The server download settings payload is not an object."
-                    ),
+                    self.tr("The server settings payload is not an object."),
                     resolution,
                 ),
             )
@@ -123,17 +119,17 @@ class DownloadCheck(BaseConnectionCheck):
 
         if enabled_value is True:
             return self._success(
-                self.tr("Server-side download support is enabled."),
+                self.tr("Lunkwill is enabled in the server settings."),
             )
 
         return self._warning(
-            self.tr("Server-side download support is disabled or missing."),
+            self.tr("Lunkwill is disabled or missing in the server settings."),
             issue=self._server_issue(
                 self.tr(
-                    "Long-running downloads may work slower without server-side download support."
+                    "Long-running server operations may be processed synchronously."
                 ),
                 self.tr(
-                    "Ask the administrator to enable server-side download support if long-running downloads are expected."
+                    "Ask the administrator to enable Lunkwill if long-running server operations are expected."
                 ),
             ),
         )
