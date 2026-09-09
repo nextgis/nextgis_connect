@@ -19,9 +19,20 @@ import json
 import time
 import urllib.parse
 from base64 import b64encode
+from dataclasses import dataclass
 from enum import Enum
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 from nextgis_connect.legacy.ngw.core.ngw_error import NGWError
 from nextgis_connect.legacy.ngw_connection.application.connections_manager import (
@@ -55,7 +66,13 @@ from qgis.PyQt.QtCore import (
     QTimer,
     QUrl,
 )
-from qgis.PyQt.QtNetwork import QNetworkRequest
+from qgis.PyQt.QtNetwork import (
+    QNetworkRequest,
+    QSsl,
+    QSslCertificate,
+    QSslError,
+    QSslSocket,
+)
 
 from .compat_qgis import CompatQt
 
@@ -74,6 +91,12 @@ TUS_UPLOAD_FILE_URL = "/api/component/file_upload/"
 TUS_VERSION = "1.0.0"
 TUS_CHUNK_SIZE = 16777216
 CLIENT_TIMEOUT = 3 * 60 * 1000
+
+
+@dataclass(frozen=True)
+class SslCertificateVerification:
+    errors: Tuple[QSslError, ...]
+    was_performed: bool
 
 
 def is_lunkwill_reply(reply: QNetworkReply) -> bool:
@@ -213,6 +236,9 @@ class QgsNgwConnection(QObject):
         *,
         is_lunkwill: bool = False,
         feedback: Optional[QgsFeedback] = None,
+        ssl_verification_callback: Optional[
+            Callable[[SslCertificateVerification], None]
+        ] = None,
         **kwargs,
     ) -> Any:
         return self.__request(
@@ -221,6 +247,7 @@ class QgsNgwConnection(QObject):
             params,
             is_lunkwill=is_lunkwill,
             feedback=feedback,
+            ssl_verification_callback=ssl_verification_callback,
             **kwargs,
         )
 
@@ -411,6 +438,9 @@ class QgsNgwConnection(QObject):
         params: Optional[Any] = None,
         headers: Optional[Dict[str, str]] = None,
         feedback: Optional[QgsFeedback] = None,
+        ssl_verification_callback: Optional[
+            Callable[[SslCertificateVerification], None]
+        ] = None,
         **kwargs,
     ) -> Tuple[QNetworkRequest, QNetworkReply]:
         """
@@ -505,6 +535,12 @@ class QgsNgwConnection(QObject):
 
         assert isinstance(reply, QNetworkReply)
 
+        observed_ssl_errors: List[QSslError] = []
+        ssl_error_observer: Optional[Callable[[List[QSslError]], None]] = None
+        if ssl_verification_callback is not None:
+            ssl_error_observer = observed_ssl_errors.extend
+            reply.sslErrors.connect(ssl_error_observer)
+
         if feedback is not None:
             feedback.canceled.connect(reply.abort)
             reply.downloadProgress.connect(
@@ -553,6 +589,20 @@ class QgsNgwConnection(QObject):
 
         if iodevice is not None:
             iodevice.close()
+
+        if ssl_error_observer is not None:
+            with contextlib.suppress(TypeError, RuntimeError):
+                reply.sslErrors.disconnect(ssl_error_observer)
+
+            assert ssl_verification_callback is not None
+            if observed_ssl_errors:
+                verification = SslCertificateVerification(
+                    tuple(observed_ssl_errors),
+                    was_performed=True,
+                )
+            else:
+                verification = self.__verify_peer_certificate(reply)
+            ssl_verification_callback(verification)
 
         if feedback is not None and feedback.isCanceled():
             raise NgConnectError("Request was canceled")
@@ -621,6 +671,30 @@ class QgsNgwConnection(QObject):
 
         return request, reply
 
+    @staticmethod
+    def __verify_peer_certificate(
+        reply: QNetworkReply,
+    ) -> SslCertificateVerification:
+        certificate_chain = reply.sslConfiguration().peerCertificateChain()
+        if not certificate_chain or not QgsNgwConnection.__can_verify_chain():
+            return SslCertificateVerification((), was_performed=False)
+
+        if len(certificate_chain) > 1 and certificate_chain[-1].isSelfSigned():
+            certificate_chain = certificate_chain[:-1]
+
+        errors = QSslCertificate.verify(certificate_chain, reply.url().host())
+        return SslCertificateVerification(tuple(errors), was_performed=True)
+
+    @staticmethod
+    def __can_verify_chain() -> bool:
+        supported_features = getattr(QSslSocket, "supportedFeatures", None)
+        feature_enum = getattr(QSsl, "SupportedFeature", None)
+        if supported_features is None or feature_enum is None:
+            ssl_library = QSslSocket.sslLibraryVersionString().lower()
+            return "openssl" in ssl_library
+
+        return feature_enum.CertificateVerification in supported_features()
+
     def __request_and_decode(
         self,
         sub_url,
@@ -663,7 +737,7 @@ class QgsNgwConnection(QObject):
 
                 raise NgwError.from_json(data)
 
-            codes = {
+            codes: Dict[Optional[int], ErrorCode] = {
                 HTTPStatus.UNAUTHORIZED: ErrorCode.AuthorizationError,
                 HTTPStatus.FORBIDDEN: ErrorCode.PermissionsError,
                 HTTPStatus.NOT_FOUND: ErrorCode.NotFound,
