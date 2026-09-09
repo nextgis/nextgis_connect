@@ -467,6 +467,44 @@ class TestConnectionDiagnosticsHelpers(unittest.TestCase):
         self.assertTrue(expectation.matches("administrator"))
         self.assertTrue(expectation.matches("another_user"))
 
+    def test_root_resource_check_explains_missing_web_gis_address(
+        self,
+    ) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.root_resource import (
+            RootResourceAccessCheck,
+        )
+        from nextgis_connect.platform.qgis.errors import ErrorCode, NgwError
+
+        class _NotFoundConnection:
+            def get(self, url, *, feedback):
+                del url, feedback
+                raise NgwError(code=ErrorCode.NotFound)
+
+        connection = NgwConnection(
+            id="not-found-id",
+            name="Missing Web GIS",
+            url="https://missing.example.com",
+            auth_config_id=None,
+        )
+        result = RootResourceAccessCheck(connection).execute(
+            ConnectionDiagnosticContext(connection),
+            cast("QgsNgwConnection", _NotFoundConnection()),
+            QgsFeedback(),
+            lambda update: None,
+        )
+
+        self.assertEqual(result.state, ConnectionCheckState.FAILURE)
+        self.assertIsNotNone(result.issue)
+        assert result.issue is not None
+        self.assertEqual(
+            result.issue.details,
+            "Web GIS was not found at the specified address.",
+        )
+        self.assertEqual(
+            result.issue.resolution,
+            "Check the Web GIS URL and run the verification again.",
+        )
+
     def test_download_check_reports_enabled_lunkwill_setting(self) -> None:
         from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.download import (
             DownloadCheck,

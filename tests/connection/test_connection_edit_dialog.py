@@ -14,11 +14,19 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+import uuid
 from typing import List
 from unittest.mock import MagicMock
 
 import pytest
+from qgis.PyQt.QtCore import Qt
 
+from nextgis_connect.legacy.ngw_connection.application.connections_manager import (
+    NgwConnectionsManager,
+)
+from nextgis_connect.legacy.ngw_connection.domain.connection import (
+    NgwConnection,
+)
 from nextgis_connect.legacy.ngw_connection.presentation import (
     connection_edit_dialog,
 )
@@ -26,6 +34,7 @@ from nextgis_connect.legacy.ngw_connection.presentation.connection_edit_dialog i
     LoginChoiceLabels,
     LoginChoiceResolver,
     NextgisQgisUserAvailability,
+    NgwConnectionEditDialog,
 )
 
 
@@ -148,6 +157,50 @@ def test_unavailable_nextgis_qgis_user_is_hidden_when_not_current(
     nextgis_choices, _ = resolver.existing_choices("NextGIS")
 
     assert nextgis_choices == []
+
+
+def test_edit_connection_marks_missing_saved_user(qgis_app) -> None:
+    connection = NgwConnection(
+        id="connection-id",
+        name="Missing user",
+        url="https://example.com",
+        auth_config_id=str(uuid.uuid4()),
+    )
+    connections_manager = NgwConnectionsManager(
+        [connection],
+        current_connection_id=connection.id,
+    )
+    dialog = NgwConnectionEditDialog(
+        None,
+        connection=connection,
+        connections_manager=connections_manager,
+        save_on_accept=False,
+    )
+
+    assert dialog.userComboBox.currentIndex() == -1
+    assert dialog.authGroupBox.isHidden()
+    assert not dialog.authWarningLabel.isHidden()
+    assert dialog.authWarningLabel.toolTip() == (
+        "Saved sign-in parameters for the selected connection were deleted "
+        "from the QGIS authentication database."
+    )
+    assert (
+        dialog.authWarningLabel.minimumWidth()
+        == dialog.authWarningLabel.maximumWidth()
+        == dialog.authWarningLabel.pixmap().width()
+    )
+    assert dialog.authWarningLabel.alignment() == (
+        Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+    )
+    assert dialog.loginLayout.spacing() == 2
+    assert not dialog.testConnectionButton.isEnabled()
+
+    dialog.userComboBox.setCurrentIndex(0)
+
+    assert dialog.authWarningLabel.isHidden()
+    assert dialog.testConnectionButton.isEnabled()
+
+    dialog.deleteLater()
 
 
 @pytest.mark.parametrize(

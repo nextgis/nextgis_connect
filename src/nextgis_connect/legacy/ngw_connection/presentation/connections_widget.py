@@ -101,6 +101,8 @@ class NgwConnectionsWidget(QWidget):
             warning_icon.actualSize(QSize(size, size))
         )
         self.warningLabel.setPixmap(pixmap)
+        self.warningLabel.setFixedWidth(pixmap.width())
+        self.warningLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.warningLabel.hide()
 
         self.__connection_id = None

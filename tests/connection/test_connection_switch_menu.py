@@ -215,6 +215,43 @@ def test_clicking_connection_selects_its_default_user(
     menu.deleteLater()
 
 
+def test_clicking_connection_selects_missing_saved_user(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        connection_switch_menu,
+        "LoginChoiceResolver",
+        LoginChoiceResolverStub,
+    )
+    connection = NgwConnection(
+        "connection-id",
+        "Web GIS",
+        "https://example.nextgis.com",
+        "missing-auth-config",
+    )
+    menu = ConnectionSwitchMenu([connection], None)
+    observed_switches = []
+    menu.switch_requested.connect(
+        lambda connection_id, auth_config_id: observed_switches.append(
+            (connection_id, auth_config_id, menu.isVisible())
+        )
+    )
+
+    menu.popup(QPoint(100, 100))
+    QApplication.processEvents()
+    connection_action = menu.actions()[0]
+    QTest.mouseClick(
+        menu,
+        Qt.MouseButton.LeftButton,
+        pos=menu.actionGeometry(connection_action).center(),
+    )
+
+    assert observed_switches == [(connection.id, "missing-auth-config", False)]
+    menu.deleteLater()
+
+
 def test_empty_switch_menu_has_disabled_placeholder(qgis_app) -> None:
     del qgis_app
     menu = ConnectionSwitchMenu([], None)

@@ -76,6 +76,20 @@ class RootResourceAccessCheck(BaseConnectionCheck):
                     issue=self._network_issue(error, resolution),
                 )
 
+            if error.code == ErrorCode.NotFound:
+                return self._failure(
+                    self.tr("Web GIS was not found at the specified address."),
+                    issue=self._client_issue(
+                        self.tr(
+                            "Web GIS was not found at the specified address."
+                        ),
+                        self.tr(
+                            "Check the Web GIS URL and run the verification again."
+                        ),
+                        technical_details=error.detail,
+                    ),
+                )
+
             if error.code in (
                 ErrorCode.AuthorizationError,
                 ErrorCode.PermissionsError,
