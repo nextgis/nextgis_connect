@@ -1133,18 +1133,18 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="47"/>
-        <source>Reading the server download settings.</source>
-        <translation>Чтение серверных настроек скачивания.</translation>
+        <source>Checking the Lunkwill server setting.</source>
+        <translation>Проверка настройки Lunkwill на сервере.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="56"/>
-        <source>Ask the administrator to inspect the server download settings response.</source>
-        <translation>Попросите администратора проверить ответ с серверными настройками скачивания.</translation>
+        <source>Ask the administrator to inspect the Lunkwill setting in the server response.</source>
+        <translation>Попросите администратора проверить настройку Lunkwill в ответе сервера.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="91"/>
-        <source>Unable to read the server download settings.</source>
-        <translation>Не удалось прочитать серверные настройки скачивания.</translation>
+        <source>Unable to read the Lunkwill server setting.</source>
+        <translation>Не удалось прочитать настройку Lunkwill на сервере.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="91"/>
@@ -1153,43 +1153,43 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="77"/>
-        <source>The server download settings endpoint returned an error.</source>
-        <translation>Конечная точка серверных настроек скачивания вернула ошибку.</translation>
+        <source>The server settings endpoint returned an error.</source>
+        <translation>Конечная точка настроек сервера вернула ошибку.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="77"/>
-        <source>The server did not return the expected download settings.</source>
-        <translation>Сервер не вернул ожидаемые настройки скачивания.</translation>
+        <source>The server did not return the expected Lunkwill setting.</source>
+        <translation>Сервер не вернул ожидаемую настройку Lunkwill.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="106"/>
-        <source>The server download settings response has an unexpected format.</source>
-        <translation>Ответ с серверными настройками скачивания имеет неожиданный формат.</translation>
+        <source>The server settings response has an unexpected format.</source>
+        <translation>Ответ с настройками сервера имеет неожиданный формат.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="106"/>
-        <source>The server download settings payload is not an object.</source>
-        <translation>Данные серверных настроек скачивания не являются объектом.</translation>
+        <source>The server settings payload is not an object.</source>
+        <translation>Данные настроек сервера не являются объектом.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="125"/>
-        <source>Server-side download support is enabled.</source>
-        <translation>Поддержка скачивания на стороне сервера включена.</translation>
+        <source>Lunkwill is enabled in the server settings.</source>
+        <translation>Lunkwill включён в настройках сервера.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Server-side download support is disabled or missing.</source>
-        <translation>Поддержка скачивания на стороне сервера отключена или отсутствует.</translation>
+        <source>Lunkwill is disabled or missing in the server settings.</source>
+        <translation>Lunkwill отключён или отсутствует в настройках сервера.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Long-running downloads may work slower without server-side download support.</source>
-        <translation>Длительные скачивания могут работать медленнее без поддержки скачивания на стороне сервера.</translation>
+        <source>Long-running server operations may be processed synchronously.</source>
+        <translation>Длительные серверные операции могут выполняться синхронно.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/download.py" line="129"/>
-        <source>Ask the administrator to enable server-side download support if long-running downloads are expected.</source>
-        <translation>Попросите администратора включить поддержку скачивания на стороне сервера, если ожидаются длительные скачивания.</translation>
+        <source>Ask the administrator to enable Lunkwill if long-running server operations are expected.</source>
+        <translation>Попросите администратора включить Lunkwill, если ожидаются длительные серверные операции.</translation>
     </message>
 </context>
 <context>

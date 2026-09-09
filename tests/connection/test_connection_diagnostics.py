@@ -467,6 +467,68 @@ class TestConnectionDiagnosticsHelpers(unittest.TestCase):
         self.assertTrue(expectation.matches("administrator"))
         self.assertTrue(expectation.matches("another_user"))
 
+    def test_download_check_reports_enabled_lunkwill_setting(self) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.download import (
+            DownloadCheck,
+        )
+
+        class _Connection:
+            def get(self, url, *, feedback):
+                del url, feedback
+                return {"lunkwill.enabled": True}
+
+        connection = NgwConnection(
+            id="test-id",
+            name="Test",
+            url="https://example.com",
+            auth_config_id=None,
+        )
+        result = DownloadCheck(connection).execute(
+            ConnectionDiagnosticContext(connection),
+            cast("QgsNgwConnection", _Connection()),
+            QgsFeedback(),
+            lambda update: None,
+        )
+
+        self.assertEqual(result.state, ConnectionCheckState.SUCCESS)
+        self.assertEqual(
+            result.description,
+            "Lunkwill is enabled in the server settings.",
+        )
+
+    def test_download_check_reports_disabled_lunkwill_setting(self) -> None:
+        from nextgis_connect.legacy.ngw_connection.application.diagnostics.checks.download import (
+            DownloadCheck,
+        )
+
+        class _Connection:
+            def get(self, url, *, feedback):
+                del url, feedback
+                return {"lunkwill": {"enabled": False}}
+
+        connection = NgwConnection(
+            id="test-id",
+            name="Test",
+            url="https://example.com",
+            auth_config_id=None,
+        )
+        result = DownloadCheck(connection).execute(
+            ConnectionDiagnosticContext(connection),
+            cast("QgsNgwConnection", _Connection()),
+            QgsFeedback(),
+            lambda update: None,
+        )
+
+        self.assertEqual(result.state, ConnectionCheckState.WARNING)
+        self.assertEqual(
+            result.description,
+            "Lunkwill is disabled or missing in the server settings.",
+        )
+        self.assertEqual(
+            result.issue.details,
+            "Long-running server operations may be processed synchronously.",
+        )
+
     def test_qgs_ngw_connection_accepts_connection_object(self) -> None:
         try:
             from nextgis_connect.legacy.ngw.qgis.qgis_ngw_connection import (
