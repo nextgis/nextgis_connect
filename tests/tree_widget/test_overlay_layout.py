@@ -358,6 +358,24 @@ def test_action_overlay_preserves_single_newline_in_details(
     )
 
 
+def test_action_overlay_renders_html_in_details(
+    qgis_app,
+    overlay_widget_environment,
+) -> None:
+    del qgis_app, overlay_widget_environment
+
+    widget = ActionOverlayWidget()
+    widget.set_state(
+        OverlayState(
+            kind=OverlayKind.ERROR,
+            details="<b>Invalid connection</b>",
+        )
+    )
+
+    assert "<b>Invalid connection</b>" in widget._details_label.text()
+    assert "&lt;b&gt;" not in widget._details_label.text()
+
+
 def test_action_overlay_reduces_illustration_for_limited_height(
     qgis_app,
     overlay_widget_environment,
