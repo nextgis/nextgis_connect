@@ -45,6 +45,7 @@ class OverlayAction(Enum):
     OPEN_NEXTGIS_SITE = auto()
     CONTACT_SUPPORT = auto()
     RUN_DIAGNOSTICS = auto()
+    EDIT_CONNECTION = auto()
     RELOAD_TREE = auto()
     TRY_AGAIN = auto()
     CANCEL = auto()

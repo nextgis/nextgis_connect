@@ -388,6 +388,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     __accept_on_verification_success: bool
     __auth_editor: AuthConfigEditorWidget
     __current_user_index: int
+    __missing_auth_config_reason: Optional[str]
 
     def __init__(
         self,
@@ -464,6 +465,11 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             warning_icon.actualSize(QSize(size, size))
         )
         self.authWarningLabel.setPixmap(pixmap)
+        self.authWarningLabel.setFixedWidth(pixmap.width())
+        self.authWarningLabel.setContentsMargins(0, 0, 0, 0)
+        self.authWarningLabel.setAlignment(
+            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter
+        )
         self.authWarningLabel.setToolTip(
             self.tr(
                 "NextGIS authentication is not supported for my.nextgis.com"
@@ -483,6 +489,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.__temporary_previous_auth_config_id = None
         self.__accept_on_verification_success = False
         self.__current_user_index = -1
+        self.__missing_auth_config_reason = None
 
         self.__auth_editor = AuthConfigEditorWidget(parent=self, embedded=True)
         self.__auth_editor.validityChanged.connect(self.__validate)
@@ -504,6 +511,9 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 connection = self.__connections_manager.connection(
                     self.__connection_id
                 )
+            self.__missing_auth_config_reason = (
+                self.__connections_manager.invalid_reason(self.__connection_id)
+            )
             self.__populate(connection)
         else:
             self.setWindowTitle(self.tr("New Connection"))
@@ -771,15 +781,17 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             is_name_valid = len(self.nameLineEdit.text()) != 0
         choice = self.__current_login_choice()
 
-        is_auth_valid = True
+        is_auth_valid = choice is not None
         if choice is not None and choice.kind != LoginChoiceKind.GUEST:
             if self.__login_choice_method(choice) == "NextGIS":
                 is_auth_valid = NextgisQgisUserAvailability.is_available()
             else:
                 is_auth_valid = self.__auth_editor.is_valid()
 
-        self.authWarningLabel.hide()
-        if (
+        warning_text = self.__missing_auth_config_reason or ""
+        if warning_text != "":
+            is_auth_valid = False
+        elif (
             HAS_NGSTD
             and choice is not None
             and choice.kind != LoginChoiceKind.GUEST
@@ -790,9 +802,16 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 choice
             ) == "NextGIS" and domain.startswith("my.nextgis")
 
-            self.authWarningLabel.setVisible(is_my)
             if is_my:
+                warning_text = self.tr(
+                    "NextGIS authentication is not supported for my.nextgis.com"
+                    " yet. Please choose Basic authentication or change"
+                    " authentication endpoint."
+                )
                 is_auth_valid = False
+
+        self.authWarningLabel.setToolTip(warning_text)
+        self.authWarningLabel.setVisible(warning_text != "")
 
         is_valid = is_url_valid and is_name_valid and is_auth_valid
 
@@ -1348,7 +1367,13 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         choice = self.__current_login_choice()
         if choice is None:
+            self.authGroupBox.hide()
+            self.__validate()
+            self.__current_user_index = -1
+            self.__schedule_resize()
             return
+
+        self.__missing_auth_config_reason = None
 
         self.__auth_editor.set_resource_realm_visible(False)
         if choice.kind == LoginChoiceKind.GUEST:
@@ -1501,12 +1526,21 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             if choice.auth_config_id == selected_id:
                 selected_index = self.userComboBox.count() - 1
 
-        if selected_index < 0:
+        if self.__missing_auth_config_reason is not None:
+            selected_index = -1
+        elif selected_index < 0:
             selected_index = other_index
 
         self.userComboBox.setCurrentIndex(selected_index)
         self.userComboBox.blockSignals(False)
         current_choice = self.__current_login_choice()
+        if current_choice is None:
+            self.authGroupBox.hide()
+            self.__current_user_index = -1
+            self.__validate()
+            self.__schedule_resize()
+            return
+
         if self.__is_same_login_choice(previous_choice, current_choice):
             self.__current_user_index = selected_index
             self.__validate()

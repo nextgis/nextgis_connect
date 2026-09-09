@@ -16,6 +16,7 @@
 
 from typing import List, Optional, Tuple, cast
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import Qt, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QMouseEvent
 from qgis.PyQt.QtWidgets import (
@@ -115,7 +116,7 @@ class ConnectionSwitchMenu(QMenu):
         user_group.setExclusive(True)
         user_group.triggered.connect(self.__on_user_triggered)
 
-        is_default_auth_available = False
+        is_default_auth_available = connection.auth_config_id is None
         for choice in choices:
             action = connection_menu.addAction(choice.title)
             action.setCheckable(True)
@@ -128,7 +129,18 @@ class ConnectionSwitchMenu(QMenu):
             if is_selected:
                 is_default_auth_available = is_available
 
-        return is_default_auth_available
+        return is_default_auth_available or self.__is_auth_config_missing(
+            connection.auth_config_id
+        )
+
+    @staticmethod
+    def __is_auth_config_missing(auth_config_id: Optional[str]) -> bool:
+        return (
+            auth_config_id is not None
+            and auth_config_id != "NextGIS"
+            and auth_config_id
+            not in QgsApplication.authManager().availableAuthMethodConfigs()
+        )
 
     def __is_choice_available(self, choice: LoginChoice) -> bool:
         if choice.method == "NextGIS" or choice.auth_config_id == "NextGIS":

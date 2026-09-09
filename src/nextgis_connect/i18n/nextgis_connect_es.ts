@@ -2486,6 +2486,36 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
         <translation>No se puede conectar</translation>
     </message>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1409"/>
+        <source>Review the connection settings and sign-in parameters.</source>
+        <translation>Revise la configuración de la conexión y los parámetros de inicio de sesión.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1358"/>
+        <source>Edit connection</source>
+        <translation>Editar conexión</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1433"/>
+        <source>Edit the connection to update its settings and sign-in parameters.</source>
+        <translation>Edite la conexión para actualizar su configuración y los parámetros de inicio de sesión.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1351"/>
+        <source>Web GIS not found</source>
+        <translation>Web GIS no encontrado</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1354"/>
+        <source>Sign-in parameters were deleted.</source>
+        <translation>Los parámetros de inicio de sesión se eliminaron.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2024"/>
+        <source>Connection settings are invalid</source>
+        <translation>La configuración de la conexión no es válida</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1527"/>
         <source>Sandbox</source>
         <translation>Sandbox</translation>
@@ -3321,8 +3351,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/connections_manager.py" line="327"/>
-        <source>The selected saved user no longer exists in the QGIS authentication database.</source>
-        <translation>El usuario guardado seleccionado ya no existe en la base de datos de autenticación de QGIS.</translation>
+        <source>Saved sign-in parameters for the selected connection were deleted from the QGIS authentication database.</source>
+        <translation>Los parámetros de inicio de sesión guardados para la conexión seleccionada se eliminaron de la base de datos de autenticación de QGIS.</translation>
     </message>
 </context>
 <context>
@@ -4519,6 +4549,11 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="111"/>
         <source>The root resource is not readable.</source>
         <translation>El recurso raíz no es legible.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="79"/>
+        <source>Web GIS was not found at the specified address.</source>
+        <translation>Web GIS no se encontró en la dirección especificada.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="111"/>

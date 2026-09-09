@@ -2486,6 +2486,36 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Не удалось подключиться</translation>
     </message>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1409"/>
+        <source>Review the connection settings and sign-in parameters.</source>
+        <translation>Проверьте настройки соединения и параметры входа.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1358"/>
+        <source>Edit connection</source>
+        <translation>Редактировать соединение</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1433"/>
+        <source>Edit the connection to update its settings and sign-in parameters.</source>
+        <translation>Отредактируйте соединение, чтобы обновить его настройки и параметры входа.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1351"/>
+        <source>Web GIS not found</source>
+        <translation>Веб ГИС не найдена</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1354"/>
+        <source>Sign-in parameters were deleted.</source>
+        <translation>Параметры входа были удалены.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="2024"/>
+        <source>Connection settings are invalid</source>
+        <translation>Настройки соединения некорректны</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1527"/>
         <source>Sandbox</source>
         <translation>Песочница</translation>
@@ -3321,8 +3351,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/connections_manager.py" line="327"/>
-        <source>The selected saved user no longer exists in the QGIS authentication database.</source>
-        <translation>Выбранный сохранённый пользователь больше не существует в базе данных аутентификации QGIS.</translation>
+        <source>Saved sign-in parameters for the selected connection were deleted from the QGIS authentication database.</source>
+        <translation>Параметры входа для выбранного соединения были удалены из базы данных аутентификации QGIS.</translation>
     </message>
 </context>
 <context>
@@ -4522,6 +4552,11 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="111"/>
         <source>The root resource is not readable.</source>
         <translation>Корневой ресурс недоступен для чтения.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="79"/>
+        <source>Web GIS was not found at the specified address.</source>
+        <translation>Веб ГИС по указанному адресу не найдена.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="111"/>
