@@ -76,6 +76,7 @@ from qgis.PyQt.QtWidgets import (
     QLineEdit,
     QMenu,
     QMessageBox,
+    QPushButton,
     QSizePolicy,
     QVBoxLayout,
 )
@@ -1072,7 +1073,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if not job_name:
-            self.__show_root_loading_error(exception)
+            self.__show_root_loading_error_with_notification(exception)
             return
 
         if not self.resource_model.is_connected:
@@ -1195,7 +1196,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             and exception.try_again is None
         ):
             if job_name == ROOT_RESOURCES_LOADER_JOB_ID:
-                self.__show_root_loading_error(exception)
+                self.__show_root_loading_error_with_notification(exception)
                 return
 
             if job_name in self.__canceled_job_ids:
@@ -1205,7 +1206,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             return
 
         if job_name == ROOT_RESOURCES_LOADER_JOB_ID:
-            self.__show_root_loading_error(exception)
+            self.__show_root_loading_error_with_notification(exception)
             return
 
         if job_name in self.__canceled_job_ids:
@@ -1344,6 +1345,29 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
             return
 
+        if self.__is_invalid_connection_error(exception):
+            has_missing_auth_config = self.__has_missing_auth_config()
+            self.resources_tree_view.set_error_state(
+                "",
+                title=(
+                    self.tr("Web GIS not found")
+                    if self.__is_web_gis_not_found_error(exception)
+                    else self.tr("Unable to connect")
+                ),
+                details=(
+                    self.tr("Sign-in parameters were deleted.")
+                    if has_missing_auth_config
+                    else self.__invalid_connection_details(exception)
+                ),
+                retry_enabled=False,
+                icon_name="globe_2_cancel",
+                action=OverlayButtonState(
+                    action=OverlayAction.EDIT_CONNECTION,
+                    text=self.tr("Edit connection"),
+                ),
+            )
+            return
+
         if self.__is_connection_error(exception):
             self.resources_tree_view.set_error_state(
                 "",
@@ -1385,6 +1409,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ),
         )
 
+    def __show_root_loading_error_with_notification(
+        self,
+        exception: Exception,
+    ) -> None:
+        self.__show_root_loading_error(exception)
+        if self.__is_invalid_connection_error(exception):
+            self.__show_invalid_connection_notification(exception)
+
     def __show_connection_parameters_error(self) -> None:
         self.__root_children_loading_parent_id = None
         self.resources_tree_view.end_loading()
@@ -1392,16 +1424,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.set_error_state(
             "",
             title=self.tr("Unable to connect"),
-            details=self.__connection_error_details(),
+            details=self.tr(
+                "Review the connection settings and sign-in parameters."
+            ),
             retry_enabled=False,
             icon_name="globe_2_cancel",
             action=OverlayButtonState(
-                action=OverlayAction.RUN_DIAGNOSTICS,
-                text=self.tr("Run diagnostics"),
-            ),
-            secondary_action=OverlayButtonState(
-                action=OverlayAction.RELOAD_TREE,
-                text=self.tr("Try again"),
+                action=OverlayAction.EDIT_CONNECTION,
+                text=self.tr("Edit connection"),
             ),
         )
 
@@ -1409,6 +1439,31 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return self.tr(
             "The selected connection is invalid or unavailable.\n\n"
             "Run diagnostics to check the connection settings and server availability."
+        )
+
+    def __invalid_connection_details(self, exception: Exception) -> str:
+        if self.__is_web_gis_not_found_error(exception):
+            return self.tr(
+                "Edit the connection to update its settings and sign-in parameters."
+            )
+
+        connections_manager = NgwConnectionsManager()
+        invalid_reason = connections_manager.invalid_reason(
+            connections_manager.current_connection_id
+        )
+
+        if invalid_reason is None:
+            invalid_reason = self.tr("The selected connection is invalid.")
+
+        return f"{invalid_reason}\n\n{self.tr('Edit the connection to update its settings and sign-in parameters.')}"
+
+    def __has_missing_auth_config(self) -> bool:
+        connections_manager = NgwConnectionsManager()
+        connection = getattr(connections_manager, "current_connection", None)
+        return (
+            connection is not None
+            and connection.auth_config_id is not None
+            and connections_manager.invalid_reason(connection.id) is not None
         )
 
     def __is_nextgis_cloud_http_500_error(
@@ -1435,6 +1490,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         return any(
             getattr(candidate, "is_network_problem", False)
             or getattr(candidate, "code", None) in connection_error_codes
+            for candidate in self.__error_candidates(exception)
+        )
+
+    def __is_invalid_connection_error(self, exception: Exception) -> bool:
+        return any(
+            getattr(candidate, "code", None) == ErrorCode.InvalidConnection
+            for candidate in self.__error_candidates(exception)
+        )
+
+    def __is_web_gis_not_found_error(self, exception: Exception) -> bool:
+        return any(
+            getattr(candidate, "code", None) == ErrorCode.NotFound
             for candidate in self.__error_candidates(exception)
         )
 
@@ -1801,6 +1868,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__open_current_connection_diagnostics(start_immediately=True)
             return
 
+        if action == OverlayAction.EDIT_CONNECTION:
+            connection = NgwConnectionsManager().current_connection
+            if connection is None:
+                return
+
+            dialog = NgwConnectionEditDialog(self, connection.id)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                self.reinit_tree(force=True)
+            return
+
         if action == OverlayAction.CONTACT_SUPPORT:
             utm = utils.utm_tags("error")
             QDesktopServices.openUrl(
@@ -1929,14 +2006,51 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.disable_tools()
 
             logger.exception("Model update error")
-            self.resources_tree_view.set_error_state(
-                self.tr("The resource tree could not be refreshed."),
-                details=str(error),
-            )
-            NgConnectInterface.instance().notifier.display_exception(error)
+            if self.__show_reinit_tree_error(error):
+                self.__show_invalid_connection_notification(error)
+            else:
+                NgConnectInterface.instance().notifier.display_exception(error)
 
         self.__update_search_action()
         self.__is_reinit_tree = False
+
+    def __show_reinit_tree_error(self, error: Exception) -> bool:
+        if self.__is_invalid_connection_error(error):
+            self.__show_root_loading_error(error)
+            return True
+
+        self.resources_tree_view.set_error_state(
+            self.tr("The resource tree could not be refreshed."),
+            details=str(error),
+        )
+        return False
+
+    def __show_invalid_connection_notification(
+        self,
+        exception: Exception,
+    ) -> None:
+        notifier = NgConnectInterface.instance().notifier
+        message_id = ""
+
+        def edit_connection() -> None:
+            notifier.dismiss_message(message_id)
+            self.__handle_tree_overlay_action(OverlayAction.EDIT_CONNECTION)
+
+        button = QPushButton(self.tr("Edit connection"))
+        button.pressed.connect(edit_connection)
+        message = (
+            self.tr("Web GIS not found")
+            if self.__is_web_gis_not_found_error(exception)
+            else self.tr("Sign-in parameters were deleted.")
+            if self.__has_missing_auth_config()
+            else self.tr("Connection settings are invalid")
+        )
+        message_id = notifier.display_message(
+            message,
+            level=Qgis.MessageLevel.Critical,
+            widgets=[button],
+        )
+        self.__reinit_tree_error = message_id
 
     def __cancel_active_loading(self) -> None:
         if self.__cancel_pending_job_id is not None:

@@ -21,7 +21,7 @@ import pytest
 import qgis.utils
 from qgis.core import Qgis, QgsLayerTreeLayer, QgsProject, QgsVectorLayer
 from qgis.PyQt.QtCore import QModelIndex
-from qgis.PyQt.QtWidgets import QMessageBox, QTreeView
+from qgis.PyQt.QtWidgets import QDialog, QMessageBox, QTreeView
 
 from nextgis_connect.legacy.shell.presentation.dock import ng_connect_dock
 from nextgis_connect.legacy.shell.presentation.dock.ng_connect_dock import (
@@ -56,6 +56,139 @@ def test_diagnostics_overlay_starts_diagnostics_immediately() -> None:
     handle_action(dock, OverlayAction.RUN_DIAGNOSTICS)
 
     open_diagnostics.assert_called_once_with(start_immediately=True)
+
+
+def test_reinit_tree_invalid_connection_uses_root_error_state() -> None:
+    error = NgwConnectionError(code=ErrorCode.InvalidConnection)
+    show_root_loading_error = Mock()
+    dock = SimpleNamespace(
+        _NgConnectDock__is_invalid_connection_error=lambda candidate: (
+            candidate is error
+        ),
+        _NgConnectDock__show_root_loading_error=show_root_loading_error,
+    )
+    show_reinit_tree_error = (
+        NgConnectDock._NgConnectDock__show_reinit_tree_error
+    )
+
+    assert show_reinit_tree_error(dock, error)
+
+    show_root_loading_error.assert_called_once_with(error)
+
+
+def test_invalid_connection_notification_has_only_edit_button(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    notifier = SimpleNamespace(
+        display_message=Mock(return_value="message-id"),
+        dismiss_message=Mock(),
+    )
+    handle_action = Mock()
+    dock = SimpleNamespace(
+        tr=lambda text: text,
+        _NgConnectDock__is_web_gis_not_found_error=lambda exception: False,
+        _NgConnectDock__has_missing_auth_config=lambda: True,
+        _NgConnectDock__handle_tree_overlay_action=handle_action,
+        _NgConnectDock__reinit_tree_error=None,
+    )
+    monkeypatch.setattr(
+        ng_connect_dock,
+        "NgConnectInterface",
+        SimpleNamespace(instance=lambda: SimpleNamespace(notifier=notifier)),
+    )
+    show_notification = (
+        NgConnectDock._NgConnectDock__show_invalid_connection_notification
+    )
+
+    show_notification(
+        dock, NgwConnectionError(code=ErrorCode.InvalidConnection)
+    )
+
+    notifier.display_message.assert_called_once()
+    (message,) = notifier.display_message.call_args.args
+    assert message == "Sign-in parameters were deleted."
+    assert notifier.display_message.call_args.kwargs["level"] == (
+        Qgis.MessageLevel.Critical
+    )
+    buttons = notifier.display_message.call_args.kwargs["widgets"]
+    assert len(buttons) == 1
+    assert buttons[0].text() == "Edit connection"
+
+    buttons[0].click()
+
+    notifier.dismiss_message.assert_called_once_with("message-id")
+    handle_action.assert_called_once_with(OverlayAction.EDIT_CONNECTION)
+
+
+def test_root_invalid_connection_shows_notification() -> None:
+    error = NgwConnectionError(code=ErrorCode.InvalidConnection)
+    show_root_loading_error = Mock()
+    show_invalid_connection_notification = Mock()
+    dock = SimpleNamespace(
+        _NgConnectDock__show_root_loading_error=show_root_loading_error,
+        _NgConnectDock__is_invalid_connection_error=lambda candidate: (
+            candidate is error
+        ),
+        _NgConnectDock__show_invalid_connection_notification=(
+            show_invalid_connection_notification
+        ),
+    )
+    show_error = (
+        NgConnectDock._NgConnectDock__show_root_loading_error_with_notification
+    )
+
+    show_error(dock, error)
+
+    show_root_loading_error.assert_called_once_with(error)
+    show_invalid_connection_notification.assert_called_once_with(error)
+
+
+def test_root_model_error_shows_invalid_connection_notification() -> None:
+    error = NgwConnectionError(code=ErrorCode.InvalidConnection)
+    unblock_gui = Mock()
+    show_root_loading_error = Mock()
+    dock = SimpleNamespace(
+        unblock_gui=unblock_gui,
+        _NgConnectDock__root_children_loading_parent_id=None,
+        _NgConnectDock__root_loading_cancel_requested=False,
+        _NgConnectDock__show_root_loading_error_with_notification=(
+            show_root_loading_error
+        ),
+    )
+    process_error = NgConnectDock._NgConnectDock__model_exception_process
+
+    process_error(dock, "", "job-id", error, Qgis.MessageLevel.Critical)
+
+    unblock_gui.assert_called_once_with()
+    show_root_loading_error.assert_called_once_with(error)
+
+
+def test_edit_connection_overlay_opens_current_connection(monkeypatch) -> None:
+    connection = SimpleNamespace(id="connection-id")
+    dialog = Mock()
+    dialog.exec.return_value = QDialog.DialogCode.Accepted
+    reinit_tree = Mock()
+    dock = SimpleNamespace(reinit_tree=reinit_tree)
+
+    monkeypatch.setattr(
+        ng_connect_dock,
+        "NgwConnectionsManager",
+        lambda: SimpleNamespace(current_connection=connection),
+    )
+    monkeypatch.setattr(
+        ng_connect_dock,
+        "NgwConnectionEditDialog",
+        Mock(return_value=dialog),
+    )
+
+    handle_action = NgConnectDock._NgConnectDock__handle_tree_overlay_action
+    handle_action(dock, OverlayAction.EDIT_CONNECTION)
+
+    ng_connect_dock.NgwConnectionEditDialog.assert_called_once_with(
+        dock, "connection-id"
+    )
+    reinit_tree.assert_called_once_with(force=True)
 
 
 def test_root_loading_titles_include_ellipsis() -> None:
@@ -277,6 +410,21 @@ def _root_error_dock() -> tuple:
     dock._NgConnectDock__connection_error_details = lambda: (
         NgConnectDock._NgConnectDock__connection_error_details(dock)
     )
+    dock._NgConnectDock__is_invalid_connection_error = lambda exception: (
+        NgConnectDock._NgConnectDock__is_invalid_connection_error(
+            dock,
+            exception,
+        )
+    )
+    dock._NgConnectDock__is_web_gis_not_found_error = lambda exception: (
+        NgConnectDock._NgConnectDock__is_web_gis_not_found_error(
+            dock,
+            exception,
+        )
+    )
+    dock._NgConnectDock__has_missing_auth_config = lambda: (
+        NgConnectDock._NgConnectDock__has_missing_auth_config(dock)
+    )
     return dock, overlay_view
 
 
@@ -288,8 +436,8 @@ def test_reset_model_error_stops_root_loading(job_name) -> None:
         _NgConnectDock__root_children_loading_parent_id=None,
         _NgConnectDock__root_loading_cancel_requested=False,
         unblock_gui=lambda: calls.append("unblock"),
-        _NgConnectDock__show_root_loading_error=lambda exception: calls.append(
-            ("root_error", exception)
+        _NgConnectDock__show_root_loading_error_with_notification=(
+            lambda exception: calls.append(("root_error", exception))
         ),
     )
     process_exception = NgConnectDock._NgConnectDock__model_exception_process
@@ -322,18 +470,13 @@ def test_nextgis_cloud_url_requires_domain_boundary(url, expected) -> None:
     assert is_nextgis_cloud_url(url) is expected
 
 
-@pytest.mark.parametrize(
-    "error",
-    [
-        NgwError("Connection error", is_network_problem=True),
-        NgwConnectionError(code=ErrorCode.InvalidConnection),
-    ],
-)
-def test_connection_error_uses_diagnostics_and_retry(error) -> None:
+def test_connection_error_uses_diagnostics_and_retry() -> None:
     dock, overlay_view = _root_error_dock()
     show_root_error = NgConnectDock._NgConnectDock__show_root_loading_error
 
-    show_root_error(dock, error)
+    show_root_error(
+        dock, NgwError("Connection error", is_network_problem=True)
+    )
 
     _, message, state = overlay_view.calls[-1]
     assert state["title"] == "Unable to connect"
@@ -346,7 +489,69 @@ def test_connection_error_uses_diagnostics_and_retry(error) -> None:
     assert state["secondary_action"].action == OverlayAction.RELOAD_TREE
 
 
-def test_connection_parameters_error_uses_diagnostics_and_retry() -> None:
+def test_invalid_connection_offers_editing_and_explains_missing_user(
+    monkeypatch,
+) -> None:
+    dock, overlay_view = _root_error_dock()
+    dock._NgConnectDock__invalid_connection_details = lambda exception: (
+        NgConnectDock._NgConnectDock__invalid_connection_details(
+            dock, exception
+        )
+    )
+    monkeypatch.setattr(
+        ng_connect_dock,
+        "NgwConnectionsManager",
+        lambda: SimpleNamespace(
+            current_connection_id="connection-id",
+            current_connection=SimpleNamespace(
+                id="connection-id",
+                auth_config_id="auth-id",
+            ),
+            invalid_reason=lambda connection_id: (
+                "Saved sign-in parameters for the selected connection were "
+                "deleted from the QGIS authentication database."
+                if connection_id == "connection-id"
+                else None
+            ),
+        ),
+    )
+    show_root_error = NgConnectDock._NgConnectDock__show_root_loading_error
+
+    show_root_error(dock, NgwConnectionError(code=ErrorCode.InvalidConnection))
+
+    _, message, state = overlay_view.calls[-1]
+    assert message == ""
+    assert state["title"] == "Unable to connect"
+    assert state["details"] == "Sign-in parameters were deleted."
+    assert state["action"].action == OverlayAction.EDIT_CONNECTION
+    assert "secondary_action" not in state
+
+
+def test_invalid_connection_explains_missing_web_gis_address() -> None:
+    dock, overlay_view = _root_error_dock()
+    dock._NgConnectDock__invalid_connection_details = lambda exception: (
+        NgConnectDock._NgConnectDock__invalid_connection_details(
+            dock, exception
+        )
+    )
+    invalid_connection_error = NgwConnectionError(
+        code=ErrorCode.InvalidConnection
+    )
+    invalid_connection_error.__cause__ = NgwError(code=ErrorCode.NotFound)
+    show_root_error = NgConnectDock._NgConnectDock__show_root_loading_error
+
+    show_root_error(dock, invalid_connection_error)
+
+    _, message, state = overlay_view.calls[-1]
+    assert message == ""
+    assert state["title"] == "Web GIS not found"
+    assert state["details"] == (
+        "Edit the connection to update its settings and sign-in parameters."
+    )
+    assert state["action"].action == OverlayAction.EDIT_CONNECTION
+
+
+def test_connection_parameters_error_offers_editing() -> None:
     dock, overlay_view = _root_error_dock()
     show_connection_parameters_error = (
         NgConnectDock._NgConnectDock__show_connection_parameters_error
@@ -357,11 +562,10 @@ def test_connection_parameters_error_uses_diagnostics_and_retry() -> None:
     _, message, state = overlay_view.calls[-1]
     assert message == ""
     assert state["details"] == (
-        "The selected connection is invalid or unavailable.\n\n"
-        "Run diagnostics to check the connection settings and server availability."
+        "Review the connection settings and sign-in parameters."
     )
-    assert state["action"].action == OverlayAction.RUN_DIAGNOSTICS
-    assert state["secondary_action"].action == OverlayAction.RELOAD_TREE
+    assert state["action"].action == OverlayAction.EDIT_CONNECTION
+    assert "secondary_action" not in state
 
 
 @pytest.mark.parametrize(

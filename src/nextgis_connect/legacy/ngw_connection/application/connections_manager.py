@@ -325,7 +325,8 @@ class NgwConnectionsManager(QObject):
             configs = auth_manager.availableAuthMethodConfigs()
             if connection.auth_config_id not in configs:
                 return self.tr(
-                    "The selected saved user no longer exists in the QGIS authentication database."
+                    "Saved sign-in parameters for the selected connection were "
+                    "deleted from the QGIS authentication database."
                 )
 
         return None
