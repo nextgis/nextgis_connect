@@ -80,9 +80,7 @@ class UploadChangesTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(
-            f"<b>Started changes uploading</b> for layer {self._metadata}"
-        )
+        logger.debug(f"Started changes uploading for layer {self._metadata}")
 
         self.__added_fids_mapping: Dict[FeatureId, NgwFeatureId] = {}
 

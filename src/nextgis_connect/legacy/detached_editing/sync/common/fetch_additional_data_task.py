@@ -77,7 +77,7 @@ class FetchAdditionalDataTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(f"<b>↓ Fetch extra data</b> for layer {self._metadata}")
+        logger.debug(f"↓ Fetch extra data for layer {self._metadata}")
 
         try:
             ngw_connection = QgsNgwConnection(self._metadata.connection_id)

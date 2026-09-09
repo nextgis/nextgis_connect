@@ -52,7 +52,7 @@ class FillLayerWithVersioningTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(f"<b>Start filling</b> layer{self._metadata}")
+        logger.debug(f"Start filling layer{self._metadata}")
 
         connection_id = self._metadata.connection_id
         resource_id = self._metadata.resource_id

@@ -69,9 +69,7 @@ class FillLayerWithoutVersioningTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(
-            f"<b>Start GPKG downloading</b> for layer {self._metadata}"
-        )
+        logger.debug(f"Start GPKG downloading for layer {self._metadata}")
 
         temp_fd, temp_path = tempfile.mkstemp(suffix=".gpkg")
         close(temp_fd)

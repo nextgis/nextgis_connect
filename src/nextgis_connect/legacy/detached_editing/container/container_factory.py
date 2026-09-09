@@ -69,7 +69,7 @@ class DetachedContainerFactory:
             else "without versioning"
         )
         logger.debug(
-            "<b>Start creating initial container</b> for layer "
+            "Start creating initial container for layer "
             + container_type
             + f' "{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
         )
@@ -162,7 +162,7 @@ class DetachedContainerFactory:
         container_path: Path,
     ) -> None:
         logger.debug(
-            f"<b>Start filling container</b> for layer "
+            f"Start filling container for layer "
             f'"{ngw_layer.display_name}" (id={ngw_layer.resource_id})'
         )
 
