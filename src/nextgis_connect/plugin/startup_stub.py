@@ -63,15 +63,15 @@ class NgConnectPluginStub(NgConnectInterface):
         plugin_dir = Path(__file__).parents[1]
         self.__startup_error = startup_error
 
-        logger.debug("<b>✓ Plugin stub object created</b>")
-        logger.debug(f"<b>ⓘ OS:</b> {QSysInfo().prettyProductName()}")
-        logger.debug(f"<b>ⓘ Qt version:</b> {QT_VERSION_STR}")
-        logger.debug(f"<b>ⓘ QGIS version:</b> {Qgis.version()}")
-        logger.debug(f"<b>ⓘ Python version:</b> {sys.version}")
-        logger.debug(f"<b>ⓘ GDAL version:</b> {gdal.__version__}")
-        logger.debug(f"<b>ⓘ Plugin version:</b> {self.version}")
+        logger.debug("✓ Plugin stub object created")
+        logger.debug(f"ⓘ OS: {QSysInfo().prettyProductName()}")
+        logger.debug(f"ⓘ Qt version: {QT_VERSION_STR}")
+        logger.debug(f"ⓘ QGIS version: {Qgis.version()}")
+        logger.debug(f"ⓘ Python version: {sys.version}")
+        logger.debug(f"ⓘ GDAL version: {gdal.__version__}")
+        logger.debug(f"ⓘ Plugin version: {self.version}")
         logger.debug(
-            f"<b>ⓘ Plugin path:</b> {plugin_dir}"
+            f"ⓘ Plugin path: {plugin_dir}"
             + (
                 f" -> {plugin_dir.resolve()}"
                 if plugin_dir.is_symlink()
@@ -91,7 +91,7 @@ class NgConnectPluginStub(NgConnectInterface):
         return self.__notifier
 
     def _load(self) -> None:
-        logger.debug("<b>Start stub initialization</b>")
+        logger.debug("Start stub initialization")
 
         application = QgsApplication.instance()
         assert application is not None
@@ -110,15 +110,15 @@ class NgConnectPluginStub(NgConnectInterface):
                 lambda: self.notifier.display_exception(self.__startup_error),
             )
 
-        logger.debug("<b>End stub initialization</b>")
+        logger.debug("End stub initialization")
 
     def _unload(self) -> None:
-        logger.debug("<b>Start stub unloading</b>")
+        logger.debug("Start stub unloading")
 
         self.__notifier.deleteLater()
         self.__notifier = None
 
-        logger.debug("<b>End stub unloading</b>")
+        logger.debug("End stub unloading")
 
     @property
     def toolbar(self) -> QToolBar:

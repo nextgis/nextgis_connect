@@ -16,7 +16,6 @@
 
 import html
 import logging
-import re
 from pprint import pformat
 from typing import Dict, List, Optional, Set, Union, cast
 
@@ -150,14 +149,8 @@ class QgisLoggerHandler(logging.Handler):
         message = message.replace(" ", "\u00a0")
 
         if Qgis.versionInt() < QGIS_3_42_2:
-            return message
-
-        # https://github.com/qgis/QGIS/issues/45834
-        for tag in ("i", "b"):
-            message = re.sub(
-                rf"<{tag}\b[^>]*?>", "", message, flags=re.IGNORECASE
-            )
-            message = re.sub(rf"</{tag}>", "", message, flags=re.IGNORECASE)
+            # https://github.com/qgis/QGIS/issues/45834
+            return html.escape(message)
 
         return message
 
@@ -203,16 +196,6 @@ def unload_logger() -> None:
     logger.propagate = True
 
     logger.setLevel(logging.NOTSET)
-
-
-def escape_html(message: str) -> str:
-    """Escape HTML special characters when QGIS requires it.
-
-    :param message: Message to escape.
-    :return: Escaped or original message.
-    """
-    # https://github.com/qgis/QGIS/issues/45834
-    return html.escape(message) if Qgis.versionInt() < QGIS_3_42_2 else message
 
 
 def format_container_data(data: Union[List, Set, Dict]) -> str:

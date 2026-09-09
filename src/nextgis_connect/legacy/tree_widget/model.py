@@ -401,7 +401,7 @@ class NgwSearch(NGWResourceModelJob):
 
             assert self.result.found_resources is not None
             logger.debug(
-                f"<b>✓ Found</b> {len(self.result.found_resources)} resources: {self.result.found_resources}"
+                f"✓ Found {len(self.result.found_resources)} resources: {self.result.found_resources}"
             )
 
             if len(self.result.found_resources) == 0:
