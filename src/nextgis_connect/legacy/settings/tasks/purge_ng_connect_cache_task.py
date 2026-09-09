@@ -30,7 +30,7 @@ class PurgeNgConnectCacheTask(NgConnectTask):
         if not super().run():
             return False
 
-        logger.debug("<b>Purging cache</b>")
+        logger.debug("Purging cache")
 
         try:
             cache_service = CacheMaintenanceService()

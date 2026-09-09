@@ -68,9 +68,7 @@ class ApplyDeltaTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(
-            f"<b>Start changes applying</b> for layer {self._metadata}"
-        )
+        logger.debug(f"Start changes applying for layer {self._metadata}")
 
         try:
             applier = ActionApplier(self._container_path, self._metadata)

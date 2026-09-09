@@ -125,15 +125,15 @@ class PluginContainer:
         self.__options_factory = None
         self.__purge_cache_task = None
 
-        logger.debug("<b>✓ Plugin object created</b>")
-        logger.debug(f"<b>ⓘ OS:</b> {QSysInfo().prettyProductName()}")
-        logger.debug(f"<b>ⓘ Qt version:</b> {QT_VERSION_STR}")
-        logger.debug(f"<b>ⓘ QGIS version:</b> {Qgis.version()}")
-        logger.debug(f"<b>ⓘ Python version:</b> {sys.version}")
-        logger.debug(f"<b>ⓘ GDAL version:</b> {gdal.__version__}")
-        logger.debug(f"<b>ⓘ Plugin version:</b> {self._plugin.version}")
+        logger.debug("✓ Plugin object created")
+        logger.debug(f"ⓘ OS: {QSysInfo().prettyProductName()}")
+        logger.debug(f"ⓘ Qt version: {QT_VERSION_STR}")
+        logger.debug(f"ⓘ QGIS version: {Qgis.version()}")
+        logger.debug(f"ⓘ Python version: {sys.version}")
+        logger.debug(f"ⓘ GDAL version: {gdal.__version__}")
+        logger.debug(f"ⓘ Plugin version: {self._plugin.version}")
         logger.debug(
-            f"<b>ⓘ Plugin path:</b> {self.plugin_dir}"
+            f"ⓘ Plugin path: {self.plugin_dir}"
             + (
                 f" -> {self.plugin_dir.resolve()}"
                 if self.plugin_dir.is_symlink()
@@ -157,7 +157,7 @@ class PluginContainer:
     def load(self) -> None:
         """Load plugin services and user interface objects."""
         with QgsRuntimeProfiler.profile("Plugin initialization"):  # type: ignore
-            logger.debug("<b>◴ Start interface initialization</b>...")
+            logger.debug("◴ Start interface initialization...")
 
             with QgsRuntimeProfiler.profile("Translations initialization"):  # type: ignore
                 self.__init_translator()
@@ -180,11 +180,11 @@ class PluginContainer:
             with QgsRuntimeProfiler.profile("Cache initialization"):  # type: ignore
                 self.__init_cache_purging()
 
-            logger.debug("<b>✓ End plugin initialization</b>")
+            logger.debug("✓ End plugin initialization")
 
     def unload(self) -> None:
         """Unload plugin services and user interface objects."""
-        logger.debug("<b>Start plugin unloading</b>")
+        logger.debug("Start plugin unloading")
 
         unload_steps = [
             ("cache purging", self.__unload_cache_purging),
@@ -203,7 +203,7 @@ class PluginContainer:
             except Exception:
                 logger.exception(f"Could not unload {step_name}")
 
-        logger.debug("<b>End plugin unloading</b>")
+        logger.debug("End plugin unloading")
 
     @property
     def notifier(self) -> "NotifierInterface":

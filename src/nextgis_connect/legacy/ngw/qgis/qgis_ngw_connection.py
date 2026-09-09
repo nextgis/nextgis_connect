@@ -32,7 +32,6 @@ from nextgis_connect.legacy.ngw_connection.domain.connection import (
 )
 from nextgis_connect.legacy.settings import NgConnectSettings
 from nextgis_connect.platform.logging import (
-    escape_html,
     format_container_data,
     logger,
 )
@@ -391,8 +390,8 @@ class QgsNgwConnection(QObject):
             result = self.__wait_for_answer(result, feedback=feedback)
 
         if self.__log_network and isinstance(result, (dict, list)):
-            escaped_result = escape_html(format_container_data(result))
-            logger.debug(f"\nReply:\n{escaped_result}\n")
+            formatted_result = format_container_data(result)
+            logger.debug(f"\nReply:\n{formatted_result}\n")
 
         return result
 
@@ -655,8 +654,8 @@ class QgsNgwConnection(QObject):
             if self.__log_network:
                 logger.debug(f"Response error\nstatus_code {status_code}")
                 if isinstance(data, (dict, list)):
-                    escaped_data = escape_html(format_container_data(data))
-                    logger.debug(f"\nReply:\n{escaped_data}\n")
+                    formatted_data = format_container_data(data)
+                    logger.debug(f"\nReply:\n{formatted_data}\n")
 
             if isinstance(data, dict):
                 if "status_code" not in data:
@@ -922,9 +921,7 @@ class QgsNgwConnection(QObject):
 
         domain = urllib.parse.urlparse(self.server_url).hostname
         version = self.__ngw_components.get("nextgisweb")
-        logger.debug(
-            f"<b>↔ Connected</b> to {domain} (NGW version: {version})"
-        )
+        logger.debug(f"↔ Connected to {domain} (NGW version: {version})")
 
         return self.__ngw_components
 

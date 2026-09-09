@@ -73,7 +73,7 @@ class DetachedEditingPathPreprocessor(QObject):
             )
 
         if old_source != new_source:
-            logger.debug(f"<b>Fixed source</b>: {old_source} -> {new_source}")
+            logger.debug(f"Fixed source: {old_source} -> {new_source}")
 
         return new_source
 

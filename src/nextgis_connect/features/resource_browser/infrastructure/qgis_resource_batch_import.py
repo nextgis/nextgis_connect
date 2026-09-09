@@ -101,7 +101,7 @@ from nextgis_connect.legacy.ngw.core.ngw_webmap import (
 from nextgis_connect.legacy.ngw_connection import NgwConnectionsManager
 from nextgis_connect.legacy.tree_widget.item import QNGWResourceItem
 from nextgis_connect.legacy.tree_widget.model import QNGWResourceTreeModel
-from nextgis_connect.platform.logging import escape_html, logger
+from nextgis_connect.platform.logging import logger
 from nextgis_connect.platform.qgis.errors import (
     ErrorCode,
     NgConnectError,
@@ -1071,7 +1071,7 @@ class QgisResourceBatchImporter(QObject):
             return resource.layer_params
 
         raise NgConnectError(
-            escape_html(f"Unsupported resource: {resource!r}"),
+            f"Unsupported resource: {resource!r}",
             code=ErrorCode.AddingError,
         )
 
@@ -1135,8 +1135,8 @@ class QgisResourceBatchImporter(QObject):
                 ),
                 code=ErrorCode.AddingError,
             )
-            error.add_note(escape_html(f"Style parent: {layer_resource!r}"))
-            error.add_note(escape_html(f"Style: {style_resource!r}"))
+            error.add_note(f"Style parent: {layer_resource!r}")
+            error.add_note(f"Style: {style_resource!r}")
             raise error
 
         self.__store_layer_params(

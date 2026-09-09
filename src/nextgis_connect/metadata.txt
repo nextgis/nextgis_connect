@@ -56,6 +56,8 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+	unreleased
+		- Fixed copying diagnostic logs in older QGIS versions
 	4.1.1
 		- Improved handling of PostGIS layer parameters
 		- Fixed adding dictionaries to PostGIS layers

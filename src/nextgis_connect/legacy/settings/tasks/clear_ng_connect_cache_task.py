@@ -30,7 +30,7 @@ class ClearNgConnectCacheTask(NgConnectTask):
         if not super().run():
             return False
 
-        logger.debug("<b>Clearing cache</b>")
+        logger.debug("Clearing cache")
 
         try:
             cache_service = CacheMaintenanceService()

@@ -82,9 +82,7 @@ class FetchDeltaTask(DetachedEditingTask):
         if not super().run():
             return False
 
-        logger.debug(
-            f"<b>Start changes fetching</b> for layer {self._metadata}"
-        )
+        logger.debug(f"Start changes fetching for layer {self._metadata}")
 
         connection_id = self._metadata.connection_id
         resource_id = self._metadata.resource_id

@@ -540,7 +540,7 @@ class DetachedContainer(QObject):
         if self.__is_qobject_deleted():
             return
 
-        logger.debug(f"<b>Start layer {self.metadata} reset</b>")
+        logger.debug(f"Start layer {self.metadata} reset")
 
         self.__reset_error()
 
@@ -634,7 +634,7 @@ class DetachedContainer(QObject):
         self.__state = DetachedLayerState.NotInitialized
         self.__versioning_state = VersioningSynchronizationState.NotInitialized
 
-        logger.debug(f"<b>End layer {self.metadata} reset</b>")
+        logger.debug(f"End layer {self.metadata} reset")
 
         # Update state and notify listeners
 
@@ -1139,7 +1139,7 @@ class DetachedContainer(QObject):
             self.__disconnect_sync_task_signals(self.__sync_task)
 
         if self.__is_silent_sync:
-            logger.debug("<b>Resync</b> attempt <b>started<b>")
+            logger.debug("Resync attempt started")
         self.__sync_task = task
         self.__reset_error()
 
@@ -1158,7 +1158,7 @@ class DetachedContainer(QObject):
         self.__update_state(is_full_update=True)
         self.__unlock_layers()
 
-        logger.debug("<b>✓ Synchronization finished</b>")
+        logger.debug("✓ Synchronization finished")
 
         # Start next layer update
         NgConnectInterface.instance().synchronize_layers()
@@ -1338,7 +1338,7 @@ class DetachedContainer(QObject):
                 self.__unlock_layers()
 
             if self.__is_silent_sync:
-                logger.debug("<b>Resync</b> attempt <b>failed</b>")
+                logger.debug("Resync attempt failed")
                 return
         elif error.code == ErrorCode.ValueFormatError or (
             isinstance(error.__cause__, (NgConnectError, NgConnectWarning))

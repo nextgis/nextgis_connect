@@ -207,7 +207,7 @@ class NgConnectExceptionInfoMixin:
             else _default_log_message(self.code)
         ).strip()
 
-        base_class.__init__(self, f"<b>{self._log_message}</b>")  # pyright: ignore[reportArgumentType]
+        base_class.__init__(self, self._log_message)  # pyright: ignore[reportArgumentType]
 
         if self.code != ErrorCode.PluginError:
             self.add_note(f"Internal code: {self.code.name}")
