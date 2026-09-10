@@ -74,6 +74,7 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
     __resource_realm_visible: bool
     __username_completer_model: QStringListModel
     __delete_button: QPushButton
+    __external_config_protected: bool
 
     def __init__(
         self,
@@ -90,6 +91,7 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
         self.__is_valid = False
         self.__clean_state = ("", "", "", "", "", "")
         self.__resource_realm_visible = True
+        self.__external_config_protected = False
 
         self.setupUi(self)
         self.__init_ui()
@@ -173,6 +175,21 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
 
     def has_unsaved_changes(self) -> bool:
         return self.__current_state() != self.__clean_state
+
+    def credentials_changed(self) -> bool:
+        current_state = self.__current_state()
+        return current_state[1:3] != self.__clean_state[1:3]
+
+    def set_external_config_protection(self, is_protected: bool) -> None:
+        self.__external_config_protected = is_protected
+        for field in (
+            self.name_lineedit,
+            self.resource_lineedit,
+            self.realm_lineedit,
+            self.__auth_config_id_edit,
+            self.__delete_button,
+        ):
+            field.setEnabled(not is_protected)
 
     def set_embedded_mode(self, embedded: bool) -> None:
         self.__is_embedded = embedded
@@ -748,7 +765,7 @@ class AuthConfigEditorWidget(QWidget, WIDGET):
 
     @pyqtSlot()
     def __delete_config(self) -> None:
-        if len(self.__config_id) == 0:
+        if self.__external_config_protected or len(self.__config_id) == 0:
             return
 
         config_id = self.__config_id
