@@ -87,6 +87,29 @@ def test_resource_creation_metadata_setting_can_be_disabled(
     assert NgConnectSettings().add_resource_creation_metadata is False
 
 
+def test_svg_embedding_setting_defaults_to_enabled(
+    reset_qgis_settings: None,
+) -> None:
+    del reset_qgis_settings
+
+    _reset_settings_migration()
+
+    assert NgConnectSettings().embed_svg_images_in_qml is True
+
+
+def test_svg_embedding_setting_can_be_disabled(
+    reset_qgis_settings: None,
+) -> None:
+    del reset_qgis_settings
+
+    _reset_settings_migration()
+
+    settings = NgConnectSettings()
+    settings.embed_svg_images_in_qml = False
+
+    assert NgConnectSettings().embed_svg_images_in_qml is False
+
+
 def test_project_webmap_creation_setting_can_be_disabled(
     reset_qgis_settings: None,
 ) -> None:

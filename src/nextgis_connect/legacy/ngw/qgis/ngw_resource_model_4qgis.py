@@ -24,6 +24,10 @@ from urllib.parse import parse_qsl
 
 from osgeo import ogr
 
+from nextgis_connect.features.qml_processing import (
+    QmlProcessor,
+    qml_handlers_for_layer,
+)
 from nextgis_connect.legacy.ngw.core.ngw_base_map import (
     NGWBaseMap,
     NGWBaseMapExtSettings,
@@ -70,6 +74,9 @@ from nextgis_connect.legacy.ngw.qt.qt_ngw_resource_model_job_error import (
 )
 from nextgis_connect.legacy.ngw.resources.ngw_data_type import NgwDataType
 from nextgis_connect.legacy.ngw.resources.ngw_field import NgwField
+from nextgis_connect.legacy.settings.ng_connect_settings import (
+    NgConnectSettings,
+)
 from nextgis_connect.platform.logging import logger
 from nextgis_connect.platform.qgis.compat import (
     QGIS_3_42,
@@ -84,7 +91,6 @@ from nextgis_connect.platform.qgis.errors import (
     NgwError,
 )
 from nextgis_connect.platform.qgis.extent_calculator import ExtentCalculator
-from nextgis_connect.qml_processor import QMLProcessor
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -1146,8 +1152,7 @@ class QGISResourceJob(NGWResourceModelJob):
             temp_filename = qml_file.name
             qml_data = style_manager.style(style_name).xmlData()
 
-            if isinstance(qgs_map_layer, QgsVectorLayer):
-                qml_data = QMLProcessor(qml_data, qgs_map_layer).process()
+            qml_data = self._process_qml_for_upload(qml_data, qgs_map_layer)
 
             qml_file.write(qml_data)
 
@@ -1174,11 +1179,22 @@ class QGISResourceJob(NGWResourceModelJob):
         ) as qml_file:
             temp_filename = qml_file.name
             qml_data = style_manager.style(current_style).xmlData()
+            qml_data = self._process_qml_for_upload(qml_data, qgs_map_layer)
             qml_file.write(qml_data)
 
         self.updateQMLStyle(temp_filename, ngw_layer_resource)
 
         os.remove(temp_filename)
+
+    @staticmethod
+    def _process_qml_for_upload(qml_data, qgs_map_layer):
+        settings = NgConnectSettings()
+        handlers = qml_handlers_for_layer(
+            qgs_map_layer,
+            embed_svg_images=settings.embed_svg_images_in_qml,
+            path_resolver=QgsProject.instance().pathResolver(),
+        )
+        return QmlProcessor(qml_data, handlers).process()
 
     def updateQMLStyle(self, qml, ngw_layer_resource):
         def uploadFileCallback(total_size, readed_size):

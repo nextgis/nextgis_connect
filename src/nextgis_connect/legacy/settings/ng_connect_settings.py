@@ -103,6 +103,23 @@ class NgConnectSettings:
         self.__settings.endGroup()
 
     @property
+    def embed_svg_images_in_qml(self) -> bool:
+        self.__settings.beginGroup(self.__plugin_group)
+        result = self.__settings.value(
+            "uploading/embedSvgImagesInQml",
+            defaultValue=True,
+            type=bool,
+        )
+        self.__settings.endGroup()
+        return result
+
+    @embed_svg_images_in_qml.setter
+    def embed_svg_images_in_qml(self, value: bool) -> None:
+        self.__settings.beginGroup(self.__plugin_group)
+        self.__settings.setValue("uploading/embedSvgImagesInQml", value)
+        self.__settings.endGroup()
+
+    @property
     def create_webmap_when_uploading_project(self) -> bool:
         self.__settings.beginGroup(self.__plugin_group)
         result = self.__settings.value(
