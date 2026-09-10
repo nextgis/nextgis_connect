@@ -25,10 +25,12 @@ from qgis.PyQt.QtWidgets import (
     QDialogButtonBox,
     QLayout,
     QMenu,
-    QMessageBox,
     QWidget,
 )
 
+from nextgis_connect.legacy.detached_editing.reset import (
+    confirm_reset_container,
+)
 from nextgis_connect.legacy.detached_editing.utils import DetachedLayerState
 from nextgis_connect.ui_kit.buttons.loading import LoadingToolButton
 from nextgis_connect.ui_kit.icons import material_icon, qgis_icon
@@ -154,23 +156,7 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
 
     @pyqtSlot(name="resetContainer")
     def __reset_container(self) -> None:
-        has_changes = self.__container.metadata.has_changes
-        if has_changes:
-            answer = QMessageBox.question(
-                self,
-                self.tr("Possible data loss"),
-                self.tr(
-                    "The layer contains changes. If you continue, you will"
-                    " lose them forever.\n\nAre you sure you want to continue?"
-                ),
-                QMessageBox.StandardButtons()
-                | QMessageBox.StandardButton.Yes
-                | QMessageBox.StandardButton.No,
-            )
-            if answer != QMessageBox.StandardButton.Yes:
-                return
-
-        self.__container.reset_container()
+        confirm_reset_container(self.__container, self)
 
     @pyqtSlot(name="updateSyncButton")
     def __update_sync_button(self) -> None:

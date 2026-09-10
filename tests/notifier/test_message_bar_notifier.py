@@ -19,7 +19,7 @@ from qgis.PyQt.QtWidgets import QHBoxLayout, QPushButton, QWidget
 from nextgis_connect.legacy.notifier.message_bar_notifier import (
     MessageBarNotifier,
 )
-from nextgis_connect.platform.qgis.errors import NgwError
+from nextgis_connect.platform.qgis.errors import ContainerError, NgwError
 
 
 def test_network_error_has_diagnostics_button(qgis_app) -> None:
@@ -38,6 +38,31 @@ def test_network_error_has_diagnostics_button(qgis_app) -> None:
 
     assert "Run diagnostics" in button_texts
     assert "Open settings" not in button_texts
+
+    widget.deleteLater()
+    notifier.deleteLater()
+
+
+def test_error_action_is_rendered_as_button(qgis_app) -> None:
+    del qgis_app
+
+    action_calls = []
+    error = ContainerError()
+    error.add_action("Reset layer", lambda: action_calls.append("reset"))
+    widget = QWidget()
+    widget.setLayout(QHBoxLayout())
+
+    notifier = MessageBarNotifier(None)
+    notifier._add_error_buttons(error, widget)
+
+    reset_button = next(
+        button
+        for button in widget.findChildren(QPushButton)
+        if button.text() == "Reset layer"
+    )
+    reset_button.click()
+
+    assert action_calls == ["reset"]
 
     widget.deleteLater()
     notifier.deleteLater()

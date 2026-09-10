@@ -73,6 +73,9 @@ from nextgis_connect.legacy.detached_editing.container.ui.layer_status_dialog im
 from nextgis_connect.legacy.detached_editing.detached_layer import (
     DetachedLayer,
 )
+from nextgis_connect.legacy.detached_editing.reset import (
+    confirm_reset_container,
+)
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
     DetachedStorageServiceFactory,
 )
@@ -128,6 +131,16 @@ from nextgis_connect.plugin.plugin_interface import NgConnectInterface
 
 if TYPE_CHECKING:
     assert isinstance(iface, QgisInterface)
+
+
+_RESET_REQUIRED_ERROR_CODES = (
+    ErrorCode.ContainerVersionIsOutdated,
+    ErrorCode.NotVersionedContentChanged,
+    ErrorCode.EpochChanged,
+    ErrorCode.StructureChanged,
+    ErrorCode.VersioningEnabled,
+    ErrorCode.VersioningDisabled,
+)
 
 
 @dataclass(frozen=True)
@@ -1352,8 +1365,14 @@ class DetachedContainer(QObject):
 
         self.__error = error
 
+        if error.code in _RESET_REQUIRED_ERROR_CODES:
+            error.add_action(self.tr("Reset layer"), self.__request_reset)
+
         if show_error:
             NgConnectInterface.instance().notifier.display_exception(error)
+
+    def __request_reset(self) -> None:
+        confirm_reset_container(self, iface.mainWindow())
 
     def __check_structure(self) -> None:
         container_fields_name = set()
