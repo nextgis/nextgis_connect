@@ -116,8 +116,9 @@ def test_current_nextgis_qgis_user_remains_visible_when_editing(
         is_edit=True,
         filter_by_resource=True,
         labels=LoginChoiceLabels(
-            nextgis_qgis_user="NextGIS QGIS User",
-            saved_user="Saved user",
+            nextgis_qgis_account="NextGIS QGIS account",
+            saved_basic_sign_in="Saved sign-in",
+            basic_sign_in_tooltip_format="{} - username and password",
         ),
     )
 
@@ -149,8 +150,9 @@ def test_unavailable_nextgis_qgis_user_is_hidden_when_not_current(
         is_edit=False,
         filter_by_resource=True,
         labels=LoginChoiceLabels(
-            nextgis_qgis_user="NextGIS QGIS User",
-            saved_user="Saved user",
+            nextgis_qgis_account="NextGIS QGIS account",
+            saved_basic_sign_in="Saved sign-in",
+            basic_sign_in_tooltip_format="{} - username and password",
         ),
     )
 
@@ -240,8 +242,9 @@ def test_login_choice_resolver_filters_basic_users_by_web_gis(
         is_edit=True,
         filter_by_resource=filter_by_resource,
         labels=LoginChoiceLabels(
-            nextgis_qgis_user="NextGIS QGIS User",
-            saved_user="Saved user",
+            nextgis_qgis_account="NextGIS QGIS account",
+            saved_basic_sign_in="Saved sign-in",
+            basic_sign_in_tooltip_format="{} - username and password",
         ),
     )
 
@@ -250,3 +253,11 @@ def test_login_choice_resolver_filters_basic_users_by_web_gis(
     assert [
         choice.auth_config_id for choice in basic_choices
     ] == expected_auth_config_ids
+    assert [choice.title for choice in basic_choices] == [
+        "Alice",
+        "Bob",
+    ][: len(expected_auth_config_ids)]
+    assert [choice.tooltip for choice in basic_choices] == [
+        "Alice - username and password",
+        "Bob - username and password",
+    ][: len(expected_auth_config_ids)]

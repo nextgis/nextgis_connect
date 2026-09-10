@@ -98,8 +98,11 @@ class ConnectionSwitchMenu(QMenu):
             is_edit=True,
             filter_by_resource=True,
             labels=LoginChoiceLabels(
-                nextgis_qgis_user=self.tr("NextGIS QGIS User"),
-                saved_user=self.tr("Saved user"),
+                nextgis_qgis_account=self.tr("NextGIS QGIS account"),
+                saved_basic_sign_in=self.tr("Saved sign-in"),
+                basic_sign_in_tooltip_format=self.tr(
+                    "{} - username and password"
+                ),
             ),
         )
         selected_auth_config_id = connection.auth_config_id or ""
@@ -107,7 +110,7 @@ class ConnectionSwitchMenu(QMenu):
             selected_auth_config_id
         )
         choices = [
-            LoginChoice(LoginChoiceKind.GUEST, self.tr("Guest")),
+            LoginChoice(LoginChoiceKind.GUEST, self.tr("Guest access")),
             *nextgis_choices,
             *basic_choices,
         ]
@@ -119,6 +122,8 @@ class ConnectionSwitchMenu(QMenu):
         is_default_auth_available = connection.auth_config_id is None
         for choice in choices:
             action = connection_menu.addAction(choice.title)
+            if len(choice.tooltip) != 0:
+                action.setToolTip(choice.tooltip)
             action.setCheckable(True)
             is_selected = choice.auth_config_id == connection.auth_config_id
             action.setChecked(is_selected)
