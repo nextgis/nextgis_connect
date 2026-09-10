@@ -137,7 +137,7 @@ class QgisLayerSourceSanitizer:
         if external_source is not None:
             return external_source
 
-        local_source = self._local_source(parameters, source)
+        local_source = self._local_source(provider_type, parameters, source)
         if local_source is not None:
             return local_source
 
@@ -370,6 +370,7 @@ class QgisLayerSourceSanitizer:
 
     def _local_source(
         self,
+        provider_type: str,
         parameters: Dict[str, Any],
         source: str,
     ) -> Optional[str]:
@@ -401,6 +402,8 @@ class QgisLayerSourceSanitizer:
             return None
 
         layer_name = self._layer_name(parameters)
+        if provider_type.lower() == "gdal" and layer_name == "NULL":
+            layer_name = None
         if layer_name is None:
             return filename
         return f"{filename}|layername={layer_name}"
