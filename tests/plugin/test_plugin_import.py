@@ -61,6 +61,44 @@ import nextgis_connect.plugin.plugin
     assert result.returncode == 0, result.stderr
 
 
+def test_plugin_container_initializes_toolbar_before_detached_editing(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    from nextgis_connect.plugin.plugin_container import PluginContainer
+
+    container = object.__new__(PluginContainer)
+    initialized_steps = []
+    steps = (
+        "translator",
+        "notifier",
+        "connections",
+        "task_manager",
+        "ng_connect_toolbar",
+        "detached_editing",
+        "ng_connect_dock",
+        "ng_connect_menus",
+        "ng_layer_actions",
+        "ng_connect_settings_page",
+        "cache_purging",
+    )
+    for step in steps:
+        monkeypatch.setattr(
+            PluginContainer,
+            f"_PluginContainer__init_{step}",
+            lambda _container, initialized_step=step: initialized_steps.append(
+                initialized_step
+            ),
+        )
+
+    container.load()
+
+    assert initialized_steps.index(
+        "ng_connect_toolbar"
+    ) < initialized_steps.index("detached_editing")
+
+
 def test_plugin_loads(qgis_iface) -> None:
     plugin = nextgis_connect.classFactory(qgis_iface)
     qgis.utils.plugins[PACKAGE_NAME] = plugin

@@ -62,7 +62,7 @@ class SearchPanel(QWidget):
         layout.addLayout(self.__stacked_layout)
 
         # Add search button
-        self.__search_button = QToolButton()
+        self.__search_button = QToolButton(self)
         self.__search_button.setToolButtonStyle(
             Qt.ToolButtonStyle.ToolButtonIconOnly
         )
@@ -152,7 +152,7 @@ class SearchPanel(QWidget):
     def __init_text_search_widget(
         self, connection_id: Optional[str]
     ) -> QWidget:
-        self.__text_search_widget = TextSearchLineEdit(connection_id)
+        self.__text_search_widget = TextSearchLineEdit(connection_id, self)
         self.__text_search_widget.search_requested.connect(
             self.__search_by_text
         )
@@ -162,7 +162,7 @@ class SearchPanel(QWidget):
     def __init_metadata_search_widget(
         self, connection_id: Optional[str]
     ) -> QWidget:
-        self.__metadata_search_widget = MetadataSearchWidget()
+        self.__metadata_search_widget = MetadataSearchWidget(self)
         self.__metadata_search_widget.search_requested.connect(
             self.__search_by_text
         )

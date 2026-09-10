@@ -18,7 +18,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from qgis.PyQt.QtCore import QSize, Qt
+from qgis.PyQt.QtCore import QEvent, QSize, Qt, QTranslator
 from qgis.PyQt.QtGui import QColor, QPalette
 from qgis.PyQt.QtWidgets import QApplication, QBoxLayout
 
@@ -33,6 +33,9 @@ from nextgis_connect.legacy.tree_widget.overlay.widgets.action import (
 )
 from nextgis_connect.legacy.tree_widget.overlay.widgets.loading import (
     LoadingOverlayWidget,
+)
+from nextgis_connect.legacy.tree_widget.overlay.widgets.surface import (
+    OverlaySurfaceWidget,
 )
 from nextgis_connect.plugin.plugin_interface import NgConnectInterface
 from nextgis_connect.ui_kit.buttons import ShiningButton
@@ -52,6 +55,66 @@ def overlay_widget_environment(monkeypatch):
 def _process_events() -> None:
     QApplication.processEvents()
     QApplication.processEvents()
+
+
+def test_compact_overlay_message_uses_surface_widget_context(
+    qgis_app,
+    overlay_widget_environment,
+) -> None:
+    del qgis_app, overlay_widget_environment
+
+    class SurfaceTranslator(QTranslator):
+        def translate(
+            self,
+            context,
+            sourceText,
+            disambiguation=None,
+            n=-1,
+        ) -> str:
+            del disambiguation, n
+            if context != "OverlaySurfaceWidget":
+                return ""
+            if (
+                sourceText
+                != "Increase the panel size to display this content."
+            ):
+                return ""
+            return "Увеличьте размер панели, чтобы отобразить это содержимое."
+
+    translator = SurfaceTranslator()
+    QApplication.installTranslator(translator)
+    try:
+        widget = ActionOverlayWidget()
+
+        assert widget._compact_label.text() == (
+            "Увеличьте размер панели, чтобы отобразить это содержимое."
+        )
+    finally:
+        QApplication.removeTranslator(translator)
+
+
+def test_action_overlay_handles_palette_change_during_construction(
+    qgis_app,
+    overlay_widget_environment,
+    monkeypatch,
+) -> None:
+    del qgis_app, overlay_widget_environment
+
+    initialize_surface = OverlaySurfaceWidget.__init__
+
+    def initialize_surface_with_palette_change(widget, parent=None) -> None:
+        initialize_surface(widget, parent)
+        widget.changeEvent(QEvent(QEvent.Type.PaletteChange))
+
+    monkeypatch.setattr(
+        OverlaySurfaceWidget,
+        "__init__",
+        initialize_surface_with_palette_change,
+    )
+
+    widget = ActionOverlayWidget()
+
+    assert widget._details_label is not None
 
 
 def test_action_overlay_switches_button_layout_on_resize(
