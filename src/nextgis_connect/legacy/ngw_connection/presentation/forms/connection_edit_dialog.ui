@@ -26,7 +26,7 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Connection Information</string>
+      <string>Web GIS</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
@@ -79,7 +79,7 @@
         <item row="4" column="0">
          <widget class="QLabel" name="login_label">
           <property name="text">
-           <string>Login as</string>
+           <string>Sign-in method</string>
           </property>
          </widget>
         </item>
@@ -121,7 +121,7 @@
       </sizepolicy>
      </property>
      <property name="title">
-      <string>Authentication</string>
+      <string>Sign in to Web GIS</string>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_3">
       <item>

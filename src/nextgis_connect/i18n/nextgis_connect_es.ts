@@ -590,19 +590,24 @@ La edición puede romper referencias existentes.</translation>
         <translation>No hay conexiones configuradas</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="95"/>
-        <source>NextGIS QGIS User</source>
-        <translation>Usuario NextGIS QGIS</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="101"/>
+        <source>NextGIS QGIS account</source>
+        <translation>Cuenta de NextGIS QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="95"/>
-        <source>Saved user</source>
-        <translation>Usuario guardado</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="102"/>
+        <source>Saved sign-in</source>
+        <translation>Inicio de sesión guardado</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="109"/>
-        <source>Guest</source>
-        <translation>Invitado</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="103"/>
+        <source>{} - username and password</source>
+        <translation>{} - nombre de usuario y contraseña</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/presentation/connection_switch_menu.py" line="113"/>
+        <source>Guest access</source>
+        <translation>Acceso de invitado</translation>
     </message>
 </context>
 <context>
@@ -1878,8 +1883,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="29"/>
-        <source>Connection Information</source>
-        <translation>Información de la conexión</translation>
+        <source>Web GIS</source>
+        <translation>Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="51"/>
@@ -1903,8 +1908,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="124"/>
-        <source>Authentication</source>
-        <translation>Autenticación</translation>
+        <source>Sign in to Web GIS</source>
+        <translation>Iniciar sesión en Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="138"/>
@@ -1923,8 +1928,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/forms/connection_edit_dialog.ui" line="82"/>
-        <source>Login as</source>
-        <translation>Iniciar sesión como</translation>
+        <source>Sign-in method</source>
+        <translation>Método de inicio de sesión</translation>
     </message>
 </context>
 <context>
@@ -3274,14 +3279,14 @@ Are you sure you want to continue?</source>
         <translation>Los ajustes de autenticación contienen cambios sin guardar. ¿Descartarlos y cambiar el tipo de inicio de sesión?</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1473"/>
-        <source>Guest</source>
-        <translation>Invitado</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1527"/>
+        <source>Guest access</source>
+        <translation>Acceso de invitado</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1490"/>
-        <source>New user</source>
-        <translation>Nuevo usuario</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1546"/>
+        <source>New sign-in option...</source>
+        <translation>Nueva opción de inicio de sesión...</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1612"/>
@@ -3294,14 +3299,19 @@ Are you sure you want to continue?</source>
         <translation>Mostrar usuarios para este Web GIS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1564"/>
-        <source>NextGIS QGIS User</source>
-        <translation>Usuario NextGIS QGIS</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1644"/>
+        <source>NextGIS QGIS account</source>
+        <translation>Cuenta de NextGIS QGIS</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1564"/>
-        <source>Saved user</source>
-        <translation>Usuario guardado</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1645"/>
+        <source>Saved sign-in</source>
+        <translation>Inicio de sesión guardado</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1646"/>
+        <source>{} - username and password</source>
+        <translation>{} - nombre de usuario y contraseña</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1700"/>
@@ -3319,9 +3329,9 @@ Are you sure you want to continue?</source>
         <translation>NextGIS Web</translation>
     </message>
     <message>
-        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1808"/>
-        <source>{connection_name} ({user_name})</source>
-        <translation>{connection_name} ({user_name})</translation>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1955"/>
+        <source>{user_name} ({connection_name})</source>
+        <translation>{user_name} ({connection_name})</translation>
     </message>
 </context>
 <context>

@@ -53,12 +53,14 @@ class LoginChoiceResolverStub:
                     "Alice",
                     "Basic",
                     "auth001",
+                    "Alice - username and password",
                 ),
                 LoginChoice(
                     LoginChoiceKind.EXISTING,
                     "Bob",
                     "Basic",
                     "auth002",
+                    "Bob - username and password",
                 ),
             ],
         )
@@ -125,13 +127,14 @@ def test_switch_menu_marks_current_connection_and_user(
 
     first_user_actions = connection_actions[0].menu().actions()
     assert [action.text() for action in first_user_actions] == [
-        "Guest",
+        "Guest access",
         "Alice",
         "Bob",
     ]
     assert not first_user_actions[0].isChecked()
     assert first_user_actions[1].isChecked()
     assert not first_user_actions[2].isChecked()
+    assert first_user_actions[1].toolTip() == "Alice - username and password"
 
     second_user_actions = connection_actions[1].menu().actions()
     assert second_user_actions[0].isChecked()

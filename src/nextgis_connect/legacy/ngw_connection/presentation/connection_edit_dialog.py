@@ -114,6 +114,7 @@ class LoginChoice:
     title: str
     method: str = ""
     auth_config_id: Optional[str] = None
+    tooltip: str = ""
 
 
 class NextgisQgisUserAvailability:
@@ -151,8 +152,9 @@ class NextgisQgisUserAvailability:
 
 @dataclass(frozen=True)
 class LoginChoiceLabels:
-    nextgis_qgis_user: str
-    saved_user: str
+    nextgis_qgis_account: str
+    saved_basic_sign_in: str
+    basic_sign_in_tooltip_format: str
 
 
 class LoginChoiceResolver:
@@ -193,11 +195,13 @@ class LoginChoiceResolver:
             ):
                 continue
 
+            title, tooltip = self.__choice_details(config_id, config)
             choice = LoginChoice(
                 LoginChoiceKind.EXISTING,
-                self.__choice_title(config_id, config),
+                title,
                 method,
                 config_id,
+                tooltip,
             )
             if method == "NextGIS":
                 nextgis_choices.append(choice)
@@ -218,11 +222,13 @@ class LoginChoiceResolver:
                 current_auth_config_id,
                 method,
             ):
+                title, tooltip = self.__choice_details(current_auth_config_id)
                 choice = LoginChoice(
                     LoginChoiceKind.EXISTING,
-                    self.__choice_title(current_auth_config_id),
+                    title,
                     method,
                     current_auth_config_id,
+                    tooltip,
                 )
                 if method == "NextGIS" or current_auth_config_id == "NextGIS":
                     nextgis_choices.append(choice)
@@ -305,13 +311,13 @@ class LoginChoiceResolver:
             resource
         ) == NgwConnection.normalize_url(self.__connection_url)
 
-    def __choice_title(
+    def __choice_details(
         self,
         config_id: str,
         config: Optional[QgsAuthMethodConfig] = None,
-    ) -> str:
+    ) -> Tuple[str, str]:
         if config_id == "NextGIS":
-            return self.__labels.nextgis_qgis_user
+            return self.__labels.nextgis_qgis_account, ""
 
         method = ""
         if config is not None:
@@ -322,7 +328,7 @@ class LoginChoiceResolver:
             )
 
         if method == "NextGIS":
-            return self.__labels.nextgis_qgis_user
+            return self.__labels.nextgis_qgis_account, ""
 
         username = ""
         if config is not None:
@@ -338,9 +344,12 @@ class LoginChoiceResolver:
                 username = loaded_username
 
         if len(username) == 0:
-            username = self.__labels.saved_user
+            username = self.__labels.saved_basic_sign_in
 
-        return username
+        return (
+            username,
+            self.__labels.basic_sign_in_tooltip_format.format(username),
+        )
 
     def __load_username(self, config_id: str) -> Optional[str]:
         auth_manager = QgsApplication.authManager()
@@ -1369,6 +1378,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         choice = self.__current_login_choice()
         if choice is None:
+            self.userComboBox.setToolTip("")
             self.__auth_editor.set_external_config_protection(False)
             self.authGroupBox.hide()
             self.__validate()
@@ -1377,6 +1387,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             return
 
         self.__missing_auth_config_reason = None
+        self.userComboBox.setToolTip(choice.tooltip)
 
         self.__auth_editor.set_resource_realm_visible(False)
         if choice.kind == LoginChoiceKind.GUEST:
@@ -1513,9 +1524,10 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         guest_choice = LoginChoice(
             LoginChoiceKind.GUEST,
-            self.tr("Guest"),
+            self.tr("Guest access"),
         )
         self.userComboBox.addItem(guest_choice.title, guest_choice)
+        self.__set_login_choice_item_tooltip(guest_choice)
         selected_index = -1
         if len(selected_id) == 0 and self.__should_keep_guest_selected(
             previous_choice
@@ -1525,20 +1537,23 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         nextgis_choices, basic_choices = self.__login_choices(selected_id)
         for choice in nextgis_choices:
             self.userComboBox.addItem(choice.title, choice)
+            self.__set_login_choice_item_tooltip(choice)
             if choice.auth_config_id == selected_id:
                 selected_index = self.userComboBox.count() - 1
 
         other_choice = LoginChoice(
             LoginChoiceKind.OTHER,
-            self.tr("New user"),
+            self.tr("New sign-in option..."),
         )
         self.userComboBox.addItem(other_choice.title, other_choice)
+        self.__set_login_choice_item_tooltip(other_choice)
         other_index = self.userComboBox.count() - 1
         if selected_index < 0 and not self.__is_edit and len(selected_id) == 0:
             selected_index = other_index
 
         for choice in basic_choices:
             self.userComboBox.addItem(choice.title, choice)
+            self.__set_login_choice_item_tooltip(choice)
             if choice.auth_config_id == selected_id:
                 selected_index = self.userComboBox.count() - 1
 
@@ -1564,6 +1579,16 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__current_user_index = -1
         self.__on_user_changed(selected_index)
+
+    def __set_login_choice_item_tooltip(self, choice: LoginChoice) -> None:
+        if len(choice.tooltip) == 0:
+            return
+
+        self.userComboBox.setItemData(
+            self.userComboBox.count() - 1,
+            choice.tooltip,
+            Qt.ItemDataRole.ToolTipRole,
+        )
 
     def __should_keep_guest_selected(
         self,
@@ -1616,8 +1641,11 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             is_edit=self.__is_edit,
             filter_by_resource=self.__filter_auth_by_resource,
             labels=LoginChoiceLabels(
-                nextgis_qgis_user=self.tr("NextGIS QGIS User"),
-                saved_user=self.tr("Saved user"),
+                nextgis_qgis_account=self.tr("NextGIS QGIS account"),
+                saved_basic_sign_in=self.tr("Saved sign-in"),
+                basic_sign_in_tooltip_format=self.tr(
+                    "{} - username and password"
+                ),
             ),
         )
         return resolver.existing_choices(current_auth_config_id)
@@ -1924,7 +1952,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         if len(display_name) == 0:
             display_name = verification_result.current_user.keyname
 
-        auth_name = self.tr("{connection_name} ({user_name})").format(
+        auth_name = self.tr("{user_name} ({connection_name})").format(
             connection_name=self.__suggested_connection_name(
                 self.urlLineEdit.text()
             ),
