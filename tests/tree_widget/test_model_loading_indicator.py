@@ -17,8 +17,14 @@
 from pathlib import Path
 from types import SimpleNamespace
 
-from qgis.PyQt.QtCore import QModelIndex, Qt
-from qgis.PyQt.QtGui import QBrush, QColor, QIcon, QPalette
+from qgis.PyQt.QtCore import QEvent, QItemSelectionModel, QModelIndex, Qt
+from qgis.PyQt.QtGui import (
+    QBrush,
+    QColor,
+    QIcon,
+    QKeyEvent,
+    QPalette,
+)
 from qgis.PyQt.QtTest import QSignalSpy
 
 from nextgis_connect.legacy.tree_widget.item import QNGWResourceItem
@@ -71,6 +77,46 @@ def test_resource_tree_uses_compact_indentation(
 
     assert view.indentation() == 14
     view.deleteLater()
+
+
+def test_resource_tree_clears_selection_on_escape(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        NgConnectInterface,
+        "instance",
+        classmethod(
+            lambda cls: SimpleNamespace(path=Path("src/nextgis_connect"))
+        ),
+    )
+    model = QNGWResourceTreeModelBase()
+    model.root_item.addChild(QNGWResourceItem(_resource()))
+    proxy_model = NgConnectProxyModel(None)
+    proxy_model.setSourceModel(model)
+    view = QNGWResourceTreeView(None)
+    view.setModel(proxy_model)
+    index = proxy_model.index(0, 0)
+    selection_model = view.selectionModel()
+    assert selection_model is not None
+    selection_model.setCurrentIndex(
+        index,
+        QItemSelectionModel.SelectionFlag.ClearAndSelect,
+    )
+
+    view.keyPressEvent(
+        QKeyEvent(
+            QEvent.Type.KeyPress,
+            Qt.Key.Key_Escape,
+            Qt.KeyboardModifier.NoModifier,
+        )
+    )
+
+    assert not selection_model.hasSelection()
+    assert not selection_model.currentIndex().isValid()
+    view.deleteLater()
+    proxy_model.deleteLater()
 
 
 def test_loading_overlay_disables_tree_scrolling(

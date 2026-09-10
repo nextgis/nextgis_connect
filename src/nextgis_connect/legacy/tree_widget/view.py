@@ -513,6 +513,13 @@ class QNGWResourceTreeView(QTreeView):
         super().wheelEvent(event)
 
     def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
+        if event.key() == Qt.Key.Key_Escape:
+            selection_model = self.selectionModel()
+            if selection_model is not None:
+                selection_model.clear()
+            event.accept()
+            return
+
         is_f2 = event.key() == Qt.Key.Key_F2
         index = self.currentIndex()
         if is_f2 and index.isValid():
