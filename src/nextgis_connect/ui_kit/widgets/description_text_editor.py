@@ -16,7 +16,7 @@
 
 from math import ceil
 from pathlib import Path
-from typing import Any, Dict, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 from qgis.core import Qgis, QgsNetworkAccessManager
 from qgis.gui import QgsCodeEditorHTML, QgsColorButton, QgsRichTextEditor
@@ -349,6 +349,7 @@ class DescriptionTextEditor(QgsRichTextEditor):
         body_node = bodies.item(0)
 
         self._convert_styles_to_tags(doc, body_node)
+        self._move_trailing_link_whitespace(doc, body_node)
         self._remove_style_attr(body_node)
 
         result_container = QByteArray()
@@ -397,35 +398,140 @@ class DescriptionTextEditor(QgsRichTextEditor):
             wrapper.appendChild(child)
         element.appendChild(wrapper)
 
+    def _contains_non_whitespace_text(self, node: QDomNode) -> bool:
+        if node.isText():
+            return bool(node.nodeValue().strip())
+
+        child = node.firstChild()
+        while not child.isNull():
+            if self._contains_non_whitespace_text(child):
+                return True
+            child = child.nextSibling()
+        return False
+
+    def _take_text_nodes(self, node: QDomNode) -> List[QDomNode]:
+        text_nodes = []
+        child = node.firstChild()
+        while not child.isNull():
+            next_sibling = child.nextSibling()
+            node.removeChild(child)
+            if child.isText():
+                text_nodes.append(child)
+            else:
+                text_nodes.extend(self._take_text_nodes(child))
+            child = next_sibling
+        return text_nodes
+
+    def _take_trailing_link_text(
+        self, doc: QDomDocument, link: QDomNode, text_node: QDomNode
+    ) -> Optional[List[QDomNode]]:
+        text = text_node.nodeValue()
+        text_without_trailing_whitespace = text.rstrip()
+        if text_without_trailing_whitespace == text:
+            return None
+
+        if text_without_trailing_whitespace:
+            text_node.setNodeValue(text_without_trailing_whitespace)
+            trailing_whitespace = text[len(text_without_trailing_whitespace) :]
+            return [doc.createTextNode(trailing_whitespace)]
+
+        link.removeChild(text_node)
+        return [text_node]
+
+    def _take_trailing_link_node(
+        self, doc: QDomDocument, link: QDomNode
+    ) -> Optional[List[QDomNode]]:
+        last_child = link.lastChild()
+        if last_child.isNull():
+            return None
+
+        if last_child.isText():
+            return self._take_trailing_link_text(doc, link, last_child)
+
+        if not last_child.isElement() or self._contains_non_whitespace_text(
+            last_child
+        ):
+            return None
+
+        link.removeChild(last_child)
+        return self._take_text_nodes(last_child)
+
+    def _insert_after_link(
+        self,
+        parent: QDomNode,
+        link: QDomNode,
+        whitespace_nodes: List[QDomNode],
+    ) -> None:
+        reference_node = link
+        for whitespace_node in reversed(whitespace_nodes):
+            whitespace_node.setNodeValue(
+                "\xa0" * len(whitespace_node.nodeValue())
+            )
+            parent.insertAfter(whitespace_node, reference_node)
+            reference_node = whitespace_node
+
+    def _move_trailing_link_whitespace(
+        self, doc: QDomDocument, node: QDomNode
+    ) -> None:
+        child = node.firstChild()
+        while not child.isNull():
+            next_sibling = child.nextSibling()
+            self._move_trailing_link_whitespace(doc, child)
+            child = next_sibling
+
+        if not node.isElement() or node.toElement().tagName().lower() != "a":
+            return
+
+        parent = node.parentNode()
+        if parent.isNull():
+            return
+
+        whitespace_nodes = []
+        while True:
+            trailing_nodes = self._take_trailing_link_node(doc, node)
+            if trailing_nodes is None:
+                break
+            whitespace_nodes.extend(trailing_nodes)
+
+        self._insert_after_link(parent, node, whitespace_nodes)
+
+        if node.firstChild().isNull():
+            parent.removeChild(node)
+
+    def _has_inline_style(self, node: QDomNode) -> bool:
+        return (
+            node.isElement()
+            and node.toElement().tagName().lower() == "span"
+            and node.toElement().hasAttribute("style")
+        )
+
+    def _formatting_tags(self, node: QDomNode) -> List[str]:
+        if not self._has_inline_style(node):
+            return []
+
+        style_map = self._parse_style_attr(node.toElement().attribute("style"))
+        tags = []
+        if style_map.get("font-weight") == "600":
+            tags.append("b")
+        if style_map.get("font-style") == "italic":
+            tags.append("i")
+
+        text_decoration = style_map.get("text-decoration", "")
+        if "underline" in text_decoration:
+            tags.append("u")
+        if "line-through" in text_decoration:
+            tags.append("s")
+        return tags
+
     def _convert_styles_to_tags(
         self, doc: QDomDocument, node: QDomNode
     ) -> None:
-        # If node is element and has style, convert known styles to tags.
-        had_style = False
-        if node.isElement():
-            element = node.toElement()
-            had_style = element.hasAttribute("style")
-            if had_style:
-                style_map = self._parse_style_attr(element.attribute("style"))
-
-                tags_to_apply = []
-
-                font_weight = style_map.get("font-weight")
-                if font_weight == "600":
-                    tags_to_apply.append("b")
-
-                font_style = style_map.get("font-style")
-                if font_style == "italic":
-                    tags_to_apply.append("i")
-
-                text_decoration = style_map.get("text-decoration", "")
-                if "underline" in text_decoration:
-                    tags_to_apply.append("u")
-                if "line-through" in text_decoration:
-                    tags_to_apply.append("s")
-
-                for tag in tags_to_apply:
-                    self._wrap_children_with_tag(doc, node, tag)
+        # QTextDocument uses block styles for layout, so only convert inline
+        # styles to character tags.
+        has_inline_style = self._has_inline_style(node)
+        if has_inline_style and self._contains_non_whitespace_text(node):
+            for tag in self._formatting_tags(node):
+                self._wrap_children_with_tag(doc, node, tag)
 
         child = node.firstChild()
         while not child.isNull():
@@ -434,10 +540,8 @@ class DescriptionTextEditor(QgsRichTextEditor):
             child = next_sibling
 
         # Unwrap span elements that had inline styles so span does not remain.
-        if node.isElement():
-            element = node.toElement()
-            if had_style and element.tagName().lower() == "span":
-                self._unwrap_element(node)
+        if has_inline_style:
+            self._unwrap_element(node)
 
     def _unwrap_element(self, node: QDomNode) -> None:
         # Replace the element with its children, removing the element itself.
