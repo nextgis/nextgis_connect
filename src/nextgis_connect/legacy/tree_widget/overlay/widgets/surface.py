@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import ClassVar, Optional
 
 from qgis.PyQt.QtCore import (
+    QCoreApplication,
     QEasingCurve,
     QEvent,
     QRect,
@@ -570,7 +571,10 @@ class OverlaySurfaceWidget(QWidget):
         self._compact_label.setWordWrap(True)
         self._compact_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._compact_label.setText(
-            self.tr("Increase the panel size to display this content.")
+            QCoreApplication.translate(
+                "OverlaySurfaceWidget",
+                "Increase the panel size to display this content.",
+            )
         )
         self._compact_label.setMargin(self._NORMAL_CARD_PADDING)
         self._compact_label.setMinimumHeight(self._MINIMUM_COMPACT_CARD_HEIGHT)
