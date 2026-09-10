@@ -167,6 +167,8 @@ class PluginContainer:
                 self.__init_connections()
             with QgsRuntimeProfiler.profile("Task manager initialization"):  # type: ignore
                 self.__init_task_manager()
+            with QgsRuntimeProfiler.profile("Toolbar initialization"):  # type: ignore
+                self.__init_ng_connect_toolbar()
             with QgsRuntimeProfiler.profile("Detached layers initialization"):  # type: ignore
                 self.__init_detached_editing()
             with QgsRuntimeProfiler.profile("Dock widget initialization"):  # type: ignore
@@ -190,9 +192,9 @@ class PluginContainer:
             ("cache purging", self.__unload_cache_purging),
             ("settings page", self.__unload_ng_connect_settings_page),
             ("layer actions", self.__unload_ng_layer_actions),
+            ("detached editing", self.__unload_detached_editing),
             ("menus and toolbar", self.__unload_ng_connect_menus),
             ("dock", self.__unload_ng_connect_dock),
-            ("detached editing", self.__unload_detached_editing),
             ("task manager", self.__unload_task_manger),
             ("notifier", self.__unload_notifier),
             ("notifications", self.__close_notifications),
@@ -366,8 +368,7 @@ class PluginContainer:
         self.__delete_qobject(dock)
         self.__ng_resources_tree_dock = None
 
-    def __init_ng_connect_menus(self) -> None:
-        # Show panel action
+    def __init_ng_connect_toolbar(self) -> None:
         self.__ng_connect_toolbar = self.iface.addToolBar(PLUGIN_NAME)
         assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.setObjectName("NgConnectToolBar")
@@ -375,6 +376,10 @@ class PluginContainer:
             self._plugin.tr("NextGIS Connect Toolbar"),
         )
 
+    def __init_ng_connect_menus(self) -> None:
+        assert self.__ng_connect_toolbar is not None
+
+        # Show panel action
         self.__show_ngw_resources_tree_action = QAction(
             plugin_icon("branding/connect_logo.svg"),
             self._plugin.tr("Show/Hide NextGIS Connect panel"),
