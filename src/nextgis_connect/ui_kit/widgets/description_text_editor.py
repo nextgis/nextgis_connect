@@ -14,16 +14,33 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import Optional
+from math import ceil
+from pathlib import Path
+from typing import Any, Dict, Optional, Set, Tuple
 
-from qgis.core import Qgis
+from qgis.core import Qgis, QgsNetworkAccessManager
 from qgis.gui import QgsCodeEditorHTML, QgsColorButton, QgsRichTextEditor
 from qgis.PyQt.QtCore import (
     QByteArray,
+    QObject,
+    QRectF,
+    QSizeF,
     QTextStream,
     QTimer,
+    QUrl,
     pyqtSlot,
 )
+from qgis.PyQt.QtGui import (
+    QImage,
+    QPainter,
+    QPixmap,
+    QTextDocument,
+    QTextFormat,
+    QTextImageFormat,
+    QTextLength,
+    QTextObjectInterface,
+)
+from qgis.PyQt.QtNetwork import QNetworkReply, QNetworkRequest
 from qgis.PyQt.QtWidgets import (
     QAction,
     QComboBox,
@@ -43,6 +60,210 @@ if QT_VERSION_MAJOR == 6:
     from qgis.PyQt.QtCore import QStringConverter
 
 
+class _AdaptiveImageHandler(QObject, QTextObjectInterface):
+    """Draw image objects at their natural size or the document width."""
+
+    def __init__(self, text_edit: QTextEdit) -> None:
+        super().__init__(text_edit)
+        self._text_edit = text_edit
+        self._pending_image_requests: Dict[
+            str, Tuple[QTextDocument, QUrl]
+        ] = {}
+        self._failed_image_urls: Set[str] = set()
+
+    def intrinsicSize(
+        self,
+        doc: Optional[QTextDocument],
+        posInDocument: int,
+        format: QTextFormat,
+    ) -> QSizeF:
+        del posInDocument
+        if doc is None:
+            return QSizeF()
+        image_format = format.toImageFormat()
+        image_size = self._image_size(doc, image_format)
+        if image_size is None:
+            return QSizeF(
+                image_format.width() or 16,
+                image_format.height() or 16,
+            )
+
+        image_width, image_height = image_size
+        maximum_width = doc.pageSize().width()
+        if maximum_width <= 0:
+            maximum_width = self._text_edit.viewport().width()
+        maximum_width -= doc.documentMargin() * 2
+        maximum_width = self._maximum_image_width(image_format, maximum_width)
+        if maximum_width > 0 and image_width > maximum_width:
+            image_height *= maximum_width / image_width
+            image_width = maximum_width
+
+        return QSizeF(image_width, image_height)
+
+    def drawObject(
+        self,
+        painter: Optional[QPainter],
+        rect: QRectF,
+        doc: Optional[QTextDocument],
+        posInDocument: int,
+        format: QTextFormat,
+    ) -> None:
+        if painter is None or doc is None:
+            return
+        del posInDocument
+        image_resource = self._image_resource(doc, format.toImageFormat())
+        if isinstance(image_resource, QPixmap):
+            painter.drawPixmap(
+                rect,
+                image_resource,
+                QRectF(image_resource.rect()),
+            )
+        elif isinstance(image_resource, QImage):
+            painter.drawImage(
+                rect,
+                image_resource,
+                QRectF(image_resource.rect()),
+            )
+        else:
+            painter.drawRect(rect)
+
+    def _image_size(
+        self, document: QTextDocument, image_format: QTextImageFormat
+    ) -> Optional[Tuple[float, float]]:
+        image_resource = self._image_resource(document, image_format)
+        if not isinstance(image_resource, (QImage, QPixmap)):
+            return None
+
+        device_pixel_ratio = image_resource.devicePixelRatio()
+        natural_width = image_resource.width() / device_pixel_ratio
+        natural_height = image_resource.height() / device_pixel_ratio
+        if natural_width <= 0 or natural_height <= 0:
+            return None
+
+        width = image_format.width() or natural_width
+        height = image_format.height() or natural_height
+        if image_format.width() and not image_format.height():
+            height = natural_height * width / natural_width
+        elif image_format.height() and not image_format.width():
+            width = natural_width * height / natural_height
+
+        return width, height
+
+    def _image_resource(
+        self, document: QTextDocument, image_format: QTextImageFormat
+    ) -> Any:
+        image_resource = document.resource(
+            QTextDocument.ResourceType.ImageResource,
+            QUrl(image_format.name()),
+        )
+        if isinstance(image_resource, (QImage, QPixmap)):
+            return image_resource
+
+        image = QImage()
+        if isinstance(image_resource, QByteArray):
+            if image.loadFromData(image_resource):
+                return image
+            return None
+
+        image_url = document.baseUrl().resolved(QUrl(image_format.name()))
+        if image_url.isLocalFile():
+            image_path = image_url.toLocalFile()
+        elif image_url.scheme() == "qrc":
+            image_path = f":{image_url.path()}"
+        elif not image_url.scheme():
+            image_path = image_url.path()
+        else:
+            if image_url.scheme() in ("http", "https"):
+                self._request_remote_image(
+                    document,
+                    QUrl(image_format.name()),
+                    image_url,
+                )
+            return None
+
+        device_pixel_ratio = self._text_edit.devicePixelRatioF()
+        image_pixel_ratio = 1
+        if device_pixel_ratio > 1 and not image_path.startswith(":"):
+            source_path = Path(image_path)
+            pixel_ratio = ceil(device_pixel_ratio)
+            high_dpi_path = source_path.with_name(
+                f"{source_path.stem}@{pixel_ratio}x{source_path.suffix}"
+            )
+            if high_dpi_path.is_file():
+                image_path = str(high_dpi_path)
+                image_pixel_ratio = pixel_ratio
+
+        if not image.load(image_path):
+            return None
+        image.setDevicePixelRatio(image_pixel_ratio)
+        return image
+
+    def _request_remote_image(
+        self,
+        document: QTextDocument,
+        resource_url: QUrl,
+        request_url: QUrl,
+    ) -> None:
+        request_key = request_url.toString()
+        if (
+            request_key in self._pending_image_requests
+            or request_key in self._failed_image_urls
+        ):
+            return
+
+        network_manager = QgsNetworkAccessManager.instance()
+        reply = network_manager.get(QNetworkRequest(request_url))
+        self._pending_image_requests[request_key] = (document, resource_url)
+        reply.finished.connect(self._on_remote_image_finished)
+
+    def _on_remote_image_finished(self) -> None:
+        reply = self.sender()
+        if not isinstance(reply, QNetworkReply):
+            return
+
+        request_key = reply.request().url().toString()
+        request = self._pending_image_requests.pop(request_key, None)
+        if request is None:
+            reply.deleteLater()
+            return
+
+        document, resource_url = request
+        if reply.error() != QNetworkReply.NetworkError.NoError:
+            self._failed_image_urls.add(request_key)
+            reply.deleteLater()
+            return
+
+        image = QImage()
+        if not image.loadFromData(reply.readAll()):
+            self._failed_image_urls.add(request_key)
+            reply.deleteLater()
+            return
+
+        document.addResource(
+            QTextDocument.ResourceType.ImageResource,
+            resource_url,
+            image,
+        )
+        document.markContentsDirty(0, document.characterCount())
+        self._text_edit.viewport().update()
+        reply.deleteLater()
+
+    def _maximum_image_width(
+        self, image_format: QTextImageFormat, available_width: float
+    ) -> float:
+        maximum_width_method = getattr(image_format, "maximumWidth", None)
+        if not callable(maximum_width_method):
+            return available_width
+
+        maximum_width: Any = maximum_width_method()
+        if maximum_width.type() not in (
+            QTextLength.Type.PercentageLength,
+            QTextLength.Type.FixedLength,
+        ):
+            return available_width
+        return min(available_width, maximum_width.value(available_width))
+
+
 class DescriptionTextEditor(QgsRichTextEditor):
     """Provide a text editor for NextGIS Web descriptions.
 
@@ -59,6 +280,7 @@ class DescriptionTextEditor(QgsRichTextEditor):
         """
         super().__init__(parent)
         self._collect_widgets()
+        self._install_adaptive_image_handler()
         self.set_read_only(True)
 
         QTimer.singleShot(0, self._patch)
@@ -99,6 +321,21 @@ class DescriptionTextEditor(QgsRichTextEditor):
         :return: The HTML body content as a string.
         """
         return self._process_html_body(self.toHtml())
+
+    def _install_adaptive_image_handler(self) -> None:
+        document = self._text_edit.document()
+        if document is None:
+            return
+        layout = document.documentLayout()
+        if layout is None:
+            return
+
+        self._adaptive_image_handler = _AdaptiveImageHandler(self._text_edit)
+        layout.unregisterHandler(QTextFormat.ObjectTypes.ImageObject)
+        layout.registerHandler(
+            QTextFormat.ObjectTypes.ImageObject,
+            self._adaptive_image_handler,
+        )
 
     def _process_html_body(self, full_html: str) -> str:
         doc = QDomDocument()
