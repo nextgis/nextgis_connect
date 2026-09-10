@@ -171,6 +171,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
         self.__widget.addResourceCreationMetadataCheckBox.setChecked(
             settings.add_resource_creation_metadata
         )
+        self.__widget.embedSvgImagesInQmlCheckBox.setChecked(
+            settings.embed_svg_images_in_qml
+        )
         self.__widget.addWfsLayerAfterServiceCreationCheckBox.setChecked(
             settings.add_layer_after_service_creation
         )
@@ -355,6 +358,9 @@ class NgConnectOptionsPageWidget(QgsOptionsPageWidget):
     def __save_resources_settings(self, settings: NgConnectSettings) -> None:
         settings.add_resource_creation_metadata = (
             self.__widget.addResourceCreationMetadataCheckBox.isChecked()
+        )
+        settings.embed_svg_images_in_qml = (
+            self.__widget.embedSvgImagesInQmlCheckBox.isChecked()
         )
         settings.add_layer_after_service_creation = (
             self.__widget.addWfsLayerAfterServiceCreationCheckBox.isChecked()
