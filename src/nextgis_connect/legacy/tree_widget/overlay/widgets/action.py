@@ -63,6 +63,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
+        self._is_initialized = False
 
         self._title_layout = QBoxLayout(QBoxLayout.Direction.LeftToRight)
         self._title_layout.setContentsMargins(0, 0, 0, 0)
@@ -207,6 +208,7 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self._title_icon_name = ""
         self._full_title = ""
         self._compact_title = ""
+        self._is_initialized = True
 
     def set_state(self, state: OverlayState) -> None:
         """Apply a new state to the action overlay."""
@@ -270,6 +272,9 @@ class ActionOverlayWidget(OverlaySurfaceWidget):
         self.sync_layout()
 
     def changeEvent(self, event) -> None:
+        if not getattr(self, "_is_initialized", False):
+            return
+
         if event.type() in (
             QEvent.Type.PaletteChange,
             QEvent.Type.ApplicationPaletteChange,
