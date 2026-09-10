@@ -166,6 +166,22 @@ class NgwConnectionsManager(QObject):
 
         return None
 
+    def other_web_gis_count_for_auth_config(
+        self,
+        auth_config_id: str,
+        current_url: str,
+    ) -> int:
+        normalized_current_url = NgwConnection.normalize_url(current_url)
+        return len(
+            {
+                NgwConnection.normalize_url(connection.url)
+                for connection in self.__connections.values()
+                if connection.auth_config_id == auth_config_id
+                and NgwConnection.normalize_url(connection.url)
+                != normalized_current_url
+            }
+        )
+
     def upsert(self, connection: NgwConnection) -> None:
         self.__connections[connection.id] = connection
         if self.__current_connection_id is None:

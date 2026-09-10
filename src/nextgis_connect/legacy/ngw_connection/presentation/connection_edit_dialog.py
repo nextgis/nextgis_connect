@@ -389,6 +389,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
     __auth_editor: AuthConfigEditorWidget
     __current_user_index: int
     __missing_auth_config_reason: Optional[str]
+    __confirmed_external_auth_credentials: Optional[Tuple[str, str, str]]
 
     def __init__(
         self,
@@ -490,6 +491,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         self.__accept_on_verification_success = False
         self.__current_user_index = -1
         self.__missing_auth_config_reason = None
+        self.__confirmed_external_auth_credentials = None
 
         self.__auth_editor = AuthConfigEditorWidget(parent=self, embedded=True)
         self.__auth_editor.validityChanged.connect(self.__validate)
@@ -1367,6 +1369,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         choice = self.__current_login_choice()
         if choice is None:
+            self.__auth_editor.set_external_config_protection(False)
             self.authGroupBox.hide()
             self.__validate()
             self.__current_user_index = -1
@@ -1377,10 +1380,12 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__auth_editor.set_resource_realm_visible(False)
         if choice.kind == LoginChoiceKind.GUEST:
+            self.__auth_editor.set_external_config_protection(False)
             self.authWidget.setConfigId("")
             self.authGroupBox.hide()
             self.authWarningLabel.hide()
         elif self.__login_choice_method(choice) == "NextGIS":
+            self.__auth_editor.set_external_config_protection(False)
             assert choice.auth_config_id is not None
             self.authWidget.setConfigId(choice.auth_config_id)
             self.authGroupBox.hide()
@@ -1388,10 +1393,14 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             assert choice.auth_config_id is not None
             self.authWidget.setConfigId(choice.auth_config_id)
             self.__auth_editor.set_config_id(choice.auth_config_id)
+            self.__auth_editor.set_external_config_protection(
+                self.__is_external_auth_config(choice.auth_config_id)
+            )
             self.__auth_editor.set_additional_params_visible(True)
             self.__auth_editor.set_resource_realm_visible(False)
             self.authGroupBox.show()
         else:
+            self.__auth_editor.set_external_config_protection(False)
             self.authWidget.setConfigId("")
             self.__auth_editor.prepare_new_config(
                 self.__default_auth_config_name(),
@@ -1491,6 +1500,13 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             else selected_auth_config_id or ""
         )
         previous_choice = self.__current_login_choice()
+
+        if self.__is_external_auth_config(selected_id):
+            self.__filter_auth_by_resource = False
+            self.__auth_filter_button.blockSignals(True)
+            self.__auth_filter_button.setChecked(False)
+            self.__auth_filter_button.blockSignals(False)
+            self.__update_auth_filter_button_tooltip()
 
         self.userComboBox.blockSignals(True)
         self.userComboBox.clear()
@@ -1606,6 +1622,23 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         )
         return resolver.existing_choices(current_auth_config_id)
 
+    def __is_external_auth_config(self, auth_config_id: str) -> bool:
+        if not self.__is_edit:
+            return False
+        if len(auth_config_id) == 0 or auth_config_id == "NextGIS":
+            return False
+
+        config = QgsAuthMethodConfig()
+        if not QgsApplication.authManager().loadAuthenticationConfig(
+            auth_config_id, config, True
+        ):
+            return False
+
+        resource = config.uri().strip()
+        return len(resource) != 0 and NgwConnection.normalize_url(
+            resource
+        ) != NgwConnection.normalize_url(self.urlLineEdit.text())
+
     def __is_same_login_choice(
         self,
         left: Optional[LoginChoice],
@@ -1685,6 +1718,11 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
                 force=True,
             )
 
+        if not self.__confirm_external_auth_credentials_update_if_needed(
+            choice
+        ):
+            return False
+
         if persist_auth:
             if not self.__auth_editor.save_config():
                 return False
@@ -1710,6 +1748,53 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         if persist_auth and choice.kind != LoginChoiceKind.OTHER:
             self.__populate_user_choices(selected_auth_config_id=config_id)
         return True
+
+    def __confirm_external_auth_credentials_update_if_needed(
+        self,
+        choice: LoginChoice,
+    ) -> bool:
+        auth_config_id = choice.auth_config_id or ""
+        if (
+            choice.kind != LoginChoiceKind.EXISTING
+            or not self.__is_external_auth_config(auth_config_id)
+            or not self.__auth_editor.credentials_changed()
+        ):
+            return True
+
+        credentials = (
+            auth_config_id,
+            self.__auth_editor.username_lineedit.text(),
+            self.__auth_editor.password_lineedit.text(),
+        )
+        if credentials == self.__confirmed_external_auth_credentials:
+            return True
+
+        if not self.__confirm_external_auth_credentials_update(auth_config_id):
+            return False
+
+        self.__confirmed_external_auth_credentials = credentials
+        return True
+
+    def __confirm_external_auth_credentials_update(
+        self,
+        auth_config_id: str,
+    ) -> bool:
+        affected_web_gis_count = (
+            self.__connections_manager.other_web_gis_count_for_auth_config(
+                auth_config_id,
+                self.urlLineEdit.text(),
+            )
+        )
+        result = QMessageBox.question(
+            self,
+            self.tr("Update shared sign-in settings?"),
+            self.tr(
+                "Changing the login or password will affect {count} other Web GIS. Continue?"
+            ).format(count=affected_web_gis_count),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return result == QMessageBox.StandardButton.Yes
 
     def __remove_temporary_auth_config(self) -> None:
         if self.__temporary_auth_config_id is None:
