@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from qgis.core import QgsVectorLayer
@@ -33,6 +34,7 @@ from nextgis_connect.platform.qgis.errors import (
     ContainerError,
     ErrorCode,
     NgwError,
+    SynchronizationError,
 )
 from tests.detached_editing.utils import (
     copy_legacy_36_points_container,
@@ -195,6 +197,29 @@ class TestDetachedEditingTask(NgConnectTestCase):
         )
 
     @mock_container(TestData.Points)
+    def test_structure_change_error_keeps_reason(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        task = FetchAdditionalDataTask(container_mock.path)
+        error = SynchronizationError(code=ErrorCode.StructureChanged)
+
+        prepared_error = task._prepare_error(error)
+
+        assert isinstance(prepared_error, SynchronizationError)
+        assert prepared_error.user_message.startswith(
+            "The layer structure is different from the structure on the "
+            "server."
+        )
+        assert (
+            f'Affected layer: "{container_mock.metadata.layer_name}".'
+            in prepared_error.user_message
+        )
+
+    @mock_container(TestData.Points)
     def test_additional_data_server_error_has_contact_action(
         self,
         container_mock: MagicMock,
@@ -255,3 +280,47 @@ class TestDetachedEditingTask(NgConnectTestCase):
         assert (
             f"Container path: {container_mock.path}" in diagnostic_information
         )
+
+    @mock_container(TestData.Points)
+    def test_reset_required_error_offers_reset_action(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        error = ContainerError(code=ErrorCode.StructureChanged)
+
+        container._DetachedContainer__process_error(error, show_error=False)
+
+        assert error.user_message.startswith(
+            "The layer structure is different from the structure on the "
+            "server."
+        )
+        assert "Affected layer:" in error.user_message
+        assert [name for name, _callback in error.actions] == ["Reset layer"]
+        assert error.detail is not None
+        assert "further synchronization becomes impossible" in error.detail
+
+    @mock_container(TestData.Points)
+    def test_outdated_container_is_reset_automatically(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        error = ContainerError(code=ErrorCode.ContainerVersionIsOutdated)
+        container._DetachedContainer__sync_task = SimpleNamespace(error=error)
+
+        with patch.object(
+            container, "_DetachedContainer__finish_sync"
+        ) as finish_sync, patch.object(container, "reset_container") as reset:
+            container._DetachedContainer__on_synchronization_finished(False)
+
+        finish_sync.assert_called_once()
+        reset.assert_called_once()

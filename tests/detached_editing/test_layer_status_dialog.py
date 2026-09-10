@@ -16,13 +16,18 @@
 
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from qgis import utils as qgis_utils
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from nextgis_connect.legacy.detached_editing.container.ui.layer_status_dialog import (
     DetachedLayerStatusDialog,
+)
+from nextgis_connect.legacy.detached_editing.reset import (
+    confirm_reset_container,
 )
 from nextgis_connect.legacy.detached_editing.utils import DetachedLayerState
 from nextgis_connect.shared.constants import PACKAGE_NAME
@@ -52,15 +57,41 @@ class _Container(QObject):
         self.sync_date = None
         self.error = None
         self.changes_info = _ChangesInfo()
+        self.reset_calls_count = 0
 
     def synchronize(self, is_manual: bool = False) -> None:
         del is_manual
 
     def reset_container(self) -> None:
-        pass
+        self.reset_calls_count += 1
 
 
 class TestDetachedLayerStatusDialog(NgConnectTestCase):
+    def test_reset_requires_confirmation_when_layer_has_changes(self) -> None:
+        container = _Container()
+        container.metadata.has_changes = True
+
+        with patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.StandardButton.No,
+        ):
+            was_reset = confirm_reset_container(container, None)
+
+        self.assertFalse(was_reset)
+        self.assertEqual(container.reset_calls_count, 0)
+
+    def test_reset_is_blocked_in_edit_mode(self) -> None:
+        container = _Container()
+        container.is_edit_mode_enabled = True
+
+        with patch.object(QMessageBox, "warning") as warning:
+            was_reset = confirm_reset_container(container, None)
+
+        self.assertFalse(was_reset)
+        self.assertEqual(container.reset_calls_count, 0)
+        warning.assert_called_once()
+
     def test_sync_and_close_buttons_stay_in_same_row(self) -> None:
         old_plugin = qgis_utils.plugins.get(PACKAGE_NAME)
         qgis_utils.plugins[PACKAGE_NAME] = SimpleNamespace(

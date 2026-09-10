@@ -15,7 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Set
 
 from osgeo import gdal
 from qgis import core as qgis_core
@@ -310,3 +310,24 @@ class DataType(IntEnum):
             return None
 
         return int(value)
+
+
+def enum_integer(value: object) -> int:
+    """Return a Qt 5 integer enum or Qt 6 scoped enum numeric value."""
+    numeric_value = getattr(value, "value", value)
+    if not isinstance(numeric_value, int):
+        raise TypeError("Qt enum does not provide an integer value")
+    return numeric_value
+
+
+def combine_flags(
+    owner: object, singular_name: str, flags: Iterable[object]
+) -> Any:
+    """Combine a Qt 5/6 ``Flag``/``Flags`` enum collection."""
+    flag_value = 0
+    for flag in flags:
+        flag_value |= enum_integer(flag)
+    flags_type = getattr(owner, format(singular_name) + "s", None)
+    if flags_type is None:
+        flags_type = getattr(owner, singular_name)
+    return flags_type(flag_value)

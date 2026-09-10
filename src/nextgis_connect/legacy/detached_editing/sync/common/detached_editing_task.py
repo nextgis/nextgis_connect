@@ -132,7 +132,10 @@ class DetachedEditingTask(NgConnectTask):
                 'The server is temporarily unavailable. Layer "{layer_name}" could not be synchronized. Please try again later.',
             ).format(layer_name=layer_name)
             error.set_user_message(user_message)
-        elif isinstance(error, SynchronizationError):
+        elif (
+            isinstance(error, SynchronizationError)
+            and error.code == ErrorCode.SynchronizationError
+        ):
             user_message = QgsApplication.translate(
                 "DetachedEditingTask",
                 'Could not synchronize layer "{layer_name}".',
