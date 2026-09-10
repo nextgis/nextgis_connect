@@ -84,6 +84,7 @@ from nextgis_connect.platform.qgis.errors import (
     NgwError,
 )
 from nextgis_connect.platform.qgis.extent_calculator import ExtentCalculator
+from nextgis_connect.qml_processor import QMLProcessor
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -1144,6 +1145,10 @@ class QGISResourceJob(NGWResourceModelJob):
         ) as qml_file:
             temp_filename = qml_file.name
             qml_data = style_manager.style(style_name).xmlData()
+
+            if isinstance(qgs_map_layer, QgsVectorLayer):
+                qml_data = QMLProcessor(qml_data, qgs_map_layer).process()
+
             qml_file.write(qml_data)
 
         if style_manager.isDefault(style_name):
