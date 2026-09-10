@@ -2986,6 +2986,11 @@ Are you sure you want to continue?</source>
         <source>Add metadata to layers on creation</source>
         <translation>Añadir metadatos a las capas al crearlas</translation>
     </message>
+    <message>
+        <location filename="../legacy/settings/ui/settings_dialog_base.ui" line="75"/>
+        <source>Embed SVG images in QML styles</source>
+        <translation>Incrustar imágenes SVG en estilos QML</translation>
+    </message>
 </context>
 <context>
     <name>NgwConnectionDiagnosticsDialog</name>

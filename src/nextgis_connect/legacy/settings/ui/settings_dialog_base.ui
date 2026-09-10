@@ -70,6 +70,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="embedSvgImagesInQmlCheckBox">
+        <property name="text">
+         <string>Embed SVG images in QML styles</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="addWfsLayerAfterServiceCreationCheckBox">
         <property name="text">
          <string>Add layers to QGIS on service creation</string>
