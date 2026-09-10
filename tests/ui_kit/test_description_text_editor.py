@@ -150,3 +150,48 @@ def test_description_images_load_from_http(qgis_app) -> None:
         editor.close()
         sip.delete(editor)
         server.close()
+
+
+def test_description_content_ignores_block_text_decoration(qgis_app) -> None:
+    del qgis_app
+    editor = DescriptionTextEditor()
+    try:
+        content = editor._process_html_body(
+            "<html><body>"
+            '<p style="text-decoration: underline;">First paragraph</p>'
+            '<p><span style="text-decoration: underline;">'
+            "Underlined text</span></p>"
+            "</body></html>"
+        )
+
+        assert "<u>First paragraph</u>" not in content
+        assert "<u>Underlined text</u>" in content
+    finally:
+        editor.close()
+        sip.delete(editor)
+
+
+def test_description_content_keeps_link_whitespace_without_underline(
+    qgis_app,
+) -> None:
+    del qgis_app
+    editor = DescriptionTextEditor()
+    try:
+        content = editor._process_html_body(
+            "<html><body><p>"
+            '<a href="https://example.test"><span '
+            'style="text-decoration: underline;">Link</span></a>'
+            '<a href="https://example.test"><u> </u></a>'
+            "continues"
+            "</p></body></html>"
+        )
+
+        assert "<u/>" not in content
+        assert content.count('<a href="https://example.test">') == 1
+        editor.set_content(content)
+        assert editor.text_edit.toPlainText().replace("\xa0", " ") == (
+            "Link continues"
+        )
+    finally:
+        editor.close()
+        sip.delete(editor)
