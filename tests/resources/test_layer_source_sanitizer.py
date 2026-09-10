@@ -113,6 +113,23 @@ def test_local_source_keeps_only_filename(
     assert result == expected
 
 
+def test_gdal_source_omits_null_layer_name() -> None:
+    sanitizer = QgisLayerSourceSanitizer(mock.Mock())
+    layer = _layer("/project/rasters/dem.tif", "gdal")
+
+    with mock.patch.object(
+        sanitizer,
+        "_decode_uri",
+        return_value={
+            "path": "/project/rasters/dem.tif",
+            "layername": "NULL",
+        },
+    ):
+        result = sanitizer.sanitize(layer)
+
+    assert result == "dem.tif"
+
+
 @pytest.mark.parametrize(
     ("provider_type", "parameters", "expected"),
     (
