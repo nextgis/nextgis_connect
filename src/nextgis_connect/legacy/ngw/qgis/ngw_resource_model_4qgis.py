@@ -421,6 +421,11 @@ class QGISResourceJob(NGWResourceModelJob):
                 ngw_group,
                 qgs_plugin_layer.layerDef.serviceUrl,
                 basemap_ext_settings,
+                use_basemap_qms_object=(
+                    ngw_group.res_factory.connection.has_support_for_feature(
+                        NgwServerFeature.BASEMAP_QMS_OBJECT
+                    )
+                ),
             )
 
             return [ngw_basemap]
@@ -462,6 +467,11 @@ class QGISResourceJob(NGWResourceModelJob):
                 ngw_group,
                 parameters.get("url", ""),
                 basemap_ext_settings,
+                use_basemap_qms_object=(
+                    ngw_group.res_factory.connection.has_support_for_feature(
+                        NgwServerFeature.BASEMAP_QMS_OBJECT
+                    )
+                ),
             )
             return [ngw_basemap]
         else:

@@ -104,6 +104,11 @@ class NgwServerFeature(Enum):
         parse_version("5.5.0.dev0"),
     )
     JSON_TYPE = ("json_type", "nextgisweb", parse_version("5.5.0.dev0"))
+    BASEMAP_QMS_OBJECT = (
+        "basemap_qms_object",
+        "nextgisweb",
+        parse_version("5.6.0.dev11"),
+    )
 
     @property
     def component(self):

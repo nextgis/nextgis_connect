@@ -15,7 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import json
-from typing import Tuple
+from typing import Dict, Optional, Tuple
 
 from qgis.core import QgsProviderRegistry
 
@@ -36,15 +36,19 @@ class NGWBaseMap(NGWResource):
 
         params = {"type": "xyz"}
         qms = resource_json.get("qms")
-        if qms is None:
-            params["url"] = resource_json["url"]
-        else:
+        if isinstance(qms, str):
             decoded_qms = json.loads(qms)
             params["url"] = decoded_qms["url"]
             params["zmin"] = decoded_qms.get("z_min")
             params["zmax"] = decoded_qms.get("z_max")
             if "epsg" in decoded_qms:
                 params["crs"] = f"EPSG:{decoded_qms['epsg']}"
+        else:
+            params["url"] = resource_json["url"]
+            params["zmin"] = resource_json.get("z_min")
+            params["zmax"] = resource_json.get("z_max")
+            if resource_json.get("epsg") is not None:
+                params["crs"] = f"EPSG:{resource_json['epsg']}"
 
         connections_manager = NgwConnectionsManager()
         connection = connections_manager.connection(self.connection_id)
@@ -67,7 +71,12 @@ class NGWBaseMap(NGWResource):
 
     @classmethod
     def create_in_group(
-        cls, name, ngw_group_resource, base_map_url, qms_ext_settings=None
+        cls,
+        name,
+        ngw_group_resource,
+        base_map_url,
+        qms_ext_settings=None,
+        use_basemap_qms_object=False,
     ):
         connection = ngw_group_resource.res_factory.connection
         params = dict(
@@ -78,11 +87,21 @@ class NGWBaseMap(NGWResource):
             )
         )
 
-        qms_parameters = None
-        if qms_ext_settings is not None:
-            qms_parameters = qms_ext_settings.toJSON()
+        basemap_params = dict(url=base_map_url)
+        if use_basemap_qms_object:
+            basemap_params["type"] = "tms"
+            if qms_ext_settings is not None:
+                basemap_params["url"] = (
+                    qms_ext_settings.encode_y_origin_in_url(base_map_url)
+                )
+                basemap_params.update(qms_ext_settings.to_ngw_basemap_params())
+        else:
+            qms_parameters = None
+            if qms_ext_settings is not None:
+                qms_parameters = qms_ext_settings.toJSON()
+            basemap_params["qms"] = qms_parameters
 
-        params[cls.type_id] = dict(url=base_map_url, qms=qms_parameters)
+        params[cls.type_id] = basemap_params
         result = connection.post(
             ngw_group_resource.get_api_collection_url(), params=params
         )
@@ -99,8 +118,8 @@ class NGWBaseMapExtSettings:
     def __init__(self, url, epsg, z_min, z_max, y_origin_top):
         self.url = url
         self.epsg = int(epsg)
-        self.z_min = z_min
-        self.z_max = z_max
+        self.z_min = int(z_min) if z_min is not None else None
+        self.z_max = int(z_max) if z_max is not None else None
         self.y_origin_top = y_origin_top
 
     def toJSON(self):
@@ -119,3 +138,24 @@ class NGWBaseMapExtSettings:
             d["y_origin_top"] = self.y_origin_top
 
         return json.dumps(d)
+
+    def to_ngw_basemap_params(self) -> Dict[str, Optional[int]]:
+        """Return fields for the NextGIS Web basemap API."""
+        return {
+            "epsg": self.epsg,
+            "z_min": self.z_min,
+            "z_max": self.z_max,
+        }
+
+    def encode_y_origin_in_url(self, url: str) -> str:
+        """Encode bottom-origin tile numbering in an NGW URL template.
+
+        Convert only an explicit ``False`` value from legacy PyTiledLayer;
+        native QGIS URLs already encode their Y-origin convention.
+
+        :param url: Tile URL template from QGIS or QuickMapServices.
+        :return: Template with the QGIS ``{-y}`` placeholder when needed.
+        """
+        if self.y_origin_top is False:
+            return url.replace("{y}", "{-y}")
+        return url
