@@ -5,6 +5,12 @@
 - Keep code Python 3.8 compatible: `pyproject.toml` sets `pythonVersion = "3.8"` and Ruff `target-version = "py38"`.
 - Plugin metadata supports QGIS `3.22` to `4.99` and `supportsQt6=True`; check `nextgis_connect.platform.qgis.compat` before changing Qt/QGIS-version-sensitive code.
 
+## Terminology And Localization
+- Use `Web GIS` (two words, both capitalized, separated by U+00A0) in English user-facing text and in translations that retain the English term; use `Web GIS` in documentation and log messages.
+- In Russian user-facing text and `nextgis_connect_ru.ts`, translate it as `Веб ГИС`; write compounds as separate words (for example, `сервис Веб ГИС`).
+- Keep the approved translation in each other locale; the Spanish catalogue intentionally retains `Web GIS`, while the About dialog contains locale-specific wording.
+- Keep the responsive overlay fallback that turns `Web GIS` into `Web\u00a0GIS`: it protects externally supplied text from an undesirable line break.
+
 ## Entrypoints
 - QGIS starts at `src/nextgis_connect/__init__.py:classFactory`, then `plugin/plugin_factory.py:create_plugin`.
 - Normal lifecycle is `plugin/plugin.py:NgConnectPlugin` plus `plugin/plugin_container.py:PluginContainer`.

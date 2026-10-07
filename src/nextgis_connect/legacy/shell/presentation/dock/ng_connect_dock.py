@@ -383,7 +383,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.menuUpload = (
             self.__resource_menu_controller.create_add_to_web_gis_menu()
         )
-        self.menuUpload.setTitle(self.tr("Add to Web GIS"))
+        self.menuUpload.setTitle(self.tr("Add to Web GIS"))
         self.menuUpload.setIcon(plugin_icon("actions/cloud_upload.svg"))
         self.menuUpload.menuAction().setIconVisibleInMenu(False)
 
@@ -616,7 +616,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.content.layout().addWidget(self.resources_tree_view)
 
         self.__create_web_gis_button = ShiningButton(
-            self.tr("Create you own Web GIS!"),
+            self.tr("Create you own Web GIS!"),
             self.content,
         )
         self.__create_web_gis_button.clicked.connect(
@@ -1147,7 +1147,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     connections_manager.save()
                     logger.debug(
                         'Meet "http://", ".nextgis.com" connection error at '
-                        "very first time using this web gis connection. Trying"
+                        "very first time using this Web GIS connection. Trying"
                         ' to reconnect with "https://"'
                     )
                     self.reinit_tree(force=True)
@@ -1230,7 +1230,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__root_children_loading_parent_id = None
         self.__cancel_pending_job_id = None
         self.resources_tree_view.begin_loading(
-            self.tr("Loading Web GIS resources..."),
+            self.tr("Loading Web GIS resources..."),
             compact_title=self.tr("Loading resources..."),
             message=self.tr("Loading the root resource."),
             draw_background=True,
@@ -1258,7 +1258,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__root_children_loading_parent_id = int(parent_id)
         self.__cancel_pending_job_id = None
         self.resources_tree_view.begin_loading(
-            self.tr("Loading Web GIS resources..."),
+            self.tr("Loading Web GIS resources..."),
             compact_title=self.tr("Loading resources..."),
             message=self.tr("Loading the root resource contents."),
             draw_background=True,
@@ -1330,7 +1330,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 ),
                 title=self.tr("Unable to load resources"),
                 details=self.tr(
-                    "Contact support for the current Web GIS instance."
+                    "Contact support for the current Web GIS instance."
                 ),
                 retry_enabled=False,
                 icon_name="cloud_alert",
@@ -1350,7 +1350,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.set_error_state(
                 "",
                 title=(
-                    self.tr("Web GIS not found")
+                    self.tr("Web GIS not found")
                     if self.__is_web_gis_not_found_error(exception)
                     else self.tr("Unable to connect")
                 ),
@@ -1610,7 +1610,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         icon = plugin_icon("synchronization/field_error.svg")
 
         if isinstance(exception, JobServerRequestError):
-            msg = self.tr("Error occurred while communicating with Web GIS")
+            msg = self.tr("Error occurred while communicating with Web GIS")
             msg_ext = f"URL: {exception.url}"
             msg_ext += f"\nMSG: {exception}"
 
@@ -2039,7 +2039,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         button = QPushButton(self.tr("Edit connection"))
         button.pressed.connect(edit_connection)
         message = (
-            self.tr("Web GIS not found")
+            self.tr("Web GIS not found")
             if self.__is_web_gis_not_found_error(exception)
             else self.tr("Sign-in parameters were deleted.")
             if self.__has_missing_auth_config()
@@ -3524,7 +3524,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if len(replaced_layers) > 0:
             self.__msg_in_qgis_mes_bar(
                 self.tr(
-                    "Local layer sources were replaced with Web GIS layers"
+                    "Local layer sources were replaced with Web GIS layers"
                 ),
                 duration=3,
             )
@@ -3577,7 +3577,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
 
         message = self.tr(
-            "Replace local layer sources with the uploaded Web GIS layers?"
+            "Replace local layer sources with the uploaded Web GIS layers?"
         )
         if len(layer_names) > 0:
             message += "\n\n" + "\n".join(layer_names)
@@ -3731,7 +3731,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if connection is None:
             raise NgConnectError(
                 f"Connection {ngw_resource.connection_id} is not accessible",
-                user_message=self.tr("Web GIS connection is not accessible"),
+                user_message=self.tr("Web GIS connection is not accessible"),
                 code=ErrorCode.InvalidConnection,
             )
         return connection

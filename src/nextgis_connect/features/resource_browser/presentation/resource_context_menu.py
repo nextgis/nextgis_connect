@@ -534,7 +534,7 @@ class ResourceContextMenuFactory(QObject):
         if submenu_kind == ResourceMenuSubmenuKind.ADD_TO_QGIS_AS:
             return self.tr("Add to QGIS as")
         if submenu_kind == ResourceMenuSubmenuKind.ADD_TO_WEB_GIS:
-            return self.tr("Add to Web GIS")
+            return self.tr("Add to Web GIS")
         if submenu_kind == ResourceMenuSubmenuKind.CREATE:
             return self.tr("Create")
         if submenu_kind == ResourceMenuSubmenuKind.TREE:

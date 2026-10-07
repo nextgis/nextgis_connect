@@ -498,11 +498,11 @@ class TestConnectionDiagnosticsHelpers(unittest.TestCase):
         assert result.issue is not None
         self.assertEqual(
             result.issue.details,
-            "Web GIS was not found at the specified address.",
+            "Web GIS was not found at the specified address.",
         )
         self.assertEqual(
             result.issue.resolution,
-            "Check the Web GIS URL and run the verification again.",
+            "Check the Web GIS URL and run the verification again.",
         )
 
     def test_download_check_reports_enabled_lunkwill_setting(self) -> None:

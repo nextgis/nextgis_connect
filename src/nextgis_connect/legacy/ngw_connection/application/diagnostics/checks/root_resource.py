@@ -78,13 +78,13 @@ class RootResourceAccessCheck(BaseConnectionCheck):
 
             if error.code == ErrorCode.NotFound:
                 return self._failure(
-                    self.tr("Web GIS was not found at the specified address."),
+                    self.tr("Web GIS was not found at the specified address."),
                     issue=self._client_issue(
                         self.tr(
-                            "Web GIS was not found at the specified address."
+                            "Web GIS was not found at the specified address."
                         ),
                         self.tr(
-                            "Check the Web GIS URL and run the verification again."
+                            "Check the Web GIS URL and run the verification again."
                         ),
                         technical_details=error.detail,
                     ),
@@ -106,7 +106,7 @@ class RootResourceAccessCheck(BaseConnectionCheck):
                 )
                 if error.code == ErrorCode.AuthorizationError:
                     details = self.tr(
-                        "The selected sign-in settings were rejected by the Web GIS."
+                        "The selected sign-in settings were rejected by the Web GIS."
                     )
                     resolution = self.tr(
                         "Check the username and password or choose another saved user."
@@ -140,7 +140,7 @@ class RootResourceAccessCheck(BaseConnectionCheck):
                             "Connection verification failed unexpectedly."
                         ),
                         self.tr(
-                            "Check the Web GIS URL and run the verification again."
+                            "Check the Web GIS URL and run the verification again."
                         ),
                         technical_details=str(error),
                     ),

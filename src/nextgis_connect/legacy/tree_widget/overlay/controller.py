@@ -73,7 +73,7 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.UNAVAILABLE,
                 title=facts.unavailable_title
-                or self.tr("Web GIS is unavailable"),
+                or self.tr("Web GIS is unavailable"),
                 compact_title=facts.unavailable_compact_title,
                 message=facts.unavailable_message,
                 details=facts.unavailable_details,
@@ -133,13 +133,13 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.WELCOME,
                 title=self.tr(
-                    'Connect your first <span style="color: #0c65af;">Web GIS</span>'
+                    'Connect your first <span style="color: #0c65af;">Web GIS</span>'
                 ),
                 compact_title=self.tr(
-                    'Connect <span style="color: #0c65af;">Web GIS</span>'
+                    'Connect <span style="color: #0c65af;">Web GIS</span>'
                 ),
                 message=self.tr(
-                    "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."
+                    "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."
                 ),
                 details=self.tr(
                     "Your resources will appear here after you add a connection."
@@ -150,16 +150,16 @@ class PluginOverlayResolver:
                 ),
                 secondary_action=OverlayButtonState(
                     action=OverlayAction.CREATE_WEB_GIS,
-                    text=self.tr("Create Web GIS"),
+                    text=self.tr("Create Web GIS"),
                     tooltip=self.tr(
-                        "Open the web interface to create a new Web GIS."
+                        "Open the web interface to create a new Web GIS."
                     ),
                 ),
                 footer_action=OverlayButtonState(
                     action=OverlayAction.CREATE_SANDBOX_CONNECTION,
                     text=self.tr("Try sandbox"),
                     tooltip=self.tr(
-                        "Create a connection to the sandbox Web GIS."
+                        "Create a connection to the sandbox Web GIS."
                     ),
                 ),
                 logo_action=OverlayAction.OPEN_NEXTGIS_SITE,
@@ -172,7 +172,7 @@ class PluginOverlayResolver:
                 )
                 return OverlayState(
                     kind=OverlayKind.SEARCH_CONNECTION,
-                    title=self.tr("Search in another Web GIS"),
+                    title=self.tr("Search in another Web GIS"),
                     message=self.tr(
                         "Switch to the saved connection to continue searching."
                     ),
@@ -188,7 +188,7 @@ class PluginOverlayResolver:
                 kind=OverlayKind.SEARCH_CONNECTION,
                 title=self.tr("Connection required"),
                 message=self.tr(
-                    "Create a connection to this Web GIS to continue searching."
+                    "Create a connection to this Web GIS to continue searching."
                 ),
                 details=facts.search_connection_url,
                 primary_action=OverlayButtonState(

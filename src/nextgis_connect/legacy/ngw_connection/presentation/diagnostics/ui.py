@@ -44,7 +44,7 @@ class NgwConnectionDiagnosticsWidget(QGroupBox):
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
-        self.setTitle(self.tr("Web GIS"))
+        self.setTitle(self.tr("Web GIS"))
         self._items = {}
 
         layout = QVBoxLayout(self)
@@ -74,7 +74,7 @@ class NgwConnectionDiagnosticsWidget(QGroupBox):
         self._items.clear()
         self._tree.clear()
         self._summary_label.setText(
-            self.tr("Run diagnostics for the selected Web GIS.")
+            self.tr("Run diagnostics for the selected Web GIS.")
         )
 
     def set_connection_title(self, name: str) -> None:
@@ -130,23 +130,23 @@ class NgwConnectionDiagnosticsWidget(QGroupBox):
 
         if summary.has_blocking_failures:
             self._summary_label.setText(
-                self.tr("Web GIS checks finished with blocking issues.")
+                self.tr("Web GIS checks finished with blocking issues.")
             )
             return
 
         if summary.state == ConnectionCheckState.FAILURE:
             self._summary_label.setText(
-                self.tr("Web GIS checks finished with issues.")
+                self.tr("Web GIS checks finished with issues.")
             )
             return
 
         if summary.state == ConnectionCheckState.WARNING:
             self._summary_label.setText(
-                self.tr("Web GIS checks finished with warnings.")
+                self.tr("Web GIS checks finished with warnings.")
             )
             return
 
-        self._summary_label.setText(self.tr("All Web GIS checks succeeded."))
+        self._summary_label.setText(self.tr("All Web GIS checks succeeded."))
 
     def _source_label(self, source: ConnectionIssueSource) -> str:
         labels = {
