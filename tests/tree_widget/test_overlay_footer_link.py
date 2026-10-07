@@ -49,7 +49,7 @@ def test_skip_update_footer_link_uses_stronger_opacity_on_hover() -> None:
 def test_regular_footer_link_keeps_configured_opacity_on_hover() -> None:
     action_state = OverlayButtonState(
         action=OverlayAction.CREATE_SANDBOX_CONNECTION,
-        text="Try sandbox",
+        text="Try in sandbox",
         text_opacity=0.5,
     )
 

@@ -138,7 +138,7 @@ def test_first_connection_state_has_expected_actions_and_copy() -> None:
     )
     assert (
         state.details
-        == "Your resources will appear here after you add a connection."
+        == "Your layers and maps will appear here after you add a connection."
     )
     assert state.primary_action.action == OverlayAction.CREATE_CONNECTION
     assert state.secondary_action.action == OverlayAction.CREATE_WEB_GIS
@@ -148,7 +148,7 @@ def test_first_connection_state_has_expected_actions_and_copy() -> None:
     assert (
         state.footer_action.action == OverlayAction.CREATE_SANDBOX_CONNECTION
     )
-    assert state.footer_action.text == "Try sandbox"
+    assert state.footer_action.text == "Try in sandbox"
     assert state.logo_action == OverlayAction.OPEN_NEXTGIS_SITE
 
 

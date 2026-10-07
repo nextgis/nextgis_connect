@@ -174,7 +174,7 @@ def test_action_overlay_does_not_reset_stacked_buttons_before_layout(
     widget.set_state(
         OverlayState(
             kind=OverlayKind.WELCOME,
-            title="Connect your first Web GIS",
+            title="Connect your Web GIS",
             compact_title=compact_title,
             primary_action=OverlayButtonState(
                 action=OverlayAction.CREATE_CONNECTION,
