@@ -406,8 +406,8 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/base.py" line="220"/>
-        <source>Unable to reach the Web GIS.</source>
-        <translation>No se puede acceder al Web GIS.</translation>
+        <source>Unable to reach the Web GIS.</source>
+        <translation>No se puede acceder al Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/base.py" line="222"/>
@@ -462,13 +462,13 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="71"/>
-        <source>The Web GIS certificate was not accepted by QGIS.</source>
-        <translation>El certificado del Web GIS no fue aceptado por QGIS.</translation>
+        <source>The Web GIS certificate was not accepted by QGIS.</source>
+        <translation>El certificado del Web GIS no fue aceptado por QGIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="71"/>
-        <source>The SSL/TLS certificate validation failed before the Web GIS could be reached.</source>
-        <translation>La validación del certificado SSL/TLS falló antes de poder alcanzar el Web GIS.</translation>
+        <source>The SSL/TLS certificate validation failed before the Web GIS could be reached.</source>
+        <translation>La validación del certificado SSL/TLS falló antes de poder alcanzar el Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="71"/>
@@ -482,23 +482,23 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="111"/>
-        <source>Check the network path to the Web GIS and retry the checks.</source>
-        <translation>Verifique la ruta de red al Web GIS y vuelva a intentar las comprobaciones.</translation>
+        <source>Check the network path to the Web GIS and retry the checks.</source>
+        <translation>Verifique la ruta de red al Web GIS y vuelva a intentar las comprobaciones.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="97"/>
-        <source>The certificate check could not reach the Web GIS.</source>
-        <translation>La comprobación del certificado no pudo alcanzar el Web GIS.</translation>
+        <source>The certificate check could not reach the Web GIS.</source>
+        <translation>La comprobación del certificado no pudo alcanzar el Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="97"/>
-        <source>The Web GIS did not respond while the certificate check was running.</source>
-        <translation>El Web GIS no respondió mientras se ejecutaba la comprobación del certificado.</translation>
+        <source>The Web GIS did not respond while the certificate check was running.</source>
+        <translation>El Web GIS no respondió mientras se ejecutaba la comprobación del certificado.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="97"/>
-        <source>Check the Web GIS availability and retry the checks.</source>
-        <translation>Verifique la disponibilidad del Web GIS y vuelva a intentar las comprobaciones.</translation>
+        <source>Check the Web GIS availability and retry the checks.</source>
+        <translation>Verifique la disponibilidad del Web GIS y vuelva a intentar las comprobaciones.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="127"/>
@@ -507,18 +507,18 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="141"/>
-        <source>The Web GIS certificate is accepted by QGIS with custom SSL exceptions.</source>
-        <translation>El certificado del Web GIS es aceptado por QGIS con excepciones SSL personalizadas.</translation>
+        <source>The Web GIS certificate is accepted by QGIS with custom SSL exceptions.</source>
+        <translation>El certificado del Web GIS es aceptado por QGIS con excepciones SSL personalizadas.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="191"/>
-        <source>The Web GIS certificate was accepted after SSL errors were ignored.</source>
-        <translation>El certificado del Web GIS fue aceptado después de ignorar errores SSL.</translation>
+        <source>The Web GIS certificate was accepted after SSL errors were ignored.</source>
+        <translation>El certificado del Web GIS fue aceptado después de ignorar errores SSL.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="195"/>
-        <source>The Web GIS is reachable, but certificate validation reported SSL errors.</source>
-        <translation>El Web GIS es accesible, pero la validación del certificado informó errores SSL.</translation>
+        <source>The Web GIS is reachable, but certificate validation reported SSL errors.</source>
+        <translation>El Web GIS es accesible, pero la validación del certificado informó errores SSL.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="198"/>
@@ -542,8 +542,8 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="141"/>
-        <source>The Web GIS is reachable, but QGIS stores SSL exceptions for this host.</source>
-        <translation>El Web GIS es accesible, pero QGIS almacena excepciones SSL para este host.</translation>
+        <source>The Web GIS is reachable, but QGIS stores SSL exceptions for this host.</source>
+        <translation>El Web GIS es accesible, pero QGIS almacena excepciones SSL para este host.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="141"/>
@@ -552,8 +552,8 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/certificate.py" line="155"/>
-        <source>The Web GIS certificate was accepted without custom SSL exceptions.</source>
-        <translation>El certificado del Web GIS fue aceptado sin excepciones SSL personalizadas.</translation>
+        <source>The Web GIS certificate was accepted without custom SSL exceptions.</source>
+        <translation>El certificado del Web GIS fue aceptado sin excepciones SSL personalizadas.</translation>
     </message>
 </context>
 <context>
@@ -634,8 +634,8 @@ La edición puede romper referencias existentes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/current_user.py" line="117"/>
-        <source>The selected sign-in settings were rejected by the Web GIS.</source>
-        <translation>La configuración de inicio de sesión seleccionada fue rechazada por el Web GIS.</translation>
+        <source>The selected sign-in settings were rejected by the Web GIS.</source>
+        <translation>La configuración de inicio de sesión seleccionada fue rechazada por el Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/current_user.py" line="117"/>
@@ -1201,8 +1201,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../platform/qgis/errors.py" line="1061"/>
-        <source>Error occurred while communicating with Web GIS.</source>
-        <translation>Se produjo un error al comunicarse con el Web GIS.</translation>
+        <source>Error occurred while communicating with Web GIS.</source>
+        <translation>Se produjo un error al comunicarse con el Web GIS.</translation>
     </message>
     <message>
         <location filename="../platform/qgis/errors.py" line="1075"/>
@@ -1319,8 +1319,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../platform/qgis/errors.py" line="750"/>
-        <source>Open resource in Web GIS</source>
-        <translation>Abrir recurso en Web GIS</translation>
+        <source>Open resource in Web GIS</source>
+        <translation>Abrir recurso en Web GIS</translation>
     </message>
     <message>
         <location filename="../platform/qgis/errors.py" line="1058"/>
@@ -1957,8 +1957,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     <name>NgConnectDock</name>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="354"/>
-        <source>Open in Web GIS</source>
-        <translation type="obsolete">Abrir en Web GIS</translation>
+        <source>Open in Web GIS</source>
+        <translation type="obsolete">Abrir en Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="322"/>
@@ -1972,8 +1972,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="385"/>
-        <source>Add to Web GIS</source>
-        <translation>Añadir a Web GIS</translation>
+        <source>Add to Web GIS</source>
+        <translation>Añadir a Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="348"/>
@@ -2207,8 +2207,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1546"/>
-        <source>Error occurred while communicating with Web GIS</source>
-        <translation>Se produjo un error al comunicarse con el Web GIS</translation>
+        <source>Error occurred while communicating with Web GIS</source>
+        <translation>Se produjo un error al comunicarse con el Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4345"/>
@@ -2387,13 +2387,13 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="617"/>
-        <source>Create you own Web GIS!</source>
-        <translation>¡Cree su propio Web GIS!</translation>
+        <source>Create you own Web GIS!</source>
+        <translation>¡Cree su propio Web GIS!</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1259"/>
-        <source>Loading Web GIS resources...</source>
-        <translation>Cargando recursos del Web GIS...</translation>
+        <source>Loading Web GIS resources...</source>
+        <translation>Cargando recursos del Web GIS...</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1259"/>
@@ -2442,8 +2442,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1326"/>
-        <source>Contact support for the current Web GIS instance.</source>
-        <translation>Contacte con el soporte de la instancia actual de Web GIS.</translation>
+        <source>Contact support for the current Web GIS instance.</source>
+        <translation>Contacte con el soporte de la instancia actual de Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1326"/>
@@ -2502,8 +2502,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1351"/>
-        <source>Web GIS not found</source>
-        <translation>Web GIS no encontrado</translation>
+        <source>Web GIS not found</source>
+        <translation>Web GIS no encontrado</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1354"/>
@@ -2572,8 +2572,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3411"/>
-        <source>Local layer sources were replaced with Web GIS layers</source>
-        <translation>Las fuentes de capas locales fueron reemplazadas por capas de Web GIS</translation>
+        <source>Local layer sources were replaced with Web GIS layers</source>
+        <translation>Las fuentes de capas locales fueron reemplazadas por capas de Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3419"/>
@@ -2594,8 +2594,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3465"/>
-        <source>Replace local layer sources with the uploaded Web GIS layers?</source>
-        <translation>¿Reemplazar las fuentes de capas locales con las capas cargadas de Web GIS?</translation>
+        <source>Replace local layer sources with the uploaded Web GIS layers?</source>
+        <translation>¿Reemplazar las fuentes de capas locales con las capas cargadas de Web GIS?</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3505"/>
@@ -2624,8 +2624,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3618"/>
-        <source>Web GIS connection is not accessible</source>
-        <translation>La conexión a Web GIS no es accesible</translation>
+        <source>Web GIS connection is not accessible</source>
+        <translation>La conexión a Web GIS no es accesible</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="3653"/>
@@ -2996,8 +2996,8 @@ Are you sure you want to continue?</source>
     <name>NgwConnectionDiagnosticsDialog</name>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/dialog.py" line="63"/>
-        <source>Web GIS diagnostics</source>
-        <translation>Diagnóstico de Web GIS</translation>
+        <source>Web GIS diagnostics</source>
+        <translation>Diagnóstico de Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/dialog.py" line="72"/>
@@ -3016,13 +3016,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/dialog.py" line="139"/>
-        <source>Web GIS checks were canceled.</source>
-        <translation>Las comprobaciones de Web GIS fueron canceladas.</translation>
+        <source>Web GIS checks were canceled.</source>
+        <translation>Las comprobaciones de Web GIS fueron canceladas.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/dialog.py" line="148"/>
-        <source>Web GIS checks finished with an unexpected error.</source>
-        <translation>Las comprobaciones de Web GIS finalizaron con un error inesperado.</translation>
+        <source>Web GIS checks finished with an unexpected error.</source>
+        <translation>Las comprobaciones de Web GIS finalizaron con un error inesperado.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/dialog.py" line="153"/>
@@ -3077,8 +3077,8 @@ Are you sure you want to continue?</source>
     <name>NgwConnectionDiagnosticsWidget</name>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="47"/>
-        <source>Web GIS</source>
-        <translation>Web GIS</translation>
+        <source>Web GIS</source>
+        <translation>Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="62"/>
@@ -3097,8 +3097,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="76"/>
-        <source>Run diagnostics for the selected Web GIS.</source>
-        <translation>Ejecutar diagnóstico para el Web GIS seleccionado.</translation>
+        <source>Run diagnostics for the selected Web GIS.</source>
+        <translation>Ejecutar diagnóstico para el Web GIS seleccionado.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="81"/>
@@ -3112,23 +3112,23 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="132"/>
-        <source>Web GIS checks finished with blocking issues.</source>
-        <translation>Las comprobaciones de Web GIS finalizaron con problemas bloqueantes.</translation>
+        <source>Web GIS checks finished with blocking issues.</source>
+        <translation>Las comprobaciones de Web GIS finalizaron con problemas bloqueantes.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="138"/>
-        <source>Web GIS checks finished with issues.</source>
-        <translation>Las comprobaciones de Web GIS finalizaron con problemas.</translation>
+        <source>Web GIS checks finished with issues.</source>
+        <translation>Las comprobaciones de Web GIS finalizaron con problemas.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="144"/>
-        <source>Web GIS checks finished with warnings.</source>
-        <translation>Las comprobaciones de Web GIS finalizaron con advertencias.</translation>
+        <source>Web GIS checks finished with warnings.</source>
+        <translation>Las comprobaciones de Web GIS finalizaron con advertencias.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="149"/>
-        <source>All Web GIS checks succeeded.</source>
-        <translation>Todas las comprobaciones de Web GIS se realizaron correctamente.</translation>
+        <source>All Web GIS checks succeeded.</source>
+        <translation>Todas las comprobaciones de Web GIS se realizaron correctamente.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/diagnostics/ui.py" line="153"/>
@@ -3225,8 +3225,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="813"/>
-        <source>Load Web GIS name from server</source>
-        <translation>Cargar nombre del Web GIS desde el servidor</translation>
+        <source>Load Web GIS name from server</source>
+        <translation>Cargar nombre del Web GIS desde el servidor</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="904"/>
@@ -3260,8 +3260,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1248"/>
-        <source>A connection to this Web GIS already exists: &lt;b&gt;{}&lt;/b&gt;. If you need to sign in as another user, edit the existing connection and create new authentication settings.</source>
-        <translation>Ya existe una conexión a este Web GIS: &lt;b&gt;{}&lt;/b&gt;. Si necesita iniciar sesión como otro usuario, edite la conexión existente y cree una nueva configuración de autenticación.</translation>
+        <source>A connection to this Web GIS already exists: &lt;b&gt;{}&lt;/b&gt;. If you need to sign in as another user, edit the existing connection and create new authentication settings.</source>
+        <translation>Ya existe una conexión a este Web GIS: &lt;b&gt;{}&lt;/b&gt;. Si necesita iniciar sesión como otro usuario, edite la conexión existente y cree una nueva configuración de autenticación.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1254"/>
@@ -3295,8 +3295,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1616"/>
-        <source>Show users for this Web GIS</source>
-        <translation>Mostrar usuarios para este Web GIS</translation>
+        <source>Show users for this Web GIS</source>
+        <translation>Mostrar usuarios para este Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1564"/>
@@ -3315,8 +3315,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1700"/>
-        <source>A saved user with the same NextGIS ID already exists for this Web GIS. Do you want to create another one?</source>
-        <translation>Ya existe un usuario guardado con el mismo NextGIS ID para este Web GIS. ¿Desea crear otro?</translation>
+        <source>A saved user with the same NextGIS ID already exists for this Web GIS. Do you want to create another one?</source>
+        <translation>Ya existe un usuario guardado con el mismo NextGIS ID para este Web GIS. ¿Desea crear otro?</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1792"/>
@@ -3327,6 +3327,11 @@ Are you sure you want to continue?</source>
         <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1808"/>
         <source>{connection_name} ({user_name})</source>
         <translation>{connection_name} ({user_name})</translation>
+    </message>
+    <message>
+        <location filename="../legacy/ngw_connection/presentation/connection_edit_dialog.py" line="1792"/>
+        <source>Changing the login or password will affect {count} other Web GIS. Continue?</source>
+        <translation>Cambiar el inicio de sesión o la contraseña afectará a otras {count} Web GIS. ¿Continuar?</translation>
     </message>
 </context>
 <context>
@@ -3545,8 +3550,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="73"/>
-        <source>Web GIS is unavailable</source>
-        <translation>Web GIS no está disponible</translation>
+        <source>Web GIS is unavailable</source>
+        <translation>Web GIS no está disponible</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="91"/>
@@ -3585,13 +3590,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Connect your first &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
-        <translation>Conecte su primer &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
+        <source>Connect your first &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
+        <translation>Conecte su primer &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync.</source>
-        <translation>Configure una conexión a su Web GIS o cree una nueva para mantener sincronizados los geodatos, mapas y flujos de trabajo del equipo.</translation>
+        <source>Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync.</source>
+        <translation>Configure una conexión a su Web GIS o cree una nueva para mantener sincronizados los geodatos, mapas y flujos de trabajo del equipo.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
@@ -3605,13 +3610,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Create Web GIS</source>
-        <translation>Crear Web GIS</translation>
+        <source>Create Web GIS</source>
+        <translation>Crear Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Open the web interface to create a new Web GIS.</source>
-        <translation>Abra la interfaz web para crear un nuevo Web GIS.</translation>
+        <source>Open the web interface to create a new Web GIS.</source>
+        <translation>Abra la interfaz web para crear un nuevo Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
@@ -3620,13 +3625,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Create a connection to the sandbox Web GIS.</source>
-        <translation>Cree una conexión al Web GIS de sandbox.</translation>
+        <source>Create a connection to the sandbox Web GIS.</source>
+        <translation>Cree una conexión al Web GIS de sandbox.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
-        <source>Search in another Web GIS</source>
-        <translation>Buscar en otro Web GIS</translation>
+        <source>Search in another Web GIS</source>
+        <translation>Buscar en otro Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
@@ -3645,8 +3650,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="187"/>
-        <source>Create a connection to this Web GIS to continue searching.</source>
-        <translation>Cree una conexión a este Web GIS para continuar buscando.</translation>
+        <source>Create a connection to this Web GIS to continue searching.</source>
+        <translation>Cree una conexión a este Web GIS para continuar buscando.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="202"/>
@@ -3660,13 +3665,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Connect Web GIS</source>
-        <translation type="obsolete">Conectar Web GIS</translation>
+        <source>Connect Web GIS</source>
+        <translation type="obsolete">Conectar Web GIS</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Connect &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
-        <translation>Conectar &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
+        <source>Connect &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
+        <translation>Conectar &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
     </message>
 </context>
 <context>
@@ -4103,8 +4108,8 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/detached_editing/conflicts/ui/resolving_dialog.py" line="423"/>
-        <source>Open feature in Web GIS</source>
-        <translation>Abrir entidad en Web GIS</translation>
+        <source>Open feature in Web GIS</source>
+        <translation>Abrir entidad en Web GIS</translation>
     </message>
 </context>
 <context>
@@ -4334,8 +4339,8 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="537"/>
-        <source>Add to Web GIS</source>
-        <translation>Añadir a Web GIS</translation>
+        <source>Add to Web GIS</source>
+        <translation>Añadir a Web GIS</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="583"/>
@@ -4542,8 +4547,8 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="94"/>
-        <source>The selected sign-in settings were rejected by the Web GIS.</source>
-        <translation>La configuración de inicio de sesión seleccionada fue rechazada por el Web GIS.</translation>
+        <source>The selected sign-in settings were rejected by the Web GIS.</source>
+        <translation>La configuración de inicio de sesión seleccionada fue rechazada por el Web GIS.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="97"/>
@@ -4557,8 +4562,8 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="79"/>
-        <source>Web GIS was not found at the specified address.</source>
-        <translation>Web GIS no se encontró en la dirección especificada.</translation>
+        <source>Web GIS was not found at the specified address.</source>
+        <translation>Web GIS no se encontró en la dirección especificada.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="111"/>
@@ -4572,8 +4577,8 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="122"/>
-        <source>Check the Web GIS URL and run the verification again.</source>
-        <translation>Verifique la URL del Web GIS y vuelva a ejecutar la verificación.</translation>
+        <source>Check the Web GIS URL and run the verification again.</source>
+        <translation>Verifique la URL del Web GIS y vuelva a ejecutar la verificación.</translation>
     </message>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="150"/>

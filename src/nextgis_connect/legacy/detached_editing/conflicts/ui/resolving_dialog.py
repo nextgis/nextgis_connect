@@ -420,7 +420,7 @@ class ResolvingDialog(QDialog, WIDGET):
 
         menu = QMenu(self)
         if len(indexes) == 1:
-            webgis_action = menu.addAction(self.tr("Open feature in Web GIS"))
+            webgis_action = menu.addAction(self.tr("Open feature in Web GIS"))
             fid = (
                 indexes[0]
                 .data(ConflictsResolvingModel.Roles.RESOLVING_ITEM)

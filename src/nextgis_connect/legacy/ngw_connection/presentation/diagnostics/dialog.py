@@ -60,7 +60,7 @@ class NgwConnectionDiagnosticsDialog(QDialog):
     ) -> None:
         super().__init__(parent)
         self._connection = connection
-        self.setWindowTitle(self.tr("Web GIS diagnostics"))
+        self.setWindowTitle(self.tr("Web GIS diagnostics"))
         self.resize(760, 420)
 
         self._controller = NgwConnectionDiagnostics(connection, self)
@@ -137,7 +137,7 @@ class NgwConnectionDiagnosticsDialog(QDialog):
 
         if report.is_canceled:
             self._widget.set_summary_text(
-                self.tr("Web GIS checks were canceled.")
+                self.tr("Web GIS checks were canceled.")
             )
             return
 
@@ -146,7 +146,7 @@ class NgwConnectionDiagnosticsDialog(QDialog):
 
         if report.error is not None:
             self._widget.set_summary_text(
-                self.tr("Web GIS checks finished with an unexpected error.")
+                self.tr("Web GIS checks finished with an unexpected error.")
             )
 
     def _copy_logs(self) -> None:

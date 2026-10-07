@@ -120,7 +120,7 @@ class CurrentUserCheck(BaseConnectionCheck):
                     ),
                     issue=self._client_issue(
                         self.tr(
-                            "The selected sign-in settings were rejected by the Web GIS."
+                            "The selected sign-in settings were rejected by the Web GIS."
                         ),
                         self.tr(
                             "Check the username and password or choose another saved user."

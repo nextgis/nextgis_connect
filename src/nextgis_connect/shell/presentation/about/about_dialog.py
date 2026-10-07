@@ -114,14 +114,14 @@ _TRANSLATIONS: Dict[str, Dict[str, str]] = {
         "pt": "Desenvolvedores",
         "ru": "Разработчики",
     },
-    "Fully featured Web GIS service": {
-        "en": "Fully featured Web GIS service",
-        "es": "Servicio Web GIS con todas las funciones",
+    "Fully featured Web GIS service": {
+        "en": "Fully featured Web GIS service",
+        "es": "Servicio Web GIS con todas las funciones",
         "fr": "Service SIG Web entièrement équipé",
-        "it": "Servizio Web GIS completo",
-        "ja": "完全な機能を備えたWeb GISサービス",
-        "pt": "Serviço Web GIS com todas as funcionalidades",
-        "ru": "Полнофункциональный Веб ГИС-сервис",
+        "it": "Servizio Web GIS completo",
+        "ja": "完全な機能を備えたWeb GISサービス",
+        "pt": "Serviço Web GIS com todas as funcionalidades",
+        "ru": "Полнофункциональный сервис Веб ГИС",
     },
     "Get involved": {
         "en": "Get involved",
@@ -884,7 +884,7 @@ class AboutDialog(QDialog):
                 f"{self._link(self._url_with_query(data_url, metadata['utm']), data_url)}"
                 "</li>"
                 "<li>"
-                f"<b>{escape(self._text('Fully featured Web GIS service'))}</b>: "
+                f"<b>{escape(self._text('Fully featured Web GIS service'))}</b>: "
                 f"{self._link(self._url_with_query(webgis_url, metadata['utm']), webgis_url)}"
                 "</li>"
                 "</ul>"

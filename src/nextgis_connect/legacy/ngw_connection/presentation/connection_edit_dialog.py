@@ -832,7 +832,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
         )
         self.__name_loader_button.setAutoRaise(True)
         self.__name_loader_button.setToolTip(
-            self.tr("Load Web GIS name from server")
+            self.tr("Load Web GIS name from server")
         )
         self.__name_loader_button.clicked.connect(self.__load_connection_name)
 
@@ -1267,7 +1267,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         connection_name = existing_connection.name or existing_connection.url
         message = self.tr(
-            "A connection to this Web GIS already exists: <b>{}</b>. If"
+            "A connection to this Web GIS already exists: <b>{}</b>. If"
             " you need to sign in as another user, edit the existing"
             " connection and create new authentication settings."
         ).format(connection_name)
@@ -1681,7 +1681,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
 
         self.__auth_filter_button.setIcon(material_icon("visibility_off"))
         self.__auth_filter_button.setToolTip(
-            self.tr("Show users for this Web GIS")
+            self.tr("Show users for this Web GIS")
         )
 
     def __current_login_choice(self) -> Optional[LoginChoice]:
@@ -1789,7 +1789,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self,
             self.tr("Update shared sign-in settings?"),
             self.tr(
-                "Changing the login or password will affect {count} other Web GIS. Continue?"
+                "Changing the login or password will affect {count} other Web GIS. Continue?"
             ).format(count=affected_web_gis_count),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
@@ -1820,7 +1820,7 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             self,
             self.tr("Create duplicate user?"),
             self.tr(
-                "A saved user with the same NextGIS ID already exists for this Web GIS. "
+                "A saved user with the same NextGIS ID already exists for this Web GIS. "
                 "Do you want to create another one?"
             ),
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,

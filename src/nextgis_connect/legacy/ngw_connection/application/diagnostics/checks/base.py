@@ -217,7 +217,7 @@ class BaseConnectionCheck(ABC):
             error.is_network_problem
             and error.code != ErrorCode.QgisTimeoutError
         ):
-            details = self.tr("Unable to reach the Web GIS.")
+            details = self.tr("Unable to reach the Web GIS.")
         if error.code == ErrorCode.QgisTimeoutError:
             details = self.tr(
                 "The request timed out before the server responded."

@@ -97,11 +97,11 @@ class CertificateCheck(BaseConnectionCheck):
         ):
             return self._warning(
                 self.tr(
-                    "The Web GIS certificate is accepted by QGIS with custom SSL exceptions."
+                    "The Web GIS certificate is accepted by QGIS with custom SSL exceptions."
                 ),
                 issue=self._client_issue(
                     self.tr(
-                        "The Web GIS is reachable, but QGIS stores SSL exceptions for this host."
+                        "The Web GIS is reachable, but QGIS stores SSL exceptions for this host."
                     ),
                     self.tr(
                         "Review the accepted certificate and ignored SSL errors in the QGIS network settings."
@@ -114,7 +114,7 @@ class CertificateCheck(BaseConnectionCheck):
 
         return self._success(
             self.tr(
-                "The Web GIS certificate was accepted without custom SSL exceptions."
+                "The Web GIS certificate was accepted without custom SSL exceptions."
             )
         )
 
@@ -166,10 +166,10 @@ class CertificateCheck(BaseConnectionCheck):
     ) -> ConnectionCheckResult:
         technical_details = self._ssl_error_details(ssl_errors) or error.detail
         return self._failure(
-            self.tr("The Web GIS certificate was not accepted by QGIS."),
+            self.tr("The Web GIS certificate was not accepted by QGIS."),
             issue=self._server_issue(
                 self.tr(
-                    "The SSL/TLS certificate validation failed before the Web GIS could be reached."
+                    "The SSL/TLS certificate validation failed before the Web GIS could be reached."
                 ),
                 self.tr(
                     "Check the server certificate chain and accept or trust the certificate in QGIS if it is expected."
@@ -188,11 +188,11 @@ class CertificateCheck(BaseConnectionCheck):
         )
         return self._warning(
             self.tr(
-                "The Web GIS certificate was accepted after SSL errors were ignored."
+                "The Web GIS certificate was accepted after SSL errors were ignored."
             ),
             issue=self._client_issue(
                 self.tr(
-                    "The Web GIS is reachable, but certificate validation reported SSL errors."
+                    "The Web GIS is reachable, but certificate validation reported SSL errors."
                 ),
                 self.tr(
                     "Review the server certificate chain and ignore SSL errors only if you trust this certificate."
@@ -225,20 +225,20 @@ class CertificateCheck(BaseConnectionCheck):
             issue=self._network_issue(
                 error,
                 self.tr(
-                    "Check the network path to the Web GIS and retry the checks."
+                    "Check the network path to the Web GIS and retry the checks."
                 ),
             ),
         )
 
     def _unreachable_failure(self, error: NgwError) -> ConnectionCheckResult:
         return self._failure(
-            self.tr("The certificate check could not reach the Web GIS."),
+            self.tr("The certificate check could not reach the Web GIS."),
             issue=self._server_issue(
                 self.tr(
-                    "The Web GIS did not respond while the certificate check was running."
+                    "The Web GIS did not respond while the certificate check was running."
                 ),
                 self.tr(
-                    "Check the Web GIS availability and retry the checks."
+                    "Check the Web GIS availability and retry the checks."
                 ),
                 technical_details=error.detail,
             ),

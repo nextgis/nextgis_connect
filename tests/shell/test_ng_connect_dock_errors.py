@@ -205,7 +205,7 @@ def test_root_loading_titles_include_ellipsis() -> None:
     start_loading(dock)
 
     begin_loading.assert_called_once_with(
-        "Loading Web GIS resources...",
+        "Loading Web GIS resources...",
         compact_title="Loading resources...",
         message="Loading the root resource.",
         draw_background=True,
@@ -544,7 +544,7 @@ def test_invalid_connection_explains_missing_web_gis_address() -> None:
 
     _, message, state = overlay_view.calls[-1]
     assert message == ""
-    assert state["title"] == "Web GIS not found"
+    assert state["title"] == "Web GIS not found"
     assert state["details"] == (
         "Edit the connection to update its settings and sign-in parameters."
     )

@@ -748,7 +748,7 @@ class ResourcePermissionError(NgwError):
             resource_id = resource_url.rstrip("/").split("/")[-1]
             self.add_note(f"Resource ID: {resource_id}")
             button_label = QgsApplication.translate(
-                "Errors", "Open resource in Web GIS"
+                "Errors", "Open resource in Web GIS"
             )
             self.add_action(
                 button_label,
@@ -1059,7 +1059,7 @@ def default_user_message(code: ErrorCode) -> str:
             "Errors", "An error occurred while preparing the data for upload."
         ),
         ErrorCode.NgwError: QgsApplication.translate(
-            "Errors", "Error occurred while communicating with Web GIS."
+            "Errors", "Error occurred while communicating with Web GIS."
         ),
         ErrorCode.NetworkError: QgsApplication.translate(
             "Errors",
