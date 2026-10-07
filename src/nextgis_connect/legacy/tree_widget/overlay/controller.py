@@ -133,7 +133,7 @@ class PluginOverlayResolver:
             return OverlayState(
                 kind=OverlayKind.WELCOME,
                 title=self.tr(
-                    'Connect your first <span style="color: #0c65af;">Web GIS</span>'
+                    'Connect your <span style="color: #0c65af;">Web GIS</span>'
                 ),
                 compact_title=self.tr(
                     'Connect <span style="color: #0c65af;">Web GIS</span>'
@@ -142,7 +142,7 @@ class PluginOverlayResolver:
                     "Set up a connection to your Web GIS or create a new one to keep geodata, maps, and team workflows in sync."
                 ),
                 details=self.tr(
-                    "Your resources will appear here after you add a connection."
+                    "Your layers and maps will appear here after you add a connection."
                 ),
                 primary_action=OverlayButtonState(
                     action=OverlayAction.CREATE_CONNECTION,
@@ -157,9 +157,9 @@ class PluginOverlayResolver:
                 ),
                 footer_action=OverlayButtonState(
                     action=OverlayAction.CREATE_SANDBOX_CONNECTION,
-                    text=self.tr("Try sandbox"),
+                    text=self.tr("Try in sandbox"),
                     tooltip=self.tr(
-                        "Create a connection to the sandbox Web GIS."
+                        "Create a connection to a Web GIS in the sandbox."
                     ),
                 ),
                 logo_action=OverlayAction.OPEN_NEXTGIS_SITE,

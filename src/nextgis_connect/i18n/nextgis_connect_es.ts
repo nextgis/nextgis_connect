@@ -3590,8 +3590,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Connect your first &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
-        <translation>Conecte su primer &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
+        <source>Connect your &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</source>
+        <translation>Conecte su &lt;span style=&quot;color: #0c65af;&quot;&gt;Web GIS&lt;/span&gt;</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
@@ -3600,8 +3600,8 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Your resources will appear here after you add a connection.</source>
-        <translation>Sus recursos aparecerán aquí después de añadir una conexión.</translation>
+        <source>Your layers and maps will appear here after you add a connection.</source>
+        <translation>Sus capas y mapas aparecerán aquí después de añadir una conexión.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="187"/>
@@ -3620,13 +3620,13 @@ Are you sure you want to continue?</source>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Try sandbox</source>
-        <translation>Probar sandbox</translation>
+        <source>Try in sandbox</source>
+        <translation>Probar en el entorno de pruebas</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="133"/>
-        <source>Create a connection to the sandbox Web GIS.</source>
-        <translation>Cree una conexión al Web GIS de sandbox.</translation>
+        <source>Create a connection to a Web GIS in the sandbox.</source>
+        <translation>Cree una conexión a un Web GIS en el entorno de pruebas.</translation>
     </message>
     <message>
         <location filename="../legacy/tree_widget/overlay/controller.py" line="173"/>
