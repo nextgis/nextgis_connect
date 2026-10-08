@@ -23,9 +23,15 @@ from typing import Iterable, Set, Tuple
 from unittest.mock import MagicMock, call, patch, sentinel
 
 from qgis.core import QgsFeature, QgsField, QgsGeometry, QgsVectorLayer, edit
-from qgis.PyQt.QtCore import QObject, pyqtSlot
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSlot
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from nextgis_connect.legacy.detached_editing.change_journal import (
+    DetachedChangeJournal,
+)
+from nextgis_connect.legacy.detached_editing.change_tracker import (
+    DetachedChangeTracker,
+)
 from nextgis_connect.legacy.detached_editing.detached_layer import (
     DetachedLayer,
 )
@@ -702,6 +708,367 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertEqual(backup[feature_id].asWkt(), INITIAL_GEOMETRY.asWkt())
 
     @mock_container(TestData.Points)
+    @patch(
+        "qgis.PyQt.QtWidgets.QMessageBox.warning",
+        return_value=QMessageBox.StandardButton.Ok,
+    )
+    def test_ignores_local_attribute_and_tracks_ngw_attribute_and_geometry(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+        _message_box_mock: MagicMock,
+    ) -> None:
+        ngw_attribute = qgs_layer.fields().indexOf("STRING")
+        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.addAttribute(
+                    QgsField("LOCAL_FIELD", FieldType.QString)
+                )
+            )
+            local_attribute = qgs_layer.fields().indexOf("LOCAL_FIELD")
+            self.assertGreaterEqual(local_attribute, 0)
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(
+                    feature_id, ngw_attribute, "ngw value"
+                )
+            )
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(
+                    feature_id, local_attribute, "local value"
+                )
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(
+                    feature_id, QgsGeometry.fromWkt("POINT (1 1)")
+                )
+            )
+
+        changes_checker = ChangesChecker(container_mock.path)
+        self.assertTrue(
+            changes_checker.updated_attributes_is_equal(
+                {(feature_id, ngw_attribute)}
+            )
+        )
+        self.assertTrue(
+            changes_checker.updated_geometries_is_equal({feature_id})
+        )
+        signals_mock.error_occurred.emit.assert_not_called()
+
+    @mock_container(TestData.Points)
+    def test_missing_feature_metadata_is_reported_without_partial_markers(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            cursor.execute(
+                "DELETE FROM ngw_features_metadata WHERE fid = ?",
+                (feature_id,),
+            )
+            connection.commit()
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(feature_id, attribute, "value")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(
+                    feature_id, QgsGeometry.fromWkt("POINT (1 1)")
+                )
+            )
+
+        changes_checker = ChangesChecker(container_mock.path)
+        self.assertTrue(changes_checker.updated_attributes_is_equal({}))
+        self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+
+        signals_mock.layer_changed.emit.assert_not_called()
+        signals_mock.error_occurred.emit.assert_called_once()
+        error = signals_mock.error_occurred.emit.call_args[0][0]
+        self.assertEqual(
+            error.log_message,
+            "Can't create feature changes records because required container "
+            "metadata is missing.",
+        )
+        self.assertIn(
+            f"feature IDs {feature_id} are missing in ngw_features_metadata",
+            error.user_message,
+        )
+        self.assertIn("may not be synchronized", error.user_message)
+
+    @mock_container(TestData.Points)
+    def test_feature_update_markers_are_atomic(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        feature_id = next(iter(sorted(qgs_layer.allFeatureIds())))
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                CREATE TRIGGER fail_geometry_marker
+                BEFORE INSERT ON ngw_updated_geometries
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected geometry marker failure');
+                END;
+                """
+            )
+            connection.commit()
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(feature_id, attribute, "value")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(
+                    feature_id, QgsGeometry.fromWkt("POINT (1 1)")
+                )
+            )
+
+        changes_checker = ChangesChecker(container_mock.path)
+        self.assertTrue(changes_checker.updated_attributes_is_equal({}))
+        self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        signals_mock.layer_changed.emit.assert_not_called()
+        signals_mock.error_occurred.emit.assert_called_once()
+        error = signals_mock.error_occurred.emit.call_args[0][0]
+        self.assertEqual(
+            error.log_message, "Can't create feature changes records"
+        )
+        self.assertIn("may not be synchronized", error.user_message)
+
+    @mock_container(TestData.Points, descriptions={1: "before"})
+    def test_feature_update_failure_rolls_back_description_change(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        feature_id = 1
+        with closing(
+            make_connection(container_mock.path)
+        ) as connection, closing(connection.cursor()) as cursor:
+            cursor.execute(
+                """
+                CREATE TRIGGER fail_geometry_marker
+                BEFORE INSERT ON ngw_updated_geometries
+                BEGIN
+                    SELECT RAISE(ABORT, 'Injected geometry marker failure');
+                END;
+                """
+            )
+            connection.commit()
+
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals_mock = mock_layer_signals(layer)
+
+        with edit(qgs_layer):
+            layer.set_feature_description(feature_id, "after")
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(feature_id, attribute, "value")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(
+                    feature_id, QgsGeometry.fromWkt("POINT (1 1)")
+                )
+            )
+
+        changes_checker = ChangesChecker(container_mock.path)
+        self.assertTrue(changes_checker.updated_attributes_is_equal({}))
+        self.assertTrue(changes_checker.updated_geometries_is_equal({}))
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
+        self.assertEqual(layer.feature_description(feature_id), "before")
+        signals_mock.error_occurred.emit.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_commit_failure_rolls_back_both_update_marker_types(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                "CREATE TABLE journal_commit_guard ("
+                "fid INTEGER REFERENCES ngw_features_metadata(fid) "
+                "DEFERRABLE INITIALLY DEFERRED)"
+            )
+            connection.execute(
+                "CREATE TRIGGER fail_journal_commit AFTER INSERT ON ngw_updated_geometries "
+                "BEGIN INSERT INTO journal_commit_guard VALUES (-999); END"
+            )
+            connection.commit()
+
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(1, attribute, "saved")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(1, QgsGeometry.fromWkt("POINT (1 1)"))
+            )
+
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.updated_attributes_is_equal({}))
+        self.assertTrue(checker.updated_geometries_is_equal({}))
+        with closing(make_connection(container_mock.path)) as connection:
+            self.assertEqual(
+                connection.execute(
+                    "SELECT * FROM journal_commit_guard"
+                ).fetchall(),
+                [],
+            )
+            connection.execute("DROP TRIGGER fail_journal_commit")
+            connection.commit()
+        signals.error_occurred.emit.assert_called_once()
+        self.assertIn(
+            "FOREIGN KEY constraint failed",
+            str(signals.error_occurred.emit.call_args[0][0].__cause__),
+        )
+        signals.layer_changed.emit.assert_not_called()
+
+        # The failed batch must not leak into a later, unrelated commit.
+        signals.reset_mock()
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(2, attribute, "next")
+            )
+        self.assertTrue(checker.updated_attributes_is_equal({(2, attribute)}))
+        self.assertTrue(checker.updated_geometries_is_equal({}))
+        signals.error_occurred.emit.assert_not_called()
+        signals.layer_changed.emit.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_missing_backups_reject_entire_update_batch(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        for kind, message in (
+            ("attributes", "attribute"),
+            ("geometries", "geometry"),
+        ):
+            with self.subTest(kind=kind):
+                signals.reset_mock()
+                with patch.object(
+                    DetachedChangeTracker, f"capture_{kind}"
+                ), edit(qgs_layer):
+                    self.assertTrue(
+                        qgs_layer.changeAttributeValue(1, attribute, kind)
+                    )
+                    self.assertTrue(
+                        qgs_layer.changeGeometry(
+                            1, QgsGeometry.fromWkt("POINT (1 1)")
+                        )
+                    )
+                checker = ChangesChecker(container_mock.path)
+                self.assertTrue(checker.updated_attributes_is_equal({}))
+                self.assertTrue(checker.updated_geometries_is_equal({}))
+                signals.layer_changed.emit.assert_not_called()
+                signals.error_occurred.emit.assert_called_once()
+                error = signals.error_occurred.emit.call_args[0][0]
+                self.assertEqual(
+                    error.log_message,
+                    f"Can't create feature changes records because {message} backups are missing.",
+                )
+
+    @mock_container(TestData.Points, is_versioning_enabled=True)
+    def test_null_backups_are_valid_for_versioned_updates(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        self.assertTrue(
+            qgs_layer.dataProvider().changeAttributeValues(
+                {1: {attribute: None}}
+            )
+        )
+        self.assertTrue(
+            qgs_layer.dataProvider().changeGeometryValues({1: QgsGeometry()})
+        )
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(1, attribute, "saved")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(1, QgsGeometry.fromWkt("POINT (1 1)"))
+            )
+        with closing(make_connection(container_mock.path)) as connection:
+            attribute_backup = connection.execute(
+                "SELECT backup FROM ngw_updated_attributes WHERE fid = 1 AND attribute = ?",
+                (attribute,),
+            ).fetchone()
+            geometry_backup = connection.execute(
+                "SELECT backup FROM ngw_updated_geometries WHERE fid = 1"
+            ).fetchone()
+        self.assertIsNotNone(attribute_backup)
+        self.assertIsNone(deserialize_value(attribute_backup[0]))
+        self.assertEqual(geometry_backup, (None,))
+        signals.error_occurred.emit.assert_not_called()
+
+    @mock_container(TestData.Points)
+    def test_failed_update_batch_preserves_preexisting_journal_records(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(1, attribute, "first")
+            )
+        with closing(make_connection(container_mock.path)) as connection:
+            original_records = connection.execute(
+                "SELECT fid, attribute, backup FROM ngw_updated_attributes"
+            ).fetchall()
+            connection.execute(
+                "CREATE TRIGGER fail_geometry_marker BEFORE INSERT ON ngw_updated_geometries "
+                "BEGIN SELECT RAISE(ABORT, 'Injected geometry marker failure'); END"
+            )
+            connection.commit()
+        signals.reset_mock()
+        with edit(qgs_layer):
+            for fid in (1, 2):
+                self.assertTrue(
+                    qgs_layer.changeAttributeValue(fid, attribute, "second")
+                )
+                self.assertTrue(
+                    qgs_layer.changeGeometry(
+                        fid, QgsGeometry.fromWkt("POINT (1 1)")
+                    )
+                )
+        with closing(make_connection(container_mock.path)) as connection:
+            self.assertEqual(
+                connection.execute(
+                    "SELECT fid, attribute, backup FROM ngw_updated_attributes"
+                ).fetchall(),
+                original_records,
+            )
+        self.assertTrue(
+            ChangesChecker(container_mock.path).updated_geometries_is_equal({})
+        )
+        # Journal atomicity does not roll back data already saved by QGIS.
+        self.assertEqual(
+            qgs_layer.getFeature(2).attribute(attribute), "second"
+        )
+        self.assertEqual(
+            qgs_layer.getFeature(2).geometry().asWkt(), "Point (1 1)"
+        )
+        signals.error_occurred.emit.assert_called_once()
+        signals.layer_changed.emit.assert_not_called()
+
+    @mock_container(TestData.Points)
     def test_new_feature_attribute_and_geometry_changes_not_logged_as_updates(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
     ) -> None:
@@ -755,6 +1122,373 @@ class TestDetachedLayer(NgConnectTestCase):
         self.assertTrue(changes_checker.updated_attributes_is_equal({}))
         self.assertTrue(changes_checker.updated_geometries_is_equal({}))
         self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
+
+    @mock_container(TestData.Points)
+    def test_add_marker_failure_rolls_back_existing_feature_updates(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                "CREATE TRIGGER fail_added_marker BEFORE INSERT ON ngw_added_features "
+                "BEGIN SELECT RAISE(ABORT, 'Injected addition marker failure'); END"
+            )
+            connection.commit()
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(1, attribute, "updated")
+            )
+            self.assertTrue(
+                qgs_layer.addFeature(QgsFeature(qgs_layer.fields()))
+            )
+        self.assertTrue(
+            ChangesChecker(container_mock.path).updated_attributes_is_equal({})
+        )
+        signals.error_occurred.emit.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_partial_commit_then_delete_preserves_original_backup(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        original = simplify_value(qgs_layer.getFeature(1).attribute(attribute))
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                f'CREATE TRIGGER fail_feature_insert BEFORE INSERT ON "{container_mock.metadata.table_name}" '
+                "BEGIN SELECT RAISE(ABORT, 'Injected feature insertion failure'); END"
+            )
+            connection.commit()
+        self.assertTrue(qgs_layer.startEditing())
+        self.assertTrue(
+            qgs_layer.changeAttributeValue(1, attribute, "updated")
+        )
+        feature = QgsFeature(qgs_layer.fields())
+        self.assertTrue(qgs_layer.addFeature(feature))
+        self.assertFalse(qgs_layer.commitChanges(False))
+        self.assertEqual(
+            next(
+                feature
+                for feature in qgs_layer.dataProvider().getFeatures()
+                if feature.id() == 1
+            ).attribute(attribute),
+            "updated",
+        )
+        self.assertTrue(qgs_layer.deleteFeature(feature.id()))
+        self.assertTrue(qgs_layer.deleteFeature(1))
+        self.assertTrue(qgs_layer.commitChanges())
+        with closing(make_connection(container_mock.path)) as connection:
+            backup = json.loads(
+                connection.execute(
+                    "SELECT backup FROM ngw_removed_features WHERE fid = 1"
+                ).fetchone()[0]
+            )
+        ngw_id = next(
+            field.ngw_id
+            for field in container_mock.metadata.fields
+            if field.attribute == attribute
+        )
+        self.assertEqual(
+            dict(backup["after_sync"]["fields"])[ngw_id], original
+        )
+        signals.error_occurred.emit.assert_not_called()
+
+    @mock_container(TestData.Points, descriptions={1: "before"})
+    def test_partial_commit_keeps_updates_in_memory_until_rollback(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        original = simplify_value(qgs_layer.getFeature(1).attribute(attribute))
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                f'CREATE TRIGGER fail_feature_insert BEFORE INSERT ON "{container_mock.metadata.table_name}" '
+                "BEGIN SELECT RAISE(ABORT, 'Injected feature insertion failure'); END"
+            )
+            connection.commit()
+        self.assertTrue(qgs_layer.startEditing())
+        layer.set_feature_description(1, "unsaved")
+        self.assertTrue(qgs_layer.changeAttributeValue(1, attribute, "saved"))
+        self.assertTrue(
+            qgs_layer.changeGeometry(1, QgsGeometry.fromWkt("POINT (1 1)"))
+        )
+        self.assertTrue(qgs_layer.addFeature(QgsFeature(qgs_layer.fields())))
+        self.assertFalse(qgs_layer.commitChanges(False))
+
+        # Returning to the event loop must not write a partial journal batch.
+        QCoreApplication.processEvents()
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.updated_attributes_is_equal({}))
+        self.assertTrue(checker.updated_geometries_is_equal({}))
+        signals.layer_changed.emit.assert_not_called()
+        self.assertTrue(qgs_layer.rollBack())
+        self.assertTrue(checker.updated_attributes_is_equal({(1, attribute)}))
+        self.assertTrue(checker.updated_geometries_is_equal({1}))
+        self.assertTrue(checker.updated_descriptions_is_equal({}))
+        with closing(make_connection(container_mock.path)) as connection:
+            backup = connection.execute(
+                "SELECT backup FROM ngw_updated_attributes WHERE fid = 1 AND attribute = ?",
+                (attribute,),
+            ).fetchone()
+        self.assertEqual(deserialize_value(backup[0]), original)
+        signals.layer_changed.emit.assert_called_once()
+        signals.error_occurred.emit.assert_not_called()
+        QCoreApplication.processEvents()
+        signals.layer_changed.emit.assert_called_once()
+        self.assertEqual(layer.feature_description(1), "before")
+
+    @mock_container(TestData.Points, descriptions={1: "before"})
+    def test_partial_commit_rollback_without_stopping_journals_only_saved_data(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                f'CREATE TRIGGER fail_feature_insert BEFORE INSERT ON "{container_mock.metadata.table_name}" '
+                "BEGIN SELECT RAISE(ABORT, 'Injected feature insertion failure'); END"
+            )
+            connection.commit()
+        self.assertTrue(qgs_layer.startEditing())
+        layer.set_feature_description(1, "discarded")
+        self.assertTrue(
+            qgs_layer.changeAttributeValue(1, attribute, "updated")
+        )
+        self.assertTrue(
+            qgs_layer.changeGeometry(1, QgsGeometry.fromWkt("POINT (1 1)"))
+        )
+        self.assertTrue(qgs_layer.addFeature(QgsFeature(qgs_layer.fields())))
+        self.assertFalse(qgs_layer.commitChanges(False))
+        self.assertTrue(qgs_layer.rollBack(False))
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.updated_attributes_is_equal({(1, attribute)}))
+        self.assertTrue(checker.updated_geometries_is_equal({1}))
+        self.assertTrue(checker.updated_descriptions_is_equal({}))
+        self.assertEqual(layer.feature_description(1), "before")
+        signals.error_occurred.emit.assert_not_called()
+        signals.layer_changed.emit.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_partial_commit_keeps_deletions_until_successful_retry(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                f'CREATE TRIGGER fail_feature_insert BEFORE INSERT ON "{container_mock.metadata.table_name}" '
+                "BEGIN SELECT RAISE(ABORT, 'Injected feature insertion failure'); END"
+            )
+            connection.commit()
+        self.assertTrue(qgs_layer.startEditing())
+        self.assertTrue(qgs_layer.deleteFeature(1))
+        added = QgsFeature(qgs_layer.fields())
+        self.assertTrue(qgs_layer.addFeature(added))
+        self.assertFalse(qgs_layer.commitChanges(False))
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.removed_is_equal({}))
+        self.assertNotIn(
+            1,
+            {
+                feature.id()
+                for feature in qgs_layer.dataProvider().getFeatures()
+            },
+        )
+        self.assertTrue(qgs_layer.deleteFeature(added.id()))
+        self.assertTrue(qgs_layer.deleteFeature(2))
+        self.assertTrue(qgs_layer.commitChanges())
+        self.assertTrue(checker.removed_is_equal({1, 2}))
+        signals.error_occurred.emit.assert_not_called()
+        signals.layer_changed.emit.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_failed_attachment_journal_retains_staged_original(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        source = self.create_temp_file(".txt")
+        source.write_text("content")
+        self.assertTrue(qgs_layer.startEditing())
+        attachment = layer.add_attachment(1, source)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                "CREATE TRIGGER fail_attachment BEFORE INSERT ON ngw_added_attachments "
+                "BEGIN SELECT RAISE(ABORT, 'Injected attachment failure'); END"
+            )
+            connection.commit()
+        self.assertTrue(qgs_layer.commitChanges())
+        self.assertEqual(attachment.file_path.read_text(), "content")
+        with closing(make_connection(container_mock.path)) as connection:
+            self.assertEqual(
+                connection.execute(
+                    "SELECT * FROM ngw_features_attachments"
+                ).fetchall(),
+                [],
+            )
+        signals.error_occurred.emit.assert_called_once()
+        signals.layer_changed.emit.assert_not_called()
+
+    @mock_container(TestData.Points)
+    def test_successful_commit_emits_one_journal_notification(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        self.assertTrue(qgs_layer.startEditing())
+        for stop_editing in (False, True):
+            with self.subTest(stop_editing=stop_editing):
+                signals.reset_mock()
+                self.assertTrue(
+                    qgs_layer.changeAttributeValue(
+                        1, attribute, str(stop_editing)
+                    )
+                )
+                self.assertTrue(qgs_layer.commitChanges(stop_editing))
+                QCoreApplication.processEvents()
+                signals.layer_changed.emit.assert_called_once()
+                signals.error_occurred.emit.assert_not_called()
+
+    @mock_container(
+        TestData.Points, extra_features_count=1000, empty_features=True
+    )
+    def test_missing_metadata_in_last_batch_rejects_all_updates(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        feature_ids = sorted(qgs_layer.allFeatureIds())
+        self.assertGreater(
+            len(feature_ids), DetachedChangeJournal.QUERY_BATCH_SIZE
+        )
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                "DELETE FROM ngw_features_metadata WHERE fid = ?",
+                (feature_ids[-1],),
+            )
+            connection.commit()
+        with edit(qgs_layer):
+            for fid in feature_ids:
+                self.assertTrue(
+                    qgs_layer.changeAttributeValue(fid, attribute, "saved")
+                )
+                self.assertTrue(
+                    qgs_layer.changeGeometry(
+                        fid, QgsGeometry.fromWkt("POINT (1 1)")
+                    )
+                )
+        QCoreApplication.processEvents()
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.updated_attributes_is_equal({}))
+        self.assertTrue(checker.updated_geometries_is_equal({}))
+        signals.layer_changed.emit.assert_not_called()
+        signals.error_occurred.emit.assert_called_once()
+        self.assertIn(
+            f"feature IDs {feature_ids[-1]} are missing",
+            signals.error_occurred.emit.call_args[0][0].user_message,
+        )
+
+    @mock_container(TestData.Points)
+    def test_missing_field_metadata_rejects_both_update_marker_types(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with closing(make_connection(container_mock.path)) as connection:
+            connection.execute(
+                "DELETE FROM ngw_fields_metadata WHERE attribute = ?",
+                (attribute,),
+            )
+            connection.commit()
+        with edit(qgs_layer):
+            self.assertTrue(
+                qgs_layer.changeAttributeValue(1, attribute, "updated")
+            )
+            self.assertTrue(
+                qgs_layer.changeGeometry(1, QgsGeometry.fromWkt("POINT (1 1)"))
+            )
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(checker.updated_attributes_is_equal({}))
+        self.assertTrue(checker.updated_geometries_is_equal({}))
+        signals.error_occurred.emit.assert_called_once()
+        self.assertIn(
+            "ngw_fields_metadata",
+            signals.error_occurred.emit.call_args[0][0].user_message,
+        )
+
+    @mock_container(TestData.Points, descriptions={1: "before"})
+    def test_continue_editing_after_rollback_without_stopping(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        original = simplify_value(qgs_layer.getFeature(1).attribute(attribute))
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        self.assertTrue(qgs_layer.startEditing())
+        layer.set_feature_description(1, "discarded")
+        self.assertTrue(
+            qgs_layer.changeAttributeValue(1, attribute, "discarded")
+        )
+        self.assertTrue(qgs_layer.rollBack(False))
+
+        self.assertTrue(qgs_layer.isEditable())
+        self.assertIsNotNone(layer.edit_buffer)
+        signals.editing_finished.emit.assert_not_called()
+        layer.set_feature_description(1, "saved")
+        self.assertTrue(qgs_layer.changeAttributeValue(1, attribute, "saved"))
+        self.assertTrue(qgs_layer.commitChanges())
+
+        self.assertEqual(layer.feature_description(1), "saved")
+        with closing(make_connection(container_mock.path)) as connection:
+            backup = connection.execute(
+                "SELECT backup FROM ngw_updated_attributes WHERE fid = 1 AND attribute = ?",
+                (attribute,),
+            ).fetchone()
+        self.assertIsNotNone(backup)
+        self.assertEqual(deserialize_value(backup[0]), original)
+        signals.error_occurred.emit.assert_not_called()
+        signals.layer_changed.emit.assert_called_once()
+        signals.editing_finished.emit.assert_called_once()
+
+    @mock_container(
+        TestData.Points, extra_features_count=1000, empty_features=True
+    )
+    def test_update_validation_spans_multiple_query_batches(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        attribute = qgs_layer.fields().indexOf("STRING")
+        feature_ids = set(qgs_layer.allFeatureIds())
+        self.assertGreater(
+            len(feature_ids), DetachedChangeJournal.QUERY_BATCH_SIZE
+        )
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        with edit(qgs_layer):
+            for fid in feature_ids:
+                self.assertTrue(
+                    qgs_layer.changeAttributeValue(fid, attribute, "updated")
+                )
+                self.assertTrue(
+                    qgs_layer.changeGeometry(
+                        fid, QgsGeometry.fromWkt("POINT (1 1)")
+                    )
+                )
+        checker = ChangesChecker(container_mock.path)
+        self.assertTrue(
+            checker.updated_attributes_is_equal(
+                {(fid, attribute) for fid in feature_ids}
+            )
+        )
+        self.assertTrue(checker.updated_geometries_is_equal(feature_ids))
+        signals.error_occurred.emit.assert_not_called()
 
     @mock_container(TestData.Points)
     def test_rollback_clears_all_uncommitted_changes(
@@ -1185,6 +1919,60 @@ class TestDetachedLayerDescriptions(NgConnectTestCase):
                 )
             ],
         )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_rolls_back_description_without_creating_change_marker(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+
+        self.assertTrue(qgs_layer.startEditing())
+        layer.set_feature_description(
+            self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+        )
+        self.assertTrue(qgs_layer.rollBack())
+
+        changes_checker = ChangesChecker(container_mock.path)
+        self.assertTrue(changes_checker.updated_descriptions_is_equal({}))
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_0,
+        )
+
+    @mock_container(
+        TestData.Points,
+        descriptions={1: TEST_DESCRIPTION_TEXT_0},
+    )
+    def test_redo_description_after_rollback_without_stopping(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        layer = DetachedLayer(container_mock, qgs_layer)
+        signals = mock_layer_signals(layer)
+        self.assertTrue(qgs_layer.startEditing())
+        layer.set_feature_description(
+            self.FEATURE_1, self.TEST_DESCRIPTION_TEXT_1
+        )
+        self.assertTrue(qgs_layer.rollBack(False))
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_0,
+        )
+        self.assertTrue(qgs_layer.undoStack().canRedo())
+        qgs_layer.undoStack().redo()
+        self.assertTrue(qgs_layer.commitChanges())
+        self.assertEqual(
+            layer.feature_description(self.FEATURE_1),
+            self.TEST_DESCRIPTION_TEXT_1,
+        )
+        self.assertTrue(
+            ChangesChecker(container_mock.path).updated_descriptions_is_equal(
+                {self.FEATURE_1}
+            )
+        )
+        signals.error_occurred.emit.assert_not_called()
 
     @mock_container(
         TestData.Points,
