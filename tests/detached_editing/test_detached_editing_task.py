@@ -105,6 +105,43 @@ class TestDetachedEditingTask(NgConnectTestCase):
         assert task.error is not None
         assert task.error.code == ErrorCode.EpochChanged
 
+    @mock_container(TestData.Points, is_versioning_enabled=True)
+    def test_remote_field_change_can_reset_clean_container(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        task = FetchDeltaTask(container_mock.path)
+        remote_fields = task._metadata.fields.to_json()
+        remote_fields.append(
+            {
+                "id": 100,
+                "datatype": "STRING",
+                "keyname": "new_field",
+                "display_name": "New field",
+                "label_field": False,
+                "required": False,
+                "grid_visibility": True,
+                "text_search": True,
+                "lookup_table": None,
+            }
+        )
+        response = {
+            "epoch": task._metadata.epoch,
+            "geometry_type": task._metadata.geometry_name,
+            "srs": {"id": task._metadata.srs_id},
+            "fields": remote_fields,
+        }
+
+        with self.assertRaises(SynchronizationError) as raised_error:
+            task._check_compatibility(response)
+
+        error = raised_error.exception
+        assert error.code == ErrorCode.StructureChanged
+        assert error.is_remote_structure_change
+
     @mock_container(TestData.Points)
     def test_additional_data_network_error_preserves_network_context(
         self,
@@ -324,3 +361,136 @@ class TestDetachedEditingTask(NgConnectTestCase):
 
         finish_sync.assert_called_once()
         reset.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_clean_container_can_reset_for_all_reset_required_errors(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        error_codes = (
+            ErrorCode.ContainerVersionIsOutdated,
+            ErrorCode.NotVersionedContentChanged,
+            ErrorCode.EpochChanged,
+            ErrorCode.VersioningEnabled,
+            ErrorCode.VersioningDisabled,
+        )
+
+        for error_code in error_codes:
+            with self.subTest(error_code=error_code):
+                error = SynchronizationError(code=error_code)
+                assert container._DetachedContainer__should_reset_after_sync_error(
+                    error
+                )
+
+    @mock_container(TestData.Points)
+    def test_initial_container_fetches_additional_data_after_fill(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        container._DetachedContainer__sync_task = MagicMock()
+        module = "nextgis_connect.legacy.detached_editing.container.container"
+
+        with patch(
+            f"{module}.FetchAdditionalDataTask"
+        ) as task_class, patch.object(
+            container, "_DetachedContainer__start_sync"
+        ) as start_sync:
+            container._DetachedContainer__on_synchronization_finished(True)
+
+        task_class.assert_called_once_with(
+            container.path, need_update_structure=True
+        )
+        start_sync.assert_called_once_with(task_class.return_value)
+
+    @mock_container(TestData.Points)
+    def test_synchronized_container_reloads_layers_and_refreshes_map_canvas(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        detached_layer = MagicMock()
+        container._DetachedContainer__detached_layers = {
+            "layer-id": detached_layer
+        }
+        container._DetachedContainer__sync_task = MagicMock()
+        module = "nextgis_connect.legacy.detached_editing.container.container"
+
+        with patch.object(
+            container, "_DetachedContainer__start_sync"
+        ) as start_sync, patch(
+            f"{module}.FetchAdditionalDataTask"
+        ) as task_class, patch(f"{module}.iface") as qgis_iface:
+            container._DetachedContainer__on_synchronization_finished(True)
+
+        detached_layer.qgs_layer.reload.assert_called_once_with()
+        detached_layer.qgs_layer.triggerRepaint.assert_called_once_with()
+        qgis_iface.mapCanvas.return_value.refreshAllLayers.assert_called_once_with()
+        start_sync.assert_called_once_with(task_class.return_value)
+
+    @mock_container(TestData.Points)
+    def test_clean_container_is_reset_after_remote_field_change(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        error = SynchronizationError(
+            code=ErrorCode.StructureChanged,
+            is_remote_structure_change=True,
+        )
+        container._DetachedContainer__sync_task = SimpleNamespace(error=error)
+
+        with patch.object(
+            container, "_DetachedContainer__finish_sync"
+        ) as finish_sync, patch.object(container, "reset_container") as reset:
+            container._DetachedContainer__on_synchronization_finished(False)
+
+        finish_sync.assert_called_once()
+        reset.assert_called_once()
+
+    @mock_container(TestData.Points)
+    def test_remote_field_change_does_not_reset_changed_container(
+        self,
+        container_mock: MagicMock,
+        qgs_layer: QgsVectorLayer,
+    ) -> None:
+        del qgs_layer
+        mark_container_changed(container_mock.path)
+
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        error = SynchronizationError(
+            code=ErrorCode.StructureChanged,
+            is_remote_structure_change=True,
+        )
+        container._DetachedContainer__sync_task = SimpleNamespace(error=error)
+
+        with patch.object(
+            container, "_DetachedContainer__finish_sync"
+        ) as finish_sync, patch.object(
+            container, "_DetachedContainer__process_error"
+        ) as process_error, patch.object(
+            container, "reset_container"
+        ) as reset:
+            container._DetachedContainer__on_synchronization_finished(False)
+
+        finish_sync.assert_called_once()
+        process_error.assert_called_once_with(error, show_error=True)
+        reset.assert_not_called()
