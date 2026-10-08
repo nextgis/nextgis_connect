@@ -65,7 +65,11 @@ class BaseConnectionCheck(ABC):
 
     @property
     def initial_description(self) -> str:
-        return self.tr("The check is running.")
+        # fmt: off
+        return QCoreApplication.translate(
+            "BaseConnectionCheck", "The check is running."
+        )
+        # fmt: on
 
     def tr(self, text: str) -> str:
         return QCoreApplication.translate(type(self).__name__, text)

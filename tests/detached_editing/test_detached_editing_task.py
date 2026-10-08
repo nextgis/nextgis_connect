@@ -14,12 +14,16 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
+import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from qgis.core import QgsVectorLayer
+from qgis.gui import QgsMessageBar
 from qgis.PyQt import sip
-from qgis.PyQt.QtCore import QCoreApplication, QEvent
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QTranslator
+from qgis.PyQt.QtWidgets import QPushButton
 
 from nextgis_connect.legacy.detached_editing.container.container import (
     DetachedContainer,
@@ -29,6 +33,9 @@ from nextgis_connect.legacy.detached_editing.sync.common import (
 )
 from nextgis_connect.legacy.detached_editing.sync.versioned import (
     FetchDeltaTask,
+)
+from nextgis_connect.legacy.notifier.message_bar_notifier import (
+    MessageBarNotifier,
 )
 from nextgis_connect.platform.qgis.errors import (
     ContainerError,
@@ -46,6 +53,74 @@ from tests.ng_connect_testcase import NgConnectTestCase, TestData
 
 
 class TestDetachedEditingTask(NgConnectTestCase):
+    @mock_container(TestData.Points)
+    def test_error_context_and_message_bar_reset_are_translated(
+        self, container_mock: MagicMock, qgs_layer: QgsVectorLayer
+    ) -> None:
+        del qgs_layer
+        source_root = Path(__file__).resolve().parents[2] / "src"
+        container = DetachedContainer(container_mock.path)
+        self.addCleanup(container.deleteLater)
+        task = FetchAdditionalDataTask(container_mock.path)
+        for language, reset_text, affected_text in (
+            ("ru", "Сброс слоя", "Затронутый слой:"),
+            ("es", "Restablecer capa", "Capa afectada:"),
+        ):
+            with self.subTest(language=language):
+                qm_path = self.create_temp_file(".qm")
+                ts_path = (
+                    source_root
+                    / "nextgis_connect"
+                    / "i18n"
+                    / f"nextgis_connect_{language}.ts"
+                )
+                subprocess.run(
+                    ["lrelease", str(ts_path), "-qm", str(qm_path)],
+                    check=True,
+                    capture_output=True,
+                )
+                translator = QTranslator()
+                assert translator.load(str(qm_path))
+                app = QCoreApplication.instance()
+                assert app.installTranslator(translator)
+                try:
+                    error = ContainerError(code=ErrorCode.StructureChanged)
+                    container._DetachedContainer__process_error(
+                        error, show_error=False
+                    )
+                    assert affected_text in error.user_message
+                    assert [name for name, _ in error.actions] == [reset_text]
+                    prepared = task._prepare_error(
+                        SynchronizationError(code=ErrorCode.StructureChanged)
+                    )
+                    assert affected_text in prepared.user_message
+                    assert (
+                        container_mock.metadata.layer_name
+                        in prepared.user_message
+                    )
+
+                    message_bar = QgsMessageBar()
+                    notifier = MessageBarNotifier(None)
+                    with patch(
+                        "nextgis_connect.legacy.notifier.message_bar_notifier._iface",
+                        return_value=SimpleNamespace(
+                            messageBar=lambda bar=message_bar: bar
+                        ),
+                    ):
+                        notifier.display_exception(error)
+                        assert reset_text in [
+                            button.text()
+                            for button in message_bar.findChildren(QPushButton)
+                        ]
+                        assert (
+                            affected_text in message_bar.currentItem().text()
+                        )
+                        notifier.dismiss_all()
+                    notifier.deleteLater()
+                    message_bar.deleteLater()
+                finally:
+                    app.removeTranslator(translator)
+
     @mock_container(TestData.Points)
     def test_outdated_container_is_rejected_before_synchronization(
         self, container_mock: MagicMock, qgs_layer: QgsVectorLayer

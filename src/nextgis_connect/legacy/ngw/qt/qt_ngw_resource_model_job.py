@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union, cast
 
 from qgis.core import QgsFeedback, QgsMapLayer
-from qgis.PyQt.QtCore import QObject, pyqtSignal
+from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 
 from nextgis_connect.legacy.ngw.core.ngw_error import NGWError
 from nextgis_connect.legacy.ngw.core.ngw_group_resource import NGWGroupResource
@@ -236,29 +236,44 @@ class NGWResourceModelJob(QObject):
             self._do()
         except NGWError as error:
             if error.type == NGWError.TypeRequestError:
+                # fmt: off
                 self.errorOccurred.emit(
                     JobServerRequestError(
-                        self.tr("Bad http comunication.") + str(error),
+                        QCoreApplication.translate(
+                            "NGWResourceModelJob", "Bad http comunication."
+                        )
+                        + str(error),
                         error.url,
                         error.user_msg,
                         error.need_reconnect,
                     )
                 )
+                # fmt: on
 
             elif error.type == NGWError.TypeNGWUnexpectedAnswer:
+                # fmt: off
                 self.errorOccurred.emit(
                     JobNGWError(
-                        self.tr("Can't parse server answer"), error.url
-                    )
-                )
-
-            else:
-                self.errorOccurred.emit(
-                    JobServerRequestError(
-                        self.tr("Something wrong with request to server"),
+                        QCoreApplication.translate(
+                            "NGWResourceModelJob", "Can't parse server answer"
+                        ),
                         error.url,
                     )
                 )
+                # fmt: on
+
+            else:
+                # fmt: off
+                self.errorOccurred.emit(
+                    JobServerRequestError(
+                        QCoreApplication.translate(
+                            "NGWResourceModelJob",
+                            "Something wrong with request to server"
+                        ),
+                        error.url,
+                    )
+                )
+                # fmt: on
 
         except (NGWResourceModelJobError, NgConnectError) as error:
             self.errorOccurred.emit(error)

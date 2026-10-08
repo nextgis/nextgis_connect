@@ -42,26 +42,29 @@ def confirm_reset_container(
     """Ask for confirmation when resetting a detached layer loses changes."""
     translate = QCoreApplication.translate
     if container.is_edit_mode_enabled:
+        # fmt: off
         QMessageBox.warning(
             parent,
             translate("DetachedLayerStatusDialog", "Reset layer"),
             translate(
                 "DetachedLayerStatusDialog",
                 "Synchronization is not possible while the layer is in edit"
-                " mode",
+                " mode"
             ),
         )
+        # fmt: on
         return False
 
     metadata = container.metadata
     if metadata is not None and metadata.has_changes:
+        # fmt: off
         answer = QMessageBox.question(
             parent,
             translate("DetachedLayerStatusDialog", "Possible data loss"),
             translate(
                 "DetachedLayerStatusDialog",
                 "The layer contains changes. If you continue, you will lose"
-                " them forever.\n\nAre you sure you want to continue?",
+                " them forever.\n\nAre you sure you want to continue?"
             ),
             combine_flags(
                 QMessageBox,
@@ -72,6 +75,7 @@ def confirm_reset_container(
                 ),
             ),
         )
+        # fmt: on
         if answer != QMessageBox.StandardButton.Yes:
             return False
 

@@ -998,15 +998,17 @@ class QGISResourceJob(NGWResourceModelJob):
         qgs_vector_layer_dst.commitChanges()
 
         if len(fids_with_notvalid_geom) != 0:
+            # fmt: off
             msg = QCoreApplication.translate(
                 "QGISResourceJob",
-                "We've excluded features with id {0} for layer '{1}'. Reason: invalid geometry.",
+                "We've excluded features with id {0} for layer '{1}'. Reason: invalid geometry."
             ).format(
                 "["
                 + ", ".join(str(fid) for fid in fids_with_notvalid_geom)
                 + "]",
                 qgs_vector_layer_src.name(),
             )
+            # fmt: on
 
             self.warningOccurred.emit(JobWarning(msg))
 

@@ -182,12 +182,14 @@ class ResourceDeleteConfirmationDialog(QDialog):
         self._render_unaffected_warning(preview.unaffected)
 
         affected_count = preview.affected.count
+        # fmt: off
         message = self.tr(
             "Please confirm deleting the selected resource and all child "
             "resources. <b>%n resource(s)</b> will be deleted forever.",
             "",
-            affected_count,
+            affected_count
         )
+        # fmt: on
         self._message_label.setText(
             self._resource_plural_display_text(message, affected_count)
         )
@@ -279,12 +281,14 @@ class ResourceDeleteConfirmationDialog(QDialog):
             self._unaffected_label.setVisible(False)
             return
 
+        # fmt: off
         message = self.tr(
             "Some resources cannot be deleted and will be skipped: "
             "%n resource(s)",
             "",
-            summary.count,
+            summary.count
         )
+        # fmt: on
         self._unaffected_label.setText(
             self._resource_plural_display_text(message, summary.count)
         )

@@ -129,10 +129,12 @@ class ResourceCreator:
         feedback: Optional[QgsFeedback] = None,
     ) -> NGWQGISVectorStyle:
         connection = ngw_vector_layer.res_factory.connection
+        # fmt: off
         display_name = QgsApplication.translate(
             "ResourceCreator",
-            "Default style",
+            "Default style"
         )
+        # fmt: on
         url = ngw_vector_layer.get_api_collection_url()
         params = dict(
             resource=dict(

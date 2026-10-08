@@ -77,12 +77,14 @@ class NgwConnectionDiagnosticsTask(NgConnectTask):
         self._feedback = QgsFeedback()
         self._report = None
         self.signals = ConnectionDiagnosticsTaskSignals()
+        # fmt: off
         self.setDescription(
             QgsApplication.translate(
                 "NgwConnectionDiagnosticsTask",
-                'Web GIS connection check for "{name}"',
+                'Web GIS connection check for "{name}"'
             ).format(name=connection.name)
         )
+        # fmt: on
 
     def cancel(self) -> None:
         self._feedback.cancel()
@@ -315,12 +317,14 @@ class NgwConnectionVerificationTask(NgConnectTask):
         self._result = None
         self._issue = None
         self.signals = ConnectionVerificationTaskSignals()
+        # fmt: off
         self.setDescription(
             QgsApplication.translate(
                 "NgwConnectionVerificationTask",
-                'Web GIS connection verification for "{name}"',
+                'Web GIS connection verification for "{name}"'
             ).format(name=connection.name)
         )
+        # fmt: on
 
     def cancel(self) -> None:
         self._feedback.cancel()

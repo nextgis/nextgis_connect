@@ -51,10 +51,12 @@ class NGWWmsLayer(NGWResource):
 
         layers = layer_params.get("wmslayers")
         if layers is None or len(layers) == 0:
+            # fmt: off
             user_message = QgsApplication.translate(
                 "Utils",
-                "The WMS layer resource is not connected to any layers",
+                "The WMS layer resource is not connected to any layers"
             )
+            # fmt: on
             raise NgwError(
                 "WMS layers list is empty",
                 user_message=user_message,

@@ -121,31 +121,39 @@ class DetachedEditingTask(NgConnectTask):
 
         layer_name = self._metadata.layer_name
         if error.is_network_problem:
+            # fmt: off
             user_message = QgsApplication.translate(
                 "DetachedEditingTask",
-                'Could not synchronize layer "{layer_name}" because of a network problem. Check your internet connection and try again.',
+                'Could not synchronize layer "{layer_name}" because of a network problem. Check your internet connection and try again.'
             ).format(layer_name=layer_name)
+            # fmt: on
             error.set_user_message(user_message)
         elif error.is_server_unavailable:
+            # fmt: off
             user_message = QgsApplication.translate(
                 "DetachedEditingTask",
-                'The server is temporarily unavailable. Layer "{layer_name}" could not be synchronized. Please try again later.',
+                'The server is temporarily unavailable. Layer "{layer_name}" could not be synchronized. Please try again later.'
             ).format(layer_name=layer_name)
+            # fmt: on
             error.set_user_message(user_message)
         elif (
             isinstance(error, SynchronizationError)
             and error.code == ErrorCode.SynchronizationError
         ):
+            # fmt: off
             user_message = QgsApplication.translate(
                 "DetachedEditingTask",
-                'Could not synchronize layer "{layer_name}".',
+                'Could not synchronize layer "{layer_name}".'
             ).format(layer_name=layer_name)
+            # fmt: on
             error.set_user_message(user_message)
         else:
+            # fmt: off
             layer_context = QgsApplication.translate(
                 "DetachedEditingTask",
-                'Affected layer: "{layer_name}".',
+                'Affected layer: "{layer_name}".'
             ).format(layer_name=layer_name)
+            # fmt: on
             error.add_user_context(layer_context, key="detached_layer")
 
         error.mark_user_context("detached_layer")
@@ -296,6 +304,7 @@ class DetachedEditingTask(NgConnectTask):
         connection_id = self._metadata.connection_id
         connection_manager = NgwConnectionsManager()
         if not connection_manager.is_valid(connection_id):
+            # fmt: off
             user_message = (
                 default_user_message(ErrorCode.SynchronizationError)
                 + " "
@@ -303,14 +312,16 @@ class DetachedEditingTask(NgConnectTask):
                 + " "
                 + QgsApplication.translate(
                     "DetachedEditingTask",
-                    "Please check layer connection settings.",
+                    "Please check layer connection settings."
                 )
             )
+            # fmt: on
             self._error = SynchronizationError(user_message=user_message)
             return
 
         connection = connection_manager.connection(connection_id)
         if self._metadata.instance_id != connection.domain_uuid:
+            # fmt: off
             user_message = (
                 default_user_message(ErrorCode.SynchronizationError)
                 + " "
@@ -318,9 +329,10 @@ class DetachedEditingTask(NgConnectTask):
                 + " "
                 + QgsApplication.translate(
                     "DetachedEditingTask",
-                    "Please check layer connection settings.",
+                    "Please check layer connection settings."
                 )
             )
+            # fmt: on
             self._error = SynchronizationError(
                 code=ErrorCode.DomainChanged, user_message=user_message
             )

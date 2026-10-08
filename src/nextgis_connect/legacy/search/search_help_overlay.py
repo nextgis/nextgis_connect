@@ -144,7 +144,7 @@ class SearchHelpOverlay(OverlaySurfaceWidget):
             ),
             self.tr(
                 "<b>Resource URL</b><br>Paste a resource URL from any "
-                "Web\u00a0GIS. A link to another Web\u00a0GIS lets you switch "
+                "Web GIS. A link to another Web GIS lets you switch "
                 "to its connection or create one. Root resource example:"
             ),
         ]
