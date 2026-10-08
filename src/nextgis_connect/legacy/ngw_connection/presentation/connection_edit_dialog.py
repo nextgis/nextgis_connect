@@ -535,6 +535,12 @@ class NgwConnectionEditDialog(QDialog, WIDGET):
             QDialogButtonBox.StandardButton.Help
         )
         if help_button is not None:
+            self.buttonBox.removeButton(help_button)
+            self.buttonsLayout.insertWidget(
+                self.buttonsLayout.indexOf(self.testConnectionButton) + 1,
+                help_button,
+            )
+            help_button.show()
             help_button.setIcon(plugin_icon("branding/nextgis_logo.svg"))
             help_button.clicked.connect(self.__open_help)
 
