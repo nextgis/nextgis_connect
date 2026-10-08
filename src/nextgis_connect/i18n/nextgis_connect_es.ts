@@ -1563,6 +1563,16 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
         <translation>Sin entidades</translation>
     </message>
     <message>
+        <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="710"/>
+        <source>No features were found at the click location.</source>
+        <translation>No se encontraron entidades en la ubicación seleccionada.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="719"/>
+        <source>Attachments and descriptions are unavailable for layers without feature versioning.</source>
+        <translation>Los adjuntos y las descripciones no están disponibles para capas sin versionado de entidades.</translation>
+    </message>
+    <message>
         <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="495"/>
         <source>Identification Results</source>
         <translation>Resultados de identificación</translation>

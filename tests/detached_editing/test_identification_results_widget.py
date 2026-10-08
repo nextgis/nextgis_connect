@@ -15,13 +15,13 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from pathlib import Path
-from typing import Callable, Optional, Tuple, cast
+from typing import Optional, Tuple
 from unittest.mock import Mock
 
 import qgis.utils
 from qgis.core import Qgis, QgsApplication, QgsTask, QgsVectorLayer
 from qgis.gui import QgisInterface, QgsAttributeEditorContext
-from qgis.PyQt.QtWidgets import QScrollArea, QTabWidget, QWidget
+from qgis.PyQt.QtWidgets import QScrollArea, QSizePolicy, QTabWidget, QWidget
 
 from nextgis_connect.legacy.detached_editing.identification.attachment_download import (
     AttachmentBatchDownloadTask,
@@ -30,9 +30,6 @@ from nextgis_connect.legacy.detached_editing.identification.attachment_download 
 )
 from nextgis_connect.legacy.detached_editing.identification.attachments_model import (
     AttachmentLoadingKind,
-)
-from nextgis_connect.legacy.detached_editing.identification.settings import (
-    IdentificationSettings,
 )
 from nextgis_connect.legacy.detached_editing.identification.types import (
     IdentificationTab,
@@ -49,6 +46,9 @@ from nextgis_connect.legacy.detached_editing.identification.ui.attachments_tab i
 from nextgis_connect.legacy.detached_editing.identification.ui.identification_results_widget import (
     IdentificationResultsWidget,
 )
+from nextgis_connect.legacy.detached_editing.identification.ui.no_features_widget import (
+    NoFeaturesWidget,
+)
 from nextgis_connect.legacy.detached_editing.utils import (
     AttachmentMetadata,
     DetachedLayerState,
@@ -56,42 +56,44 @@ from nextgis_connect.legacy.detached_editing.utils import (
 from nextgis_connect.shared.constants import PACKAGE_NAME
 
 
-class _IdentificationWidgetHarness:
-    def __init__(self, current_tab: IdentificationTab) -> None:
+class _FeatureDataOverlayHarness:
+    def __init__(
+        self,
+        current_tab: IdentificationTab,
+        is_feature_data_available: bool,
+    ) -> None:
         self.tab_widget = QTabWidget()
-        self._is_changing_tab_availability = False
+        self._last_selected_feature_key = ("layer-id", 1)
+        self._is_feature_data_available = is_feature_data_available
+        self.overlay_message: Optional[str] = None
+        self.is_overlay_visible = False
         self.overlay_update_count = 0
 
         self.tab_widget.addTab(QWidget(self.tab_widget), "Attributes")
         self.tab_widget.addTab(QWidget(self.tab_widget), "Attachments")
         self.tab_widget.addTab(QWidget(self.tab_widget), "Description")
         self.tab_widget.setCurrentIndex(current_tab)
-        self.tab_widget.currentChanged.connect(self._on_tab_changed)
 
-    def set_feature_data_tabs_enabled(self, enabled: bool) -> None:
-        method_name = (
-            "_IdentificationResultsWidget__set_feature_data_tabs_enabled"
-        )
-        method = cast(
-            Callable[["_IdentificationWidgetHarness", bool], None],
-            getattr(IdentificationResultsWidget, method_name),
-        )
-        method(self, enabled)
+    def update_overlay(self) -> None:
+        method_name = "_IdentificationResultsWidget__update_overlay"
+        getattr(IdentificationResultsWidget, method_name)(self)
 
     def close(self) -> None:
         self.tab_widget.close()
         self.tab_widget.deleteLater()
 
+    def tr(self, message: str) -> str:
+        return message
+
+    def _show_overlay(self, message: str) -> None:
+        self.overlay_message = message
+        self.is_overlay_visible = True
+
+    def _hide_overlay(self) -> None:
+        self.is_overlay_visible = False
+
     def _update_overlay_geometry(self) -> None:
         self.overlay_update_count += 1
-
-    def _on_tab_changed(self, selected_tab: int) -> None:
-        method_name = "_IdentificationResultsWidget__on_tab_changed"
-        method = cast(
-            Callable[["_IdentificationWidgetHarness", int], None],
-            getattr(IdentificationResultsWidget, method_name),
-        )
-        method(self, selected_tab)
 
 
 class _FeatureRefreshHarness:
@@ -160,6 +162,22 @@ def _update_edit_mode(widget: Mock, is_enabled: bool) -> None:
 
 
 class TestIdentificationResultsWidget:
+    def test_overlay_message_wraps_in_narrow_tabs(
+        self, qgis_app: QgsApplication
+    ) -> None:
+        del qgis_app
+
+        overlay = NoFeaturesWidget()
+        try:
+            assert overlay._label.wordWrap()
+            assert (
+                overlay._label.sizePolicy().horizontalPolicy()
+                == QSizePolicy.Policy.MinimumExpanding
+            )
+        finally:
+            overlay.close()
+            overlay.deleteLater()
+
     def test_unload_is_idempotent_for_open_dock(
         self, qgis_iface: QgisInterface
     ) -> None:
@@ -878,40 +896,34 @@ class TestIdentificationResultsWidget:
 
         assert refresh_callback.call_count == 2
 
-    def test_feature_data_tabs_can_be_disabled_temporarily(
+    def test_non_versioned_feature_shows_overlay_without_disabling_tabs(
         self, qgis_app: QgsApplication
     ) -> None:
         del qgis_app
 
-        settings = IdentificationSettings()
-        settings.last_used_tab = IdentificationTab.ATTACHMENTS
-
-        widget = _IdentificationWidgetHarness(settings.last_used_tab)
+        widget = _FeatureDataOverlayHarness(
+            IdentificationTab.ATTACHMENTS,
+            is_feature_data_available=False,
+        )
         try:
-            widget.set_feature_data_tabs_enabled(False)
+            widget.update_overlay()
 
-            assert widget.tab_widget.currentIndex() == (
-                IdentificationTab.ATTRIBUTES
-            )
-            assert not widget.tab_widget.isTabEnabled(
+            assert widget.tab_widget.isTabEnabled(
                 IdentificationTab.ATTACHMENTS
             )
-            assert not widget.tab_widget.isTabEnabled(
+            assert widget.tab_widget.isTabEnabled(
                 IdentificationTab.DESCRIPTION
             )
-            assert settings.last_used_tab == IdentificationTab.ATTACHMENTS
+            assert widget.is_overlay_visible
+            assert widget.overlay_message == (
+                "Attachments and descriptions are unavailable for layers "
+                "without feature versioning."
+            )
             assert widget.overlay_update_count == 1
 
-            widget.set_feature_data_tabs_enabled(True)
+            widget.tab_widget.setCurrentIndex(IdentificationTab.ATTRIBUTES)
+            widget.update_overlay()
 
-            assert widget.tab_widget.currentIndex() == (
-                IdentificationTab.ATTACHMENTS
-            )
-            assert widget.tab_widget.isTabEnabled(
-                IdentificationTab.ATTACHMENTS
-            )
-            assert widget.tab_widget.isTabEnabled(
-                IdentificationTab.DESCRIPTION
-            )
+            assert not widget.is_overlay_visible
         finally:
             widget.close()

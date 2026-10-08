@@ -16,23 +16,19 @@
 
 from typing import Optional
 
-from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import (
-    QHBoxLayout,
-    QLabel,
-    QSizePolicy,
-    QSpacerItem,
-    QWidget,
+from qgis.PyQt.QtWidgets import QWidget
+
+from nextgis_connect.legacy.detached_editing.identification.ui.empty_state_overlay import (
+    EmptyStateOverlay,
 )
+from nextgis_connect.ui_kit.icons import material_icon
 
-from nextgis_connect.ui_kit.icons import draw_icon, material_icon
 
+class NoFeaturesWidget(EmptyStateOverlay):
+    """Show an informational message over an empty identification tab.
 
-class NoFeaturesWidget(QWidget):
-    """Show a message when no features match the click location.
-
-    Render an informational icon and centered text explaining that the
-    identification request did not return any features.
+    Render a centered informational icon and text that explains why the tab
+    has no content.
     """
 
     def __init__(self, parent: Optional[QWidget] = None):
@@ -41,31 +37,23 @@ class NoFeaturesWidget(QWidget):
         :param parent: Parent widget owning the placeholder.
         """
         super().__init__(parent)
+        self._label = self.text_label
 
-        label = QLabel("No features were found at the click location.")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        icon_size = label.fontMetrics().height()
-        icon = QLabel()
-        draw_icon(icon, material_icon("info"), size=icon_size)
-
-        layout = QHBoxLayout()
-        layout.addSpacerItem(
-            QSpacerItem(
-                40,
-                20,
-                QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Minimum,
+        palette = self.palette()
+        disabled_text_color = palette.color(
+            palette.ColorGroup.Disabled,
+            palette.ColorRole.Text,
+        ).name()
+        self.set_appearance(disabled_text_color, "transparent")
+        self.set_icon(
+            material_icon(
+                "info",
+                color=disabled_text_color,
+                size=self.ICON_SIZE,
             )
         )
-        layout.addWidget(icon)
-        layout.addWidget(label)
-        layout.addSpacerItem(
-            QSpacerItem(
-                40,
-                20,
-                QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Minimum,
-            )
-        )
-        self.setLayout(layout)
+        self.set_message("No features were found at the click location.")
+
+    def set_message(self, message: str) -> None:
+        """Set the text shown in the overlay."""
+        super().set_message(message)

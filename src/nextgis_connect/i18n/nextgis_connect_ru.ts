@@ -1563,6 +1563,16 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Нет объектов</translation>
     </message>
     <message>
+        <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="710"/>
+        <source>No features were found at the click location.</source>
+        <translation>В месте щелчка объекты не найдены.</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="719"/>
+        <source>Attachments and descriptions are unavailable for layers without feature versioning.</source>
+        <translation>Вложения и описания недоступны для слоёв без версионирования.</translation>
+    </message>
+    <message>
         <location filename="../legacy/detached_editing/identification/ui/identification_results_widget.py" line="495"/>
         <source>Identification Results</source>
         <translation>Результаты идентификации</translation>
