@@ -54,7 +54,6 @@ class DetachedLayerIndicatorPresenter(QObject):
         super().__init__(parent)
 
         self._angle = 0
-        self._animation_start_id = 0
         self._current_icon = QIcon()
         self._current_tooltip = ""
         default_icon_path = (
@@ -71,6 +70,12 @@ class DetachedLayerIndicatorPresenter(QObject):
         self._timer = QTimer(self)
         self._timer.setInterval(self._ANIMATION_INTERVAL_MS)
         self._timer.timeout.connect(self._sync_tick)
+        self._animation_start_timer = QTimer(self)
+        self._animation_start_timer.setSingleShot(True)
+        self._animation_start_timer.setInterval(self._ANIMATION_DELAY_MS)
+        self._animation_start_timer.timeout.connect(
+            self._start_animation_if_synchronizing
+        )
 
         self.refresh()
 
@@ -87,8 +92,8 @@ class DetachedLayerIndicatorPresenter(QObject):
     def refresh(self) -> None:
         """Refresh presentation state from the state source."""
         self._timer.stop()
+        self._animation_start_timer.stop()
         self._angle = 0
-        self._animation_start_id += 1
         self._tick = 0
 
         self._indicator_state = self._resolver.resolve(self._source)
@@ -97,19 +102,9 @@ class DetachedLayerIndicatorPresenter(QObject):
         if not self._indicator_state.is_animation_enabled:
             return
 
-        animation_start_id = self._animation_start_id
-        QTimer.singleShot(
-            self._ANIMATION_DELAY_MS,
-            lambda: self._start_animation_if_synchronizing(animation_start_id),
-        )
+        self._animation_start_timer.start()
 
-    def _start_animation_if_synchronizing(
-        self,
-        animation_start_id: int,
-    ) -> None:
-        if animation_start_id != self._animation_start_id:
-            return
-
+    def _start_animation_if_synchronizing(self) -> None:
         if self._source.state != DetachedLayerState.Synchronization:
             return
 

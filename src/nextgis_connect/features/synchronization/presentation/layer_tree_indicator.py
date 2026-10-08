@@ -16,6 +16,7 @@
 
 from qgis.gui import QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QModelIndex, QObject, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtGui import QIcon
 
 from nextgis_connect.features.synchronization.presentation.layer_indicator_presenter import (
     DetachedLayerIndicatorPresenter,
@@ -41,10 +42,19 @@ class DetachedLayerTreeIndicator(QgsLayerTreeViewIndicator):
 
         self._presenter = presenter
         self.clicked.connect(self._request_details)
-        self._presenter.icon_changed.connect(self.setIcon)
-        self._presenter.tooltip_changed.connect(self.setToolTip)
+        self._presenter.icon_changed.connect(self._set_icon)
+        self._presenter.tooltip_changed.connect(self._set_tooltip)
         self.setIcon(self._presenter.current_icon)
         self.setToolTip(self._presenter.current_tooltip)
+
+    # QObject-bound slots disconnect automatically when the indicator is deleted.
+    @pyqtSlot(QIcon)
+    def _set_icon(self, icon: QIcon) -> None:
+        self.setIcon(icon)
+
+    @pyqtSlot(str)
+    def _set_tooltip(self, tooltip: str) -> None:
+        self.setToolTip(tooltip)
 
     @pyqtSlot(QModelIndex, name="requestDetails")
     def _request_details(self, *_: object) -> None:

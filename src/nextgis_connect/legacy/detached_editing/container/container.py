@@ -402,6 +402,8 @@ class DetachedContainer(QObject):
         if self.is_empty and self.__indicator is not None:
             self.__indicator.deleteLater()
             self.__indicator = None
+            if self.__indicator_presenter is not None:
+                self.__indicator_presenter.deleteLater()
             self.__indicator_presenter = None
 
             if self.__error is not None:
