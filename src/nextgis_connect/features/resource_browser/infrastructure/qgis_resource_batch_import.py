@@ -36,6 +36,9 @@ from nextgis_connect.features.resource_browser.application import (
     ResourceBatchImportInteraction,
     ResourceImportCancelledError,
 )
+from nextgis_connect.features.resource_browser.application.resource_batch_import import (
+    LARGE_BATCH_IMPORT_WARNING_THRESHOLD,
+)
 from nextgis_connect.features.resource_browser.domain import (
     ResourceBatchImportResult,
     ResourceBatchImportStatus,
@@ -150,6 +153,7 @@ class QgisResourceBatchImporter(QObject):
         indices: Union[QModelIndex, List[QModelIndex]],
         insertion_point: InsertionPoint,
         interaction: ResourceBatchImportInteraction,
+        bulk_import_confirmed: bool = False,
     ) -> None:
         super().__init__(model)
         self.__project = cast(QgsProject, QgsProject.instance())
@@ -182,6 +186,7 @@ class QgisResourceBatchImporter(QObject):
             QgisVectorLayerMetadataApplicator(model)
         )
         self.__interaction = interaction
+        self.__bulk_import_confirmed = bulk_import_confirmed
         self.__dependency_analyzer = ResourceDependencyAnalyzer(model)
         self.__style_applicator = QgisResourceBatchStyleApplicator(model)
         self.__layer_factory = None
@@ -269,6 +274,13 @@ class QgisResourceBatchImporter(QObject):
             self.__raise_if_cancelled()
             self.__collect_layers_params()
             self.__raise_if_cancelled()
+            layer_count = len(self.__layers_params)
+            if (
+                not self.__bulk_import_confirmed
+                and layer_count >= LARGE_BATCH_IMPORT_WARNING_THRESHOLD
+                and not self.__interaction.confirm_large_import(layer_count)
+            ):
+                raise ResourceImportCancelledError
             self.__create_layers()
             self.__raise_if_cancelled()
 

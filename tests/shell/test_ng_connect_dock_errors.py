@@ -47,6 +47,47 @@ class _FakeSignal:
         self.callbacks.append(callback)
 
 
+@pytest.mark.parametrize("accepted", [True, False])
+def test_root_import_confirmation_before_fetching_resources(
+    monkeypatch, accepted
+) -> None:
+    resource = Mock(spec=ng_connect_dock.NGWGroupResource)
+    resource.resource_id = 0
+    index = Mock()
+    index.data.return_value = resource
+    interaction = Mock()
+    interaction.confirm_root_import.return_value = accepted
+    monkeypatch.setattr(
+        ng_connect_dock,
+        "QgisResourceImportInteraction",
+        lambda: interaction,
+    )
+    importer = Mock()
+    importer.missing_resources.return_value = (True, [0])
+    model = Mock()
+    model.fetch_not_expanded.return_value = SimpleNamespace(job_uuid="fetch")
+    insertion_point = Mock()
+    dock = SimpleNamespace(
+        resource_model=model,
+        iface=SimpleNamespace(layerTreeInsertionPoint=lambda: insertion_point),
+        _queue_to_add=[],
+        _NgConnectDock__create_resource_batch_importer=Mock(
+            return_value=importer
+        ),
+    )
+
+    NgConnectDock._NgConnectDock__download_indices(dock, [index])
+
+    interaction.confirm_root_import.assert_called_once()
+    if accepted:
+        model.fetch_not_expanded.assert_called_once_with([0])
+        assert dock._queue_to_add[0].bulk_import_confirmed is True
+    else:
+        dock._NgConnectDock__create_resource_batch_importer.assert_not_called()
+        model.fetch_not_expanded.assert_not_called()
+        assert dock._queue_to_add == []
+
+
 def test_diagnostics_overlay_starts_diagnostics_immediately() -> None:
     dock = SimpleNamespace()
     open_diagnostics = Mock()

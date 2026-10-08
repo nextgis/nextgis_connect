@@ -280,6 +280,7 @@ class AddLayersCommand:
     insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint
     ngw_indexes: List[QModelIndex]
     allow_demo_project_resolve: bool = True
+    bulk_import_confirmed: bool = False
 
 
 @dataclass(frozen=True)
@@ -3196,12 +3197,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self,
         indices: List[QModelIndex],
         insertion_point: QgsLayerTreeRegistryBridge.InsertionPoint,
+        bulk_import_confirmed: bool = False,
     ) -> QgisResourceBatchImporter:
         return QgisResourceBatchImporter(
             self.resource_model,
             indices,
             insertion_point,
             QgisResourceImportInteraction(),
+            bulk_import_confirmed=bulk_import_confirmed,
         )
 
     def __download_selected(self):
@@ -3213,6 +3216,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__download_indices(selected_indexes)
 
     def __download_indices(self, indices: List[QModelIndex]) -> None:
+        bulk_import_confirmed = any(
+            isinstance(resource, NGWGroupResource)
+            and resource.resource_id == 0
+            for resource in (
+                index.data(QNGWResourceItem.NGWResourceRole)
+                for index in indices
+            )
+        )
+        if (
+            bulk_import_confirmed
+            and not QgisResourceImportInteraction().confirm_root_import()
+        ):
+            return
         allow_demo_project_resolve = True
 
         def save_command(job) -> None:
@@ -3223,12 +3239,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                     insertion_point,
                     indices,
                     allow_demo_project_resolve,
+                    bulk_import_confirmed,
                 )
             )
 
         importer = self.__create_resource_batch_importer(
             indices,
             self.iface.layerTreeInsertionPoint(),
+            bulk_import_confirmed,
         )
 
         is_success, missing_ids = importer.missing_resources()
@@ -3256,6 +3274,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         importer = self.__create_resource_batch_importer(
             indices,
             self.iface.layerTreeInsertionPoint(),
+            bulk_import_confirmed,
         )
 
         is_success, missing_ids = importer.missing_resources()
@@ -4719,6 +4738,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         importer = self.__create_resource_batch_importer(
             command.ngw_indexes,
             command.insertion_point,
+            command.bulk_import_confirmed,
         )
 
         is_success, missing_ids = importer.missing_resources()
@@ -4750,6 +4770,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         importer = self.__create_resource_batch_importer(
             command.ngw_indexes,
             command.insertion_point,
+            command.bulk_import_confirmed,
         )
 
         is_success, missing_ids = importer.missing_resources()
