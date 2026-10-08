@@ -944,6 +944,7 @@ class SynchronizationError(DetachedEditingError):
         user_message: Optional[str] = None,
         detail: Optional[str] = None,
         code: ErrorCode = ErrorCode.SynchronizationError,
+        is_remote_structure_change: bool = False,
     ) -> None:
         """Initialize the synchronization error.
 
@@ -951,6 +952,8 @@ class SynchronizationError(DetachedEditingError):
         :param user_message: Message intended for users.
         :param detail: Additional diagnostic detail.
         :param code: Internal error code.
+        :param is_remote_structure_change: Whether the incompatible layer
+            structure was changed on the server.
         """
         super().__init__(
             log_message,
@@ -958,6 +961,7 @@ class SynchronizationError(DetachedEditingError):
             detail=detail,
             code=code,
         )
+        self.is_remote_structure_change = is_remote_structure_change
 
 
 class SerializationError(DetachedEditingError):

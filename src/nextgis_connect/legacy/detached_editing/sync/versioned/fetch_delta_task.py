@@ -191,7 +191,11 @@ class FetchDeltaTask(DetachedEditingTask):
         if self._metadata.geometry_name != answer["geometry_type"]:
             message = "Geometry is not compatible"
             code = ErrorCode.StructureChanged
-            error = SynchronizationError(message, code=code)
+            error = SynchronizationError(
+                message,
+                code=code,
+                is_remote_structure_change=True,
+            )
             error.add_note(f"Local: {self._metadata.geometry_name}")
             error.add_note(f"Remote: {answer['geometry_type']}")
             raise error
@@ -199,7 +203,11 @@ class FetchDeltaTask(DetachedEditingTask):
         if self._metadata.srs_id != answer["srs"]["id"]:
             message = "SRS is not compatible"
             code = ErrorCode.StructureChanged
-            error = SynchronizationError(message, code=code)
+            error = SynchronizationError(
+                message,
+                code=code,
+                is_remote_structure_change=True,
+            )
             error.add_note(f"Local: {self._metadata.srs_id}")
             error.add_note(f"Remote: {answer['srs']['id']}")
             raise error
@@ -214,7 +222,11 @@ class FetchDeltaTask(DetachedEditingTask):
         if not self._is_fields_compatible(ngw_layer_fields):
             message = "Fields changed in NGW"
             code = ErrorCode.StructureChanged
-            error = SynchronizationError(message, code=code)
+            error = SynchronizationError(
+                message,
+                code=code,
+                is_remote_structure_change=True,
+            )
             error.add_note(f"Local: {self._metadata.fields}")
             error.add_note(f"Remote: {ngw_layer_fields}")
             raise error

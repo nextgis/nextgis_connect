@@ -869,16 +869,7 @@ class DetachedContainer(QObject):
                     is_manual=True
                 )
 
-            will_be_updated = (
-                error.code
-                in (
-                    ErrorCode.ContainerVersionIsOutdated,
-                    ErrorCode.VersioningEnabled,
-                    ErrorCode.VersioningDisabled,
-                    ErrorCode.EpochChanged,
-                )
-                and not self.metadata.has_changes
-            )
+            will_be_updated = self.__should_reset_after_sync_error(error)
 
             self.__process_error(
                 self.__sync_task.error, show_error=not will_be_updated
@@ -896,8 +887,10 @@ class DetachedContainer(QObject):
         self.__versioning_state = VersioningSynchronizationState.Synchronized
 
         if not self.is_empty:
-            first_layer = next(iter(self.__detached_layers.values()))
-            first_layer.qgs_layer.reload()
+            for detached_layer in self.__detached_layers.values():
+                detached_layer.qgs_layer.reload()
+                detached_layer.qgs_layer.triggerRepaint()
+            iface.mapCanvas().refreshAllLayers()
 
         if (
             self.__additional_data_fetch_date is not None
@@ -954,16 +947,7 @@ class DetachedContainer(QObject):
                     is_manual=True
                 )
 
-            will_be_updated = (
-                error.code
-                in (
-                    ErrorCode.ContainerVersionIsOutdated,
-                    ErrorCode.VersioningEnabled,
-                    ErrorCode.VersioningDisabled,
-                    ErrorCode.EpochChanged,
-                )
-                and not self.metadata.has_changes
-            )
+            will_be_updated = self.__should_reset_after_sync_error(error)
 
             self.__process_error(
                 self.__sync_task.error, show_error=not will_be_updated
@@ -1381,6 +1365,18 @@ class DetachedContainer(QObject):
 
     def __request_reset(self) -> None:
         confirm_reset_container(self, iface.mainWindow())
+
+    def __should_reset_after_sync_error(self, error: NgConnectError) -> bool:
+        if self.metadata.has_changes:
+            return False
+
+        if error.code != ErrorCode.StructureChanged:
+            return error.code in _RESET_REQUIRED_ERROR_CODES
+
+        return (
+            isinstance(error, SynchronizationError)
+            and error.is_remote_structure_change
+        )
 
     def __check_structure(self) -> None:
         container_fields_name = set()

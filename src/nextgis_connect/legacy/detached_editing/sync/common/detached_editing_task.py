@@ -198,7 +198,11 @@ class DetachedEditingTask(NgConnectTask):
         if self._metadata.geometry_name != ngw_layer.geom_name:
             message = "Geometry is not compatible"
             code = ErrorCode.StructureChanged
-            error = SynchronizationError(message, code=code)
+            error = SynchronizationError(
+                message,
+                code=code,
+                is_remote_structure_change=True,
+            )
             error.add_note(f"Local: {self._metadata.geometry_name}")
             error.add_note(f"Remote: {ngw_layer.geom_name}")
             raise error
@@ -206,7 +210,11 @@ class DetachedEditingTask(NgConnectTask):
         if not self._is_fields_compatible(ngw_layer.fields):
             message = "Fields changed in NGW"
             code = ErrorCode.StructureChanged
-            error = SynchronizationError(message, code=code)
+            error = SynchronizationError(
+                message,
+                code=code,
+                is_remote_structure_change=True,
+            )
             error.add_note(f"Local: {self._metadata.fields}")
             error.add_note(f"Remote: {ngw_layer.fields}")
             raise error

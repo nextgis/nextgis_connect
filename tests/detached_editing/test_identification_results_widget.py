@@ -987,6 +987,19 @@ class TestIdentificationResultsWidget:
 
         assert refresh_callback.call_count == 2
 
+    def test_not_initialized_state_clears_identification_results(
+        self, qgis_app: QgsApplication
+    ) -> None:
+        del qgis_app
+
+        widget = Mock()
+        method_name = "_IdentificationResultsWidget__on_state_changed"
+        on_state_changed = getattr(IdentificationResultsWidget, method_name)
+
+        on_state_changed(widget, DetachedLayerState.NotInitialized)
+
+        widget.clear.assert_called_once_with()
+
     def test_non_versioned_feature_shows_overlay_without_disabling_tabs(
         self, qgis_app: QgsApplication
     ) -> None:

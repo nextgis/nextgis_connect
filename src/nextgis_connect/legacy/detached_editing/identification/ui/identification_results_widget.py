@@ -1103,6 +1103,10 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
 
     @pyqtSlot(DetachedLayerState)
     def __on_state_changed(self, state: DetachedLayerState) -> None:
+        if state == DetachedLayerState.NotInitialized:
+            self.clear()
+            return
+
         if state in (
             DetachedLayerState.NotSynchronized,
             DetachedLayerState.Synchronized,
