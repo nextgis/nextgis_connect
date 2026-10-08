@@ -724,6 +724,14 @@ La edición puede romper referencias existentes.</translation>
     </message>
 </context>
 <context>
+    <name>DescriptionTab</name>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/description_tab.py" line="144"/>
+        <source>No description yet</source>
+        <translation>Aún no hay descripción</translation>
+    </message>
+</context>
+<context>
     <name>DescriptionConflictTab</name>
     <message>
         <location filename="../legacy/detached_editing/conflicts/ui/description_conflict_tab.py" line="59"/>
@@ -5107,7 +5115,7 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
 </context>
 <context>
-    <name>_Layout</name>
+    <name>AttachmentDelegate</name>
     <message>
         <location filename="../features/synchronization/presentation/attachments/attachment_delegate.py" line="450"/>
         <source>Download and Open</source>

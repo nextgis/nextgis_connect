@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Set, Tuple, cast
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import (
+    QCoreApplication,
     QEvent,
     QItemSelectionModel,
     QModelIndex,
@@ -306,48 +307,50 @@ class AttachmentDelegate(WidgetItemDelegate):
             attachment_menu,
             self.MENU_ACTION_NAMES.open_attachment,
             material_icon("file_open"),
-            self.tr("Download and Open"),
+            QCoreApplication.translate(
+                "AttachmentDelegate", "Download and Open"
+            ),
             lambda index=index: self.open_attachment.emit(index),
         )
         cache_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.cache_attachment,
             material_icon("download_for_offline"),
-            self.tr("Download"),
+            QCoreApplication.translate("AttachmentDelegate", "Download"),
             lambda index=index: self.cache_attachment.emit(index),
         )
         edit_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.edit_attachment,
             qgis_icon("mActionEditTable.svg"),
-            self.tr("Edit"),
+            QCoreApplication.translate("AttachmentDelegate", "Edit"),
         )
         show_in_folder_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.show_in_folder,
             qgis_icon("mIconFolderLink.svg"),
-            self.tr("Show in Folder"),
+            QCoreApplication.translate("AttachmentDelegate", "Show in Folder"),
             lambda index=index: self.show_in_folder.emit(index),
         )
         copy_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.copy_attachment,
             qgis_icon("mActionEditCopy.svg"),
-            self.tr("Copy"),
+            QCoreApplication.translate("AttachmentDelegate", "Copy"),
             lambda index=index: self.copy_attachment.emit(index),
         )
         save_as_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.save_as,
             qgis_icon("mActionFileSaveAs.svg"),
-            self.tr("Save As…"),
+            QCoreApplication.translate("AttachmentDelegate", "Save As…"),
             lambda index=index: self.save_as.emit(index),
         )
         delete_action = self._add_menu_action(
             attachment_menu,
             self.MENU_ACTION_NAMES.delete_attachment,
             qgis_icon("mActionDeleteSelected.svg"),
-            self.tr("Delete"),
+            QCoreApplication.translate("AttachmentDelegate", "Delete"),
             lambda index=index: self._delete_attachment(index),
         )
 
@@ -448,7 +451,11 @@ class AttachmentDelegate(WidgetItemDelegate):
         actions = self._menu_actions(menu)
 
         actions.open_attachment.setText(
-            self.tr("Open") if is_cached else self.tr("Download and Open")
+            QCoreApplication.translate("AttachmentDelegate", "Open")
+            if is_cached
+            else QCoreApplication.translate(
+                "AttachmentDelegate", "Download and Open"
+            )
         )
         actions.cache_attachment.setVisible(not is_cached)
         actions.edit_attachment.setEnabled(is_editable)
@@ -788,7 +795,9 @@ class AttachmentDelegate(WidgetItemDelegate):
         title_edit = QLineEdit(container)
         title_edit.setObjectName("editorTitle")
         title_edit.setText(title)
-        title_edit.setPlaceholderText(self.tr("Attachment name"))
+        title_edit.setPlaceholderText(
+            QCoreApplication.translate("AttachmentDelegate", "Attachment name")
+        )
         title_edit.setContentsMargins(0, 0, 0, 0)
         # Align text vertically centered like painted labels
         title_edit.setAlignment(
@@ -818,7 +827,11 @@ class AttachmentDelegate(WidgetItemDelegate):
         desc_edit = QLineEdit(container)
         desc_edit.setObjectName("editorDescription")
         desc_edit.setText(description)
-        desc_edit.setPlaceholderText(self.tr("Attachment description"))
+        desc_edit.setPlaceholderText(
+            QCoreApplication.translate(
+                "AttachmentDelegate", "Attachment description"
+            )
+        )
         desc_edit.setContentsMargins(0, 0, 0, 0)
         desc_edit.setAlignment(
             cast(
