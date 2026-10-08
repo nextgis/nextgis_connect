@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 from nextgis_connect.legacy.detached_editing.container.editing.container_sessions import (
+    ContainerReadOnlySession,
     ContainerReadWriteSession,
 )
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
@@ -42,6 +43,9 @@ from nextgis_connect.legacy.detached_editing.sync.common.detached_editing_task i
 from nextgis_connect.legacy.detached_editing.sync.non_versioned import (
     FeatureApiChangesApplier,
     FeatureApiChangesSerializer,
+)
+from nextgis_connect.legacy.detached_editing.sync.versioned.transaction_changes_serializer import (
+    TransactionChangesSerializer,
 )
 from nextgis_connect.legacy.detached_editing.sync.versioned.versioned_changes_applier import (
     VersionedChangesApplier,
@@ -66,8 +70,11 @@ from nextgis_connect.shared.types import (
 class UploadChangesTask(DetachedEditingTask):
     BATCH_SIZE = 1000
 
-    def __init__(self, container_path: Path) -> None:
+    def __init__(
+        self, container_path: Path, *, recover_only: bool = False
+    ) -> None:
         super().__init__(container_path)
+        self.__recover_only = recover_only
         if self._error is not None:
             return
 
@@ -107,6 +114,9 @@ class UploadChangesTask(DetachedEditingTask):
         ngw_connection = QgsNgwConnection(self._metadata.connection_id)
 
         if self._metadata.is_versioning_enabled:
+            self.__recover_transaction(ngw_connection)
+            if self.__recover_only:
+                return
             use_transaction_for_extensions = (
                 True  # TODO replace with version check
             )
@@ -558,14 +568,9 @@ class UploadChangesTask(DetachedEditingTask):
         if not splitted_changes:
             return
 
-        commit_datetime = None
         for changes in splitted_changes:
             self.__patch_new_feature_fids(changes)
-            commit_datetime = self.__upload_with_transaction(
-                connection, changes
-            )
-
-        self.__update_sync_date(commit_datetime=commit_datetime)
+            self.__upload_with_transaction(connection, changes)
 
     def __upload_not_versioned_changes(
         self, connection: QgsNgwConnection
@@ -706,16 +711,52 @@ class UploadChangesTask(DetachedEditingTask):
             last_change_number += len(batch)
             batch = tuple(islice(iterator, self.BATCH_SIZE))
 
+        # Persist before POST: a lost reply does not mean the commit failed.
+        recovery_serializer = TransactionChangesSerializer()
+        confirmation = recovery_serializer.from_changes(changes)
+        with ContainerReadWriteSession(self._context) as cursor:
+            cursor.execute(
+                "UPDATE ngw_metadata SET transaction_id=?, transaction_changes=?",
+                (transaction_id, recovery_serializer.to_json(confirmation)),
+            )
+
         commit_datetime, transaction_result = self.__commit_transaction(
             connection, resource_id, transaction_id
         )
 
         transaction_applier = VersionedChangesApplier(self._context)
-        transaction_applier.apply(changes, transaction_result)
+        transaction_applier.apply_transaction(
+            confirmation, transaction_result, commit_datetime=commit_datetime
+        )
 
         self.__added_fids_mapping = transaction_applier.added_fids_mapping
 
         return commit_datetime
+
+    def __recover_transaction(self, connection: QgsNgwConnection) -> None:
+        recovery = None
+        with ContainerReadOnlySession(self._context) as cursor:
+            recovery = cursor.execute(
+                "SELECT transaction_id, transaction_changes FROM ngw_metadata"
+            ).fetchone()
+        if recovery is None:
+            raise SynchronizationError("Missing container metadata")
+        transaction_id, payload = recovery
+        if transaction_id is None:
+            return
+
+        changes = TransactionChangesSerializer().from_json(payload)
+
+        commit_datetime, result = self.__commit_transaction(
+            connection, self._metadata.resource_id, transaction_id
+        )
+        transaction_applier = VersionedChangesApplier(self._context)
+        transaction_applier.apply_transaction(
+            changes, result, commit_datetime=commit_datetime
+        )
+        self.__added_fids_mapping.update(
+            transaction_applier.added_fids_mapping
+        )
 
     def __create_transaction(
         self, connection: QgsNgwConnection, resource_id: int
@@ -736,20 +777,20 @@ class UploadChangesTask(DetachedEditingTask):
 
         resource_url = f"/api/resource/{resource_id}"
 
-        try:
-            result = connection.post(
-                f"{resource_url}/feature/transaction/{transaction_id}",
-                is_lunkwill=True,
-            )
-        except Exception:
-            logger.exception("Exception occurred while commiting transaction")
-            connection.delete(
-                f"{resource_url}/feature/transaction/{transaction_id}"
-            )
-            logger.debug(f"Transaction {transaction_id} disposed")
-            raise
+        # NGW commit is idempotent, including after a lost response.
+        result = connection.post(
+            f"{resource_url}/feature/transaction/{transaction_id}",
+            is_lunkwill=True,
+        )
 
         if result["status"] != "committed":
+            if result["status"] == "errors":
+                # A definite rejection allows the next delta/conflict pass.
+                with ContainerReadWriteSession(self._context) as cursor:
+                    cursor.execute(
+                        "UPDATE ngw_metadata SET transaction_id=NULL, "
+                        "transaction_changes=NULL"
+                    )
             error = SynchronizationError("Transaction is not committed")
             error.add_note(f"Synchronization id: {transaction_id}")
             error.add_note(f"Status: {result['status']}")

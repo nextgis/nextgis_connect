@@ -20,6 +20,9 @@ from typing import Optional, cast
 
 from qgis.core import QgsApplication, QgsTask
 
+from nextgis_connect.legacy.detached_editing.container.migrations import (
+    ContainerMigrator,
+)
 from nextgis_connect.legacy.detached_editing.utils import (
     DetachedContainerContext,
     DetachedContainerMetaData,
@@ -65,6 +68,7 @@ class DetachedEditingTask(NgConnectTask):
         self._container_path = container_path
 
         try:
+            ContainerMigrator().migrate(container_path)
             self._metadata = container_metadata(container_path)
             self._context = DetachedContainerContext(
                 container_path, self._metadata

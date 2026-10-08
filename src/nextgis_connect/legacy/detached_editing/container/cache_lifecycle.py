@@ -22,6 +22,9 @@ from typing import Optional
 from nextgis_connect.legacy.detached_editing.container.container_factory import (
     DetachedContainerFactory,
 )
+from nextgis_connect.legacy.detached_editing.container.migrations import (
+    ContainerMigrator,
+)
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
     DetachedStorageServiceFactory,
 )
@@ -77,6 +80,13 @@ class CachedDetachedContainerLifecycle:
                 container_path,
                 ngw_layer,
             )
+
+        try:
+            ContainerMigrator().migrate(container_path)
+            metadata = container_metadata(container_path)
+        except Exception:
+            logger.exception("Could not migrate detached container")
+            return False
 
         if self.is_outdated(metadata):
             if metadata.has_changes:

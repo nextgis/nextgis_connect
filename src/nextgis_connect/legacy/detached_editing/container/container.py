@@ -67,6 +67,9 @@ from nextgis_connect.legacy.detached_editing.container.container_factory import 
 from nextgis_connect.legacy.detached_editing.container.layer_update_polling_policy import (
     LayerUpdatePollingPolicy,
 )
+from nextgis_connect.legacy.detached_editing.container.migrations import (
+    ContainerMigrator,
+)
 from nextgis_connect.legacy.detached_editing.container.ui.layer_status_dialog import (
     DetachedLayerStatusDialog,
 )
@@ -377,7 +380,10 @@ class DetachedContainer(QObject):
         )
         detached_layer.error_occurred.connect(self.__process_error)
 
-        layer.setReadOnly(not self.__is_edit_allowed)
+        layer.setReadOnly(
+            not self.__is_edit_allowed
+            or self.metadata.transaction_id is not None
+        )
 
         plugin = NgConnectInterface.instance()
         detached_layer.editing_finished.connect(plugin.synchronize_layers)  # type: ignore
@@ -670,6 +676,8 @@ class DetachedContainer(QObject):
             return
 
         try:
+            if self.__metadata is None:
+                ContainerMigrator().migrate(self.path)
             self.__metadata = utils.container_metadata(self.path)
             self.__update_storage_index_state()
             if not self.metadata.is_versioning_enabled:
@@ -822,6 +830,21 @@ class DetachedContainer(QObject):
         State = VersioningSynchronizationState
         self.__versioning_state = State.FetchingChanges
 
+        if self.metadata.transaction_id is not None:
+            self.__versioning_state = State.UploadingChanges
+            sync_task = UploadChangesTask(self.path, recover_only=True)
+            self.__connect_sync_task_signal(
+                sync_task,
+                sync_task.taskCompleted,
+                self.__on_versioned_uploading_finished,
+            )
+            self.__connect_sync_task_signal(
+                sync_task,
+                sync_task.taskTerminated,
+                self.__on_versioned_uploading_finished,
+            )
+            return sync_task
+
         if self.is_not_initialized:
             sync_task = FillLayerWithVersioningTask(self.path)
             self.__connect_sync_task_signal(
@@ -931,9 +954,15 @@ class DetachedContainer(QObject):
             self.__apply_required_constraints()
             self.__apply_lookup_tables()
             self.__fix_fid_widget()
-            self.__state = DetachedLayerState.Synchronized
+            self.__state = (
+                DetachedLayerState.NotSynchronized
+                if self.metadata.has_changes
+                else DetachedLayerState.Synchronized
+            )
             self.__versioning_state = (
-                VersioningSynchronizationState.Synchronized
+                VersioningSynchronizationState.NotSynchronized
+                if self.metadata.has_changes
+                else VersioningSynchronizationState.Synchronized
             )
             self.__finish_sync()
         else:
@@ -1215,7 +1244,10 @@ class DetachedContainer(QObject):
 
     def __unlock_layers(self) -> None:
         for detached_layer in self.__detached_layers.values():
-            detached_layer.qgs_layer.setReadOnly(not self.__is_edit_allowed)
+            detached_layer.qgs_layer.setReadOnly(
+                not self.__is_edit_allowed
+                or self.metadata.transaction_id is not None
+            )
 
     def __clear_indicators(self) -> None:
         if self.__indicator is None:

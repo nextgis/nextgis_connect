@@ -45,7 +45,7 @@ class NgConnectSettings:
 
     @property
     def supported_container_version(self) -> str:
-        return "3.0.0"
+        return "3.1.0"
 
     @property
     def search(self) -> SearchSettings:

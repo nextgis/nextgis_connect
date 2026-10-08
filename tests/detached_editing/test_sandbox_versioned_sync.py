@@ -17,12 +17,20 @@
 import configparser
 import os
 import uuid
+from contextlib import contextmanager
 from dataclasses import replace
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import qgis.utils
-from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsVectorLayer, edit
+from qgis.core import (
+    QgsApplication,
+    QgsAuthMethodConfig,
+    QgsFeature,
+    QgsVectorLayer,
+    edit,
+)
 from qgis.PyQt.QtCore import QObject
 
 from nextgis_connect.legacy.detached_editing.container.container_factory import (
@@ -30,6 +38,7 @@ from nextgis_connect.legacy.detached_editing.container.container_factory import 
 )
 from nextgis_connect.legacy.detached_editing.container.editing.container_sessions import (
     ContainerReadOnlySession,
+    ContainerReadWriteSession,
 )
 from nextgis_connect.legacy.detached_editing.detached_layer import (
     DetachedLayer,
@@ -274,6 +283,229 @@ class TestSandboxVersionedSync(NgConnectTestCase):
             and action.get("value") == new_description
         ]
         self.assertTrue(descriptions)
+
+    def test_recovers_after_lost_commit_response(self) -> None:
+        self._assert_interrupted_transaction_recovers("commit")
+
+    def test_recovers_after_lost_transaction_result(self) -> None:
+        self._assert_interrupted_transaction_recovers("result")
+
+    def test_recovers_after_local_confirmation_failure(self) -> None:
+        self._assert_interrupted_transaction_recovers("local")
+
+    def _assert_interrupted_transaction_recovers(self, failure: str) -> None:
+        vector_layer = self._upload_versioned_vector_layer()
+        container, qgs_layer = self._create_filled_container(vector_layer)
+        before = container_metadata(container.path)
+        remote_fid, description, attachment_path = self._add_recovery_changes(
+            container, qgs_layer
+        )
+
+        if failure == "local":
+            with ContainerReadWriteSession(container.path) as cursor:
+                cursor.execute(
+                    "CREATE TRIGGER fail_confirmation BEFORE UPDATE OF transaction_id "
+                    "ON ngw_metadata WHEN NEW.transaction_id IS NULL BEGIN "
+                    "SELECT RAISE(ABORT, 'Injected confirmation failure'); END"
+                )
+        pending = self._confirmation_state(container.path)
+        self.assertEqual(len(pending["ngw_added_attachments"]), 1)
+        local_aid = pending["ngw_added_attachments"][0][0]
+        self.assertEqual(len(pending["ngw_added_features"]), 1)
+        added_fid = pending["ngw_added_features"][0][0]
+        connection = vector_layer.res_factory.connection
+        transaction_base = (
+            f"/api/resource/{vector_layer.resource_id}/feature/transaction/"
+        )
+        with self._recovery_requests(
+            connection, transaction_base, failure
+        ) as requests:
+            post_calls, put_calls, delete_calls, injected = requests
+            upload = UploadChangesTask(container.path)
+            self.assertFalse(upload.run())
+            self.assertIsNotNone(upload.error)
+            interrupted = container_metadata(container.path)
+            self.assertIsNotNone(interrupted.transaction_id, upload.error)
+            self.assertTrue(interrupted.has_changes)
+            self.assertEqual(interrupted.sync_date, before.sync_date)
+            self.assertEqual(self._confirmation_state(container.path), pending)
+            if failure != "local":
+                self.assertEqual(injected, [failure])
+
+            # The remote commit really happened; only its local confirmation failed.
+            vector_layer.update()
+            committed_version = vector_layer.version
+            self.assertEqual(
+                len(vector_layer.get_features()), before.features_count + 1
+            )
+            remote_attachment = self._matching_remote_attachment(
+                vector_layer, remote_fid, attachment_path.name
+            )
+            self.assertIsNotNone(remote_attachment["id"])
+            transaction_url = f"{transaction_base}{interrupted.transaction_id}"
+
+            if failure == "local":
+                with ContainerReadWriteSession(container.path) as cursor:
+                    cursor.execute("DROP TRIGGER fail_confirmation")
+
+            post_calls.reset_mock()
+            put_calls.reset_mock()
+            retry = UploadChangesTask(container.path, recover_only=True)
+            self.assertTrue(retry.run(), retry.error)
+            post_calls.assert_called_once_with(
+                transaction_url, is_lunkwill=True
+            )
+            put_calls.assert_not_called()
+            delete_calls.assert_not_called()
+
+            # A subsequent ordinary upload must also be a no-op.
+            post_calls.reset_mock()
+            upload = UploadChangesTask(container.path)
+            self.assertTrue(upload.run(), upload.error)
+            post_calls.assert_not_called()
+            put_calls.assert_not_called()
+
+        after = container_metadata(container.path)
+        self._assert_local_confirmation(
+            container.path, local_aid, remote_attachment["id"]
+        )
+        with ContainerReadOnlySession(container.path) as cursor:
+            added_remote_fid = cursor.execute(
+                "SELECT ngw_fid FROM ngw_features_metadata WHERE fid=?",
+                (added_fid,),
+            ).fetchone()[0]
+        self.assertIsNotNone(added_remote_fid)
+        self.assertNotIn(
+            added_remote_fid,
+            [row[1] for row in pending["ngw_features_metadata"]],
+        )
+        self._remote_feature(vector_layer, added_remote_fid)
+        self.assertNotEqual(after.sync_date, before.sync_date)
+        vector_layer.update()
+        self.assertEqual(vector_layer.version, committed_version)
+        self.assertEqual(
+            len(vector_layer.get_features()), before.features_count + 1
+        )
+        self.assertEqual(
+            self._matching_remote_attachment(
+                vector_layer, remote_fid, attachment_path.name
+            )["id"],
+            remote_attachment["id"],
+        )
+        descriptions = [
+            action
+            for action in self._fetch_all_actions(vector_layer)
+            if action.get("action") == "description.put"
+            and action.get("fid") == remote_fid
+            and action.get("value") == description
+        ]
+        self.assertEqual(len(descriptions), 1)
+
+    def _add_recovery_changes(self, container, qgs_layer):
+        detached_layer = DetachedLayer(container, qgs_layer)
+        local_fid, remote_fid = self._first_feature_ids(container.path)
+        description = f"recovery-description-{uuid.uuid4().hex}"
+        attachment_path = self.create_temp_file("-recovery.txt")
+        attachment_path.write_text(
+            f"recovery-{uuid.uuid4().hex}", encoding="utf-8"
+        )
+        new_feature = QgsFeature(qgs_layer.getFeature(local_fid))
+        new_feature.setAttribute(container.metadata.fid_field, None)
+        with edit(qgs_layer):
+            self.assertTrue(qgs_layer.addFeature(new_feature))
+            detached_layer.set_feature_description(local_fid, description)
+            detached_layer.add_attachment(local_fid, attachment_path)
+        return remote_fid, description, attachment_path
+
+    @contextmanager
+    def _recovery_requests(self, connection, transaction_base, failure):
+        real_post, real_get = connection.post, connection.get
+        injected = []
+
+        def post(url, *args, **kwargs):
+            response = real_post(url, *args, **kwargs)
+            if (
+                failure == "commit"
+                and url.startswith(transaction_base)
+                and url != transaction_base
+                and not injected
+            ):
+                self.assertEqual(response["status"], "committed")
+                injected.append("commit")
+                raise RuntimeError("Injected loss of committed response")
+            return response
+
+        def get(url, *args, **kwargs):
+            response = real_get(url, *args, **kwargs)
+            if (
+                failure == "result"
+                and url.startswith(transaction_base)
+                and not injected
+            ):
+                self.assertTrue(response)
+                injected.append("result")
+                raise RuntimeError("Injected loss of transaction results")
+            return response
+
+        module = "nextgis_connect.legacy.detached_editing.sync.common.upload_changes_task"
+        with patch(
+            f"{module}.QgsNgwConnection", return_value=connection
+        ), patch.object(
+            connection, "post", side_effect=post
+        ) as post_calls, patch.object(
+            connection, "get", side_effect=get
+        ), patch.object(
+            connection, "put", wraps=connection.put
+        ) as put_calls, patch.object(
+            connection, "delete", wraps=connection.delete
+        ) as delete_calls:
+            yield post_calls, put_calls, delete_calls, injected
+
+    def _assert_local_confirmation(
+        self, path: Path, local_aid: int, remote_aid: int
+    ) -> None:
+        metadata = container_metadata(path)
+        self.assertIsNone(metadata.transaction_id)
+        self.assertFalse(metadata.has_changes)
+        with ContainerReadOnlySession(path) as cursor:
+            self.assertIsNone(
+                cursor.execute(
+                    "SELECT transaction_changes FROM ngw_metadata"
+                ).fetchone()[0]
+            )
+            local_attachment = cursor.execute(
+                "SELECT ngw_aid, fileobj FROM ngw_features_attachments WHERE aid=?",
+                (local_aid,),
+            ).fetchone()
+        self.assertIsNotNone(local_attachment)
+        self.assertEqual(local_attachment[0], remote_aid)
+        self.assertIsNotNone(local_attachment[1])
+
+    def _confirmation_state(self, path: Path) -> dict:
+        with ContainerReadOnlySession(path) as cursor:
+            return {
+                table: cursor.execute(
+                    f"SELECT * FROM {table} ORDER BY 1"
+                ).fetchall()
+                for table in (
+                    "ngw_added_features",
+                    "ngw_updated_descriptions",
+                    "ngw_added_attachments",
+                    "ngw_features_metadata",
+                    "ngw_features_attachments",
+                )
+            }
+
+    def _matching_remote_attachment(self, layer, remote_fid, name) -> dict:
+        matching = [
+            attachment
+            for attachment in self._remote_feature(
+                layer, remote_fid
+            ).get_attachments()
+            if attachment.get("name") == name
+        ]
+        self.assertEqual(len(matching), 1)
+        return matching[0]
 
     def test_upload_changes_task_creates_remote_attachment(self) -> None:
         vector_layer = self._upload_versioned_vector_layer()

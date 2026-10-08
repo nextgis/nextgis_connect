@@ -175,7 +175,7 @@ class ChangesApplier(ABC):
             attachment_cache_refs = (
                 self._deleted_feature_attachment_cache_refs(
                     cursor,
-                    deletion_changes,
+                    [change.fid for change in deletion_changes],
                 )
             )
             cursor.executescript(
@@ -192,18 +192,17 @@ class ChangesApplier(ABC):
     def _deleted_feature_attachment_cache_refs(
         self,
         cursor: Any,
-        deletion_changes: Sequence[FeatureDeletion],
+        deleted_fids: Sequence[FeatureId],
     ) -> List[Tuple[AttachmentId, Optional[FileObjectId]]]:
         """Return attachment cache refs from deleted feature backups."""
-        placeholders = ", ".join("?" for _ in deletion_changes)
-        removed_fids = tuple(deletion.fid for deletion in deletion_changes)
+        placeholders = ", ".join("?" for _ in deleted_fids)
         rows = cursor.execute(
             f"""
             SELECT backup
             FROM ngw_removed_features
             WHERE fid IN ({placeholders});
             """,
-            removed_fids,
+            tuple(deleted_fids),
         )
 
         refs: Set[Tuple[AttachmentId, Optional[FileObjectId]]] = set()

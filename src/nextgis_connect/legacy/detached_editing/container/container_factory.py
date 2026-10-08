@@ -297,6 +297,7 @@ class DetachedContainerFactory:
                 'description' TEXT,
                 'geometry_type' TEXT,
                 'transaction_id' INTEGER,
+                'transaction_changes' TEXT,
                 'epoch' INTEGER,
                 'version' INTEGER,
                 'sync_date' DATETIME,
