@@ -373,7 +373,9 @@ class PluginContainer:
         assert self.__ng_connect_toolbar is not None
         self.__ng_connect_toolbar.setObjectName("NgConnectToolBar")
         self.__ng_connect_toolbar.setToolTip(
-            self._plugin.tr("NextGIS Connect Toolbar"),
+            QCoreApplication.translate(
+                "NgConnectPlugin", "NextGIS Connect Toolbar"
+            ),
         )
 
     def __init_ng_connect_menus(self) -> None:
@@ -382,7 +384,9 @@ class PluginContainer:
         # Show panel action
         self.__show_ngw_resources_tree_action = QAction(
             plugin_icon("branding/connect_logo.svg"),
-            self._plugin.tr("Show/Hide NextGIS Connect panel"),
+            QCoreApplication.translate(
+                "NgConnectPlugin", "Show/Hide NextGIS Connect panel"
+            ),
             self.iface.mainWindow(),
         )
         self.__show_ngw_resources_tree_action.setObjectName(
@@ -404,7 +408,7 @@ class PluginContainer:
 
         self.__action_about = QAction(
             qgis_icon("mActionPropertiesWidget.svg"),
-            self._plugin.tr("About plugin..."),
+            QCoreApplication.translate("NgConnectPlugin", "About plugin..."),
             self.iface.mainWindow(),
         )
 
@@ -511,23 +515,22 @@ class PluginContainer:
                 action = QAction(self.__ng_resources_tree_dock)
 
                 def sync_action(source=source_action, target=action):
-                    dock = self.__ng_resources_tree_dock
                     labels = {
-                        ResourceMenuAction.OVERWRITE_LAYER: dock.tr(
-                            "Replace resource data in Web GIS"
+                        ResourceMenuAction.OVERWRITE_LAYER: QCoreApplication.translate(
+                            "NgConnectDock", "Replace resource data in Web GIS"
                         ),
-                        ResourceMenuAction.ADD_STYLE: dock.tr(
-                            "Add style to Web GIS…"
+                        ResourceMenuAction.ADD_STYLE: QCoreApplication.translate(
+                            "NgConnectDock", "Add style to Web GIS…"
                         ),
-                        ResourceMenuAction.UPDATE_STYLE: dock.tr(
-                            "Replace layer style in Web GIS"
+                        ResourceMenuAction.UPDATE_STYLE: QCoreApplication.translate(
+                            "NgConnectDock", "Replace layer style in Web GIS"
                         ),
                     }
                     text = labels.get(source.data())
                     if text is None:
-                        text = dock.tr("{action} to Web GIS").format(
-                            action=source.text()
-                        )
+                        text = QCoreApplication.translate(
+                            "NgConnectDock", "{action} to Web GIS"
+                        ).format(action=source.text())
                     target.setText(text)
                     target.setIcon(source.icon())
                     target.setEnabled(source.isEnabled())

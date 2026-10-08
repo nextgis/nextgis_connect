@@ -155,14 +155,16 @@ class DetachedChangeJournal:
             ("geometry", geometries - set(changes.geometry_backups)),
         ):
             if missing:
+                # fmt: off
                 error = ContainerError(
                     f"Can't create feature changes records because {kind} backups are missing.",
                     user_message=QCoreApplication.translate(
                         "DetachedLayer",
                         "The changes could not be recorded in the synchronization "
-                        "journal. Unrecorded changes may not be synchronized.",
+                        "journal. Unrecorded changes may not be synchronized."
                     ),
                 )
+                # fmt: on
                 error.add_note(f"Missing {kind} backups: {sorted(missing)}")
                 raise error
         cursor.executemany(
@@ -190,15 +192,17 @@ class DetachedChangeJournal:
         missing = identifiers - self._ids(cursor, table, column, identifiers)
         if missing:
             details = f"{label} {', '.join(map(str, sorted(missing)))} are missing in {table}"
+            # fmt: off
             error = ContainerError(
                 "Can't create feature changes records because required container "
                 "metadata is missing.",
                 user_message=QCoreApplication.translate(
                     "DetachedLayer",
                     "The detached layer metadata is incomplete: {details}. "
-                    "Unrecorded changes may not be synchronized.",
+                    "Unrecorded changes may not be synchronized."
                 ).format(details=details),
             )
+            # fmt: on
             error.add_note(details)
             raise error
 

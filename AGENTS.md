@@ -6,6 +6,9 @@
 - Plugin metadata supports QGIS `3.22` to `4.99` and `supportsQt6=True`; check `nextgis_connect.platform.qgis.compat` before changing Qt/QGIS-version-sensitive code.
 
 ## Terminology And Localization
+- Never put a trailing comma before the closing parenthesis of a translation call (`tr` or `translate`): `pylupdate5` can fail to extract it. If line breaks are needed, remove the trailing comma and wrap the statement in `# fmt: off` / `# fmt: on` so Ruff does not restore it.
+  The markers must surround the whole statement, not sit inside an argument list or expression; Ruff ignores markers inside expressions.
+- Verify translation contexts against runtime QObject inheritance, not only `pylupdate5` output. Prefer explicit literal contexts in `QCoreApplication.translate` when translating through another object or from inherited methods.
 - Use `Web GIS` (two words, both capitalized, separated by U+00A0) in English user-facing text and in translations that retain the English term; use `Web GIS` in documentation and log messages.
 - In Russian user-facing text and `nextgis_connect_ru.ts`, translate it as `Веб ГИС`; write compounds as separate words (for example, `сервис Веб ГИС`).
 - Keep the approved translation in each other locale; the Spanish catalogue intentionally retains `Web GIS`, while the About dialog contains locale-specific wording.
