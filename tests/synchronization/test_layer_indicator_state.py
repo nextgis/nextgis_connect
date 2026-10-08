@@ -16,14 +16,21 @@
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
+from unittest.mock import Mock, patch
 
-from qgis.PyQt.QtCore import QModelIndex
+import pytest
+from qgis.PyQt import sip
+from qgis.PyQt.QtCore import QCoreApplication, QEvent, QModelIndex, QObject
 
 from nextgis_connect.features.synchronization.presentation import (
     DetachedLayerIndicatorPresenter,
     DetachedLayerIndicatorStateResolver,
     DetachedLayerTreeIndicator,
+)
+from nextgis_connect.legacy.detached_editing.container.container import (
+    DetachedContainer,
 )
 from nextgis_connect.legacy.detached_editing.utils import DetachedLayerState
 from nextgis_connect.platform.qgis.errors import ErrorCode
@@ -122,6 +129,19 @@ class TestDetachedLayerIndicatorStateResolver:
 
 
 class TestDetachedLayerIndicatorPresenter:
+    def test_refresh_cancels_pending_animation(self, qgis_app) -> None:
+        presenter = DetachedLayerIndicatorPresenter(
+            _Source(state=DetachedLayerState.Synchronization), qgis_app
+        )
+        assert presenter._animation_start_timer.isActive()
+
+        presenter._source = _Source(state=DetachedLayerState.Synchronized)
+        presenter.refresh()
+
+        assert not presenter._animation_start_timer.isActive()
+        assert not presenter._timer.isActive()
+        sip.delete(presenter)
+
     def test_exposes_ready_to_display_state(self, qgis_app) -> None:
         presenter = DetachedLayerIndicatorPresenter(
             _Source(state=DetachedLayerState.Synchronized),
@@ -143,6 +163,62 @@ class TestDetachedLayerIndicatorPresenter:
 
 
 class TestDetachedLayerTreeIndicator:
+    def test_deleted_indicator_disconnects_presenter_updates(
+        self, qgis_app, monkeypatch
+    ) -> None:
+        errors = []
+        monkeypatch.setattr(
+            "sys.excepthook", lambda *exception: errors.append(exception)
+        )
+        parent = QObject()
+        presenter = DetachedLayerIndicatorPresenter(
+            _Source(state=DetachedLayerState.Synchronization), parent
+        )
+        indicator = DetachedLayerTreeIndicator(parent, presenter)
+
+        sip.delete(indicator)
+        presenter._sync_tick()
+        presenter.refresh()
+
+        assert errors == []
+        sip.delete(parent)
+
+    @pytest.mark.parametrize("animation_started", [False, True])
+    def test_last_layer_removal_deletes_presenter(
+        self, qgis_app, monkeypatch, animation_started
+    ) -> None:
+        errors = []
+        monkeypatch.setattr(
+            "sys.excepthook", lambda *exception: errors.append(exception)
+        )
+        with patch.object(
+            DetachedContainer, "_DetachedContainer__update_state"
+        ):
+            container = DetachedContainer(Path("unused.gpkg"))
+        presenter = DetachedLayerIndicatorPresenter(
+            _Source(state=DetachedLayerState.Synchronization), container
+        )
+        indicator = DetachedLayerTreeIndicator(container, presenter)
+        animation_start_timer = presenter._animation_start_timer
+        animation_timer = presenter._timer
+        assert animation_start_timer.isActive()
+        if animation_started:
+            presenter._start_animation_if_synchronizing()
+            assert animation_timer.isActive()
+        container._DetachedContainer__indicator = indicator
+        container._DetachedContainer__indicator_presenter = presenter
+        container._DetachedContainer__detached_layers = {"layer": Mock()}
+
+        container.delete_layer("layer")
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+        assert sip.isdeleted(indicator)
+        assert sip.isdeleted(presenter)
+        assert sip.isdeleted(animation_start_timer)
+        assert sip.isdeleted(animation_timer)
+        assert errors == []
+        sip.delete(container)
+
     def test_uses_presenter_state_and_emits_details_request(
         self,
         qgis_app,
@@ -169,3 +245,12 @@ class TestDetachedLayerTreeIndicator:
         assert details_request_count == 1
         assert not indicator.icon().isNull()
         assert indicator.toolTip() == "Layer is synchronized"
+
+        presenter._source = _Source(state=DetachedLayerState.Synchronization)
+        presenter.refresh()
+        presenter._sync_tick()
+
+        assert indicator.icon().cacheKey() == presenter.current_icon.cacheKey()
+        assert indicator.toolTip() == "Layer is syncing"
+        sip.delete(indicator)
+        sip.delete(presenter)
