@@ -610,6 +610,20 @@ class AboutDialog(QDialog):
         self._components_list_widget.setSpacing(2)
 
         for component_data in components_data:
+            if isinstance(component_data, str):
+                component_path = (
+                    components_path.parent / component_data
+                ).resolve()
+                try:
+                    component_path.relative_to(
+                        components_path.parent.resolve()
+                    )
+                    component_data = json.loads(
+                        component_path.read_text(encoding="utf-8")
+                    )
+                except (OSError, ValueError):
+                    continue
+
             if not isinstance(component_data, dict):
                 continue
 

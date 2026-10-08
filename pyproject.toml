@@ -8,7 +8,7 @@ license = { file = "LICENSE" }
 dev = ["ruff", "pre-commit", "pytest"]
 
 [tool.qgsmith.package-data]
-"nextgis_connect.assets" = ["components.json"]
+"nextgis_connect.assets.components" = ["**/*.json", "**/LICENSE"]
 "nextgis_connect.assets.icons" = ["**/*.svg", "**/*.png"]
 "nextgis_connect.assets.styles" = ["**/*.qml"]
 "nextgis_connect.assets.themes" = ["**/*.json"]
