@@ -2102,6 +2102,22 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>NgConnectDock</name>
     <message>
+        <source>Move resource</source>
+        <translation>Перемещение ресурса</translation>
+    </message>
+    <message>
+        <source>Move "{resource}" to "{target}"?</source>
+        <translation>Переместить «{resource}» в «{target}»?</translation>
+    </message>
+    <message>
+        <source>Move</source>
+        <translation>Переместить</translation>
+    </message>
+    <message>
+        <source>The original style will be deleted only after successful insertion. References to the original style will not be transferred.</source>
+        <translation>Исходный стиль будет удалён только после успешной вставки. Ссылки на исходный стиль не будут перенесены.</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="469"/>
         <source>Modify QGIS layer</source>
         <translation>Изменение слоя QGIS</translation>
@@ -4566,6 +4582,10 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 </context>
 <context>
     <name>ResourceContextMenuFactory</name>
+    <message>
+        <source>Cut</source>
+        <translation>Вырезать</translation>
+    </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="695"/>
         <source>Web GIS upload</source>

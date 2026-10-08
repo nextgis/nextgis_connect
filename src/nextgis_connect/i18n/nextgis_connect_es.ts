@@ -2102,6 +2102,22 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
 <context>
     <name>NgConnectDock</name>
     <message>
+        <source>Move resource</source>
+        <translation>Mover recurso</translation>
+    </message>
+    <message>
+        <source>Move "{resource}" to "{target}"?</source>
+        <translation>¿Mover «{resource}» a «{target}»?</translation>
+    </message>
+    <message>
+        <source>Move</source>
+        <translation>Mover</translation>
+    </message>
+    <message>
+        <source>The original style will be deleted only after successful insertion. References to the original style will not be transferred.</source>
+        <translation>El estilo original se eliminará solo después de una inserción correcta. Las referencias al estilo original no se transferirán.</translation>
+    </message>
+    <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="469"/>
         <source>Modify QGIS layer</source>
         <translation>Modificar capa QGIS</translation>
@@ -4551,6 +4567,10 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
 </context>
 <context>
     <name>ResourceContextMenuFactory</name>
+    <message>
+        <source>Cut</source>
+        <translation>Cortar</translation>
+    </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="695"/>
         <source>Web GIS upload</source>

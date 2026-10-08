@@ -461,6 +461,45 @@ class NGWResource:
         connection.put(url, params=params)
         self.update()
 
+    def move_to(self, parent: "NGWResource") -> None:
+        if self.connection.server_url.rstrip(
+            "/"
+        ) != parent.connection.server_url.rstrip("/"):
+            raise ValueError("Resources belong to different Web GIS servers")
+        if parent.common.cls != "resource_group" or self.resource_id == 0:
+            raise ValueError(
+                "Resources can only be moved into a resource group"
+            )
+
+        self.update(skip_children=True)
+        current_parent = self.get_parent()
+        if current_parent is None or current_parent.common.cls not in (
+            "resource_group",
+            "demo_project",
+        ):
+            raise ValueError(
+                "Only children of groups or demo projects can be moved"
+            )
+        ancestor = parent
+        visited = set()
+        while ancestor is not None:
+            if (
+                ancestor.resource_id == self.resource_id
+                or ancestor.resource_id in visited
+            ):
+                raise ValueError(
+                    "A resource cannot be moved into its descendants"
+                )
+            visited.add(ancestor.resource_id)
+            ancestor = ancestor.get_parent()
+
+        self.connection.put(
+            self.get_relative_api_url(),
+            params={"resource": {"parent": {"id": parent.resource_id}}},
+        )
+        self.common.parent = dict_to_object({"id": parent.resource_id})
+        self._json["resource"]["parent"] = {"id": parent.resource_id}
+
     def update_metadata(self, metadata):
         params = dict(
             resmeta=dict(

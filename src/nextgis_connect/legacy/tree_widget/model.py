@@ -88,6 +88,7 @@ from nextgis_connect.legacy.ngw.qt.qt_ngw_resource_model_job import (
     NGWCreateWfsService,
     NGWGroupCreater,
     NGWMissingResourceUpdater,
+    NGWMoveResource,
     NGWRenameResource,
     NGWResourceBatchDelete,
     NGWResourceDelete,
@@ -678,6 +679,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         super().__init__(parent)
 
         self._ngw_connection = None
+        self._cut_resource_key: Optional[Tuple[str, int]] = None
 
         self.jobs = []
         self.root_item = QModelItem()
@@ -872,6 +874,41 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
 
         data = item.data(role)
 
+        cut_key = self._cut_resource_key
+        is_cut = False
+        if (
+            cut_key is not None
+            and resource_id == cut_key[1]
+            and role
+            in (
+                Qt.ItemDataRole.ForegroundRole,
+                Qt.ItemDataRole.BackgroundRole,
+                Qt.ItemDataRole.FontRole,
+            )
+        ):
+            resource = item.data(QNGWResourceItem.NGWResourceRole)
+            is_cut = (
+                isinstance(resource, NGWResource)
+                and resource.connection_id == cut_key[0]
+            )
+        if is_cut:
+            if role == Qt.ItemDataRole.ForegroundRole:
+                return self.__locked_item_foreground()
+            if role == Qt.ItemDataRole.BackgroundRole:
+                palette = NextgisDecorator.system_palette()
+                return QBrush(
+                    mix_colors(
+                        palette.color(QPalette.ColorRole.Base),
+                        palette.color(QPalette.ColorRole.Highlight),
+                        0.15,
+                    )
+                )
+            if role == Qt.ItemDataRole.FontRole:
+                font = QFont()
+                font.setItalic(True)
+                font.setBold(resource_id in self._found_resources_id)
+                return font
+
         if (
             role == Qt.ItemDataRole.FontRole
             and resource_id in self._found_resources_id
@@ -881,6 +918,21 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             return font
 
         return data
+
+    def set_cut_resource(self, resource: Optional[NGWResource]) -> None:
+        previous = self._cut_resource_key
+        self._cut_resource_key = (
+            (resource.connection_id, resource.resource_id)
+            if resource is not None
+            else None
+        )
+        if self.root_item.childCount() == 0:
+            return
+        for key in (previous, self._cut_resource_key):
+            if key is not None:
+                index = self.index_from_id(key[1])
+                if index is not None and index.isValid():
+                    self.dataChanged.emit(index, index)
 
     def hasChildren(self, parent: QModelIndex = QModelIndex()) -> bool:  # noqa: B008
         parent_item = self.item(parent)
@@ -1301,6 +1353,76 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
             job.model_response.done.emit(QModelIndex())
 
         for ngw_resource in job_result.edited_resources:
+            if job.getJobId() == "NGWMoveResource":
+                old_index = self.index_from_id(ngw_resource.resource_id)
+                parent_index = self.index_from_id(ngw_resource.parent_id)
+                if old_index is None or parent_index is None:
+                    continue
+                old_parent = old_index.parent()
+                item = old_index.internalPointer()
+                parent_item = parent_index.internalPointer()
+                row = parent_item.childCount()
+                for child_row in range(row):
+                    if item.more_priority(parent_item.child(child_row)):
+                        row = child_row
+                        break
+                persistent_old_parent = QPersistentModelIndex(old_parent)
+                persistent_parent = QPersistentModelIndex(parent_index)
+                persistent_locks = [
+                    (
+                        indexes,
+                        [QPersistentModelIndex(index) for index in indexes],
+                    )
+                    for indexes in self.__indexes_locked_by_jobs.values()
+                ]
+                if self.beginMoveRows(
+                    old_parent,
+                    old_index.row(),
+                    old_index.row(),
+                    parent_index,
+                    row,
+                ):
+                    old_parent.internalPointer().takeChild(old_index.row())
+                    parent_item.insertChild(row, item)
+                    item._ngw_resource = ngw_resource
+                    old_parent_resource = old_parent.data(
+                        QNGWResourceItem.NGWResourceRole
+                    )
+                    if old_parent_resource.children_count is not None:
+                        old_parent_resource.set_children_count(
+                            max(
+                                old_parent.internalPointer().childCount(),
+                                old_parent_resource.children_count - 1,
+                            )
+                        )
+                        old_parent_resource.common.children = (
+                            old_parent_resource.children_count > 0
+                        )
+                    parent_resource = parent_item.data(
+                        QNGWResourceItem.NGWResourceRole
+                    )
+                    if parent_resource.children_count is not None:
+                        parent_resource.set_children_count(
+                            max(
+                                parent_item.childCount(),
+                                parent_resource.children_count + 1,
+                            )
+                        )
+                    parent_resource.common.children = True
+                    self.endMoveRows()
+                    for indexes, persistent_indexes in persistent_locks:
+                        indexes[:] = [
+                            QModelIndex(index) for index in persistent_indexes
+                        ]
+                    old_parent = QModelIndex(persistent_old_parent)
+                    parent_index = QModelIndex(persistent_parent)
+                    self.__emit_has_children_changed(old_parent)
+                    self.__emit_has_children_changed(parent_index)
+                    if job.model_response is not None:
+                        job.model_response.done.emit(
+                            self.index_from_id(ngw_resource.resource_id)
+                        )
+                continue
             if ngw_resource.common.parent is None:
                 self.cleanModel()  # remove root item
                 resource_id = QModelIndex()
@@ -1593,6 +1715,20 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
         return self._startJob(NGWRenameResource(ngw_resource, new_name))
+
+    @modelRequest
+    def move_resource(self, resource_index, parent_index):
+        resource = resource_index.data(QNGWResourceItem.NGWResourceRole)
+        parent = parent_index.data(QNGWResourceItem.NGWResourceRole)
+        return self._startJob(
+            NGWMoveResource(resource, parent),
+            [resource_index.parent(), parent_index],
+        )
+
+    @modelRequest
+    def load_resource_children(self, index):
+        resource = index.data(QNGWResourceItem.NGWResourceRole)
+        return self._startJob(NGWResourceUpdater(resource, []), index)
 
     @modelRequest
     def uploadResourcesList(

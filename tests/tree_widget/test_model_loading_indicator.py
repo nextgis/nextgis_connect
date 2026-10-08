@@ -134,7 +134,7 @@ def test_resource_tree_clears_selection_on_escape(
     proxy_model.deleteLater()
 
 
-def test_resource_tree_requests_style_transfer_for_copy_and_paste_shortcuts(
+def test_resource_tree_requests_clipboard_actions_for_shortcuts(
     qgis_app,
     monkeypatch,
 ) -> None:
@@ -148,9 +148,10 @@ def test_resource_tree_requests_style_transfer_for_copy_and_paste_shortcuts(
     )
     view = QNGWResourceTreeView(None)
     copy_requests = QSignalSpy(view.copy_requested)
+    cut_requests = QSignalSpy(view.cut_requested)
     paste_requests = QSignalSpy(view.paste_requested)
 
-    for key in (Qt.Key.Key_C, Qt.Key.Key_V):
+    for key in (Qt.Key.Key_C, Qt.Key.Key_X, Qt.Key.Key_V):
         view.keyPressEvent(
             QKeyEvent(
                 QEvent.Type.KeyPress,
@@ -160,6 +161,7 @@ def test_resource_tree_requests_style_transfer_for_copy_and_paste_shortcuts(
         )
 
     assert len(copy_requests) == 1
+    assert len(cut_requests) == 1
     assert len(paste_requests) == 1
     view.deleteLater()
 
