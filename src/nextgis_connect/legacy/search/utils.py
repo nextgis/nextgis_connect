@@ -20,6 +20,7 @@ from enum import Enum
 class SearchType(str, Enum):
     ByDisplayName = "by_display_name"
     ByMetadata = "by_metadata"
+    ByResourceType = "by_resource_type"
 
     def __str__(self) -> str:
         return str(self.value)

@@ -60,6 +60,21 @@ class _FailedFetchJob:
         return "NGWResourceUpdater"
 
 
+def test_job_error_uses_explicit_job_not_signal_sender(
+    qgis_app, monkeypatch
+) -> None:
+    del qgis_app
+    model = QNGWResourceTreeModelBase()
+    job = SimpleNamespace(
+        getJobId=lambda: "OtherJob", getJobUuid=lambda: "job-uuid"
+    )
+    monkeypatch.setattr(model, "sender", lambda: object())
+    errors = QSignalSpy(model.errorOccurred)
+    error = RuntimeError("Test error")
+    model._QNGWResourceTreeModelBase__jobErrorOccurredProcess(job, error)
+    assert list(errors[0]) == ["OtherJob", "job-uuid", error]
+
+
 def test_resource_tree_uses_compact_indentation(
     qgis_app,
     monkeypatch,

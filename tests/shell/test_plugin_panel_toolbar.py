@@ -16,10 +16,12 @@
 
 from typing import Tuple
 
-from qgis.PyQt.QtCore import QPoint, QSize, Qt, QTimer
+from qgis.PyQt.QtCore import QPoint, QPointF, QSize, Qt, QTimer
+from qgis.PyQt.QtGui import QWheelEvent
 from qgis.PyQt.QtTest import QTest
 from qgis.PyQt.QtWidgets import (
     QAction,
+    QActionGroup,
     QApplication,
     QMainWindow,
     QMenu,
@@ -38,6 +40,56 @@ from nextgis_connect.shell.presentation.plugin_panel import (
 
 
 class TestPluginPanelToolBar:
+    def test_wheel_switches_search_menu_action(self, qgis_app) -> None:
+        parent = QWidget()
+        actions = self._create_actions(parent)
+        menu = QMenu(parent)
+        group = QActionGroup(menu)
+        modes = [menu.addAction(name) for name in ("Name", "Metadata", "Type")]
+        for mode in modes:
+            mode.setCheckable(True)
+            group.addAction(mode)
+        modes[0].setChecked(True)
+        actions.search.setMenu(menu)
+        toolbar = PluginPanelToolBar(actions, parent)
+        button = toolbar.widgetForAction(actions.search)
+        selected = []
+        modes[1].triggered.connect(lambda: selected.append("Metadata"))
+        event = QWheelEvent(
+            QPointF(),
+            QPointF(),
+            QPoint(),
+            QPoint(0, -120),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        qgis_app.sendEvent(button, event)
+        assert modes[1].isChecked()
+        assert selected == ["Metadata"]
+        qgis_app.sendEvent(button, event)
+        assert modes[2].isChecked()
+        qgis_app.sendEvent(button, event)
+        assert modes[2].isChecked()
+        modes[0].setChecked(True)
+        reverse_event = QWheelEvent(
+            QPointF(),
+            QPointF(),
+            QPoint(),
+            QPoint(0, 120),
+            Qt.MouseButton.NoButton,
+            Qt.KeyboardModifier.NoModifier,
+            Qt.ScrollPhase.NoScrollPhase,
+            False,
+        )
+        qgis_app.sendEvent(button, reverse_event)
+        assert modes[0].isChecked()
+        modes[1].setChecked(True)
+        button.setEnabled(False)
+        qgis_app.sendEvent(button, event)
+        assert modes[1].isChecked()
+
     def test_toolbar_uses_native_actions(self, qgis_app) -> None:
         del qgis_app
         parent = QWidget()

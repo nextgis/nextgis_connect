@@ -85,6 +85,15 @@ class AnimatedButtonBase(QPushButton):
         self._animation_start_state = self._current_state
         self._animation_end_state = self._current_state
 
+        self._transition = QVariantAnimation(self)
+        self._transition.setDuration(self._TRANSITION_DURATION_MS)
+        self._transition.setStartValue(0.0)
+        self._transition.setEndValue(1.0)
+        self._transition.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._transition.valueChanged.connect(
+            self._on_transition_value_changed
+        )
+
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setAutoDefault(False)
@@ -97,15 +106,6 @@ class AnimatedButtonBase(QPushButton):
             QSizePolicy.Policy.Fixed,
         )
         self._sync_minimum_width()
-
-        self._transition = QVariantAnimation(self)
-        self._transition.setDuration(self._TRANSITION_DURATION_MS)
-        self._transition.setStartValue(0.0)
-        self._transition.setEndValue(1.0)
-        self._transition.setEasingCurve(QEasingCurve.Type.InOutCubic)
-        self._transition.valueChanged.connect(
-            self._on_transition_value_changed
-        )
 
         self._apply_visual_state(self._current_state)
 
@@ -186,9 +186,18 @@ class AnimatedButtonBase(QPushButton):
             QEvent.Type.ApplicationPaletteChange,
             QEvent.Type.StyleChange,
         ):
+            if event.type() == QEvent.Type.EnabledChange:
+                self._is_hovered = self.isEnabled() and self.underMouse()
+                self._is_pressed = self.isEnabled() and self.isDown()
             self._refresh_visual_state(animated=False)
 
         super().changeEvent(event)
+
+    def hideEvent(self, a0) -> None:
+        self._is_hovered = False
+        self._is_pressed = False
+        self._refresh_visual_state(animated=False)
+        super().hideEvent(a0)
 
     def _on_transition_value_changed(self, value: float) -> None:
         blended_state = ButtonVisualState(
@@ -214,6 +223,11 @@ class AnimatedButtonBase(QPushButton):
     def _refresh_visual_state(self, animated: bool = True) -> None:
         target_state = self._target_state()
         if self._states_equal(self._current_state, target_state):
+            # A leave event can arrive before the first hover animation frame.
+            # Cancel the obsolete destination even when no repaint is needed.
+            self._transition.stop()
+            self._animation_start_state = target_state
+            self._animation_end_state = target_state
             return
 
         if not animated:

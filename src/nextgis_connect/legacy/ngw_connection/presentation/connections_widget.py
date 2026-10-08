@@ -18,7 +18,6 @@ from html import escape
 from typing import Optional
 
 from qgis.PyQt.QtCore import QSize, Qt, pyqtSignal
-from qgis.PyQt.QtGui import QPainter, QPen
 from qgis.PyQt.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -42,42 +41,10 @@ from nextgis_connect.legacy.ngw_connection.domain.connection import (
 from nextgis_connect.legacy.ngw_connection.presentation.connection_edit_dialog import (
     NgwConnectionEditDialog,
 )
-from nextgis_connect.ui_kit.graphics.decorator import (
-    NextgisBrandColor,
-    NextgisDecorator,
+from nextgis_connect.ui_kit.buttons.highlightable import (
+    HighlightablePushButton,
 )
 from nextgis_connect.ui_kit.icons import qgis_icon
-
-
-class HighlightablePushButton(QPushButton):
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-        self.__highlighted = False
-
-    def setHighlighted(self, highlighted: bool) -> None:
-        if self.__highlighted == highlighted:
-            return
-
-        self.__highlighted = highlighted
-        self.update()
-
-    def paintEvent(self, event) -> None:
-        super().paintEvent(event)
-
-        if not self.__highlighted:
-            return
-
-        color = NextgisDecorator.brand_color()
-        if self.isDown():
-            color = NextgisDecorator.brand_color(NextgisBrandColor.ACTIVE)
-
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-        pen = QPen(color, 2)
-        pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-        painter.setPen(pen)
-        painter.setBrush(Qt.BrushStyle.NoBrush)
-        painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 4, 4)
 
 
 class NgwConnectionsWidget(QWidget):

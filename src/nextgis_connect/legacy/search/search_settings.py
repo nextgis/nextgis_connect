@@ -28,6 +28,16 @@ class SearchSettings:
         self.__settings = QgsSettings() if settings is None else settings
 
     @property
+    def help_viewed(self) -> bool:
+        return self.__settings.value(
+            self.__group + "/helpViewed", False, type=bool
+        )
+
+    @help_viewed.setter
+    def help_viewed(self, value: bool) -> None:
+        self.__settings.setValue(self.__group + "/helpViewed", value)
+
+    @property
     def history_size(self) -> int:
         return self.__settings.value(self.__group + "/historySize", 5)
 

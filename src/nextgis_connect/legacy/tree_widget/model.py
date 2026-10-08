@@ -167,6 +167,7 @@ class ResourceTreeLoadingIndicatorRenderer(LoadingIndicatorRenderer):
 
 
 class NGWResourceModelResponse(QObject):
+    search_completed = pyqtSignal()
     delete_preview_loaded = pyqtSignal(object)
     done = pyqtSignal(QModelIndex)
     failed = pyqtSignal(object)
@@ -688,6 +689,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.__not_permitted_resources = set()
 
         self._found_resources_id = []
+        self._search_job: Optional[NGWResourcesModelJob] = None
 
         self.__indexes_locked_by_jobs = {}
         self.__indexes_locked_by_job_errors = {}
@@ -914,7 +916,9 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         job.started.connect(self.__jobStartedProcess)
         job.statusChanged.connect(self.__jobStatusChangedProcess)
         job.finished.connect(self.__jobFinishedProcess)
-        job.errorOccurred.connect(self.__jobErrorOccurredProcess)
+        job.errorOccurred.connect(
+            functools.partial(self.__jobErrorOccurredProcess, job)
+        )
         job.warningOccurred.connect(self.__jobWarningOccurredProcess)
 
         self.jobs.append(job)
@@ -980,8 +984,7 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         self.jobs.remove(job)
         job.deleteLater()
 
-    def __jobErrorOccurredProcess(self, error):
-        job = cast(NGWResourcesModelJob, self.sender())
+    def __jobErrorOccurredProcess(self, job: NGWResourcesModelJob, error):
         self.__add_fetch_retry_action(job, error)
         self.errorOccurred.emit(job.getJobId(), job.getJobUuid(), error)
 
@@ -1207,6 +1210,11 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         if job.error() is not None:
             return
 
+        if job_result.found_resources is not None:
+            if job is not self._search_job:
+                return
+            self._search_job = None
+
         if job.model_response is not None:
             job.model_response.uploaded_layers = list(
                 job_result.uploaded_layer_resources
@@ -1357,6 +1365,8 @@ class QNGWResourceTreeModelBase(QAbstractItemModel):
         if job_result.found_resources is not None:
             self.found_resources_changed.emit(job_result.found_resources)
             self._found_resources_id = job_result.found_resources
+            if job.model_response is not None:
+                job.model_response.search_completed.emit()
 
         self.__not_permitted_resources.update(
             job_result.not_permitted_resources
@@ -1760,9 +1770,11 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
             search_string,
             self.__collect_populated_resources(),
         )
-        return self._startJob(worker)
+        self._search_job = self._startJob(worker)
+        return self._search_job
 
     def reset_search(self) -> None:
+        self._search_job = None
         self.found_resources_changed.emit([])
         self._found_resources_id = []
 

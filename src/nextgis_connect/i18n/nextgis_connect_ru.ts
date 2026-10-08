@@ -2347,13 +2347,22 @@ If a layer contains important changes that were not sent to the server, they wil
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4706"/>
-        <source>By name</source>
-        <translation>По названию</translation>
+        <source>By expression</source>
+        <translation>По выражению</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4713"/>
         <source>By metadata</source>
         <translation>По метаданным</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4834"/>
+        <source>By resource type</source>
+        <translation>По типу ресурса</translation>
+    </message>
+    <message>
+        <source>Search criteria changed. Press Search to update the results.</source>
+        <translation>Критерии поиска изменены. Нажмите «Поиск», чтобы обновить результаты.</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4720"/>
@@ -2688,9 +2697,9 @@ If a layer contains important changes that were not sent to the server, they wil
         <translation>Файл NGFP скачан</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4725"/>
-        <source>Show resource search by name or metadata</source>
-        <translation>Показать поиск ресурсов по имени или метаданным</translation>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4851"/>
+        <source>Show resource search by name, metadata, or type</source>
+        <translation>Показать поиск ресурсов по имени, метаданным или типу</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="359"/>
@@ -4512,6 +4521,49 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
 </context>
 <context>
+    <name>ResourceTypeSearchWidget</name>
+    <message><source>Selected resource types</source><translation>Выбранные типы ресурсов</translation></message>
+    <message>
+        <source>Other resources</source>
+        <translation>Прочие ресурсы</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="68"/>
+        <source>Resource type…</source>
+        <translation>Тип ресурса…</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="64"/>
+        <source>Select one or more resource types</source>
+        <translation>Выберите один или несколько типов ресурсов</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="80"/>
+        <source>Clear selected resource types</source>
+        <translation>Очистить выбранные типы ресурсов</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="109"/>
+        <source>Loading resource types…</source>
+        <translation>Загрузка типов ресурсов…</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="192"/>
+        <source>No resource types available</source>
+        <translation>Нет доступных типов ресурсов</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="208"/>
+        <source>No active connection</source>
+        <translation>Нет активного подключения</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="215"/>
+        <source>Unable to load resource types</source>
+        <translation>Не удалось загрузить типы ресурсов</translation>
+    </message>
+</context>
+<context>
     <name>RootResourceAccessCheck</name>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="50"/>
@@ -4726,9 +4778,13 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 <context>
     <name>TextSearchLineEdit</name>
     <message>
+        <source>Search help</source>
+        <translation>Справка по поиску</translation>
+    </message>
+    <message>
         <location filename="../legacy/search/text_search_line_edit.py" line="55"/>
-        <source>Resource name…</source>
-        <translation>Название ресурса…</translation>
+        <source>Search request...</source>
+        <translation>Поисковый запрос...</translation>
     </message>
     <message>
         <location filename="../legacy/search/text_search_line_edit.py" line="174"/>
@@ -5122,6 +5178,68 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
         <location filename="../plugin/plugin_container.py" line="399"/>
         <source>About plugin...</source>
         <translation>О модуле...</translation>
+    </message>
+</context>
+<context>
+    <name>SearchTagDelegate</name>
+    <message><source>by resource id</source><translation>по ID ресурса</translation></message>
+    <message><source>by parent resource id</source><translation>по ID родителя</translation></message>
+    <message><source>by root resource id</source><translation>по ID корневого ресурса</translation></message>
+    <message><source>by owner</source><translation>по владельцу</translation></message>
+    <message><source>by resource type</source><translation>по типу ресурса</translation></message>
+    <message><source>by resource name</source><translation>по названию ресурса</translation></message>
+    <message><source>by keyname</source><translation>по ключу</translation></message>
+    <message><source>by metadata</source><translation>по метаданным</translation></message>
+</context>
+<context>
+    <name>SearchHelpOverlay</name>
+    <message>
+        <source>Open the search mode menu using the highlighted arrow.</source>
+        <translation>Откройте меню режимов поиска с помощью выделенной стрелки.</translation>
+    </message>
+    <message>
+        <source>Search help</source>
+        <translation>Справка по поиску</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Resource name&lt;/b&gt;&lt;br&gt;Enter a name or part of a name. Enclose it in quotation marks for an exact match. Results are highlighted in bold in the resource tree.</source>
+        <translation>&lt;b&gt;Название ресурса&lt;/b&gt;&lt;br&gt;Введите название или его часть. Для точного совпадения заключите название в кавычки. Результаты выделяются жирным шрифтом в дереве ресурсов.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Filters&lt;/b&gt;&lt;br&gt;Use &lt;b&gt;&lt;code&gt;@id&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@owner&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@type&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@name&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@keyname&lt;/code&gt;&lt;/b&gt; and &lt;b&gt;&lt;code&gt;@metadata&lt;/code&gt;&lt;/b&gt;.</source>
+        <translation>&lt;b&gt;Фильтры&lt;/b&gt;&lt;br&gt;Используйте &lt;b&gt;&lt;code&gt;@id&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@owner&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@type&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@name&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@keyname&lt;/code&gt;&lt;/b&gt; и &lt;b&gt;&lt;code&gt;@metadata&lt;/code&gt;&lt;/b&gt;.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Resource URL&lt;/b&gt;&lt;br&gt;Paste a resource URL from any Web GIS. A link to another Web GIS lets you switch to its connection or create one. Root resource example:</source>
+        <translation>&lt;b&gt;Ссылка на ресурс&lt;/b&gt;&lt;br&gt;Вставьте ссылку на ресурс любой Веб ГИС. Ссылка на другую Веб ГИС позволяет переключиться на её подключение или создать новое. Пример для корневого ресурса:</translation>
+    </message>
+    <message>
+        <source>Combine conditions with &lt;b&gt;AND&lt;/b&gt; or &lt;b&gt;OR&lt;/b&gt;, but do not mix them in one request. Use &lt;b&gt;LIKE&lt;/b&gt; for a case-sensitive match and &lt;b&gt;ILIKE&lt;/b&gt; for a case-insensitive match; &lt;b&gt;&lt;code&gt;%&lt;/code&gt;&lt;/b&gt; matches any number of characters and &lt;b&gt;&lt;code&gt;_&lt;/code&gt;&lt;/b&gt; matches one character.</source>
+        <translation>Объединяйте условия с помощью &lt;b&gt;AND&lt;/b&gt; или &lt;b&gt;OR&lt;/b&gt;, но не смешивайте их в одном запросе. &lt;b&gt;LIKE&lt;/b&gt; ищет с учётом регистра, а &lt;b&gt;ILIKE&lt;/b&gt; — без учёта регистра; &lt;b&gt;&lt;code&gt;%&lt;/code&gt;&lt;/b&gt; означает любое количество символов, а &lt;b&gt;&lt;code&gt;_&lt;/code&gt;&lt;/b&gt; — один символ.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt; finds direct child resources; &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt; also includes all nested resources.</source>
+        <translation>&lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt; ищет непосредственно дочерние ресурсы; &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt; включает также все вложенные ресурсы.</translation>
+    </message>
+    <message>
+        <source>Select a connection to see its URL.</source>
+        <translation>Выберите подключение, чтобы увидеть его адрес.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Suggestions and history&lt;/b&gt;&lt;br&gt;Suggestions help select filters and values. Previous requests are available in search history.</source>
+        <translation>&lt;b&gt;Подсказки и история&lt;/b&gt;&lt;br&gt;Подсказки помогут выбрать фильтры и значения. Предыдущие запросы доступны в истории поиска.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Other search modes&lt;/b&gt;&lt;br&gt;Search by metadata or resource type using the search mode menu.</source>
+        <translation>&lt;b&gt;Другие режимы поиска&lt;/b&gt;&lt;br&gt;Используйте меню режимов поиска для поиска по метаданным или типу ресурса.</translation>
+    </message>
+    <message>
+        <source>Press &lt;b&gt;Enter&lt;/b&gt; or the &lt;b&gt;search button&lt;/b&gt; to apply the request.</source>
+        <translation>Нажмите &lt;b&gt;Enter&lt;/b&gt; или &lt;b&gt;кнопку поиска&lt;/b&gt;, чтобы применить запрос.</translation>
+    </message>
+    <message>
+        <source>Full documentation</source>
+        <translation>Полная документация</translation>
     </message>
 </context>
 </TS>

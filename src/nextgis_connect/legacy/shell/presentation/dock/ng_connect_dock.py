@@ -78,6 +78,7 @@ from qgis.PyQt.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSizePolicy,
+    QToolButton,
     QVBoxLayout,
 )
 from qgis.PyQt.QtXml import QDomDocument
@@ -257,6 +258,7 @@ from nextgis_connect.ui_kit.icons import (
     plugin_icon_file_path,
     qgis_icon,
 )
+from nextgis_connect.ui_kit.widgets.information_notice import InformationNotice
 
 HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
 if HAS_NGSTD:
@@ -492,6 +494,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__show_connection_switch_menu
         )
         self.content.layout().insertWidget(0, self.main_tool_bar)
+        search_mode_button = self.main_tool_bar.widgetForAction(
+            self.search_action
+        )
+        if isinstance(search_mode_button, QToolButton):
+            self.search_panel.set_search_mode_button(search_mode_button)
 
         self.resource_model = QNGWResourceTreeModel(self)
         self.resource_model.errorOccurred.connect(self.__model_error_process)
@@ -585,6 +592,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # ngw resources view
         self.resources_tree_view = QNGWResourceTreeView(self)
+        search_help_host = self.resources_tree_view.viewport()
+        assert search_help_host is not None
+        self.search_panel.set_help_host(search_help_host)
         self.resources_tree_view.setModel(self.proxy_model)
         self.__resource_tree_branch_controller = ResourceTreeBranchController(
             self.resources_tree_view
@@ -624,6 +634,18 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.__create_web_gis_button.hide()
         self.content.layout().addWidget(self.__create_web_gis_button)
+
+        self.__pending_search_notice = InformationNotice(
+            self.tr(
+                "Search criteria changed. Press Search to update the results."
+            ),
+            self.content,
+        )
+        self.__pending_search_notice.hide()
+        self.content.layout().addWidget(self.__pending_search_notice)
+        self.search_panel.criteria_pending.connect(
+            self.__pending_search_notice.setVisible
+        )
 
         self.__add_banner()
 
@@ -2095,6 +2117,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if not state:
             self.resource_model.reset_search()
             self.__clear_search_connection_target()
+            self.search_panel.mark_search_reset()
         else:
             self.search_panel.clear()
             self.search_panel.focus()
@@ -4817,7 +4840,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         settings = SearchSettings()
         last_type = settings.last_used_type
 
-        by_name_action = menu.addAction(self.tr("By name"))
+        by_name_action = menu.addAction(self.tr("By expression"))
         search_type_group.addAction(by_name_action)
         by_name_action.setData(SearchType.ByDisplayName)
         by_name_action.setCheckable(True)
@@ -4831,13 +4854,24 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         by_metadata_action.setChecked(last_type == SearchType.ByMetadata)
         by_metadata_action.triggered.connect(self.__on_search_type_changed)
 
+        by_resource_type_action = menu.addAction(self.tr("By resource type"))
+        search_type_group.addAction(by_resource_type_action)
+        by_resource_type_action.setData(SearchType.ByResourceType)
+        by_resource_type_action.setCheckable(True)
+        by_resource_type_action.setChecked(
+            last_type == SearchType.ByResourceType
+        )
+        by_resource_type_action.triggered.connect(
+            self.__on_search_type_changed
+        )
+
         self.search_action = QAction(
             plugin_icon("actions/filter.svg"),
             self.tr("Search"),
             self,
         )
         self.search_action.setToolTip(
-            self.tr("Show resource search by name or metadata")
+            self.tr("Show resource search by name, metadata, or type")
         )
         self.search_action.setCheckable(True)
         self.search_action.triggered.connect(self.__toggle_filter)
@@ -4900,11 +4934,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resource_model.reset_search()
         self.resources_tree_view.set_search_empty(False)
         self.__clear_search_connection_target()
+        self.search_panel.mark_search_reset()
 
     def __start_search(self, search_string: str) -> None:
         self.__clear_search_connection_target()
         self.resources_tree_view.set_search_empty(False)
-        self.resource_model.search(search_string)
+        query = self.search_panel.current_query()
+        response = self.resource_model.search(search_string)
+        if response is not None:
+            self.search_panel.track_search(response, query)
 
     def __show_search_connection_target(
         self,
@@ -4913,6 +4951,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
     ) -> None:
         self.resource_model.reset_search()
         self.__pending_search_string = search_string
+        self.search_panel.mark_search_reset()
         self.__search_connection_target = search_connection_target
 
         connection = search_connection_target.connection
@@ -4983,6 +5022,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __hide_search_after_connection_problem(self) -> None:
         self.resource_model.reset_search()
+        self.search_panel.mark_search_reset()
         self.resources_tree_view.set_search_empty(False)
         self.__clear_search_connection_target()
         self.search_action.setChecked(False)

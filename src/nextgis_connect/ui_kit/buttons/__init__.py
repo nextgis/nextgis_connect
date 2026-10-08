@@ -15,12 +15,15 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 from .cancel import CancelButton
+from .highlightable import HighlightablePushButton, HighlightableToolButton
 from .primary import PrimaryButton
 from .secondary import SecondaryButton
 from .shining import ShiningButton
 
 __all__ = [
     "CancelButton",
+    "HighlightablePushButton",
+    "HighlightableToolButton",
     "PrimaryButton",
     "SecondaryButton",
     "ShiningButton",
