@@ -14,8 +14,6 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-import json
-import shutil
 import sqlite3
 from contextlib import closing
 from copy import deepcopy
@@ -25,18 +23,14 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Dict,
-    Iterable,
     List,
     Optional,
     Set,
-    Tuple,
     Union,
-    cast,
 )
 
 from qgis.core import (
     QgsFeature,
-    QgsFeatureRequest,
     QgsField,
     QgsMemoryProviderUtils,
     QgsVectorLayer,
@@ -44,6 +38,13 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QObject, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtWidgets import QMessageBox
 
+from nextgis_connect.legacy.detached_editing.change_journal import (
+    DetachedChangeJournal,
+)
+from nextgis_connect.legacy.detached_editing.change_tracker import (
+    DetachedChangeTracker,
+    ExtensionChanges,
+)
 from nextgis_connect.legacy.detached_editing.container.editing.commands.attachment_add import (
     AttachmentAddCommand,
 )
@@ -62,12 +63,6 @@ from nextgis_connect.legacy.detached_editing.detached_layer_edit_buffer import (
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
     DetachedStorageServiceFactory,
 )
-from nextgis_connect.legacy.detached_editing.sync.common.serialization import (
-    deserialize_value,
-    serialize_geometry,
-    serialize_value,
-    simplify_value,
-)
 from nextgis_connect.legacy.detached_editing.utils import (
     AttachmentMetadata,
     DetachedContainerMetaData,
@@ -79,22 +74,16 @@ from nextgis_connect.legacy.detached_editing.utils import (
 from nextgis_connect.legacy.ngw.qgis.qgis_ngw_connection import (
     QgsNgwConnection,
 )
-from nextgis_connect.legacy.ngw.resources.ngw_field import FieldId
 from nextgis_connect.platform.logging import logger
 from nextgis_connect.platform.qgis.compat import (
     QgsAttributeList,
-    QgsChangedAttributesMap,
     QgsFeatureId,
-    QgsFeatureIds,
-    QgsFeatureList,
-    QgsGeometryMap,
 )
 from nextgis_connect.platform.qgis.errors import (
     ContainerError,
     DetachedEditingError,
     ErrorCode,
 )
-from nextgis_connect.platform.qgis.utils import wrap_sql_value
 from nextgis_connect.shared.types import (
     AttachmentId,
     FileObjectId,
@@ -118,10 +107,6 @@ class DetachedLayer(QObject):
     __is_structure_changed: bool
     __is_layer_changed: bool
     __errors: List[ContainerError]
-
-    __updated_attributes: Dict[Tuple[QgsFeatureId, FieldId], Any]
-    __updated_geometries: Dict[QgsFeatureId, str]
-    __deleted_features: Dict[QgsFeatureId, QgsFeature]
 
     editing_started = pyqtSignal(name="editingStarted")
     editing_finished = pyqtSignal(name="editingFinished")
@@ -149,11 +134,12 @@ class DetachedLayer(QObject):
         self.__edit_buffer = None
         self.__commands = []  # Keep increased reference count of commands
         self.__errors = []
+        self.__journal_failed = False
 
         self.__fix_source_if_needed()
         self.__apply_required_constraints()
 
-        self.__reset_backup()
+        self.__tracker = DetachedChangeTracker(container.metadata, self)
 
         self.__qgs_layer.editingStarted.connect(self.__start_listen_changes)
         self.__qgs_layer.editingStopped.connect(self.__stop_listen_changes)
@@ -650,18 +636,19 @@ class DetachedLayer(QObject):
     def __start_listen_changes(self) -> None:
         metadata = self.__container.metadata
         logger.debug(f"Start listening changes in layer {metadata}")
+        self.__tracker.metadata = metadata
 
         self.__qgs_layer.committedFeaturesAdded.connect(
-            self.__log_added_features
+            self.__tracker.added_features
         )
         self.__qgs_layer.committedFeaturesRemoved.connect(
-            self.__log_removed_features
+            self.__tracker.removed_features
         )
         self.__qgs_layer.committedAttributeValuesChanges.connect(
-            self.__log_attribute_values_changes
+            self.__tracker.changed_attributes
         )
         self.__qgs_layer.committedGeometriesChanges.connect(
-            self.__log_geometry_changes
+            self.__tracker.changed_geometries
         )
 
         self.__qgs_layer.committedAttributesAdded.connect(
@@ -672,6 +659,7 @@ class DetachedLayer(QObject):
         )
 
         self.__qgs_layer.beforeCommitChanges.connect(self.__create_backup)
+        self.__qgs_layer.beforeRollBack.connect(self.__on_rollback)
         self.__qgs_layer.afterCommitChanges.connect(self.__clear)
 
         self.__edit_buffer = DetachedLayerEditBuffer(self)
@@ -680,17 +668,22 @@ class DetachedLayer(QObject):
 
     @pyqtSlot()
     def __stop_listen_changes(self) -> None:
+        # rollBack(False) emits editingStopped but retains the edit buffer
+        # and undo stack. Keep tracking subsequent edits and redo commands.
+        if self.__qgs_layer.isEditable():
+            return
+
         self.__qgs_layer.committedFeaturesAdded.disconnect(
-            self.__log_added_features
+            self.__tracker.added_features
         )
         self.__qgs_layer.committedFeaturesRemoved.disconnect(
-            self.__log_removed_features
+            self.__tracker.removed_features
         )
         self.__qgs_layer.committedAttributeValuesChanges.disconnect(
-            self.__log_attribute_values_changes
+            self.__tracker.changed_attributes
         )
         self.__qgs_layer.committedGeometriesChanges.disconnect(
-            self.__log_geometry_changes
+            self.__tracker.changed_geometries
         )
 
         self.__qgs_layer.committedAttributesAdded.disconnect(
@@ -701,8 +694,10 @@ class DetachedLayer(QObject):
         )
 
         self.__qgs_layer.beforeCommitChanges.disconnect(self.__create_backup)
+        self.__qgs_layer.beforeRollBack.disconnect(self.__on_rollback)
         self.__qgs_layer.afterCommitChanges.disconnect(self.__clear)
 
+        self.__emit_errors()
         self.__clear()
         self.__edit_buffer = None
 
@@ -713,542 +708,11 @@ class DetachedLayer(QObject):
 
     @pyqtSlot()
     def __clear(self) -> None:
-        self.__edit_buffer.clear()
+        self.__edit_buffer.clear(
+            discard_staged_files=not self.__journal_failed
+        )
         self.__commands = []
-        self.__reset_backup()
-
-    @pyqtSlot(str, "QgsFeatureList")
-    def __log_added_features(self, _: str, features: QgsFeatureList) -> None:
-        ng_error = None
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                added_fids = ",".join(
-                    map(lambda feature: f"({feature.id()})", features)
-                )
-                cursor.executescript(
-                    f"""
-                    INSERT INTO ngw_features_metadata (fid) VALUES {added_fids};
-                    INSERT INTO ngw_added_features (fid) VALUES {added_fids};
-                    """
-                )
-
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create adding changes records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(f"Added {len(features)} features in layer {metadata}")
-
-        self.__is_layer_changed = True
-
-    @pyqtSlot(str, "QgsFeatureIds")
-    def __log_removed_features(
-        self, _: str, removed_feature_ids: QgsFeatureIds
-    ) -> None:
-        ng_error = None
-
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                # Delete added feature fids
-                removed_not_uploaded_fids = (
-                    self.__extract_intersection_with_added_fids(
-                        cursor, removed_feature_ids
-                    )
-                )
-                self.__remove_features_metadata(
-                    cursor, removed_not_uploaded_fids
-                )
-
-                # Synchronized features
-                removed_uploaded_fids = set(removed_feature_ids) - set(
-                    removed_not_uploaded_fids
-                )
-                self.__add_remove_records(cursor, removed_uploaded_fids)
-
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create deletion changes records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Removed {len(removed_feature_ids)} features in layer {metadata}"
-        )
-
-        self.__is_layer_changed = True
-
-    @pyqtSlot(str, "QgsChangedAttributesMap")
-    def __log_attribute_values_changes(
-        self, _: str, changed_attributes: QgsChangedAttributesMap
-    ) -> None:
-        ng_error = None
-        feature_ids = set()
-
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                feature_ids = set(changed_attributes.keys())
-                added_fids_intersection = (
-                    self.__extract_intersection_with_added_fids(
-                        cursor, feature_ids
-                    )
-                )
-                changed_fids = set(feature_ids) - set(added_fids_intersection)
-                if len(changed_fids) > 0:
-                    cursor.executemany(
-                        """
-                        INSERT INTO ngw_updated_attributes (fid, attribute, backup)
-                        VALUES (?, ?, ?)
-                        ON CONFLICT DO NOTHING;
-                        """,
-                        (
-                            (
-                                fid,
-                                attribute,
-                                self.__updated_attributes[(fid, attribute)],
-                            )
-                            for fid in changed_fids
-                            for attribute in changed_attributes[fid]
-                        ),
-                    )
-                    connection.commit()
-
-        except Exception as error:
-            message = "Can't create values changes records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Updated attributes for {len(feature_ids)} features in layer "
-            f"{metadata}"
-        )
-
-        self.__is_layer_changed = True
-
-    @pyqtSlot(str, "QgsGeometryMap")
-    def __log_geometry_changes(
-        self, _: str, changed_geometries: QgsGeometryMap
-    ) -> None:
-        ng_error = None
-
-        feature_ids: QgsFeatureIds = set()
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                feature_ids = set(changed_geometries.keys())
-                added_fids_intersection = (
-                    self.__extract_intersection_with_added_fids(
-                        cursor, feature_ids
-                    )
-                )
-                changed_fids = set(feature_ids) - set(added_fids_intersection)
-                if len(changed_fids) > 0:
-                    cursor.executemany(
-                        """
-                        INSERT INTO ngw_updated_geometries (fid, backup)
-                        VALUES (?, ?)
-                        ON CONFLICT DO NOTHING;
-                        """,
-                        (
-                            (fid, self.__updated_geometries[fid])
-                            for fid in changed_fids
-                        ),
-                    )
-                    connection.commit()
-
-        except Exception as error:
-            message = "Can't create geometry changes records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Updated geometries for {len(feature_ids)} features in layer "
-            f"{metadata}"
-        )
-
-        self.__is_layer_changed = True
-
-    @pyqtSlot()
-    def __log_extensions(self) -> None:
-        self.__log_description_changes()
-        self.__log_added_attachments()
-        self.__log_removed_attachments()
-        self.__log_updated_attachments()
-
-    def __log_description_changes(self) -> None:
-        if not self.__edit_buffer.has_updated_descriptions:
-            return
-
-        ng_error = None
-
-        feature_ids: QgsFeatureIds = set()
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                feature_ids = set(
-                    self.__edit_buffer.updated_descriptions.keys()
-                )
-                cursor.executemany(
-                    """
-                    INSERT INTO ngw_features_descriptions (
-                        fid, description
-                    )
-                    VALUES (?, ?)
-                    ON CONFLICT(fid) DO UPDATE SET
-                        description = ?
-                    """,
-                    (
-                        (
-                            fid,
-                            self.__edit_buffer.updated_descriptions.get(
-                                fid, ""
-                            ),
-                            self.__edit_buffer.updated_descriptions.get(
-                                fid, ""
-                            ),
-                        )
-                        for fid in feature_ids
-                    ),
-                )
-                cursor.executemany(
-                    """
-                    INSERT INTO ngw_updated_descriptions (fid, backup)
-                    VALUES (?, ?)
-                    ON CONFLICT DO NOTHING;
-                    """,
-                    (
-                        (fid, self.__description_backups.get(fid))
-                        for fid in feature_ids
-                    ),
-                )
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create description changes records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Updated descriptions for {len(feature_ids)} features in layer "
-            f"{metadata}"
-        )
-
-        self.__is_layer_changed = True
-
-    def __log_removed_attachments(self) -> None:
-        if not self.__edit_buffer.has_removed_attachments:
-            return
-
-        ng_error = None
-
-        total_removed = 0
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                for (
-                    removed_aids
-                ) in self.__edit_buffer.removed_attachments.values():
-                    if len(removed_aids) == 0:
-                        continue
-
-                    total_removed += len(removed_aids)
-                    joined_removed_aids = ",".join(map(str, removed_aids))
-                    attachments_rows = list(
-                        cursor.execute(
-                            f"""
-                            SELECT
-                                attachments.fid,
-                                metadata.ngw_fid,
-                                attachments.aid,
-                                attachments.ngw_aid,
-                                attachments.version,
-                                attachments.keyname,
-                                attachments.name,
-                                attachments.description,
-                                attachments.fileobj,
-                                attachments.mime_type,
-                                ngw_updated_attachments.backup
-                            FROM ngw_features_attachments AS attachments
-                            LEFT JOIN ngw_features_metadata AS metadata
-                                ON metadata.fid = attachments.fid
-                            LEFT JOIN ngw_updated_attachments
-                                ON ngw_updated_attachments.aid = attachments.aid
-                            WHERE attachments.aid IN ({joined_removed_aids});
-                            """
-                        )
-                    )
-
-                    remove_backups = []
-                    for row in attachments_rows:
-                        before_deletion = self.__attachment_backup_record(row)
-                        updated_backup = row[10]
-                        after_sync = before_deletion
-                        if updated_backup is not None:
-                            after_sync = json.loads(updated_backup)
-
-                        remove_backups.append(
-                            (
-                                row[2],
-                                json.dumps(
-                                    {
-                                        "after_sync": after_sync,
-                                        "before_deletion": before_deletion,
-                                    }
-                                ),
-                            )
-                        )
-
-                    cursor.executemany(
-                        """
-                        INSERT INTO ngw_removed_attachments (aid, backup)
-                        VALUES (?, ?)
-                        ON CONFLICT DO NOTHING;
-                        """,
-                        remove_backups,
-                    )
-                    cursor.execute(
-                        f"""
-                        DELETE FROM ngw_updated_attachments
-                        WHERE aid IN ({joined_removed_aids});
-                        """
-                    )
-
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create attachment removal records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Removed {total_removed} attachments in layer {metadata}"
-        )
-
-        self.__is_layer_changed = True
-
-    def __log_added_attachments(self) -> None:
-        if not self.__edit_buffer.has_added_attachments:
-            return
-
-        ng_error = None
-
-        all_added_attachments = self.__edit_buffer.added_attachments.values()
-
-        aid_mapping = {}
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                for added_attachments in all_added_attachments:
-                    for attachment in added_attachments.values():
-                        cursor.execute(
-                            """
-                            INSERT INTO ngw_features_attachments (
-                                fid,
-                                name,
-                                description,
-                                mime_type
-                            )
-                            VALUES (?, ?, ?, ?)
-                            RETURNING aid;
-                            """,
-                            (
-                                attachment.fid,
-                                attachment.name,
-                                attachment.description,
-                                attachment.mime_type,
-                            ),
-                        )
-                        new_aid = cursor.fetchone()[0]
-                        aid_mapping[attachment.aid] = new_aid
-
-                cursor.executemany(
-                    """
-                    INSERT INTO ngw_added_attachments (aid)
-                    VALUES (?);
-                    """,
-                    ((aid,) for aid in aid_mapping.values()),
-                )
-
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create attachment update records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        try:
-            for added_attachments in all_added_attachments:
-                for attachment in added_attachments.values():
-                    new_aid = aid_mapping[attachment.aid]
-                    new_path = self.attachment_path(attachment.fid, new_aid)
-                    if new_path is None:
-                        raise DetachedEditingError(
-                            f"Can't get path for new attachment {new_aid} "
-                            f"of feature {attachment.fid}.",
-                            code=ErrorCode.AttachmentNotFound,
-                        )
-
-                    assert attachment.file_path is not None
-                    new_path.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.move(attachment.file_path, new_path)
-                    DetachedStorageServiceFactory.create().register_attachment_file(
-                        self.__container.metadata.instance_id,
-                        self.__container.metadata.resource_id,
-                        new_aid,
-                        file_name=attachment.name,
-                        mime_type=attachment.mime_type,
-                        feature_local_id=int(attachment.fid),
-                        is_dirty=True,
-                    )
-
-        except Exception as error:
-            message = "Can't move added attachment files"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(f"Updated {aid_mapping} attachments in layer {metadata}")
-
-        self.__is_layer_changed = True
-
-    def __log_updated_attachments(self) -> None:
-        if not self.__edit_buffer.has_updated_attachments:
-            return
-
-        ng_error = None
-
-        total_updated = 0
-        try:
-            with closing(
-                make_connection(self.__qgs_layer)
-            ) as connection, closing(connection.cursor()) as cursor:
-                for (
-                    updated_attachments
-                ) in self.__edit_buffer.updated_attachments.values():
-                    if len(updated_attachments) == 0:
-                        continue
-
-                    total_updated += len(updated_attachments)
-
-                    updated_aids = list(updated_attachments.keys())
-                    joined_updated_aids = ",".join(map(str, updated_aids))
-                    attachments_rows = list(
-                        cursor.execute(
-                            f"""
-                            SELECT
-                                attachments.fid,
-                                metadata.ngw_fid,
-                                attachments.aid,
-                                attachments.ngw_aid,
-                                attachments.version,
-                                attachments.keyname,
-                                attachments.name,
-                                attachments.description,
-                                attachments.fileobj,
-                                attachments.mime_type
-                            FROM ngw_features_attachments AS attachments
-                            LEFT JOIN ngw_features_metadata AS metadata
-                                ON metadata.fid = attachments.fid
-                            WHERE attachments.aid IN ({joined_updated_aids});
-                            """
-                        )
-                    )
-
-                    cursor.executemany(
-                        """
-                        UPDATE ngw_features_attachments
-                        SET name = ?, description = ?
-                        WHERE aid = ?;
-                        """,
-                        (
-                            (
-                                attachment.name,
-                                attachment.description,
-                                attachment.aid,
-                            )
-                            for attachment in updated_attachments.values()
-                        ),
-                    )
-                    cursor.executemany(
-                        """
-                        INSERT INTO ngw_updated_attachments (aid, backup)
-                        VALUES (?, ?)
-                        ON CONFLICT DO NOTHING;
-                        """,
-                        (
-                            (
-                                row[2],
-                                json.dumps(
-                                    self.__attachment_backup_record(row)
-                                ),
-                            )
-                            for row in attachments_rows
-                        ),
-                    )
-
-                connection.commit()
-
-        except Exception as error:
-            message = "Can't create attachment update records"
-            ng_error = ContainerError(message)
-            ng_error.__cause__ = deepcopy(error)
-
-        if ng_error is not None:
-            self.__errors.append(ng_error)
-            return
-
-        metadata = self.__container.metadata
-        logger.debug(
-            f"Updated {total_updated} attachments in layer {metadata}"
-        )
-
-        self.__is_layer_changed = True
+        self.__tracker.clear()
 
     @pyqtSlot(str, "QList<QgsField>")
     def __on_attribute_added(
@@ -1317,441 +781,63 @@ class DetachedLayer(QObject):
 
     @pyqtSlot(bool)
     def __create_backup(self, stop_editing: bool) -> None:
-        ng_error = None
-
         try:
-            self.__create_backup_for_updated_fields()
-            self.__create_backup_for_updated_geometries()
-            self.__create_backup_for_deleted_features()
-            self.__create_backup_for_updated_descriptions()
+            self.__tracker.capture_attributes(self.__qgs_layer)
+            self.__tracker.capture_geometries(self.__qgs_layer)
+            self.__tracker.capture_deletions(self.__qgs_layer)
         except Exception as error:
             message = "Can't create backup before changes"
             ng_error = ContainerError(message)
             ng_error.__cause__ = deepcopy(error)
 
-        if ng_error is not None:
             self.__errors.append(ng_error)
 
-    def __extract_intersection_with_added_fids(
-        self, cursor: sqlite3.Cursor, feature_ids: QgsFeatureIds
-    ) -> QgsFeatureIds:
-        fetch_added_query = """
-            SELECT fid
-            FROM ngw_added_features
-            WHERE fid in ({placeholders})
-        """.format(placeholders=",".join(map(str, feature_ids)))
-        cursor.execute(fetch_added_query)
-        return set(row[0] for row in cursor.fetchall())
-
-    def __create_backup_for_updated_fields(self) -> None:
-        changed_attributes_info: QgsChangedAttributesMap = (
-            self.__qgs_layer.editBuffer().changedAttributeValues()
-        )
-        if len(changed_attributes_info) == 0:
-            return
-
-        features_before_change = cast(
-            Iterable[QgsFeature],
-            self.__qgs_layer.dataProvider().getFeatures(
-                QgsFeatureRequest(list(changed_attributes_info.keys()))
-            ),
-        )
-        self.__updated_attributes.update(
-            (
-                (feature.id(), attribute),
-                serialize_value(feature.attribute(attribute)),
-            )
-            for feature in features_before_change
-            for attribute in changed_attributes_info[feature.id()].keys()
-        )
-
-    def __create_backup_for_updated_geometries(self) -> None:
-        changed_geometries_info: QgsGeometryMap = (
-            self.__qgs_layer.editBuffer().changedGeometries()
-        )
-        if len(changed_geometries_info) == 0:
-            return
-
-        features_before_change = cast(
-            Iterable[QgsFeature],
-            self.__qgs_layer.dataProvider().getFeatures(
-                QgsFeatureRequest(list(changed_geometries_info.keys()))
-            ),
-        )
-        self.__updated_geometries.update(
-            (
-                feature.id(),
-                serialize_geometry(
-                    feature.geometry(),
-                    self.__container.metadata.is_versioning_enabled,
-                ),
-            )
-            for feature in features_before_change
-        )
-
-    def __create_backup_for_deleted_features(self) -> None:
-        deleted_features_id: QgsFeatureIds = (
-            self.__qgs_layer.editBuffer().deletedFeatureIds()
-        )
-        if len(deleted_features_id) == 0:
-            return
-
-        deleted_features = cast(
-            Iterable[QgsFeature],
-            self.__qgs_layer.dataProvider().getFeatures(
-                QgsFeatureRequest(deleted_features_id)
-            ),
-        )
-        self.__deleted_features = {
-            feature.id(): feature for feature in deleted_features
-        }
-
-    def __create_backup_for_updated_descriptions(self) -> None:
-        if (
-            self.__edit_buffer is None
-            or not self.__edit_buffer.has_updated_descriptions
-        ):
-            return
-
-        updated_descriptions = self.__edit_buffer.updated_descriptions
-
-        self.__description_backups: Dict[QgsFeatureId, str] = dict()
-
-        updated_fids = list(
-            fid
-            for fid in updated_descriptions.keys()
-            if not is_feature_new(fid)
-        )
-        joined_updated_fids = ",".join(map(str, updated_fids))
-        with closing(make_connection(self.__qgs_layer)) as connection, closing(
-            connection.cursor()
-        ) as cursor:
-            cursor.execute(
-                f"""
-                SELECT fid, description, version
-                FROM ngw_features_descriptions
-                WHERE fid IN ({joined_updated_fids});
-                """,
-            )
-            rows = cursor.fetchall()
-            self.__description_backups = {
-                row[0]: serialize_value({"value": row[1], "version": row[2]})
-                for row in rows
-            }
-
-    def __reset_backup(self) -> None:
-        self.__updated_attributes = dict()
-        self.__updated_geometries = dict()
-        self.__deleted_features = dict()
-
-    def __remove_features_metadata(
-        self, cursor: sqlite3.Cursor, fids: QgsFeatureIds
-    ) -> None:
-        if len(fids) == 0:
-            return
-
-        joined_fids = ",".join(map(str, fids))
-        cursor.executescript(
-            f"""
-            DELETE FROM ngw_features_metadata
-            WHERE fid IN ({joined_fids}) AND ngw_fid IS NULL;
-            """
-        )
-
-    def __add_remove_records(
-        self, cursor: sqlite3.Cursor, removed_fids: QgsFeatureIds
-    ) -> None:
-        if len(removed_fids) == 0:
-            return
-
-        joined_removed_fids = ",".join(map(str, removed_fids))
-        fields_backups = self.__extract_fields_backups(
-            cursor, joined_removed_fids
-        )
-        geometries_backups = self.__extract_geometries_backups(
-            cursor, joined_removed_fids
-        )
-        description_backups = self.__extract_description_backups(
-            cursor, joined_removed_fids
-        )
-        attachment_backups = self.__extract_attachment_backups(
-            cursor, joined_removed_fids
-        )
-        features_backup = self.__serialize_deletion_backup(
-            removed_fids,
-            fields_backups,
-            geometries_backups,
-            description_backups,
-            attachment_backups,
-        )
-
-        # Update records
-        removed_records = ",".join(
-            map(
-                lambda fid: "({fid}, {backup})".format(  # noqa: UP032
-                    fid=fid,
-                    backup=wrap_sql_value(json.dumps(features_backup[fid])),
-                ),
-                removed_fids,
-            )
-        )
-        script = f"""
-            INSERT INTO ngw_removed_features (fid, backup)
-                VALUES {removed_records};
-        """
-
-        if len(fields_backups) > 0:
-            script += f"""
-            DELETE FROM ngw_updated_attributes
-                WHERE fid in ({joined_removed_fids});
-            """
-        if len(geometries_backups) > 0:
-            script += f"""
-            DELETE FROM ngw_updated_geometries
-                WHERE fid in ({joined_removed_fids});
-            """
-        script += f"""
-            DELETE FROM ngw_features_attachments
-                WHERE fid in ({joined_removed_fids});
-        """
-        if len(description_backups) > 0:
-            script += f"""
-            DELETE FROM ngw_updated_descriptions
-                WHERE fid in ({joined_removed_fids});
-            DELETE FROM ngw_features_descriptions
-                WHERE fid in ({joined_removed_fids});
-            """
-
-        cursor.executescript(script)
-
-    def __extract_fields_backups(
-        self, cursor: sqlite3.Cursor, joined_fids: str
-    ) -> Dict[Tuple[QgsFeatureId, FieldId], str]:
-        return {
-            (row[0], row[1]): deserialize_value(row[2])
-            for row in cursor.execute(
-                f"""
-                SELECT fid, attribute, backup
-                FROM ngw_updated_attributes
-                WHERE fid IN ({joined_fids})
-                """
-            )
-        }
-
-    def __extract_geometries_backups(
-        self, cursor: sqlite3.Cursor, joined_fids: str
-    ) -> Dict[QgsFeatureId, str]:
-        return {
-            row[0]: row[1]
-            for row in cursor.execute(
-                f"""
-                SELECT fid, backup
-                FROM ngw_updated_geometries
-                WHERE fid IN ({joined_fids})
-                """
-            )
-        }
-
-    def __extract_description_backups(
-        self, cursor: sqlite3.Cursor, joined_fids: str
-    ) -> Dict[QgsFeatureId, Tuple[Dict[str, Any], Dict[str, Any]]]:
-        result: Dict[QgsFeatureId, Tuple[Dict[str, Any], Dict[str, Any]]] = {}
-        for row in cursor.execute(
-            f"""
-            SELECT
-                ngw_features_descriptions.fid,
-                ngw_updated_descriptions.backup,
-                ngw_features_descriptions.description,
-                ngw_features_descriptions.version
-            FROM ngw_features_descriptions
-            LEFT JOIN ngw_updated_descriptions
-                ON ngw_updated_descriptions.fid = ngw_features_descriptions.fid
-            WHERE ngw_features_descriptions.fid IN ({joined_fids})
-            """
-        ):
-            fid = row[0]
-            before_delete = {"value": row[2], "version": row[3]}
-            after_sync = before_delete
-            if row[1]:
-                after_sync = cast(Dict[str, Any], json.loads(row[1]))
-
-            result[fid] = (after_sync, before_delete)
-
-        return result
-
-    def __extract_attachment_backups(
-        self, cursor: sqlite3.Cursor, joined_fids: str
-    ) -> Dict[
-        QgsFeatureId,
-        Tuple[List[Dict[str, Any]], List[Dict[str, Any]]],
-    ]:
-        after_sync_by_fid: Dict[QgsFeatureId, List[Dict[str, Any]]] = {}
-        before_deletion_by_fid: Dict[QgsFeatureId, List[Dict[str, Any]]] = {}
-
-        for row in cursor.execute(
-            f"""
-            SELECT
-                attachments.fid,
-                metadata.ngw_fid,
-                attachments.aid,
-                attachments.ngw_aid,
-                attachments.version,
-                attachments.keyname,
-                attachments.name,
-                attachments.description,
-                attachments.fileobj,
-                attachments.mime_type,
-                ngw_updated_attachments.backup
-            FROM ngw_features_attachments AS attachments
-            LEFT JOIN ngw_features_metadata AS metadata
-                ON metadata.fid = attachments.fid
-            LEFT JOIN ngw_updated_attachments
-                ON ngw_updated_attachments.aid = attachments.aid
-            LEFT JOIN ngw_removed_attachments AS removed
-                ON removed.aid = attachments.aid
-            WHERE attachments.fid IN ({joined_fids})
-                AND removed.aid IS NULL;
-            """
-        ):
-            fid = row[0]
-            before_deletion = self.__attachment_backup_record(row[:10])
-            after_sync = before_deletion
-            if row[10] is not None:
-                after_sync = cast(Dict[str, Any], json.loads(row[10]))
-
-            if fid not in after_sync_by_fid:
-                after_sync_by_fid[fid] = []
-            after_sync_by_fid[fid].append(after_sync)
-
-            if fid not in before_deletion_by_fid:
-                before_deletion_by_fid[fid] = []
-            before_deletion_by_fid[fid].append(before_deletion)
-
-        for fid, backup in cursor.execute(
-            f"""
-            SELECT attachments.fid, removed.backup
-            FROM ngw_removed_attachments AS removed
-            LEFT JOIN ngw_features_attachments AS attachments
-                ON attachments.aid = removed.aid
-            WHERE attachments.fid IN ({joined_fids});
-            """
-        ):
-            if fid not in after_sync_by_fid:
-                after_sync_by_fid[fid] = []
-            backup_data = cast(Dict[str, Any], json.loads(backup))
-            after_sync_by_fid[fid].append(
-                cast(Dict[str, Any], backup_data["after_sync"])
-            )
-
-        result: Dict[
-            QgsFeatureId,
-            Tuple[List[Dict[str, Any]], List[Dict[str, Any]]],
-        ] = {}
-        all_fids = set(after_sync_by_fid.keys()) | set(
-            before_deletion_by_fid.keys()
-        )
-        for fid in all_fids:
-            after_sync_attachments = sorted(
-                after_sync_by_fid.get(fid, []),
-                key=lambda attachment: attachment["aid"],
-            )
-            before_deletion_attachments = sorted(
-                before_deletion_by_fid.get(fid, []),
-                key=lambda attachment: attachment["aid"],
-            )
-            result[fid] = (
-                after_sync_attachments,
-                before_deletion_attachments,
-            )
-
-        return result
-
-    def __attachment_backup_record(
-        self,
-        row: Tuple[Any, ...],
-    ) -> Dict[str, Any]:
-        return {
-            "fid": row[0],
-            "ngw_fid": row[1],
-            "aid": row[2],
-            "ngw_aid": row[3],
-            "version": serialize_value(row[4]),
-            "keyname": row[5],
-            "name": row[6],
-            "description": row[7],
-            "fileobj": serialize_value(row[8]),
-            "mime_type": row[9],
-        }
-
-    def __serialize_deletion_backup(
-        self,
-        fids: Iterable[NgwFeatureId],
-        fields_backups: Dict[Tuple[QgsFeatureId, FieldId], str],
-        geometries_backups: Dict[QgsFeatureId, str],
-        descriptions_backups: Dict[
-            QgsFeatureId, Tuple[Dict[str, Any], Dict[str, Any]]
-        ],
-        attachments_backups: Dict[
-            QgsFeatureId,
-            Tuple[List[Dict[str, Any]], List[Dict[str, Any]]],
-        ],
-    ) -> Dict[NgwFeatureId, Dict[str, Any]]:
-        result = {}
-
-        for fid in fids:
-            feature = self.__deleted_features[fid]
-
-            fields_after_sync = []
-            fields_before_deletion = []
-
-            for field in self.__container.metadata.fields:
-                value_before_deletion = simplify_value(
-                    feature.attribute(field.attribute)
-                )
-                value_after_sync = fields_backups.get(
-                    (fid, field.attribute), value_before_deletion
-                )
-                fields_after_sync.append([field.ngw_id, value_after_sync])
-                fields_before_deletion.append(
-                    [field.ngw_id, value_before_deletion]
-                )
-            description_after_sync = {}
-            description_before_deletion = {}
-            if fid in descriptions_backups:
-                description_after_sync = descriptions_backups[fid][0]
-                description_before_deletion = descriptions_backups[fid][1]
-
-            attachments_after_sync = []
-            attachments_before_deletion = []
-            if fid in attachments_backups:
-                attachments_after_sync = attachments_backups[fid][0]
-                attachments_before_deletion = attachments_backups[fid][1]
-
-            serialized_geometry = serialize_geometry(
-                feature.geometry(),
-                self.__container.metadata.is_versioning_enabled,
-            )
-            feature_record = {
-                "after_sync": {
-                    "fields": fields_after_sync,
-                    "geom": geometries_backups.get(fid, serialized_geometry),
-                    "description": description_after_sync,
-                    "attachments": attachments_after_sync,
-                },
-                "before_deletion": {
-                    "fields": fields_before_deletion,
-                    "geom": serialized_geometry,
-                    "description": description_before_deletion,
-                    "attachments": attachments_before_deletion,
-                },
-            }
-            result[fid] = feature_record
-
-        return result
-
     def __on_commit_changes(self) -> None:
-        self.__log_extensions()
+        self.__write_metadata(include_extensions=True)
 
+    @pyqtSlot()
+    def __on_rollback(self) -> None:
+        # Only provider-committed updates survive rollback, not extensions
+        # still held in the edit buffer. This also covers rollBack(False).
+        self.__write_metadata(include_extensions=False)
+        self.__tracker.clear()
+
+    def __write_metadata(self, *, include_extensions: bool) -> None:
+        self.__journal_failed = False
+        try:
+            journal = DetachedChangeJournal(
+                self.__container.path, self.metadata
+            )
+            extensions = None
+            if include_extensions and self.__edit_buffer is not None:
+                extensions = ExtensionChanges(
+                    descriptions=self.__edit_buffer.updated_descriptions,
+                    added_attachments=self.__edit_buffer.added_attachments,
+                    updated_attachments=self.__edit_buffer.updated_attachments,
+                    removed_attachments=self.__edit_buffer.removed_attachments,
+                )
+            self.__is_layer_changed = journal.write(
+                self.__tracker,
+                extensions,
+            )
+        except ContainerError as error:
+            self.__journal_failed = True
+            self.__errors.append(error)
+        except Exception as error:
+            self.__journal_failed = True
+            ng_error = ContainerError(
+                "Can't create feature changes records",
+                user_message=self.tr(
+                    "The changes could not be recorded in the synchronization "
+                    "journal. Unrecorded changes may not be synchronized."
+                ),
+            )
+            ng_error.__cause__ = deepcopy(error)
+            self.__errors.append(ng_error)
+        self.__emit_change_signals()
+        self.__emit_errors()
+
+    def __emit_change_signals(self) -> None:
         if self.__is_structure_changed:
             self.structure_changed.emit()
             self.__is_structure_changed = False
@@ -1760,10 +846,10 @@ class DetachedLayer(QObject):
             self.layer_changed.emit()
             self.__is_layer_changed = False
 
-        if self.__errors:
-            for ng_error in self.__errors:
-                self.error_occurred.emit(ng_error)
-            self.__errors.clear()
+    def __emit_errors(self) -> None:
+        for ng_error in self.__errors:
+            self.error_occurred.emit(ng_error)
+        self.__errors.clear()
 
     def __attachment_path(
         self, attachment: AttachmentMetadata

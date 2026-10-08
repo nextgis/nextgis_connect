@@ -202,10 +202,11 @@ class DetachedLayerEditBuffer(QObject):
         return self._removed_attachments
 
     @pyqtSlot()
-    def clear(self) -> None:
-        """Clear all changes."""
-        for attachment in self._staged_attachments.values():
-            self._remove_staged_attachment_file(attachment)
+    def clear(self, *, discard_staged_files: bool = True) -> None:
+        """Clear changes, retaining staged originals if journal writing failed."""
+        if discard_staged_files:
+            for attachment in self._staged_attachments.values():
+                self._remove_staged_attachment_file(attachment)
 
         self._updated_descriptions.clear()
         self._added_attachments.clear()
