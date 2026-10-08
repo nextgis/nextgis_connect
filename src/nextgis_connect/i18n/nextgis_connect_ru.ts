@@ -724,6 +724,14 @@ Editing may break existing references.</source>
     </message>
 </context>
 <context>
+    <name>DescriptionTab</name>
+    <message>
+        <location filename="../legacy/detached_editing/identification/ui/description_tab.py" line="144"/>
+        <source>No description yet</source>
+        <translation>Описания пока нет</translation>
+    </message>
+</context>
+<context>
     <name>DescriptionConflictTab</name>
     <message>
         <location filename="../legacy/detached_editing/conflicts/ui/description_conflict_tab.py" line="59"/>
@@ -5118,7 +5126,7 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
 </context>
 <context>
-    <name>_Layout</name>
+    <name>AttachmentDelegate</name>
     <message>
         <location filename="../features/synchronization/presentation/attachments/attachment_delegate.py" line="450"/>
         <source>Download and Open</source>
