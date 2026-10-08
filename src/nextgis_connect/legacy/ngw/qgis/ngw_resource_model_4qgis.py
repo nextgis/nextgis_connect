@@ -1461,6 +1461,9 @@ class QGISResourcesUploader(QGISResourceJob):
         self.qgs_layer_tree_nodes = qgs_layer_tree_nodes
         self.parent_group_resource = parent_group_resource
         self.iface = iface
+        self._layers_total = 0
+        self._processed_layers = 0
+        self._current_layer_number: Optional[int] = None
 
     def _do(self):
         self._raise_if_canceled()
@@ -1476,6 +1479,7 @@ class QGISResourcesUploader(QGISResourceJob):
 
         ngw_webmap_root_group = NGWWebMapRoot()
         ngw_webmap_basemaps = []
+        self._initialize_layer_progress()
         self.process_one_level_of_layers_tree(
             self.qgs_layer_tree_nodes,
             self.parent_group_resource,
@@ -1599,6 +1603,34 @@ class QGISResourcesUploader(QGISResourceJob):
             elif isinstance(node, QgsLayerTreeLayer):
                 collect_value_relations(node)
 
+    def _initialize_layer_progress(self) -> None:
+        self._layers_total = self._uploadable_layers_count(
+            self.qgs_layer_tree_nodes
+        )
+        self._processed_layers = 0
+        self._current_layer_number = None
+
+    def _uploadable_layers_count(self, nodes: List[QgsLayerTreeNode]) -> int:
+        count = 0
+        for node in nodes:
+            if isinstance(node, QgsLayerTreeLayer):
+                layer = node.layer()
+                if (
+                    layer is not None
+                    and self.isSuitableLayer(layer) == self.SUITABLE_LAYER
+                ):
+                    count += 1
+            elif isinstance(node, QgsLayerTreeGroup):
+                count += self._uploadable_layers_count(node.children())
+
+        return count
+
+    def _layer_status(self, layer_name, status):
+        if self._current_layer_number is not None and self._layers_total > 1:
+            status += f"\n({self._current_layer_number}/{self._layers_total})"
+
+        super()._layer_status(layer_name, status)
+
     def process_one_level_of_layers_tree(
         self,
         qgs_layer_tree_nodes,
@@ -1615,12 +1647,17 @@ class QGISResourcesUploader(QGISResourceJob):
                     continue
                 layer = node.layer()
                 assert layer is not None
-                self.add_layer(
-                    ngw_resource_group,
-                    node,
-                    ngw_webmap_item,
-                    ngw_webmap_basemaps,
-                )
+                self._processed_layers += 1
+                self._current_layer_number = self._processed_layers
+                try:
+                    self.add_layer(
+                        ngw_resource_group,
+                        node,
+                        ngw_webmap_item,
+                        ngw_webmap_basemaps,
+                    )
+                finally:
+                    self._current_layer_number = None
             else:
                 self.add_group(
                     ngw_resource_group,
@@ -1940,6 +1977,7 @@ class QGISProjectUploader(QGISResourcesUploader):
 
         ngw_webmap_root_group = NGWWebMapRoot()
         ngw_webmap_basemaps = []
+        self._initialize_layer_progress()
         self.process_one_level_of_layers_tree(
             self.qgs_layer_tree_nodes,
             ngw_group_resource,
