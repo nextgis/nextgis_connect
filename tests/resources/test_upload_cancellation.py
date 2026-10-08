@@ -18,7 +18,12 @@ from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-from qgis.core import QgsApplication, QgsRasterBlockFeedback
+from qgis.core import (
+    QgsApplication,
+    QgsLayerTreeGroup,
+    QgsRasterBlockFeedback,
+    QgsVectorLayer,
+)
 
 from nextgis_connect.legacy.ngw.qgis.ngw_resource_model_4qgis import (
     NGWUpdateRasterLayer,
@@ -48,6 +53,34 @@ def test_upload_jobs_are_cancelable(qgis_app: QgsApplication) -> None:
         assert job._feedback is not None
         assert job._feedback.isCanceled()
         assert isinstance(job._feedback, QgsRasterBlockFeedback)
+
+
+def test_upload_status_shows_current_layer_counter(
+    qgis_app: QgsApplication,
+) -> None:
+    del qgis_app
+
+    first_layer = QgsVectorLayer("Point?crs=EPSG:4326", "First", "memory")
+    second_layer = QgsVectorLayer("Point?crs=EPSG:4326", "Second", "memory")
+    root = QgsLayerTreeGroup("Root")
+    root.addLayer(first_layer)
+    root.addGroup("Nested").addLayer(second_layer)
+
+    job = QGISResourcesUploader(root.children(), Mock(), Mock())
+    statuses = []
+    job.statusChanged.connect(statuses.append)
+    job._initialize_layer_progress()
+    job._current_layer_number = 1
+
+    job._layer_status("First", "uploading (50%)")
+    job._current_layer_number = None
+    job._layer_status("Project", "creating")
+
+    assert job._layers_total == 2
+    assert statuses == [
+        '"First" - uploading (50%)\n(1/2)',
+        '"Project" - creating',
+    ]
 
 
 def test_project_upload_skips_webmap_after_cancellation(
