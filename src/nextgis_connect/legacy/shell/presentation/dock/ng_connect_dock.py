@@ -30,6 +30,7 @@ from typing import Callable, Dict, List, Optional, Set, Tuple, cast
 from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
+    QgsApplication,
     QgsFileUtils,
     QgsLayerTreeGroup,
     QgsLayerTreeLayer,
@@ -55,6 +56,7 @@ from qgis.PyQt.QtCore import (
     QItemSelectionModel,
     QMimeData,
     QModelIndex,
+    QPersistentModelIndex,
     QPoint,
     Qt,
     QTemporaryFile,
@@ -327,6 +329,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.iface = iface
 
         self._first_gui_block_on_refresh = False
+        self.__cut_resource: Optional[NGWResource] = None
+        self.__cut_token = b""
         self.__cancelable_job_ids: List[str] = []
         self.__active_resource_importer: Optional[
             QgisResourceBatchImporter
@@ -577,6 +581,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "QGISStyleUpdater": self.tr("Creating style for a layer..."),
             "QGISStyleAdder": self.tr("Creating style for a layer..."),
             "NGWRenameResource": self.tr("Renaming resource..."),
+            "NGWMoveResource": self.tr("Updating resource..."),
             "NGWUpdateVectorLayer": self.tr("Updating resource..."),
             "NGWUpdateRasterLayer": self.tr("Updating resource..."),
             "NGWMissingResourceUpdater": self.tr("Downloading resources..."),
@@ -602,6 +607,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             "QGISStyleUpdater": self.tr("Creating..."),
             "QGISStyleAdder": self.tr("Creating..."),
             "NGWRenameResource": self.tr("Renaming..."),
+            "NGWMoveResource": self.tr("Updating..."),
             "NGWUpdateVectorLayer": self.tr("Updating..."),
             "NGWUpdateRasterLayer": self.tr("Updating..."),
             "NGWMissingResourceUpdater": self.tr("Downloading..."),
@@ -654,6 +660,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.resources_tree_view.copy_requested.connect(
             self.__copy_resource_style_shortcut
+        )
+        self.resources_tree_view.cut_requested.connect(
+            self.__cut_resource_shortcut
+        )
+        QgsApplication.clipboard().dataChanged.connect(
+            self.__sync_cut_resource
         )
         self.resources_tree_view.paste_requested.connect(
             self.__paste_resource_style_shortcut
@@ -790,6 +802,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__safe_disconnect(
             self.resources_tree_view.copy_requested,
             self.__copy_resource_style_shortcut,
+        )
+        self.__safe_disconnect(
+            self.resources_tree_view.cut_requested,
+            self.__cut_resource_shortcut,
+        )
+        self.__safe_disconnect(
+            QgsApplication.clipboard().dataChanged,
+            self.__sync_cut_resource,
         )
         self.__safe_disconnect(
             self.resources_tree_view.paste_requested,
@@ -2499,7 +2519,30 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             has_project_layers=self.__has_uploadable_project_layers(project),
             can_update_style=can_update_style,
             can_add_style=can_add_style,
-            can_paste_style=can_paste_style,
+            can_paste_style=can_paste_style and not self.__has_cut_resource(),
+            can_cut_resource=(
+                len(resources) == 1
+                and resource_indexes[0].parent().isValid()
+                and (
+                    isinstance(
+                        resource_indexes[0]
+                        .parent()
+                        .data(QNGWResourceItem.NGWResourceRole),
+                        NGWGroupResource,
+                    )
+                    or (
+                        isinstance(
+                            resources[0],
+                            (NGWQGISVectorStyle, NGWQGISRasterStyle),
+                        )
+                        and menu_items[0].has_geometry
+                    )
+                )
+            ),
+            can_paste_resource=(
+                len(resources) == 1
+                and self.__can_paste_resource(resource_indexes[0])
+            ),
         )
 
     def __resource_has_geometry(
@@ -2591,7 +2634,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self,
         action_id: ResourceMenuAction,
     ) -> None:
-        handlers: Dict[ResourceMenuAction, Callable[[], None]] = {
+        handlers: Dict[ResourceMenuAction, Callable[[], object]] = {
             ResourceMenuAction.ADD_TO_QGIS: self.__download_selected,
             ResourceMenuAction.ADD_MVT_LAYER: partial(
                 self.__add_selected_resource_directly,
@@ -2623,6 +2666,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ResourceMenuAction.DOWNLOAD_NGFP: self.download_ngfp,
             ResourceMenuAction.COPY_STYLE: self.copy_style,
             ResourceMenuAction.PASTE_STYLE: self.paste_style,
+            ResourceMenuAction.CUT_RESOURCE: self.__cut_selected_resource,
+            ResourceMenuAction.PASTE_RESOURCE: self.__paste_cut_resource,
             ResourceMenuAction.OVERWRITE_LAYER: self.overwrite_ngw_layer,
             ResourceMenuAction.DUPLICATE_RESOURCE: (
                 self.duplicate_current_ngw_resource
@@ -2664,7 +2709,214 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     @pyqtSlot()
     def __paste_resource_style_shortcut(self) -> None:
+        if self.__has_cut_resource():
+            self.__trigger_resource_style_shortcut(
+                ResourceMenuAction.PASTE_RESOURCE
+            )
+            return
         self.__trigger_resource_style_shortcut(ResourceMenuAction.PASTE_STYLE)
+
+    @pyqtSlot()
+    def __cut_resource_shortcut(self) -> None:
+        self.__trigger_resource_style_shortcut(ResourceMenuAction.CUT_RESOURCE)
+
+    def __has_cut_resource(self) -> bool:
+        return (
+            self.__cut_resource is not None
+            and bytes(
+                Clipboard()
+                .mime_data()
+                .data("application/x-nextgis-cut-resource")
+            )
+            == self.__cut_token
+        )
+
+    @pyqtSlot()
+    def __sync_cut_resource(self) -> None:
+        if not self.__has_cut_resource():
+            self.__cut_resource = None
+            self.__cut_token = b""
+            self.resource_model.set_cut_resource(None)
+
+    def __can_paste_resource(self, target_index: QModelIndex) -> bool:
+        if not self.__has_cut_resource():
+            return False
+        source = self.__cut_resource
+        assert source is not None
+        target = target_index.data(QNGWResourceItem.NGWResourceRole)
+        if (
+            not isinstance(target, NGWResource)
+            or target.connection.server_url.rstrip("/")
+            != source.connection.server_url.rstrip("/")
+            or target.resource_id == source.parent_id
+            or target.resource_id == source.resource_id
+        ):
+            return False
+        if isinstance(source, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            target_layer = target
+            if isinstance(target, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+                target_layer = target_index.parent().data(
+                    QNGWResourceItem.NGWResourceRole
+                )
+            qml = self.__clipboard_style_qml()
+            if qml is None or not self.__is_qml_style_compatible(
+                target_layer, qml
+            ):
+                return False
+            if not isinstance(
+                target,
+                (
+                    NGWVectorLayer,
+                    NGWRasterLayer,
+                    NGWQGISVectorStyle,
+                    NGWQGISRasterStyle,
+                ),
+            ):
+                return False
+        elif target.common.cls != "resource_group":
+            return False
+        source_index = self.resource_model.index_from_id(source.resource_id)
+        if (
+            source_index is None
+            or not source_index.isValid()
+            or source_index.internalPointer().locked
+        ):
+            return False
+        current_source = source_index.data(QNGWResourceItem.NGWResourceRole)
+        if current_source.connection.server_url.rstrip(
+            "/"
+        ) != source.connection.server_url.rstrip("/"):
+            return False
+        source_parent = source_index.parent()
+        if (
+            not source_parent.isValid()
+            or source_parent.internalPointer().locked
+        ):
+            return False
+        ancestor = target_index
+        while ancestor.isValid():
+            if (
+                ancestor.data(QNGWResourceItem.NGWResourceIdRole)
+                == source.resource_id
+                or ancestor.internalPointer().locked
+            ):
+                return False
+            ancestor = ancestor.parent()
+        return True
+
+    def __cut_selected_resource(self) -> None:
+        indexes = self.resources_tree_view.selectedIndexes()
+        if len(indexes) != 1:
+            return
+        index = self.proxy_model.mapToSource(indexes[0])
+        context = self.__create_resource_menu_context([index])
+        if not context.can_cut_resource:
+            return
+        resource = index.data(QNGWResourceItem.NGWResourceRole)
+        if isinstance(resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            if not self.copy_style(target_index=index):
+                return
+            mime_data = QMimeData()
+            clipboard_data = Clipboard().mime_data()
+            for mime_type in clipboard_data.formats():
+                mime_data.setData(mime_type, clipboard_data.data(mime_type))
+        else:
+            mime_data = QMimeData()
+        self.__cut_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        self.__cut_token = uuid.uuid4().hex.encode("ascii")
+        mime_data.setData(
+            "application/x-nextgis-cut-resource", self.__cut_token
+        )
+        Clipboard().set_mime_data(mime_data)
+        self.resource_model.set_cut_resource(self.__cut_resource)
+
+    def __paste_cut_resource(self) -> None:
+        indexes = self.resources_tree_view.selectedIndexes()
+        if len(indexes) != 1:
+            return
+        target_index = self.proxy_model.mapToSource(indexes[0])
+        if not self.__can_paste_resource(target_index):
+            return
+        self.resource_model.clear_fetch_error(target_index)
+        if self.resource_model.canFetchMore(target_index):
+            continue_move = partial(
+                self.__continue_resource_move,
+                self.__cut_token,
+                QPersistentModelIndex(target_index),
+            )
+            response = self.resource_model.load_resource_children(target_index)
+            response.finished.connect(continue_move)
+            response.failed.connect(
+                lambda error: response.finished.disconnect(continue_move)
+            )
+            return
+        self.__continue_resource_move(
+            self.__cut_token, QPersistentModelIndex(target_index)
+        )
+
+    def __continue_resource_move(
+        self, token: bytes, target: QPersistentModelIndex
+    ) -> None:
+        if token != self.__cut_token or not target.isValid():
+            return
+        target_index = QModelIndex(target)
+        if not self.__can_paste_resource(target_index):
+            return
+        assert self.__cut_resource is not None
+        target_resource = target_index.data(QNGWResourceItem.NGWResourceRole)
+        if not self.__confirm_resource_move(
+            self.__cut_resource, target_resource
+        ):
+            return
+        if token != self.__cut_token or not self.__can_paste_resource(
+            target_index
+        ):
+            return
+        if isinstance(
+            self.__cut_resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)
+        ):
+            self.paste_style(
+                cut_source=self.__cut_resource, target_index=target_index
+            )
+            return
+        source_index = self.resource_model.index_from_id(
+            self.__cut_resource.resource_id
+        )
+        response = self.resource_model.move_resource(
+            source_index, target_index
+        )
+        response.done.connect(partial(self.__finish_resource_move, token))
+
+    def __finish_resource_move(self, token: bytes, index: QModelIndex) -> None:
+        if self.__cut_token == token:
+            self.__cut_resource = None
+            self.__cut_token = b""
+            self.resource_model.set_cut_resource(None)
+
+    def __confirm_resource_move(
+        self, source: NGWResource, target: NGWResource
+    ) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(self.tr("Move resource"))
+        box.setTextFormat(Qt.TextFormat.PlainText)
+        box.setText(
+            self.tr('Move "{resource}" to "{target}"?').format(
+                resource=source.display_name, target=target.display_name
+            )
+        )
+        if isinstance(source, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            box.setInformativeText(
+                self.tr(
+                    "The original style will be deleted only after successful insertion. References to the original style will not be transferred."
+                )
+            )
+        box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+        )
+        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        box.button(QMessageBox.StandardButton.Yes).setText(self.tr("Move"))
+        return box.exec() == QMessageBox.StandardButton.Yes
 
     def __trigger_resource_style_shortcut(
         self,
@@ -4979,10 +5231,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             duration=2,
         )
 
-    def copy_style(self):
+    def copy_style(self, *, target_index: Optional[QModelIndex] = None):
         # Download style
-        selected_index = self.proxy_model.mapToSource(
-            self.resources_tree_view.selectionModel().currentIndex()
+        selected_index = (
+            target_index
+            if target_index is not None
+            else self.proxy_model.mapToSource(
+                self.resources_tree_view.selectionModel().currentIndex()
+            )
         )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
         if not self._downloadStyleAsQML(ngw_qgis_style, mes_bar=False):
@@ -5044,12 +5300,19 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         Clipboard().set_mime_data(mime_data)
         self.dwn_qml_file.remove()
         self.__show_status_message(self.tr("Style copied"))
+        return True
 
-    def paste_style(self) -> None:
+    def paste_style(
+        self,
+        *,
+        cut_source: Optional[NGWQGISStyle] = None,
+        target_index: Optional[QModelIndex] = None,
+    ) -> None:
         """Create or replace a server style from the clipboard contents."""
         qml = self.__clipboard_style_qml()
         if qml is None:
             return
+        cut_token = self.__cut_token if cut_source is not None else b""
         name_data = (
             Clipboard().mime_data().data("application/x-nextgis-style-name")
         )
@@ -5058,8 +5321,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         except UnicodeDecodeError:
             source_name = ""
 
-        selected_index = self.proxy_model.mapToSource(
-            self.resources_tree_view.selectionModel().currentIndex()
+        selected_index = (
+            target_index
+            if target_index is not None
+            else self.proxy_model.mapToSource(
+                self.resources_tree_view.selectionModel().currentIndex()
+            )
         )
         if not selected_index.isValid():
             return
@@ -5075,7 +5342,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if isinstance(resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
             if not self.__confirm_style_replacement():
                 return
-            self.__replace_style_qml(resource, qml)
+            if cut_source is not None and (
+                cut_token != self.__cut_token or not self.__has_cut_resource()
+            ):
+                return
+            success = self.__replace_style_qml(resource, qml)
+            if success and cut_source is not None:
+                self.__delete_pasted_cut_style(cut_source, cut_token)
             return
 
         if not isinstance(resource, (NGWVectorLayer, NGWRasterLayer)):
@@ -5091,7 +5364,28 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         if style_name is None:
             return
 
-        self.__create_style_from_qml(resource, qml, style_name)
+        if cut_source is not None and (
+            cut_token != self.__cut_token or not self.__has_cut_resource()
+        ):
+            return
+
+        success = self.__create_style_from_qml(resource, qml, style_name)
+        if success and cut_source is not None:
+            self.__delete_pasted_cut_style(cut_source, cut_token)
+
+    def __delete_pasted_cut_style(
+        self, source: NGWQGISStyle, token: bytes
+    ) -> None:
+        index = self.resource_model.index_from_id(source.resource_id)
+        if index is None or not index.isValid():
+            return
+        current_resource = index.data(QNGWResourceItem.NGWResourceRole)
+        if current_resource.connection.server_url.rstrip(
+            "/"
+        ) != source.connection.server_url.rstrip("/"):
+            return
+        response = self.resource_model.deleteResource(index)
+        response.done.connect(partial(self.__finish_resource_move, token))
 
     def __clipboard_style_qml(self) -> Optional[str]:
         mime_data = Clipboard().mime_data()
@@ -5194,8 +5488,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         layer: object,
         qml: str,
         style_name: str,
-    ) -> None:
-        self.__write_style_qml(
+    ) -> bool:
+        return self.__write_style_qml(
             self.tr("Creating style"),
             lambda filename: layer.create_qml_style(  # type: ignore[union-attr]
                 filename,
@@ -5206,8 +5500,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             qml=qml,
         )
 
-    def __replace_style_qml(self, style: NGWQGISStyle, qml: str) -> None:
-        self.__write_style_qml(
+    def __replace_style_qml(self, style: NGWQGISStyle, qml: str) -> bool:
+        return self.__write_style_qml(
             self.tr("Replacing style"),
             lambda filename: style.update_qml(
                 filename,
@@ -5224,7 +5518,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         *,
         add_to_tree: bool,
         qml: str,
-    ) -> None:
+    ) -> bool:
         filename = ""
         self.block_gui()
         self.resources_tree_view.begin_loading(operation)
@@ -5239,11 +5533,13 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             if add_to_tree and isinstance(result, NGWResource):
                 self.__add_resource_to_tree(result)
             self.__show_status_message(self.tr("Style updated"))
+            return True
         except Exception as error:
             logger.exception("Failed to write QML style")
             ngw_error = NgConnectError()
             ngw_error.__cause__ = error
             NgConnectInterface.instance().notifier.display_exception(ngw_error)
+            return False
         finally:
             if filename:
                 try:

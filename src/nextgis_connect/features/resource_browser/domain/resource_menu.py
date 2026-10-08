@@ -83,6 +83,8 @@ class ResourceMenuAction(Enum):
     DOWNLOAD_NGFP = auto()
     COPY_STYLE = auto()
     PASTE_STYLE = auto()
+    CUT_RESOURCE = auto()
+    PASTE_RESOURCE = auto()
     OVERWRITE_LAYER = auto()
     DUPLICATE_RESOURCE = auto()
     CREATE_GROUP = auto()
@@ -161,6 +163,8 @@ class ResourceMenuContext:
     can_update_style: bool = False
     can_add_style: bool = False
     can_paste_style: bool = False
+    can_cut_resource: bool = False
+    can_paste_resource: bool = False
 
 
 @dataclass(frozen=True)
@@ -751,6 +755,16 @@ class ResourceMenuPolicy:
             context.resources[0],
             context.can_paste_style,
         )
+        if context.can_cut_resource and not context.resources[0].is_root:
+            actions.insert(0, ResourceMenuAction.CUT_RESOURCE)
+        if context.can_paste_resource and context.resources[0].kind in (
+            ResourceKind.GROUP,
+            ResourceKind.VECTOR_LAYER,
+            ResourceKind.RASTER_LAYER,
+            ResourceKind.QGIS_VECTOR_STYLE,
+            ResourceKind.QGIS_RASTER_STYLE,
+        ):
+            actions.append(ResourceMenuAction.PASTE_RESOURCE)
         if len(actions) == 0:
             return None
 

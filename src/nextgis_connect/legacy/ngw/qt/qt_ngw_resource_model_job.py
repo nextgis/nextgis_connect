@@ -598,6 +598,17 @@ class NGWCreateMapForStyle(NGWResourceModelJob):
         self.putAddedResourceToResult(ngw_resource, is_main=True)
 
 
+class NGWMoveResource(NGWResourceModelJob):
+    def __init__(self, resource: NGWResource, parent: NGWResource) -> None:
+        super().__init__()
+        self.resource = deepcopy(resource)
+        self.parent_resource = deepcopy(parent)
+
+    def _do(self):
+        self.resource.move_to(self.parent_resource)
+        self.putEditedResourceToResult(self.resource, is_main=True)
+
+
 class NGWRenameResource(NGWResourceModelJob):
     def __init__(self, ngw_resource, new_name):
         NGWResourceModelJob.__init__(self)

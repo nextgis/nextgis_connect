@@ -60,6 +60,7 @@ class QNGWResourceTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(QModelIndex)
     copy_requested = pyqtSignal()
     paste_requested = pyqtSignal()
+    cut_requested = pyqtSignal()
     overlay_action_requested = pyqtSignal(object)
     overlay_visibility_changed = pyqtSignal(bool)
 
@@ -515,6 +516,11 @@ class QNGWResourceTreeView(QTreeView):
         super().wheelEvent(event)
 
     def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
+        if event.matches(QKeySequence.StandardKey.Cut):
+            self.cut_requested.emit()
+            event.accept()
+            return
+
         if event.matches(QKeySequence.StandardKey.Copy):
             self.copy_requested.emit()
             event.accept()

@@ -253,6 +253,8 @@ class ResourceContextMenuFactory(QObject):
         ResourceMenuAction.COPY_RESOURCE_LINK: "mActionEditCopy.svg",
         ResourceMenuAction.COPY_STYLE: "mActionEditCopy.svg",
         ResourceMenuAction.PASTE_STYLE: "mActionEditPaste.svg",
+        ResourceMenuAction.CUT_RESOURCE: "mActionEditCut.svg",
+        ResourceMenuAction.PASTE_RESOURCE: "mActionEditPaste.svg",
         ResourceMenuAction.OPEN_LAYER_HISTORY: "mIconHistory.svg",
         ResourceMenuAction.EXPAND_ALL: "mActionExpandTree.svg",
         ResourceMenuAction.COLLAPSE_ALL: "mActionCollapseTree.svg",
@@ -297,6 +299,8 @@ class ResourceContextMenuFactory(QObject):
             ResourceMenuAction.DOWNLOAD_NGFP: self.tr("Export to NGFP…"),
             ResourceMenuAction.COPY_STYLE: self.tr("Copy"),
             ResourceMenuAction.PASTE_STYLE: self.tr("Paste"),
+            ResourceMenuAction.CUT_RESOURCE: self.tr("Cut"),
+            ResourceMenuAction.PASTE_RESOURCE: self.tr("Paste"),
             ResourceMenuAction.OVERWRITE_LAYER: self.tr("Replace data"),
             ResourceMenuAction.DUPLICATE_RESOURCE: self.tr(
                 "Duplicate resource…"
