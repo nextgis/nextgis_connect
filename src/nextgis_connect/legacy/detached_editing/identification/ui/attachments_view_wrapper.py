@@ -20,7 +20,6 @@ from typing import List, Optional
 from qgis.PyQt.QtCore import (
     QAbstractItemModel,
     QSortFilterProxyModel,
-    Qt,
     QTimer,
     pyqtSignal,
 )
@@ -30,8 +29,6 @@ from qgis.PyQt.QtGui import (
     QDropEvent,
 )
 from qgis.PyQt.QtWidgets import (
-    QLabel,
-    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -42,13 +39,16 @@ from nextgis_connect.legacy.detached_editing.identification.attachments_model im
 from nextgis_connect.legacy.detached_editing.identification.ui.attachments_view import (
     AttachmentsView,
 )
+from nextgis_connect.legacy.detached_editing.identification.ui.empty_state_overlay import (
+    EmptyStateOverlay,
+)
 from nextgis_connect.legacy.tree_widget.overlay import (
     OverlayHostWidget,
     OverlayKind,
     OverlayState,
 )
 from nextgis_connect.platform.logging import logger
-from nextgis_connect.ui_kit.icons import draw_icon, material_icon
+from nextgis_connect.ui_kit.icons import material_icon
 
 
 class OverlayMode(Enum):
@@ -68,7 +68,7 @@ class AttachmentsViewWrapper(QWidget):
     :ivar files_dropped: Emit local file paths dropped onto the wrapper.
     """
 
-    OVERLAY_ICON_SIZE = 32
+    OVERLAY_ICON_SIZE = EmptyStateOverlay.ICON_SIZE
 
     files_dropped = pyqtSignal(list)  # List[str]
 
@@ -120,43 +120,7 @@ class AttachmentsViewWrapper(QWidget):
         layout.addWidget(self._view)
         self.setLayout(layout)
 
-        # Overlay container with icon + text
-        self._overlay = QWidget(self)
-        self._overlay.setObjectName("dragOverlay")
-        self._overlay.setAttribute(
-            Qt.WidgetAttribute.WA_TransparentForMouseEvents
-        )
-        self._overlay.setStyleSheet(self._empty_list_overlay_style)
-        overlay_layout = QVBoxLayout()
-        overlay_layout.setContentsMargins(12, 12, 12, 12)
-        overlay_layout.setSpacing(2)
-        overlay_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self._overlay_icon_label = QLabel(self._overlay)
-        self._overlay_icon_label.setObjectName("overlayIcon")
-        self._overlay_icon_label.setFixedSize(
-            self.OVERLAY_ICON_SIZE, self.OVERLAY_ICON_SIZE
-        )
-        self._overlay_icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self._overlay_text_label = QLabel(self._overlay)
-        self._overlay_text_label.setObjectName("overlayText")
-        self._overlay_text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._overlay_text_label.setWordWrap(True)
-
-        # Keep label from shrinking unpredictably
-        self._overlay_text_label.setSizePolicy(
-            QSizePolicy.Policy.MinimumExpanding,
-            self._overlay_text_label.sizePolicy().verticalPolicy(),
-        )
-
-        overlay_layout.addWidget(
-            self._overlay_icon_label, alignment=Qt.AlignmentFlag.AlignCenter
-        )
-        overlay_layout.addWidget(
-            self._overlay_text_label, alignment=Qt.AlignmentFlag.AlignCenter
-        )
-        self._overlay.setLayout(overlay_layout)
+        self._overlay = EmptyStateOverlay(self)
         self._overlay.hide()
         self._overlay.setMinimumWidth(200)
 
@@ -202,24 +166,10 @@ class AttachmentsViewWrapper(QWidget):
         palette = self.palette()
         disabled_group = palette.ColorGroup.Disabled
 
-        base_style = """
-            QWidget#dragOverlay {{
-                background-color: {background_color};
-            }}
-            QLabel#overlayText {{
-                color: {text_color};
-                font-size: 14px;
-                padding: 0 8px 4px 8px;
-            }}
-        """
-
         empty_list_text_color = palette.color(
             disabled_group, palette.ColorRole.Text
         ).name()
-        self._empty_list_overlay_style = base_style.format(
-            background_color="transparent",
-            text_color=empty_list_text_color,
-        )
+        self._empty_list_text_color = empty_list_text_color
         self._empty_list_icon = material_icon(
             "inbox",
             color=empty_list_text_color,
@@ -227,10 +177,7 @@ class AttachmentsViewWrapper(QWidget):
         )
 
         drag_and_drop_text_color = "#ffffff"
-        self._drag_and_drop_overlay_style = base_style.format(
-            background_color="rgba(0, 0, 0, 0.5)",
-            text_color=drag_and_drop_text_color,
-        )
+        self._drag_and_drop_text_color = drag_and_drop_text_color
         self._attach_file_add_icon = material_icon(
             "attach_file_add",
             color=drag_and_drop_text_color,
@@ -338,45 +285,37 @@ class AttachmentsViewWrapper(QWidget):
         event.acceptProposedAction()
 
     def _render_drag_and_drop_overlay(self) -> None:
-        self._overlay.setStyleSheet(self._drag_and_drop_overlay_style)
+        self._overlay.set_appearance(
+            self._drag_and_drop_text_color,
+            "rgba(0, 0, 0, 0.5)",
+        )
 
         if self._is_read_only:
-            draw_icon(
-                self._overlay_icon_label,
-                self._attach_file_off_icon,
-                size=self.OVERLAY_ICON_SIZE,
-            )
-            self._overlay_text_label.setText(
+            self._overlay.set_icon(self._attach_file_off_icon)
+            self._overlay.set_message(
                 self.tr(
                     "Cannot add attachments when layer is not in edit mode"
                 )
             )
 
         else:
-            draw_icon(
-                self._overlay_icon_label,
-                self._attach_file_add_icon,
-                size=self.OVERLAY_ICON_SIZE,
-            )
+            self._overlay.set_icon(self._attach_file_add_icon)
             if self._overlay_mode == OverlayMode.DRAG_AND_DROP:
-                self._overlay_text_label.setText(
+                self._overlay.set_message(
                     self.tr("Drop a file here to attach")
                 )
             else:
-                self._overlay_text_label.setText(
-                    self.tr("Drop files here to attach")
-                )
+                self._overlay.set_message(self.tr("Drop files here to attach"))
 
         self._show_overlay()
 
     def _render_empty_overlay(self) -> None:
-        self._overlay.setStyleSheet(self._empty_list_overlay_style)
-        draw_icon(
-            self._overlay_icon_label,
-            self._empty_list_icon,
-            size=self.OVERLAY_ICON_SIZE,
+        self._overlay.set_appearance(
+            self._empty_list_text_color,
+            "transparent",
         )
-        self._overlay_text_label.setText(self.tr("No attachments yet"))
+        self._overlay.set_icon(self._empty_list_icon)
+        self._overlay.set_message(self.tr("No attachments yet"))
         self._show_overlay()
 
     def _show_overlay(self) -> None:
@@ -500,8 +439,8 @@ class AttachmentsViewWrapper(QWidget):
         return local_file_count
 
     def _update_overlay_label_width(self) -> None:
-        if not self._overlay or not self._overlay_text_label:
+        if not self._overlay:
             return
         margin: int = 32
         available: int = max(0, self._overlay.width() - margin)
-        self._overlay_text_label.setFixedWidth(available)
+        self._overlay.text_label.setFixedWidth(available)
