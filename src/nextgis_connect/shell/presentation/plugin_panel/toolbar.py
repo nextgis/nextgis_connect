@@ -26,7 +26,7 @@ from qgis.PyQt.QtCore import (
     pyqtSignal,
     pyqtSlot,
 )
-from qgis.PyQt.QtGui import QMouseEvent
+from qgis.PyQt.QtGui import QMouseEvent, QWheelEvent
 from qgis.PyQt.QtWidgets import QAction, QToolBar, QToolButton, QWidget
 
 
@@ -80,6 +80,40 @@ class _RightClickFilter(QObject):
         return True
 
 
+class _MenuWheelFilter(QObject):
+    def eventFilter(self, a0: Optional[QObject], a1: Optional[QEvent]) -> bool:
+        if not isinstance(a0, QToolButton) or not isinstance(a1, QWheelEvent):
+            return super().eventFilter(a0, a1)
+        menu = a0.menu()
+        if menu is None and a0.defaultAction() is not None:
+            menu = a0.defaultAction().menu()
+        if not a0.isEnabled() or menu is None or not a1.angleDelta().y():
+            return super().eventFilter(a0, a1)
+        actions = [
+            action
+            for action in menu.actions()
+            if action.isCheckable()
+            and action.isEnabled()
+            and action.isVisible()
+        ]
+        if not actions:
+            return super().eventFilter(a0, a1)
+        current_index = next(
+            (
+                index
+                for index, action in enumerate(actions)
+                if action.isChecked()
+            ),
+            0,
+        )
+        step = -1 if a1.angleDelta().y() > 0 else 1
+        next_index = current_index + step
+        if 0 <= next_index < len(actions):
+            actions[next_index].trigger()
+        a1.accept()
+        return True
+
+
 class PluginPanelToolBar(QToolBar):
     """Display plugin panel commands using native toolbar actions."""
 
@@ -117,10 +151,12 @@ class PluginPanelToolBar(QToolBar):
             actions.create_resource,
             QToolButton.ToolButtonPopupMode.MenuButtonPopup,
         )
-        self._add_action(
+        self._search_button = self._add_action(
             actions.search,
             QToolButton.ToolButtonPopupMode.MenuButtonPopup,
         )
+        self._search_wheel_filter = _MenuWheelFilter(self)
+        self._search_button.installEventFilter(self._search_wheel_filter)
         self._add_action(actions.refresh)
         self.addSeparator()
         self._add_action(actions.open_in_browser)

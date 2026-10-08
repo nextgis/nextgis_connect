@@ -30,7 +30,7 @@ def test_keyword_suggestions_are_available_after_at_sign() -> None:
         "@type",
         "@name",
         "@keyname",
-        "@metadata",
+        "@metadata[",
     ]
 
 

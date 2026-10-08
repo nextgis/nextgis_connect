@@ -48,12 +48,10 @@ class MetadataSearchLineEdit(AbstractSearchLineEdit):
         if not self.isEnabled():
             return
 
-        metadata_value = self.text()
+        metadata_value = self.text().strip()
         if len(metadata_value) == 0:
             self.reset_requested.emit()
             return
-
-        metadata_value = metadata_value.strip()
 
         settings = SearchSettings()
         settings.add_metadata_query_to_history(metadata_value)

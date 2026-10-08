@@ -210,7 +210,7 @@ class TextSearchSuggestionBuilder:
 
         keyword_prefix = match.group("prefix").lower()
         suggestions = [
-            f"{prefix}@{keyword}"
+            f"{prefix}@{keyword}" + ("[" if keyword == "metadata" else "")
             for keyword in self.KEYWORDS
             if keyword.startswith(keyword_prefix)
         ]

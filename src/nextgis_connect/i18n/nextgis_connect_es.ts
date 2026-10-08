@@ -2347,13 +2347,22 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4706"/>
-        <source>By name</source>
-        <translation>Por nombre</translation>
+        <source>By expression</source>
+        <translation>Por expresión</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4713"/>
         <source>By metadata</source>
         <translation>Por metadatos</translation>
+    </message>
+    <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4834"/>
+        <source>By resource type</source>
+        <translation>Por tipo de recurso</translation>
+    </message>
+    <message>
+        <source>Search criteria changed. Press Search to update the results.</source>
+        <translation>Los criterios de búsqueda han cambiado. Pulse Buscar para actualizar los resultados.</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4720"/>
@@ -2688,9 +2697,9 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
         <translation>Archivo NGFP descargado</translation>
     </message>
     <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4725"/>
-        <source>Show resource search by name or metadata</source>
-        <translation>Mostrar búsqueda de recursos por nombre o metadatos</translation>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4851"/>
+        <source>Show resource search by name, metadata, or type</source>
+        <translation>Mostrar búsqueda de recursos por nombre, metadatos o tipo</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="359"/>
@@ -4509,6 +4518,49 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
 </context>
 <context>
+    <name>ResourceTypeSearchWidget</name>
+    <message><source>Selected resource types</source><translation>Tipos de recursos seleccionados</translation></message>
+    <message>
+        <source>Other resources</source>
+        <translation>Otros recursos</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="68"/>
+        <source>Resource type…</source>
+        <translation>Tipo de recurso…</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="64"/>
+        <source>Select one or more resource types</source>
+        <translation>Seleccione uno o más tipos de recursos</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="80"/>
+        <source>Clear selected resource types</source>
+        <translation>Limpiar tipos de recursos seleccionados</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="109"/>
+        <source>Loading resource types…</source>
+        <translation>Cargando tipos de recursos…</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="192"/>
+        <source>No resource types available</source>
+        <translation>No hay tipos de recursos disponibles</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="208"/>
+        <source>No active connection</source>
+        <translation>No hay conexión activa</translation>
+    </message>
+    <message>
+        <location filename="../legacy/search/resource_type_search_widget.py" line="215"/>
+        <source>Unable to load resource types</source>
+        <translation>No se pueden cargar los tipos de recursos</translation>
+    </message>
+</context>
+<context>
     <name>RootResourceAccessCheck</name>
     <message>
         <location filename="../legacy/ngw_connection/application/diagnostics/checks/root_resource.py" line="50"/>
@@ -4723,9 +4775,13 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
 <context>
     <name>TextSearchLineEdit</name>
     <message>
+        <source>Search help</source>
+        <translation>Ayuda de búsqueda</translation>
+    </message>
+    <message>
         <location filename="../legacy/search/text_search_line_edit.py" line="55"/>
-        <source>Resource name…</source>
-        <translation>Nombre del recurso…</translation>
+        <source>Search request...</source>
+        <translation>Consulta de búsqueda...</translation>
     </message>
     <message>
         <location filename="../legacy/search/text_search_line_edit.py" line="174"/>
@@ -5119,6 +5175,68 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
         <location filename="../plugin/plugin_container.py" line="399"/>
         <source>About plugin...</source>
         <translation>Acerca del plugin...</translation>
+    </message>
+</context>
+<context>
+    <name>SearchTagDelegate</name>
+    <message><source>by resource id</source><translation>por ID del recurso</translation></message>
+    <message><source>by parent resource id</source><translation>por ID del recurso padre</translation></message>
+    <message><source>by root resource id</source><translation>por ID del recurso raíz</translation></message>
+    <message><source>by owner</source><translation>por propietario</translation></message>
+    <message><source>by resource type</source><translation>por tipo de recurso</translation></message>
+    <message><source>by resource name</source><translation>por nombre del recurso</translation></message>
+    <message><source>by keyname</source><translation>por clave</translation></message>
+    <message><source>by metadata</source><translation>por metadatos</translation></message>
+</context>
+<context>
+    <name>SearchHelpOverlay</name>
+    <message>
+        <source>Open the search mode menu using the highlighted arrow.</source>
+        <translation>Abra el menú de modos de búsqueda con la flecha resaltada.</translation>
+    </message>
+    <message>
+        <source>Search help</source>
+        <translation>Ayuda de búsqueda</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Resource name&lt;/b&gt;&lt;br&gt;Enter a name or part of a name. Enclose it in quotation marks for an exact match. Results are highlighted in bold in the resource tree.</source>
+        <translation>&lt;b&gt;Nombre del recurso&lt;/b&gt;&lt;br&gt;Introduzca un nombre o parte de un nombre. Enciérrelo entre comillas para una coincidencia exacta. Los resultados aparecen en negrita en el árbol de recursos.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Filters&lt;/b&gt;&lt;br&gt;Use &lt;b&gt;&lt;code&gt;@id&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@owner&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@type&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@name&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@keyname&lt;/code&gt;&lt;/b&gt; and &lt;b&gt;&lt;code&gt;@metadata&lt;/code&gt;&lt;/b&gt;.</source>
+        <translation>&lt;b&gt;Filtros&lt;/b&gt;&lt;br&gt;Use &lt;b&gt;&lt;code&gt;@id&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@owner&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@type&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@name&lt;/code&gt;&lt;/b&gt;, &lt;b&gt;&lt;code&gt;@keyname&lt;/code&gt;&lt;/b&gt; y &lt;b&gt;&lt;code&gt;@metadata&lt;/code&gt;&lt;/b&gt;.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Resource URL&lt;/b&gt;&lt;br&gt;Paste a resource URL from any Web GIS. A link to another Web GIS lets you switch to its connection or create one. Root resource example:</source>
+        <translation>&lt;b&gt;URL del recurso&lt;/b&gt;&lt;br&gt;Pegue una URL del recurso de cualquier Web GIS. Un enlace a otro Web GIS permite cambiar a su conexión o crear una nueva. Ejemplo del recurso raíz:</translation>
+    </message>
+    <message>
+        <source>Combine conditions with &lt;b&gt;AND&lt;/b&gt; or &lt;b&gt;OR&lt;/b&gt;, but do not mix them in one request. Use &lt;b&gt;LIKE&lt;/b&gt; for a case-sensitive match and &lt;b&gt;ILIKE&lt;/b&gt; for a case-insensitive match; &lt;b&gt;&lt;code&gt;%&lt;/code&gt;&lt;/b&gt; matches any number of characters and &lt;b&gt;&lt;code&gt;_&lt;/code&gt;&lt;/b&gt; matches one character.</source>
+        <translation>Combine condiciones con &lt;b&gt;AND&lt;/b&gt; u &lt;b&gt;OR&lt;/b&gt;, pero no los mezcle en una consulta. Use &lt;b&gt;LIKE&lt;/b&gt; distinguiendo mayúsculas de minúsculas e &lt;b&gt;ILIKE&lt;/b&gt; sin distinguirlas; &lt;b&gt;&lt;code&gt;%&lt;/code&gt;&lt;/b&gt; representa cualquier número de caracteres y &lt;b&gt;&lt;code&gt;_&lt;/code&gt;&lt;/b&gt; representa un carácter.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt; finds direct child resources; &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt; also includes all nested resources.</source>
+        <translation>&lt;b&gt;&lt;code&gt;@parent&lt;/code&gt;&lt;/b&gt; busca recursos hijos directos; &lt;b&gt;&lt;code&gt;@root&lt;/code&gt;&lt;/b&gt; también incluye todos los recursos anidados.</translation>
+    </message>
+    <message>
+        <source>Select a connection to see its URL.</source>
+        <translation>Seleccione una conexión para ver su URL.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Suggestions and history&lt;/b&gt;&lt;br&gt;Suggestions help select filters and values. Previous requests are available in search history.</source>
+        <translation>&lt;b&gt;Sugerencias e historial&lt;/b&gt;&lt;br&gt;Las sugerencias ayudan a seleccionar filtros y valores. Las consultas anteriores están disponibles en el historial de búsqueda.</translation>
+    </message>
+    <message>
+        <source>&lt;b&gt;Other search modes&lt;/b&gt;&lt;br&gt;Search by metadata or resource type using the search mode menu.</source>
+        <translation>&lt;b&gt;Otros modos de búsqueda&lt;/b&gt;&lt;br&gt;Busque por metadatos o tipo de recurso mediante el menú de modos de búsqueda.</translation>
+    </message>
+    <message>
+        <source>Press &lt;b&gt;Enter&lt;/b&gt; or the &lt;b&gt;search button&lt;/b&gt; to apply the request.</source>
+        <translation>Pulse &lt;b&gt;Enter&lt;/b&gt; o el &lt;b&gt;botón de búsqueda&lt;/b&gt; para aplicar la consulta.</translation>
+    </message>
+    <message>
+        <source>Full documentation</source>
+        <translation>Documentación completa</translation>
     </message>
 </context>
 </TS>

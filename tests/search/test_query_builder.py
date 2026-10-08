@@ -104,6 +104,12 @@ def test_builder_combines_or_queries() -> None:
     assert queries == ["id=1", "id=2"]
 
 
+def test_builder_combines_or_resource_type_queries() -> None:
+    queries = _build_queries("@type = vector_layer OR @type = raster_layer")
+
+    assert queries == ["cls=vector_layer", "cls=raster_layer"]
+
+
 def test_builder_falls_back_on_unknown_tag() -> None:
     queries = _build_queries("@missing = 1")
 

@@ -30,6 +30,7 @@ from nextgis_connect.legacy.search.metadata_search_line_edit import (
 class MetadataSearchWidget(QWidget):
     search_requested = pyqtSignal(str)
     reset_requested = pyqtSignal()
+    search_data_changed = pyqtSignal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -47,6 +48,9 @@ class MetadataSearchWidget(QWidget):
         self.__metadata_key_combobox.reset_requested.connect(
             self.reset_requested
         )
+        self.__metadata_key_combobox.editTextChanged.connect(
+            self.__on_search_data_changed
+        )
         layout.addWidget(self.__metadata_key_combobox)
 
         # Label
@@ -59,11 +63,17 @@ class MetadataSearchWidget(QWidget):
         self.__metadata_value_lineedit.reset_requested.connect(
             self.reset_requested
         )
+        self.__metadata_value_lineedit.textChanged.connect(
+            self.__on_search_data_changed
+        )
         lineedit_size_policy = self.__metadata_value_lineedit.sizePolicy()
         lineedit_size_policy.setHorizontalStretch(3)
         self.__metadata_value_lineedit.setSizePolicy(lineedit_size_policy)
         self.__metadata_key_combobox.focus_value.connect(
             lambda: self.__metadata_value_lineedit.setFocus()
+        )
+        self.__metadata_key_combobox.focus_value.connect(
+            self.__search_if_ready
         )
         layout.addWidget(self.__metadata_value_lineedit)
 
@@ -84,6 +94,16 @@ class MetadataSearchWidget(QWidget):
         query = f'@metadata["{key}"] = "{value}"'
         self.search_requested.emit(query)
 
+    def has_search_data(self) -> bool:
+        key = self.__metadata_key_combobox.currentText().strip()
+        value = self.__metadata_value_lineedit.text().strip()
+        return len(key) > 0 and len(value) > 0
+
+    def search_query(self) -> str:
+        key = self.__metadata_key_combobox.currentText().strip()
+        value = self.__metadata_value_lineedit.text().strip()
+        return f'@metadata["{key}"] = "{value}"' if key or value else ""
+
     @pyqtSlot()
     def update_suggestions(self) -> None:
         self.__metadata_key_combobox.update_values()
@@ -93,3 +113,13 @@ class MetadataSearchWidget(QWidget):
     def clear(self) -> None:
         self.__metadata_key_combobox.setEditText("")
         self.__metadata_value_lineedit.clear()
+        self.search_data_changed.emit()
+
+    @pyqtSlot()
+    def __on_search_data_changed(self) -> None:
+        self.search_data_changed.emit()
+
+    @pyqtSlot()
+    def __search_if_ready(self) -> None:
+        if self.has_search_data() and self.isEnabled():
+            self.search()

@@ -19,8 +19,10 @@ from typing import List, Optional
 
 from qgis.core import QgsNetworkAccessManager
 from qgis.PyQt.QtCore import (
+    QModelIndex,
     QObject,
     QStringListModel,
+    Qt,
     QTimer,
     QUrl,
     pyqtSignal,
@@ -45,9 +47,25 @@ from nextgis_connect.platform.logging import logger
 
 
 class TextSearchCompleterModel(QStringListModel):
+    TAG_DESCRIPTION_ROLE = Qt.ItemDataRole.UserRole + 1
     fetching_started = pyqtSignal()
     fetching_finished = pyqtSignal()
     complete_requested = pyqtSignal()
+
+    def data(
+        self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ):
+        if role == self.TAG_DESCRIPTION_ROLE:
+            return self._syntax_suggestions
+        value = super().data(index, role)
+        if (
+            role == Qt.ItemDataRole.DisplayRole
+            and self._syntax_suggestions
+            and isinstance(value, str)
+            and value.endswith("@metadata[")
+        ):
+            return value[:-1]
+        return value
 
     __connection_id: Optional[str]
     __bouncing_timer: QTimer
@@ -69,6 +87,7 @@ class TextSearchCompleterModel(QStringListModel):
         self, connection_id: Optional[str], parent: Optional[QObject] = None
     ) -> None:
         super().__init__(parent)
+        self._syntax_suggestions = False
         self.__connection_id = connection_id
 
         # Setup a timer to debounce suggestion fetching
@@ -181,6 +200,7 @@ class TextSearchCompleterModel(QStringListModel):
 
     def __combine(self) -> None:
         """Combine current search suggestions with history"""
+        self._syntax_suggestions = False
         history_suggestions = self.__history_suggestions_for_prefix()
         found_suggestions = [
             suggestion
@@ -201,6 +221,7 @@ class TextSearchCompleterModel(QStringListModel):
         ]
 
     def __set_syntax_suggestions(self, suggestions: List[str]) -> None:
+        self._syntax_suggestions = True
         self.__search_suggestions = suggestions
         self.setStringList(suggestions)
 

@@ -16,10 +16,14 @@
 
 from typing import Optional
 
-from qgis.PyQt.QtCore import pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtGui import QKeyEvent
 from qgis.PyQt.QtWidgets import QComboBox, QWidget
 
 from nextgis_connect.legacy.search.search_settings import SearchSettings
+from nextgis_connect.ui_kit.widgets.search_clear_action import (
+    install_search_clear_action,
+)
 
 
 class MetadataKeyComboBox(QComboBox):
@@ -40,10 +44,24 @@ class MetadataKeyComboBox(QComboBox):
         super().__init__(parent)
         self.setEditable(True)
         self.lineEdit().setPlaceholderText(self.tr("Metadata key…"))
+        line_edit = self.lineEdit()
+        assert line_edit is not None
+        install_search_clear_action(line_edit)
         self.lineEdit().textEdited.connect(self.__reset_if_empty)
-        self.lineEdit().returnPressed.connect(self.focus_value)
+        self.lineEdit().installEventFilter(self)
 
         self.update_values()
+
+    def eventFilter(self, a0: Optional[QObject], a1: Optional[QEvent]) -> bool:
+        if a0 is self.lineEdit() and isinstance(a1, QKeyEvent):
+            if a1.type() == QEvent.Type.KeyPress and a1.key() in (
+                Qt.Key.Key_Return,
+                Qt.Key.Key_Enter,
+            ):
+                if self.isEnabled():
+                    self.focus_value.emit()
+                return True
+        return super().eventFilter(a0, a1)
 
     @pyqtSlot()
     def update_values(self) -> None:
