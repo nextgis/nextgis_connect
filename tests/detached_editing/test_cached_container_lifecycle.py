@@ -15,6 +15,7 @@
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
 import shutil
+import sqlite3
 import uuid
 from contextlib import closing
 from unittest.mock import MagicMock
@@ -30,6 +31,13 @@ from nextgis_connect.features.synchronization.infrastructure.storage.cache_maint
 from nextgis_connect.features.synchronization.infrastructure.storage.detached_storage_service import (
     DetachedStorageService,
 )
+from nextgis_connect.legacy.detached_editing.container.editing.container_sessions import (
+    ContainerReadOnlySession,
+    ContainerReadWriteSession,
+)
+from nextgis_connect.legacy.detached_editing.container.migrations import (
+    ContainerMigrator,
+)
 from nextgis_connect.legacy.detached_editing.utils import (
     container_metadata,
     detached_layer_uri,
@@ -43,6 +51,7 @@ from nextgis_connect.legacy.settings.ng_connect_settings import (
     NgConnectSettings,
 )
 from nextgis_connect.platform.filesystem import cp
+from nextgis_connect.platform.qgis.errors import ContainerError
 from tests.detached_editing.utils import (
     copy_legacy_36_points_container,
     mark_container_changed,
@@ -58,6 +67,69 @@ from tests.ng_connect_testcase import (
 
 
 class TestCachedContainerLifecycle(NgConnectTestCase):
+    @mock_container(TestData.Points)
+    def test_migrates_current_container_preserving_local_changes(
+        self, container_mock: MagicMock, _qgs_layer
+    ) -> None:
+        ngw_layer = self.resource(TestData.Points)
+        path = self._move_to_cache(container_mock)
+        with ContainerReadWriteSession(path) as cursor:
+            cursor.execute(
+                "ALTER TABLE ngw_metadata DROP COLUMN transaction_changes"
+            )
+            cursor.execute("UPDATE ngw_metadata SET container_version='3.0.0'")
+        mark_container_changed(path)
+        before = container_metadata(path)
+
+        self._collect_detached_layer_params(ngw_layer)
+        ContainerMigrator().migrate(path)
+
+        after = container_metadata(path)
+        self.assertEqual(after.container_version, "3.1.0")
+        self.assertTrue(after.has_changes)
+        self.assertEqual(after.features_count, before.features_count)
+        self.assertEqual(after.sync_date, before.sync_date)
+        self.assertEqual(after.version, before.version)
+        self.assertEqual(after.epoch, before.epoch)
+
+    @mock_container(TestData.Points)
+    def test_failed_migration_rolls_back_schema_and_version(
+        self, container_mock: MagicMock, _qgs_layer
+    ) -> None:
+        path = container_mock.path
+        with ContainerReadWriteSession(path) as cursor:
+            cursor.execute(
+                "ALTER TABLE ngw_metadata DROP COLUMN transaction_changes"
+            )
+            cursor.execute("UPDATE ngw_metadata SET container_version='3.0.0'")
+            cursor.execute(
+                "CREATE TRIGGER fail_migration BEFORE UPDATE ON ngw_metadata "
+                "BEGIN SELECT RAISE(ABORT, 'migration failed'); END"
+            )
+
+        with self.assertRaises(ContainerError) as raised:
+            ContainerMigrator().migrate(path)
+        self.assertIsInstance(
+            raised.exception.__cause__, sqlite3.IntegrityError
+        )
+
+        with ContainerReadOnlySession(path) as cursor:
+            self.assertEqual(
+                cursor.execute(
+                    "SELECT container_version FROM ngw_metadata"
+                ).fetchone()[0],
+                "3.0.0",
+            )
+            self.assertNotIn(
+                "transaction_changes",
+                [
+                    row[1]
+                    for row in cursor.execute(
+                        "PRAGMA table_info(ngw_metadata)"
+                    )
+                ],
+            )
+
     def setUp(self) -> None:
         super().setUp()
         self.cache_directory = self.create_temp_dir("-Cache")

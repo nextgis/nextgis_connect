@@ -272,7 +272,7 @@ class DetachedContainerMetaData:
     layer_name: str
     description: Optional[str]
     geometry_name: Optional[str]
-    transaction_id: Optional[str]
+    transaction_id: Optional[int]
     epoch: Optional[int]
     version: Optional[int]
     sync_date: Optional[datetime]
@@ -604,7 +604,9 @@ def _(cursor: sqlite3.Cursor) -> DetachedContainerMetaData:
     if features_count is None:
         features_count = 0
 
-    has_changes = _has_container_changes(cursor, table_names)
+    has_changes = transaction_id is not None or _has_container_changes(
+        cursor, table_names
+    )
 
     return DetachedContainerMetaData(
         container_version=container_version,

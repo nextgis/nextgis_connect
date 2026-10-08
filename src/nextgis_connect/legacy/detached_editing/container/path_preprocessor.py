@@ -27,6 +27,9 @@ from nextgis_connect.legacy.detached_editing.container.cache_lifecycle import (
 from nextgis_connect.legacy.detached_editing.container.container_factory import (
     DetachedContainerFactory,
 )
+from nextgis_connect.legacy.detached_editing.container.migrations import (
+    ContainerMigrator,
+)
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
     DetachedStorageServiceFactory,
 )
@@ -201,6 +204,7 @@ class DetachedEditingPathPreprocessor(QObject):
         cached_layer_path: Path,
     ) -> bool:
         try:
+            ContainerMigrator().migrate(cached_layer_path)
             metadata = container_metadata(cached_layer_path)
         except Exception:
             logger.exception("Could not read detached container metadata")

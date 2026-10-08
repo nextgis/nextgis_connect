@@ -14,43 +14,68 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, see <https://www.gnu.org/licenses/>.
 
-from typing import Any, List, Optional, Sequence, Tuple, Union, cast
+import sqlite3
+from collections import defaultdict
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple, Union
 
-from nextgis_connect.features.synchronization.infrastructure.storage import (
-    DetachedStorageService,
+from nextgis_connect.legacy.detached_editing.container.editing.container_sessions import (
+    ContainerReadOnlySession,
+    ContainerReadWriteSession,
 )
 from nextgis_connect.legacy.detached_editing.storage_service_factory import (
     DetachedStorageServiceFactory,
 )
 from nextgis_connect.legacy.detached_editing.sync.common.changes import (
-    AttachmentCreation,
-    AttachmentDeletion,
-    AttachmentRestoration,
-    AttachmentUpdate,
-    DescriptionPut,
     FeatureChange,
-    FeatureCreation,
-    FeatureDeletion,
-    FeatureRestoration,
-    FeatureUpdate,
 )
 from nextgis_connect.legacy.detached_editing.sync.common.changes_applier import (
     ChangesApplier,
 )
-from nextgis_connect.legacy.detached_editing.utils import (
-    AttachmentMetadata,
-    DetachedContainerContext,
-    FeatureMetadata,
+from nextgis_connect.legacy.detached_editing.sync.versioned.actions import (
+    ActionType,
 )
-from nextgis_connect.platform.logging import logger
+from nextgis_connect.legacy.detached_editing.sync.versioned.transaction_changes_serializer import (
+    TransactionChange,
+    TransactionChangesSerializer,
+)
+from nextgis_connect.legacy.detached_editing.utils import (
+    DetachedContainerContext,
+)
 from nextgis_connect.platform.qgis.errors import (
     ContainerError,
     SynchronizationError,
 )
-from nextgis_connect.shared.types import AttachmentId, FileObjectId, Unset
+
+TransactionResult = Sequence[Tuple[int, Dict[str, Any]]]
+GroupedResults = Dict[
+    ActionType, List[Tuple[TransactionChange, Dict[str, Any]]]
+]
 
 
 class VersionedChangesApplier(ChangesApplier):
+    _FEATURE_TABLES: ClassVar[Dict[ActionType, Tuple[str, ...]]] = {
+        ActionType.FEATURE_CREATE: ("ngw_added_features",),
+        ActionType.FEATURE_UPDATE: (
+            "ngw_updated_attributes",
+            "ngw_updated_geometries",
+        ),
+        ActionType.FEATURE_DELETE: (
+            "ngw_removed_features",
+            "ngw_features_metadata",
+        ),
+        ActionType.FEATURE_RESTORE: ("ngw_restored_features",),
+        ActionType.DESCRIPTION_PUT: ("ngw_updated_descriptions",),
+    }
+    _ATTACHMENT_TABLES: ClassVar[Dict[ActionType, Tuple[str, ...]]] = {
+        ActionType.ATTACHMENT_CREATE: ("ngw_added_attachments",),
+        ActionType.ATTACHMENT_UPDATE: ("ngw_updated_attachments",),
+        ActionType.ATTACHMENT_DELETE: (
+            "ngw_removed_attachments",
+            "ngw_features_attachments",
+        ),
+        ActionType.ATTACHMENT_RESTORE: ("ngw_restored_attachments",),
+    }
+
     def __init__(self, container_context: DetachedContainerContext) -> None:
         super().__init__(container_context)
         if not container_context.metadata.is_versioning_enabled:
@@ -61,164 +86,160 @@ class VersionedChangesApplier(ChangesApplier):
         changes: Union[FeatureChange, Sequence[FeatureChange]],
         operation_result: Any = None,
     ) -> None:
-        changes_list = changes
-        if not isinstance(changes, (list, tuple)):
-            changes_list = [changes]
-
-        changes_list = cast(Sequence[FeatureChange], changes_list)
-
-        if len(changes_list) == 0:
+        changes_list = (
+            [changes] if isinstance(changes, FeatureChange) else changes
+        )
+        if not changes_list:
             return
+        confirmation = TransactionChangesSerializer().from_changes(
+            changes_list
+        )
+        self.apply_transaction(confirmation, operation_result)
 
-        operation_result = cast(Sequence, operation_result)
+    def apply_transaction(
+        self,
+        changes: Sequence[TransactionChange],
+        operation_result: TransactionResult,
+        *,
+        commit_datetime: Optional[str] = None,
+    ) -> None:
+        grouped = self.__group_results(changes, operation_result)
+        # Cache operations are retryable; retain all markers until they succeed.
+        self.__update_attachment_cache(grouped)
+        with ContainerReadWriteSession(self._context) as cursor:
+            self.__confirm_features(cursor, grouped)
+            self.__confirm_attachments(cursor, grouped)
+            if commit_datetime is not None:
+                self.__complete_transaction(cursor, commit_datetime)
+
+        self._added_fids_mapping.update(
+            (change.local_id, result["fid"])
+            for change, result in grouped[ActionType.FEATURE_CREATE]
+        )
+
+    def __group_results(
+        self,
+        changes: Sequence[TransactionChange],
+        operation_result: TransactionResult,
+    ) -> GroupedResults:
         if not operation_result:
             raise SynchronizationError("Empty operation result")
-
-        if len(changes_list) != len(operation_result):
+        if len(changes) != len(operation_result):
             raise SynchronizationError("Result length is not equal")
+        grouped: GroupedResults = defaultdict(list)
+        for index, (change, (number, result)) in enumerate(
+            zip(changes, operation_result)
+        ):
+            if number != index:
+                raise SynchronizationError(
+                    "Unexpected transaction result order"
+                )
+            if (
+                change.action not in self._FEATURE_TABLES
+                and change.action not in self._ATTACHMENT_TABLES
+            ):
+                raise SynchronizationError("Unsupported transaction action")
+            grouped[change.action].append((change, result))
+        return grouped
 
-        self.__apply(changes_list, operation_result)
-
-    def __apply(
-        self,
-        changes: Sequence[FeatureChange],
-        operation_result: Sequence,
+    def __confirm_features(
+        self, cursor: sqlite3.Cursor, grouped: GroupedResults
     ) -> None:
-        added_features: List[FeatureMetadata] = []
-        updated_features: List[FeatureUpdate] = []
-        delete_changes: List[FeatureDeletion] = []
-        restore_changes: List[FeatureRestoration] = []
+        cursor.executemany(
+            "UPDATE ngw_features_metadata SET ngw_fid=? WHERE fid=?",
+            (
+                (result["fid"], change.local_id)
+                for change, result in grouped[ActionType.FEATURE_CREATE]
+            ),
+        )
+        self.__clear_markers(cursor, grouped, self._FEATURE_TABLES, "fid")
 
-        updated_descriptions: List[DescriptionPut] = []
-
-        added_attachments: List[AttachmentMetadata] = []
-        updated_attachments: List[AttachmentMetadata] = []
-        deleted_attachments: List[AttachmentDeletion] = []
-        restored_attachments: List[AttachmentMetadata] = []
-
-        uploaded_files: List[Tuple[AttachmentId, FileObjectId]] = []
-
-        for change, (_, change_result) in zip(changes, operation_result):
-            if isinstance(change, FeatureCreation):
-                added_features.append(
-                    FeatureMetadata(
-                        fid=change.fid, ngw_fid=change_result["fid"]
-                    )
-                )
-
-            elif isinstance(change, FeatureDeletion):
-                delete_changes.append(change)
-
-            elif isinstance(change, FeatureRestoration):
-                restore_changes.append(change)
-
-            elif isinstance(change, FeatureUpdate):
-                updated_features.append(change)
-
-            elif isinstance(change, DescriptionPut):
-                updated_descriptions.append(change)
-
-            elif isinstance(change, AttachmentCreation):
-                added_attachments.append(
-                    AttachmentMetadata(
-                        fid=change.fid,
-                        aid=change.aid,
-                        ngw_aid=change_result["aid"],
-                        fileobj=change_result["fileobj"],
-                    )
-                )
-                uploaded_files.append((change.aid, change_result["fileobj"]))
-
-            elif isinstance(change, AttachmentUpdate):
-                updated_attachments.append(
-                    AttachmentMetadata(
-                        fid=change.fid,
-                        aid=change.aid,
-                        ngw_fid=change.ngw_fid,
-                        ngw_aid=change.ngw_aid,
-                        fileobj=change_result["fileobj"]
-                        if change.is_file_new
-                        else Unset,
-                    )
-                )
-                if change.is_file_new:
-                    uploaded_files.append(
-                        (change.aid, change_result["fileobj"])
-                    )
-
-            elif isinstance(change, AttachmentDeletion):
-                deleted_attachments.append(change)
-
-            elif isinstance(change, AttachmentRestoration):
-                restored_attachments.append(
-                    AttachmentMetadata(
-                        fid=change.fid,
-                        aid=change.aid,
-                        ngw_fid=change.ngw_fid,
-                        ngw_aid=change.ngw_aid,
-                        fileobj=change_result["fileobj"]
-                        if change.is_file_new
-                        else Unset,
-                    )
-                )
-                if change.is_file_new:
-                    uploaded_files.append(
-                        (change.aid, change_result["fileobj"])
-                    )
-
-        self._process_added_features(added_features)
-        self._process_updated_features(updated_features)
-        self._process_deleted_features(delete_changes)
-        self._process_restored_features(restore_changes)
-
-        self._process_updated_descriptions(updated_descriptions)
-        self._process_created_attachments(added_attachments)
-        self._process_updated_attachments(updated_attachments)
-        self._process_deleted_attachments(deleted_attachments)
-        self._process_restored_attachments(restored_attachments)
-
-        self.__move_cache_if_needed(uploaded_files)
-
-    def __move_cache_if_needed(
-        self,
-        attachments_info: Sequence[Tuple[AttachmentId, FileObjectId]],
+    def __confirm_attachments(
+        self, cursor: sqlite3.Cursor, grouped: GroupedResults
     ) -> None:
-        if len(attachments_info) == 0:
-            return
+        cursor.executemany(
+            "UPDATE ngw_features_attachments SET ngw_aid=?, fileobj=? WHERE aid=?",
+            (
+                (result["aid"], result["fileobj"] or None, change.local_id)
+                for change, result in grouped[ActionType.ATTACHMENT_CREATE]
+            ),
+        )
+        updated_files = self.__uploaded_files(
+            grouped[ActionType.ATTACHMENT_UPDATE]
+            + grouped[ActionType.ATTACHMENT_RESTORE]
+        )
+        cursor.executemany(
+            "UPDATE ngw_features_attachments SET fileobj=? WHERE aid=?",
+            ((fileobj, aid) for aid, fileobj in updated_files),
+        )
+        self.__clear_markers(cursor, grouped, self._ATTACHMENT_TABLES, "aid")
 
-        storage_service = DetachedStorageServiceFactory.create()
-        for attachment_id, new_fileobj in attachments_info:
-            self.__move_attachment_cache(
-                storage_service,
-                attachment_id,
+    @staticmethod
+    def __clear_markers(
+        cursor: sqlite3.Cursor,
+        grouped: GroupedResults,
+        tables_by_action: Dict[ActionType, Tuple[str, ...]],
+        id_column: str,
+    ) -> None:
+        for action, tables in tables_by_action.items():
+            ids = [(change.local_id,) for change, _ in grouped[action]]
+            if not ids:
+                continue
+            for table in tables:
+                cursor.executemany(
+                    f"DELETE FROM {table} WHERE {id_column}=?", ids
+                )
+
+    @staticmethod
+    def __uploaded_files(
+        attachments: Sequence[Tuple[TransactionChange, Dict[str, Any]]],
+    ) -> List[Tuple[int, int]]:
+        return [
+            (change.local_id, result["fileobj"])
+            for change, result in attachments
+            if change.file_changed
+        ]
+
+    def __update_attachment_cache(self, grouped: GroupedResults) -> None:
+        storage = DetachedStorageServiceFactory.create()
+        metadata = self._context.metadata
+        uploaded_files = self.__uploaded_files(
+            grouped[ActionType.ATTACHMENT_CREATE]
+            + grouped[ActionType.ATTACHMENT_UPDATE]
+            + grouped[ActionType.ATTACHMENT_RESTORE]
+        )
+        for aid, fileobj in uploaded_files:
+            storage.move_attachment_cache_to_fileobj(
+                metadata.instance_id,
+                metadata.resource_id,
+                aid,
                 old_fileobj=None,
-                new_fileobj=new_fileobj,
+                new_fileobj=fileobj,
             )
 
-    def __move_attachment_cache(
-        self,
-        storage_service: DetachedStorageService,
-        attachment_id: AttachmentId,
-        *,
-        old_fileobj: Optional[FileObjectId],
-        new_fileobj: FileObjectId,
+        removed = [
+            (change.local_id, change.fileobj)
+            for change, _ in grouped[ActionType.ATTACHMENT_DELETE]
+        ]
+        deleted_fids = [
+            change.local_id for change, _ in grouped[ActionType.FEATURE_DELETE]
+        ]
+        if deleted_fids:
+            with ContainerReadOnlySession(self._context) as cursor:
+                removed.extend(
+                    self._deleted_feature_attachment_cache_refs(
+                        cursor, deleted_fids
+                    )
+                )
+        if removed:
+            self._remove_attachment_cache_refs(removed)
+
+    @staticmethod
+    def __complete_transaction(
+        cursor: sqlite3.Cursor, commit_datetime: str
     ) -> None:
-        if old_fileobj == new_fileobj:
-            return
-
-        positional_arguments = (
-            self._context.metadata.instance_id,
-            self._context.metadata.resource_id,
-            attachment_id,
-        )
-
-        logger.debug(
-            "Moving attachment cache for aid %s to fileobj %s",
-            attachment_id,
-            new_fileobj,
-        )
-        storage_service.move_attachment_cache_to_fileobj(
-            *positional_arguments,
-            old_fileobj=old_fileobj,
-            new_fileobj=new_fileobj,
+        cursor.execute(
+            "UPDATE ngw_metadata SET transaction_id=NULL, "
+            "transaction_changes=NULL, sync_date=?",
+            (commit_datetime,),
         )
