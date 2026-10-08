@@ -107,6 +107,23 @@ ResultsDialogBase, _ = uic.loadUiType(
 )
 
 
+def _display_expression_value(
+    layer: QgsVectorLayer,
+    expression: QgsExpression,
+    value: Any,
+) -> str:
+    """Format a display-expression result for the feature selector."""
+    field_index = QgsExpression.expressionToLayerFieldIndex(
+        expression.expression(), layer
+    )
+    if field_index >= 0:
+        display_value = layer.fields().at(field_index).displayString(value)
+        if display_value or not value:
+            return display_value
+
+    return QgsExpression.formatPreviewString(value, False)
+
+
 class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
     open_feature_in_nextgis_web = pyqtSignal(QgsMapLayer, QgsFeature)
     open_features_in_attributes_table = pyqtSignal(QgsVectorLayer, list)
@@ -139,6 +156,7 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
         self._tracked_layers: Dict[str, QgsVectorLayer] = {}
         self._feature_deleted_connections: Dict[str, object] = {}
         self._features_removed_connections: Dict[str, object] = {}
+        self._attribute_value_changed_connections: Dict[str, object] = {}
         self._tracked_editing_started_connections: Dict[str, object] = {}
         self._tracked_editing_stopped_connections: Dict[str, object] = {}
 
@@ -221,7 +239,9 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
             expression = layer_expressions[layer]
             context.setFeature(feature)
             label_result = expression.evaluate(context)
-            label = str(label_result) if label_result else str(feature.id())
+            label = _display_expression_value(layer, expression, label_result)
+            if not label:
+                label = str(feature.id())
 
             title = f"{label} ({layer.name()})"
             self.features_combobox.addItem(title, feature_key)
@@ -320,6 +340,15 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
                 )
             )
         )
+        self._attribute_value_changed_connections[layer_id] = (
+            layer.attributeValueChanged.connect(
+                lambda feature_id, _, __, tracked_layer_id=layer_id: (
+                    self.__on_feature_attribute_changed(
+                        tracked_layer_id, feature_id
+                    )
+                )
+            )
+        )
         self._tracked_editing_started_connections[layer_id] = (
             layer.editingStarted.connect(
                 lambda tracked_layer_id=layer_id: (
@@ -364,6 +393,12 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
         self.__disconnect_feature_deleted_signal(layer_id)
 
         connection = self._features_removed_connections.pop(layer_id, None)
+        if connection is not None:
+            self.__disconnect_connection(connection)
+
+        connection = self._attribute_value_changed_connections.pop(
+            layer_id, None
+        )
         if connection is not None:
             self.__disconnect_connection(connection)
 
@@ -455,6 +490,45 @@ class IdentificationResultsWidget(QgsDockWidget, ResultsDialogBase):
             for feature_id in removed_feature_ids
         }
         self.__remove_feature_keys(feature_keys)
+
+    def __on_feature_attribute_changed(
+        self, layer_id: str, feature_id: QgsFeatureId
+    ) -> None:
+        feature_key = self.__make_feature_key(layer_id, feature_id)
+        result = self._features.get(feature_key)
+        layer = self._tracked_layers.get(layer_id)
+        if result is None or layer is None:
+            return
+
+        feature = layer.getFeature(feature_id)
+        if not feature.isValid():
+            return
+
+        expression = QgsExpression(layer.displayExpression())
+        context = QgsExpressionContext(
+            QgsExpressionContextUtils.globalProjectLayerScopes(layer)
+        )
+        expression.prepare(context)
+        context.setFeature(feature)
+        label = _display_expression_value(
+            layer, expression, expression.evaluate(context)
+        )
+        if not label:
+            label = str(feature.id())
+
+        title = f"{label} ({layer.name()})"
+        result.mFeature = feature
+        for index in range(self.features_combobox.count()):
+            if self.features_combobox.itemData(index) != feature_key:
+                continue
+
+            self.features_combobox.setItemText(index, title)
+            self.features_combobox.setItemData(
+                index, title, Qt.ItemDataRole.ToolTipRole
+            )
+            if index == self.features_combobox.currentIndex():
+                self.features_combobox.setToolTip(title)
+            return
 
     def __on_tracked_layer_editing_started(self, layer_id: str) -> None:
         layer = self._tracked_layers.get(layer_id)

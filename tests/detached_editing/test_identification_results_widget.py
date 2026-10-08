@@ -19,8 +19,13 @@ from typing import Optional, Tuple
 from unittest.mock import Mock
 
 import qgis.utils
-from qgis.core import Qgis, QgsApplication, QgsTask, QgsVectorLayer
-from qgis.gui import QgisInterface, QgsAttributeEditorContext
+from qgis.core import Qgis, QgsApplication, QgsFeature, QgsTask, QgsVectorLayer
+from qgis.gui import (
+    QgisInterface,
+    QgsAttributeEditorContext,
+    QgsMapToolIdentify,
+)
+from qgis.PyQt.QtCore import QDate, QDateTime, QTime
 from qgis.PyQt.QtWidgets import QScrollArea, QSizePolicy, QTabWidget, QWidget
 
 from nextgis_connect.legacy.detached_editing.identification.attachment_download import (
@@ -45,6 +50,7 @@ from nextgis_connect.legacy.detached_editing.identification.ui.attachments_tab i
 )
 from nextgis_connect.legacy.detached_editing.identification.ui.identification_results_widget import (
     IdentificationResultsWidget,
+    _display_expression_value,
 )
 from nextgis_connect.legacy.detached_editing.identification.ui.no_features_widget import (
     NoFeaturesWidget,
@@ -162,6 +168,91 @@ def _update_edit_mode(widget: Mock, is_enabled: bool) -> None:
 
 
 class TestIdentificationResultsWidget:
+    def test_feature_title_updates_after_attribute_change(
+        self, qgis_iface: QgisInterface
+    ) -> None:
+        _plugin, previous_plugin = _install_plugin_mock()
+        layer = QgsVectorLayer(
+            "Point?field=title:string", "Editable layer", "memory"
+        )
+        feature = QgsFeature(layer.fields())
+        feature.setAttribute("title", "Old title")
+        assert layer.dataProvider().addFeature(feature)
+        feature = next(layer.getFeatures())
+
+        widget = IdentificationResultsWidget(qgis_iface.mapCanvas())
+
+        try:
+            result = QgsMapToolIdentify.IdentifyResult(layer, feature, {})
+            feature_key = (layer.id(), feature.id())
+            widget._features[feature_key] = result
+            widget.features_combobox.blockSignals(True)
+            widget.features_combobox.addItem(
+                "Old title (Editable layer)", feature_key
+            )
+            widget.features_combobox.blockSignals(False)
+            widget._IdentificationResultsWidget__track_layer(layer)
+
+            assert widget.features_combobox.currentText() == (
+                "Old title (Editable layer)"
+            )
+
+            assert layer.startEditing()
+            assert layer.changeAttributeValue(feature.id(), 0, "New title")
+
+            assert widget.features_combobox.currentText() == (
+                "New title (Editable layer)"
+            )
+        finally:
+            if layer.isEditable():
+                layer.rollBack()
+            widget.unload()
+            widget.close()
+            widget.deleteLater()
+            layer.deleteLater()
+            _restore_plugin_mock(previous_plugin)
+
+    def test_display_expression_value_formats_all_supported_field_types(
+        self,
+        qgis_app: QgsApplication,
+    ) -> None:
+        del qgis_app
+
+        values = {
+            "integer": 1,
+            "double": 1.5,
+            "string": "Title",
+            "boolean": True,
+            "date": QDate(2026, 10, 8),
+            "time": QTime(12, 34, 56),
+            "datetime": QDateTime(2026, 10, 8, 12, 34, 56),
+            "map": {"key": "value"},
+        }
+
+        for field_type, value in values.items():
+            layer = QgsVectorLayer(
+                f"Point?field=title:{field_type}", "Layer", "memory"
+            )
+            expression = identification_results_widget_module.QgsExpression(
+                '"title"'
+            )
+
+            label = _display_expression_value(layer, expression, value)
+
+            assert isinstance(label, str)
+            assert "PyQt" not in label
+
+        assert (
+            _display_expression_value(
+                QgsVectorLayer(
+                    "Point?field=title:datetime", "Layer", "memory"
+                ),
+                identification_results_widget_module.QgsExpression('"title"'),
+                QDateTime(2026, 10, 8, 12, 34, 56),
+            )
+            == "2026-10-08T12:34:56.000"
+        )
+
     def test_overlay_message_wraps_in_narrow_tabs(
         self, qgis_app: QgsApplication
     ) -> None:
