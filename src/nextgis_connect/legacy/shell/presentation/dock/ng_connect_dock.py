@@ -31,10 +31,12 @@ from qgis import utils as qgis_utils
 from qgis.core import (
     Qgis,
     QgsFileUtils,
+    QgsLayerTreeGroup,
     QgsLayerTreeLayer,
     QgsLayerTreeNode,
     QgsLayerTreeRegistryBridge,
     QgsMapLayer,
+    QgsMapLayerStyle,
     QgsNetworkAccessManager,
     QgsProject,
     QgsRasterLayer,
@@ -75,6 +77,7 @@ from qgis.PyQt.QtWidgets import (
     QInputDialog,
     QLabel,
     QLineEdit,
+    QMainWindow,
     QMenu,
     QMessageBox,
     QPushButton,
@@ -86,6 +89,7 @@ from qgis.PyQt.QtXml import QDomDocument
 
 from nextgis_connect.features.resource_browser.domain import (
     LayerKind,
+    QgisSelectionKind,
     ResourceImportExtent,
     ResourceImportMode,
     ResourceImportRequest,
@@ -104,6 +108,9 @@ from nextgis_connect.features.resource_browser.infrastructure import (
     QgisMapCanvasExtentApplicator,
     QgisResourceBatchImporter,
     QgisResourceLayerImporter,
+)
+from nextgis_connect.features.resource_browser.infrastructure.local_style_transfer import (
+    replace_layer_styles,
 )
 from nextgis_connect.features.resource_browser.presentation import (
     QgisResourceImportInteraction,
@@ -260,6 +267,7 @@ from nextgis_connect.ui_kit.icons import (
     qgis_icon,
 )
 from nextgis_connect.ui_kit.widgets.information_notice import InformationNotice
+from nextgis_connect.ui_kit.widgets.menu_section_style import MenuSectionStyle
 
 HAS_NGSTD = importlib.util.find_spec("ngstd") is not None
 if HAS_NGSTD:
@@ -454,6 +462,36 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
         self.menuDownload.setTitle(self.tr("Add to QGIS"))
         self.menuDownload.setIcon(plugin_icon("actions/cloud_download.svg"))
+        self.menuDownload.insertSection(
+            self.menuDownload.actions()[0],
+            self.tr("Adding to QGIS"),
+        )
+        self.__local_style_header = self.menuDownload.addSection(
+            self.tr("Modify QGIS layer")
+        )
+        self.__local_style_actions = []
+        for text, operation in (
+            (self.tr("Apply style"), "apply"),
+            (self.tr("Add new style…"), "add"),
+            (self.tr("Replace styles"), "replace"),
+        ):
+            action = self.menuDownload.addAction(text)
+            action.setIcon(
+                material_icon(
+                    {
+                        "apply": "colors",
+                        "add": "add_style",
+                        "replace": "replace_style",
+                    }[operation]
+                )
+            )
+            action.triggered.connect(
+                partial(self.__transfer_style_to_qgis, operation)
+            )
+            self.__local_style_actions.append(action)
+        for action in self.menuDownload.actions():
+            if action.isSeparator() and not action.text():
+                self.menuDownload.removeAction(action)
 
         self.download_action = QAction(
             self.menuDownload.icon(),
@@ -614,6 +652,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.resources_tree_view.itemDoubleClicked.connect(
             self.trvDoubleClickProcess
         )
+        self.resources_tree_view.copy_requested.connect(
+            self.__copy_resource_style_shortcut
+        )
+        self.resources_tree_view.paste_requested.connect(
+            self.__paste_resource_style_shortcut
+        )
         self.resources_tree_view.overlay_action_requested.connect(
             self.__handle_tree_overlay_action
         )
@@ -682,6 +726,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         project = QgsProject.instance()
         assert project is not None
+        project.layersAdded.connect(self.checkImportActionsAvailability)
         project.layersRemoved.connect(self.checkImportActionsAvailability)
 
         self.__is_reinit_tree = False
@@ -743,6 +788,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.trvDoubleClickProcess,
         )
         self.__safe_disconnect(
+            self.resources_tree_view.copy_requested,
+            self.__copy_resource_style_shortcut,
+        )
+        self.__safe_disconnect(
+            self.resources_tree_view.paste_requested,
+            self.__paste_resource_style_shortcut,
+        )
+        self.__safe_disconnect(
             self.resources_tree_view.overlay_action_requested,
             self.__handle_tree_overlay_action,
         )
@@ -767,6 +820,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         project = QgsProject.instance()
         assert project is not None
+        self.__safe_disconnect(
+            project.layersAdded,
+            self.checkImportActionsAvailability,
+        )
         self.__safe_disconnect(
             project.layersRemoved,
             self.checkImportActionsAvailability,
@@ -904,6 +961,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.search_panel.setEnabled(self.resource_model.is_connected)
 
         if not self.resource_model.is_connected:
+            for action in self.__local_style_actions:
+                action.setEnabled(False)
             self.__resource_menu_controller.set_resource_import_actions_enabled(
                 False
             )
@@ -958,6 +1017,16 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         resource_menu_context = self.__create_resource_menu_context(
             selected_ngw_indexes
         )
+        local_style_visible = len(ngw_resources) == 1 and isinstance(
+            ngw_resources[0],
+            (NGWAbstractVectorResource, NGWRasterLayer, NGWQGISStyle),
+        )
+        self.__local_style_header.setVisible(local_style_visible)
+        for action in self.__local_style_actions:
+            action.setVisible(local_style_visible)
+            action.setEnabled(
+                local_style_visible and resource_menu_context.can_update_style
+            )
         self.__resource_menu_controller.update_resource_import_actions(
             resource_menu_context
         )
@@ -976,7 +1045,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             )
         )
         self.__set_resource_import_menu_visible(
-            self.__resource_menu_controller.has_available_alternative_resource_import_actions()
+            local_style_visible
+            or self.__resource_menu_controller.has_available_alternative_resource_import_actions()
         )
         self.download_action.setEnabled(
             self.__resource_menu_controller.has_available_resource_import_actions()
@@ -2148,6 +2218,8 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 self.resource_model.addNGWResourceToTree(index, ngw_resource)
 
     def disable_tools(self):
+        for action in self.__local_style_actions:
+            action.setEnabled(False)
         for widget in (
             self.download_action,
             self.upload_action,
@@ -2359,6 +2431,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         layer_tree_view = self.iface.layerTreeView()
         assert layer_tree_view is not None
         qgis_nodes = layer_tree_view.selectedNodes()
+        qgis_selection_kind = QgisSelectionKind.NONE
+        if len(qgis_nodes) == 1:
+            if isinstance(qgis_nodes[0], QgsLayerTreeLayer):
+                qgis_selection_kind = QgisSelectionKind.LAYER
+            elif isinstance(qgis_nodes[0], QgsLayerTreeGroup):
+                qgis_selection_kind = QgisSelectionKind.GROUP
+        elif len(qgis_nodes) > 1:
+            qgis_selection_kind = QgisSelectionKind.MULTIPLE
         is_one_qgis_layer_selected = len(qgis_nodes) == 1 and isinstance(
             qgis_nodes[0], QgsLayerTreeLayer
         )
@@ -2392,14 +2472,34 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         project = QgsProject.instance()
         assert project is not None
 
+        clipboard_qml = self.__clipboard_style_qml()
+        can_paste_style = False
+        if len(resources) == 1 and clipboard_qml is not None:
+            paste_target: object = resources[0]
+            if isinstance(
+                paste_target,
+                (NGWQGISVectorStyle, NGWQGISRasterStyle),
+            ):
+                paste_target = (
+                    resource_indexes[0]
+                    .parent()
+                    .data(QNGWResourceItem.NGWResourceRole)
+                )
+            can_paste_style = self.__is_qml_style_compatible(
+                paste_target,
+                clipboard_qml,
+            )
+
         return ResourceMenuContext(
             resources=tuple(menu_items),
             current_layer_kind=current_layer_kind,
+            qgis_selection_kind=qgis_selection_kind,
             is_developer_mode=NgConnectSettings().is_developer_mode,
             has_qgis_selection=self.__has_uploadable_qgis_nodes(qgis_nodes),
             has_project_layers=self.__has_uploadable_project_layers(project),
             can_update_style=can_update_style,
             can_add_style=can_add_style,
+            can_paste_style=can_paste_style,
         )
 
     def __resource_has_geometry(
@@ -2522,6 +2622,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ResourceMenuAction.DOWNLOAD_QML: self.download_qml,
             ResourceMenuAction.DOWNLOAD_NGFP: self.download_ngfp,
             ResourceMenuAction.COPY_STYLE: self.copy_style,
+            ResourceMenuAction.PASTE_STYLE: self.paste_style,
             ResourceMenuAction.OVERWRITE_LAYER: self.overwrite_ngw_layer,
             ResourceMenuAction.DUPLICATE_RESOURCE: (
                 self.duplicate_current_ngw_resource
@@ -2556,6 +2657,44 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ) from error
 
         handler()
+
+    @pyqtSlot()
+    def __copy_resource_style_shortcut(self) -> None:
+        self.__trigger_resource_style_shortcut(ResourceMenuAction.COPY_STYLE)
+
+    @pyqtSlot()
+    def __paste_resource_style_shortcut(self) -> None:
+        self.__trigger_resource_style_shortcut(ResourceMenuAction.PASTE_STYLE)
+
+    def __trigger_resource_style_shortcut(
+        self,
+        action_id: ResourceMenuAction,
+    ) -> None:
+        selected_indexes = [
+            self.proxy_model.mapToSource(index)
+            for index in self.resources_tree_view.selectedIndexes()
+        ]
+        context = self.__create_resource_menu_context(selected_indexes)
+        if not self.__resource_menu_controller.is_action_available(
+            context,
+            action_id,
+        ):
+            if (
+                action_id == ResourceMenuAction.PASTE_STYLE
+                and len(context.resources) == 1
+                and self.__clipboard_style_qml() is not None
+            ):
+                NgConnectInterface.instance().notifier.display_message(
+                    self.tr(
+                        "The style in the clipboard is not compatible with "
+                        "the selected resource."
+                    ),
+                    level=Qgis.MessageLevel.Warning,
+                    duration=5,
+                )
+            return
+
+        self.__handle_resource_menu_action(action_id)
 
     def __create_web_map_for_selected_resource(self) -> None:
         selected_index = self.proxy_model.mapToSource(
@@ -3972,6 +4111,11 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
 
         def update_style_for_index(style_index: QModelIndex) -> None:
+            style = style_index.data(QNGWResourceItem.NGWResourceRole)
+            if not isinstance(style, NGWQGISStyle):
+                return
+            if not self.__confirm_qgis_style_update(style.display_name):
+                return
             response = self.resource_model.updateQGISStyle(
                 qgs_map_layer, style_index
             )
@@ -4008,27 +4152,184 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             update_style_for_index(style_indices[0])
 
         else:
-            dlg = NGWLayerStyleChooserDialog(
-                self.tr("Choose style"),
-                ngw_resource_index,
-                self.resource_model,
+            style_names = [
+                style_index.data(QNGWResourceItem.NGWResourceRole).display_name
+                for style_index in style_indices
+            ]
+            style_name, accepted = QInputDialog.getItem(
                 self,
+                self.tr("Replace resource style"),
+                self.tr("Style"),
+                style_names,
+                0,
+                False,
             )
-            result = dlg.exec()
-            if result != QDialog.DialogCode.Accepted:
+            if not accepted:
                 return
-
-            style_index = dlg.selectedStyleIndex()
-            assert style_index is not None
+            style_index = next(
+                index
+                for index in style_indices
+                if index.data(QNGWResourceItem.NGWResourceRole).display_name
+                == style_name
+            )
             update_style_for_index(style_index)
+
+    def __transfer_style_to_qgis(self, operation: str) -> None:
+        layer = self.iface.activeLayer()
+        if not isinstance(layer, (QgsVectorLayer, QgsRasterLayer)):
+            return
+        index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        resource = index.data(QNGWResourceItem.NGWResourceRole)
+        if not isinstance(resource, NGWResource):
+            return
+        try:
+            parent = (
+                resource.get_parent()
+                if isinstance(resource, NGWQGISStyle)
+                else resource
+            )
+            if not self.__is_style_transfer_compatible(layer, parent):
+                return
+            parent.update()
+            styles = [
+                child
+                for child in parent.get_children()
+                if isinstance(child, NGWQGISStyle)
+            ]
+            if not styles:
+                self.show_info(self.tr("No QGIS styles are available"))
+                return
+            if operation != "replace":
+                if isinstance(resource, NGWQGISStyle):
+                    styles = [
+                        child
+                        for child in styles
+                        if child.resource_id == resource.resource_id
+                    ]
+                elif len(styles) > 1:
+                    name, accepted = QInputDialog.getItem(
+                        self,
+                        self.tr("Style"),
+                        self.tr("Style"),
+                        [style.display_name for style in styles],
+                        0,
+                        False,
+                    )
+                    if not accepted:
+                        return
+                    styles = [
+                        style for style in styles if style.display_name == name
+                    ]
+            if not styles:
+                return
+            manager = layer.styleManager()
+            assert manager is not None
+            name = styles[0].display_name
+            if operation == "add":
+                dialog = QgsNewNameDialog(
+                    initial=name,
+                    existing=manager.styles(),
+                    parent=self,
+                    cs=Qt.CaseSensitivity.CaseSensitive,
+                )
+                dialog.setWindowTitle(self.tr("Add new style"))
+                dialog.setOverwriteEnabled(False)
+                dialog.setAllowEmptyName(False)
+                if dialog.exec() != QDialog.DialogCode.Accepted:
+                    return
+                name = dialog.name()
+            else:
+                message = (
+                    self.tr(
+                        "All styles of this QGIS layer will be replaced with styles from Web GIS. Local style changes will be lost. Continue?"
+                    )
+                    if operation == "replace"
+                    else self.tr(
+                        "The current QGIS layer style will be replaced. Continue?"
+                    )
+                )
+                if (
+                    QMessageBox.question(
+                        self,
+                        self.tr("Replace styles"),
+                        message,
+                        QMessageBox.StandardButton.Yes
+                        | QMessageBox.StandardButton.Cancel,
+                        QMessageBox.StandardButton.Cancel,
+                    )
+                    != QMessageBox.StandardButton.Yes
+                ):
+                    return
+            # Fresh resource instances ensure that cached QML is not reused.
+            downloaded: List[Tuple[str, str]] = []
+            self.block_gui()
+            self.resources_tree_view.begin_loading(
+                self.tr("Downloading styles…")
+            )
+            try:
+                for style in styles:
+                    style.populate_qml()
+                    qml = style.qml
+                    if not qml:
+                        raise ValueError("Missing QML style")
+                    downloaded.append((style.display_name, qml))
+            finally:
+                self.resources_tree_view.end_loading()
+                self.unblock_gui()
+            if operation == "replace":
+                replace_layer_styles(layer, downloaded)
+            else:
+                qgis_style = QgsMapLayerStyle(downloaded[0][1])
+                if not qgis_style.isValid():
+                    raise ValueError("Invalid QGIS style")
+                if operation == "add":
+                    if not manager.addStyle(name, qgis_style):
+                        raise ValueError("Could not add style")
+                else:
+                    qgis_style.writeToLayer(layer)
+                layer.triggerRepaint()
+            QgsProject.instance().setDirty(True)
+            self.__show_status_message(self.tr("Style updated"))
+        except Exception as error:
+            logger.exception("Failed to transfer styles to QGIS")
+            failure = NgConnectError()
+            failure.__cause__ = error
+            NgConnectInterface.instance().notifier.display_exception(failure)
+
+    def __confirm_qgis_style_update(self, style_name: str) -> bool:
+        answer = QMessageBox.question(
+            self,
+            self.tr("Replace resource style"),
+            self.tr(
+                'Style "{name}" in Web GIS will be replaced with the '
+                "current QGIS layer style. Continue?"
+            ).format(name=style_name),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        return answer == QMessageBox.StandardButton.Yes
 
     def add_style(self):
         qgs_map_layer = self.iface.mapCanvas().currentLayer()
         ngw_layer_index = self.proxy_model.mapToSource(
             self.resources_tree_view.selectionModel().currentIndex()
         )
+        style_manager = qgs_map_layer.styleManager()
+        assert style_manager is not None
+        style_name, accepted = QInputDialog.getText(
+            self,
+            self.tr("Add resource style"),
+            self.tr("Name"),
+            QLineEdit.EchoMode.Normal,
+            style_manager.currentStyle(),
+        )
+        if not accepted or len(style_name.strip()) == 0:
+            return
+
         response = self.resource_model.addQGISStyle(
-            qgs_map_layer, ngw_layer_index
+            qgs_map_layer, ngw_layer_index, style_name.strip()
         )
         response.done.connect(
             lambda index: self.resources_tree_view.setCurrentIndex(
@@ -4153,6 +4454,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         style_resource = None
 
         ngw_group = ngw_src.get_parent()
+        copy_name = ngw_group.generate_unique_child_name(ngw_src.display_name)
         child_resources = ngw_src.get_children()
         style_resources = []
         # assume that there can be only a style of appropriate for the layer type
@@ -4185,7 +4487,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
             qgs_layer = QgsVectorLayer(
                 str(temp_path),
-                ngw_src.display_name,
+                copy_name,
                 "ogr",
             )
             if not qgs_layer.isValid():
@@ -4197,7 +4499,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         elif ngw_src.type_id == NGWRasterLayer.type_id:
             raster_file = self._downloadRasterSource(ngw_src)
             qgs_layer = QgsRasterLayer(
-                raster_file.fileName(), ngw_src.display_name, "gdal"
+                raster_file.fileName(), copy_name, "gdal"
             )
             if not qgs_layer.isValid():
                 logger.error("Failed to add raster layer to QGIS")
@@ -4249,19 +4551,23 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.selectionModel().currentIndex()
         )
         if sel_index.isValid():
-            # ckeckbox
+            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
+            if isinstance(
+                ngw_resource,
+                (NGWQGISVectorStyle, NGWQGISRasterStyle),
+            ):
+                self.__duplicate_qgis_style(ngw_resource, sel_index.parent())
+                return
+
             res = QMessageBox.question(
                 self,
-                self.tr("Duplicate Resource"),
-                self.tr("Are you sure you want to duplicate this resource?"),
-                QMessageBox.StandardButton.Yes
-                and QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.Yes,
+                self.tr("Duplicate resource"),
+                self.tr("Create a copy of this resource?"),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             )
             if res == QMessageBox.StandardButton.No:
                 return
-
-            ngw_resource = sel_index.data(QNGWResourceItem.NGWResourceRole)
 
             # block gui
             self.block_gui()
@@ -4287,6 +4593,38 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             finally:
                 self.resources_tree_view.end_loading()
                 self.unblock_gui()
+
+    def __duplicate_qgis_style(
+        self,
+        style: NGWQGISStyle,
+        parent_index: QModelIndex,
+    ) -> None:
+        parent = parent_index.data(QNGWResourceItem.NGWResourceRole)
+        if not isinstance(parent, (NGWVectorLayer, NGWRasterLayer)):
+            return
+
+        suggested_name = parent.generate_unique_child_name(style.display_name)
+        style_name = self.__request_style_name(
+            parent,
+            self.tr("Duplicate resource"),
+            suggested_name,
+        )
+        if style_name is None:
+            return
+
+        try:
+            style.populate_qml()
+        except Exception as error:
+            logger.exception("Failed to download QML style for duplication")
+            ngw_error = NgConnectError()
+            ngw_error.__cause__ = error
+            NgConnectInterface.instance().notifier.display_exception(ngw_error)
+            return
+
+        qml = style.qml
+        if qml is None:
+            return
+        self.__create_style_from_qml(parent, qml, style_name)
 
     def create_wfs_or_ogcf_service(self, service_type: str):
         assert service_type in ("WFS", "OGC API - Features")
@@ -4572,7 +4910,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         path_to_qml = os.path.join(last_used_dir, f"{style_name}.qml")
         filepath, _selected_filter = QFileDialog.getSaveFileName(
             self,
-            caption=self.tr("Save QML"),
+            caption=self.tr("Export to QML"),
             directory=path_to_qml,
             filter=self.tr("QGIS Layer Style File") + "(*.qml)",
         )
@@ -4608,7 +4946,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         path_to_ngfp = os.path.join(last_used_dir, f"{form_name}.ngfp")
         filepath, _selected_filter = QFileDialog.getSaveFileName(
             self,
-            caption=self.tr("Save NGFP"),
+            caption=self.tr("Export to NGFP"),
             directory=path_to_ngfp,
             filter=self.tr("NextGIS Form Package") + "(*.ngfp)",
         )
@@ -4647,26 +4985,45 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.resources_tree_view.selectionModel().currentIndex()
         )
         ngw_qgis_style = selected_index.data(QNGWResourceItem.NGWResourceRole)
-        self._downloadStyleAsQML(ngw_qgis_style, mes_bar=False)
+        if not self._downloadStyleAsQML(ngw_qgis_style, mes_bar=False):
+            self.dwn_qml_file.remove()
+            error = NgConnectError(
+                user_message=self.tr(
+                    "An error occurred when copying the style"
+                )
+            )
+            NgConnectInterface.instance().notifier.display_exception(error)
+            return
 
         # Set style to dom
         dom_document = QDomDocument()
         error_message = ""
-        if self.dwn_qml_file.open(QFile.OpenModeFlag.ReadOnly):
-            is_success, error_message, line, column = dom_document.setContent(
-                self.dwn_qml_file
-            )
-            if error_message is None:
-                error_message = ""
-
-            self.dwn_qml_file.close()
-
-            if not is_success:
-                error_message = self.tr(
-                    f"{error_message} at line {line} column {column}"
+        if not self.dwn_qml_file.open(QFile.OpenModeFlag.ReadOnly):
+            self.dwn_qml_file.remove()
+            error = NgConnectError(
+                user_message=self.tr(
+                    "An error occurred when copying the style"
                 )
+            )
+            error.add_note(self.dwn_qml_file.errorString())
+            NgConnectInterface.instance().notifier.display_exception(error)
+            return
+
+        is_success, error_message, line, column = dom_document.setContent(
+            self.dwn_qml_file
+        )
+        if error_message is None:
+            error_message = ""
+
+        self.dwn_qml_file.close()
+
+        if not is_success:
+            error_message = self.tr(
+                f"{error_message} at line {line} column {column}"
+            )
 
         if len(error_message) != 0:
+            self.dwn_qml_file.remove()
             user_message = self.tr("An error occurred when copying the style")
             error = NgConnectError(user_message=user_message)
             error.add_note(error_message)
@@ -4677,7 +5034,228 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         QGSCLIPBOARD_STYLE_MIME = "application/qgis.style"
         data = dom_document.toByteArray()
         text = dom_document.toString()
-        Clipboard().set_data(QGSCLIPBOARD_STYLE_MIME, data, text)
+        mime_data = QMimeData()
+        mime_data.setData(QGSCLIPBOARD_STYLE_MIME, data)
+        mime_data.setText(text)
+        mime_data.setData(
+            "application/x-nextgis-style-name",
+            ngw_qgis_style.display_name.encode("utf-8"),
+        )
+        Clipboard().set_mime_data(mime_data)
+        self.dwn_qml_file.remove()
+        self.__show_status_message(self.tr("Style copied"))
+
+    def paste_style(self) -> None:
+        """Create or replace a server style from the clipboard contents."""
+        qml = self.__clipboard_style_qml()
+        if qml is None:
+            return
+        name_data = (
+            Clipboard().mime_data().data("application/x-nextgis-style-name")
+        )
+        try:
+            source_name = bytes(name_data).decode("utf-8").strip()
+        except UnicodeDecodeError:
+            source_name = ""
+
+        selected_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        if not selected_index.isValid():
+            return
+
+        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        target_layer: object = resource
+        if isinstance(resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            target_layer = selected_index.parent().data(
+                QNGWResourceItem.NGWResourceRole
+            )
+        if not self.__is_qml_style_compatible(target_layer, qml):
+            return
+        if isinstance(resource, (NGWQGISVectorStyle, NGWQGISRasterStyle)):
+            if not self.__confirm_style_replacement():
+                return
+            self.__replace_style_qml(resource, qml)
+            return
+
+        if not isinstance(resource, (NGWVectorLayer, NGWRasterLayer)):
+            return
+
+        style_name = self.__request_style_name(
+            resource,
+            self.tr("New style"),
+            resource.generate_unique_child_name(
+                source_name or resource.display_name
+            ),
+        )
+        if style_name is None:
+            return
+
+        self.__create_style_from_qml(resource, qml, style_name)
+
+    def __clipboard_style_qml(self) -> Optional[str]:
+        mime_data = Clipboard().mime_data()
+        mime_type = "application/qgis.style"
+        if not mime_data.hasFormat(mime_type):
+            return None
+
+        try:
+            qml = bytes(mime_data.data(mime_type)).decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+
+        document = QDomDocument()
+        parse_result = document.setContent(qml)
+        is_valid = (
+            parse_result[0]
+            if isinstance(parse_result, tuple)
+            else parse_result
+        )
+        if not is_valid or document.documentElement().tagName() != "qgis":
+            return None
+
+        return qml
+
+    def __is_qml_style_compatible(self, resource: object, qml: str) -> bool:
+        document = QDomDocument()
+        parse_result = document.setContent(qml)
+        is_valid = (
+            parse_result[0]
+            if isinstance(parse_result, tuple)
+            else parse_result
+        )
+        if not is_valid:
+            return False
+
+        if isinstance(resource, NGWRasterLayer):
+            return document.elementsByTagName("rasterrenderer").count() > 0
+
+        if not isinstance(resource, NGWAbstractVectorResource):
+            return False
+
+        geometry_elements = document.elementsByTagName("layerGeometryType")
+        if geometry_elements.count() != 1:
+            return False
+        geometry_element = geometry_elements.at(0).toElement()
+        try:
+            geometry_type = int(geometry_element.text())
+        except ValueError:
+            return False
+
+        return geometry_type == int(resource.geometry_type)
+
+    def __request_style_name(
+        self,
+        layer: object,
+        title: str,
+        initial: str,
+    ) -> Optional[str]:
+        if not isinstance(layer, (NGWVectorLayer, NGWRasterLayer)):
+            return None
+
+        existing_names = [child.display_name for child in layer.get_children()]
+        dialog = QgsNewNameDialog(
+            initial=initial,
+            existing=existing_names,
+            cs=Qt.CaseSensitivity.CaseSensitive,
+            parent=self,
+        )
+        dialog.setWindowTitle(title)
+        dialog.setOverwriteEnabled(False)
+        dialog.setAllowEmptyName(False)
+        dialog.setHintString(self.tr("Enter style name"))
+        dialog.setConflictingNameWarning(self.tr("Resource already exists"))
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return None
+
+        return dialog.name()
+
+    def __confirm_style_replacement(self) -> bool:
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(self.tr("Replace style"))
+        box.setText(
+            self.tr(
+                "The style will be replaced with the contents of the "
+                "clipboard. Continue?"
+            )
+        )
+        box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel
+        )
+        box.setDefaultButton(QMessageBox.StandardButton.Cancel)
+        replace_button = box.button(QMessageBox.StandardButton.Yes)
+        assert replace_button is not None
+        replace_button.setText(self.tr("Replace"))
+        return box.exec() == QMessageBox.StandardButton.Yes
+
+    def __create_style_from_qml(
+        self,
+        layer: object,
+        qml: str,
+        style_name: str,
+    ) -> None:
+        self.__write_style_qml(
+            self.tr("Creating style"),
+            lambda filename: layer.create_qml_style(  # type: ignore[union-attr]
+                filename,
+                lambda _total, _read: None,
+                style_name=style_name,
+            ),
+            add_to_tree=True,
+            qml=qml,
+        )
+
+    def __replace_style_qml(self, style: NGWQGISStyle, qml: str) -> None:
+        self.__write_style_qml(
+            self.tr("Replacing style"),
+            lambda filename: style.update_qml(
+                filename,
+                lambda _total, _read: None,
+            ),
+            add_to_tree=False,
+            qml=qml,
+        )
+
+    def __write_style_qml(
+        self,
+        operation: str,
+        writer: Callable[[str], object],
+        *,
+        add_to_tree: bool,
+        qml: str,
+    ) -> None:
+        filename = ""
+        self.block_gui()
+        self.resources_tree_view.begin_loading(operation)
+        try:
+            with tempfile.NamedTemporaryFile(
+                "w", suffix=".qml", delete=False
+            ) as qml_file:
+                qml_file.write(qml)
+                filename = qml_file.name
+
+            result = writer(filename)
+            if add_to_tree and isinstance(result, NGWResource):
+                self.__add_resource_to_tree(result)
+            self.__show_status_message(self.tr("Style updated"))
+        except Exception as error:
+            logger.exception("Failed to write QML style")
+            ngw_error = NgConnectError()
+            ngw_error.__cause__ = error
+            NgConnectInterface.instance().notifier.display_exception(ngw_error)
+        finally:
+            if filename:
+                try:
+                    os.remove(filename)
+                except OSError:
+                    logger.warning("Failed to remove temporary QML file")
+            self.resources_tree_view.end_loading()
+            self.unblock_gui()
+
+    def __show_status_message(self, message: str) -> None:
+        main_window = cast(QMainWindow, self.iface.mainWindow())
+        main_window.statusBar().showMessage(message, 5000)
 
     def show_msg_box(
         self,
@@ -4868,12 +5446,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
     def __create_search_action(self) -> None:
         menu = QMenu()
+        MenuSectionStyle.install(menu)
 
         search_type_group = QActionGroup(menu)
         search_type_group.setExclusive(True)
 
-        separator = menu.addSeparator()
-        separator.setText(self.tr("Search type"))
+        menu.addSection(self.tr("Search type"))
 
         settings = SearchSettings()
         last_type = settings.last_used_type

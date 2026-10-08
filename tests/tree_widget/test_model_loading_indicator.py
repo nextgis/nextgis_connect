@@ -134,6 +134,36 @@ def test_resource_tree_clears_selection_on_escape(
     proxy_model.deleteLater()
 
 
+def test_resource_tree_requests_style_transfer_for_copy_and_paste_shortcuts(
+    qgis_app,
+    monkeypatch,
+) -> None:
+    del qgis_app
+    monkeypatch.setattr(
+        NgConnectInterface,
+        "instance",
+        classmethod(
+            lambda cls: SimpleNamespace(path=Path("src/nextgis_connect"))
+        ),
+    )
+    view = QNGWResourceTreeView(None)
+    copy_requests = QSignalSpy(view.copy_requested)
+    paste_requests = QSignalSpy(view.paste_requested)
+
+    for key in (Qt.Key.Key_C, Qt.Key.Key_V):
+        view.keyPressEvent(
+            QKeyEvent(
+                QEvent.Type.KeyPress,
+                key,
+                Qt.KeyboardModifier.ControlModifier,
+            )
+        )
+
+    assert len(copy_requests) == 1
+    assert len(paste_requests) == 1
+    view.deleteLater()
+
+
 def test_loading_overlay_disables_tree_scrolling(
     qgis_app,
     monkeypatch,

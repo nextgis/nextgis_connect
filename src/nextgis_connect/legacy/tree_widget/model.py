@@ -1624,14 +1624,16 @@ class QNGWResourceTreeModel(QNGWResourceTreeModelBase):
         return self._startJob(QGISStyleUpdater(qgs_map_layer, ngw_resource))
 
     @modelRequest
-    def addQGISStyle(self, qgs_map_layer, index):
+    def addQGISStyle(self, qgs_map_layer, index, style_name=None):
         if not index.isValid():
             index = self.index(0, 0, index)
 
         item = index.internalPointer()
         ngw_resource = item.data(QNGWResourceItem.NGWResourceRole)
 
-        return self._startJob(QGISStyleAdder(qgs_map_layer, ngw_resource))
+        return self._startJob(
+            QGISStyleAdder(qgs_map_layer, ngw_resource, style_name)
+        )
 
     @modelRequest
     def uploadProjectResources(

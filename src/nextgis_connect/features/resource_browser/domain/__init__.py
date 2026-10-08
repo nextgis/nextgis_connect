@@ -28,6 +28,7 @@ from nextgis_connect.features.resource_browser.domain.resource_import import (
 )
 from nextgis_connect.features.resource_browser.domain.resource_menu import (
     LayerKind,
+    QgisSelectionKind,
     ResourceKind,
     ResourceMenuAction,
     ResourceMenuContext,
@@ -47,6 +48,7 @@ from nextgis_connect.features.resource_browser.domain.resource_menu import (
 
 __all__ = [
     "LayerKind",
+    "QgisSelectionKind",
     "ResourceBatchImportResult",
     "ResourceBatchImportStatus",
     "ResourceImportExtent",

@@ -506,6 +506,36 @@ class PluginContainer:
 
         layer_menu_icon = plugin_icon("branding/connect_logo.svg")
         for action in ng_layer_actions:
+            if isinstance(action.data(), ResourceMenuAction):
+                source_action = action
+                action = QAction(self.__ng_resources_tree_dock)
+
+                def sync_action(source=source_action, target=action):
+                    dock = self.__ng_resources_tree_dock
+                    labels = {
+                        ResourceMenuAction.OVERWRITE_LAYER: dock.tr(
+                            "Replace resource data in Web GIS"
+                        ),
+                        ResourceMenuAction.ADD_STYLE: dock.tr(
+                            "Add style to Web GIS…"
+                        ),
+                        ResourceMenuAction.UPDATE_STYLE: dock.tr(
+                            "Replace layer style in Web GIS"
+                        ),
+                    }
+                    text = labels.get(source.data())
+                    if text is None:
+                        text = dock.tr("{action} to Web GIS").format(
+                            action=source.text()
+                        )
+                    target.setText(text)
+                    target.setIcon(source.icon())
+                    target.setEnabled(source.isEnabled())
+                    target.setVisible(source.isVisible())
+
+                source_action.changed.connect(sync_action)
+                action.triggered.connect(source_action.trigger)
+                sync_action()
             for layer_type in (LayerType.Vector, LayerType.Raster):
                 self.__layer_tree_action_registry.register(
                     action,

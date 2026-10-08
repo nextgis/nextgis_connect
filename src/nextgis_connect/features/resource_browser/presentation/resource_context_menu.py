@@ -18,7 +18,13 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import ClassVar, Dict, List, Optional, Tuple
 
-from qgis.PyQt.QtCore import QObject, QPoint, pyqtSignal, pyqtSlot
+from qgis.PyQt.QtCore import (
+    QCoreApplication,
+    QObject,
+    QPoint,
+    pyqtSignal,
+    pyqtSlot,
+)
 from qgis.PyQt.QtGui import QColor, QIcon, QPalette
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -30,6 +36,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from nextgis_connect.features.resource_browser.domain import (
+    QgisSelectionKind,
     ResourceKind,
     ResourceMenuAction,
     ResourceMenuContext,
@@ -50,6 +57,7 @@ from nextgis_connect.ui_kit.icons import (
     plugin_icon,
     qgis_icon,
 )
+from nextgis_connect.ui_kit.widgets.menu_section_style import MenuSectionStyle
 
 
 @dataclass(frozen=True)
@@ -69,6 +77,12 @@ class ResourceMenuSectionAction(QWidgetAction):
     def __init__(self, text: str, parent: QObject) -> None:
         super().__init__(parent)
         self.setText(text)
+        self.changed.connect(self._sync_widget_visibility)
+
+    @pyqtSlot()
+    def _sync_widget_visibility(self) -> None:
+        for widget in self.createdWidgets():
+            widget.setVisible(self.isVisible())
 
     def createWidget(self, parent: QWidget) -> QWidget:
         """Create a menu section widget using the current menu palette."""
@@ -83,6 +97,7 @@ class ResourceMenuSectionAction(QWidgetAction):
             self._label_palette(label.palette(), parent.palette())
         )
         layout.addWidget(label)
+        widget.setVisible(self.isVisible())
 
         return widget
 
@@ -236,6 +251,8 @@ class ResourceContextMenuFactory(QObject):
     }
     _QGIS_ICON_NAMES: ClassVar[Dict[ResourceMenuAction, str]] = {
         ResourceMenuAction.COPY_RESOURCE_LINK: "mActionEditCopy.svg",
+        ResourceMenuAction.COPY_STYLE: "mActionEditCopy.svg",
+        ResourceMenuAction.PASTE_STYLE: "mActionEditPaste.svg",
         ResourceMenuAction.OPEN_LAYER_HISTORY: "mIconHistory.svg",
         ResourceMenuAction.EXPAND_ALL: "mActionExpandTree.svg",
         ResourceMenuAction.COLLAPSE_ALL: "mActionCollapseTree.svg",
@@ -264,8 +281,8 @@ class ResourceContextMenuFactory(QObject):
         self._action_texts: Dict[ResourceMenuAction, str] = {
             ResourceMenuAction.UPLOAD_SELECTED: self.tr("Upload selected"),
             ResourceMenuAction.UPLOAD_PROJECT: self.tr("Upload all"),
-            ResourceMenuAction.UPDATE_STYLE: self.tr("Update layer style"),
-            ResourceMenuAction.ADD_STYLE: self.tr("Add new style to layer"),
+            ResourceMenuAction.UPDATE_STYLE: self.tr("Replace style"),
+            ResourceMenuAction.ADD_STYLE: self.tr("Add style…"),
             ResourceMenuAction.OPEN_IN_WEB_GIS: self.tr(
                 "Open resource in browser"
             ),
@@ -276,14 +293,13 @@ class ResourceContextMenuFactory(QObject):
             ResourceMenuAction.OPEN_LAYER_HISTORY: self.tr("Layer history"),
             ResourceMenuAction.EXPAND_ALL: self.tr("Expand All"),
             ResourceMenuAction.COLLAPSE_ALL: self.tr("Collapse All"),
-            ResourceMenuAction.DOWNLOAD_QML: self.tr("Download as QML"),
-            ResourceMenuAction.DOWNLOAD_NGFP: self.tr("Download as NGFP"),
-            ResourceMenuAction.COPY_STYLE: self.tr("Copy style"),
-            ResourceMenuAction.OVERWRITE_LAYER: self.tr(
-                "Overwrite with current layer"
-            ),
+            ResourceMenuAction.DOWNLOAD_QML: self.tr("Export to QML…"),
+            ResourceMenuAction.DOWNLOAD_NGFP: self.tr("Export to NGFP…"),
+            ResourceMenuAction.COPY_STYLE: self.tr("Copy"),
+            ResourceMenuAction.PASTE_STYLE: self.tr("Paste"),
+            ResourceMenuAction.OVERWRITE_LAYER: self.tr("Replace data"),
             ResourceMenuAction.DUPLICATE_RESOURCE: self.tr(
-                "Duplicate resource"
+                "Duplicate resource…"
             ),
             ResourceMenuAction.RENAME_RESOURCE: self.tr("Rename"),
             ResourceMenuAction.SHOW_PROPERTIES: self.tr(
@@ -394,6 +410,7 @@ class ResourceContextMenuFactory(QObject):
         title: str = "",
     ) -> QMenu:
         menu = QMenu(title, parent)
+        MenuSectionStyle.install(menu)
         return menu
 
     def create_action(
@@ -413,6 +430,19 @@ class ResourceContextMenuFactory(QObject):
         )
         action.setData(action_id)
         return action
+
+    def action_text(
+        self,
+        action_id: ResourceMenuAction,
+        context: Optional[ResourceMenuContext] = None,
+        text_mode: ResourceMenuActionTextMode = ResourceMenuActionTextMode.CONTEXTUAL,
+    ) -> str:
+        """Return the contextual default label for an action."""
+        return self._action_text(
+            action_id,
+            text_mode,
+            context,
+        )
 
     def action_icon(
         self,
@@ -436,7 +466,28 @@ class ResourceContextMenuFactory(QObject):
         text_mode: ResourceMenuActionTextMode,
         context: Optional[ResourceMenuContext],
     ) -> str:
+        if action_id == ResourceMenuAction.UPLOAD_SELECTED:
+            return self._upload_selected_text(context)
+
         if action_id == ResourceMenuAction.ADD_TO_QGIS:
+            if (
+                text_mode == ResourceMenuActionTextMode.STANDALONE_IMPORT
+                and context is not None
+                and len(context.resources) == 1
+            ):
+                kind = context.resources[0].kind
+                if kind in (
+                    ResourceKind.VECTOR_LAYER,
+                    ResourceKind.POSTGIS_LAYER,
+                    ResourceKind.WFS_LAYER,
+                    ResourceKind.QGIS_VECTOR_STYLE,
+                ):
+                    return self.tr("Add as vector layer")
+                if kind in (
+                    ResourceKind.RASTER_LAYER,
+                    ResourceKind.QGIS_RASTER_STYLE,
+                ):
+                    return self.tr("Add as raster layer")
             if (
                 text_mode
                 == ResourceMenuActionTextMode.CONTEXTUAL_IMPORT_OPTION
@@ -477,6 +528,20 @@ class ResourceContextMenuFactory(QObject):
             raise ValueError(
                 f"Unsupported resource menu action: {action_id}"
             ) from error
+
+    def _upload_selected_text(
+        self,
+        context: Optional[ResourceMenuContext],
+    ) -> str:
+        if context is None:
+            return self._action_texts[ResourceMenuAction.UPLOAD_SELECTED]
+        if context.qgis_selection_kind == QgisSelectionKind.LAYER:
+            return self.tr("Upload layer")
+        if context.qgis_selection_kind == QgisSelectionKind.GROUP:
+            return self.tr("Upload group")
+        if context.qgis_selection_kind == QgisSelectionKind.MULTIPLE:
+            return self.tr("Upload selected")
+        return self._action_texts[ResourceMenuAction.UPLOAD_SELECTED]
 
     def _creation_action_text(
         self,
@@ -613,6 +678,8 @@ class ResourceContextMenuController(QObject):
         self._resource_import_separator: Optional[QAction] = None
         self._resource_import_actions: Tuple[QAction, ...] = ()
         self._add_to_web_gis_actions: Tuple[QAction, ...] = ()
+        self._add_to_web_gis_separator: Optional[QAction] = None
+        self._modification_header: Optional[QAction] = None
         self._resource_creation_actions: Tuple[QAction, ...] = ()
 
     def create_add_to_web_gis_menu(self) -> QMenu:
@@ -624,6 +691,22 @@ class ResourceContextMenuController(QObject):
         built_menu = self._menu_factory.create(layout)
         self._connect_actions(built_menu.actions)
         self._add_to_web_gis_actions = built_menu.actions
+        self._add_to_web_gis_separator = self._first_separator(built_menu.menu)
+        built_menu.menu.insertSection(
+            built_menu.actions[0],
+            QCoreApplication.translate(
+                "ResourceContextMenuFactory", "Web GIS upload"
+            ).replace("Web GIS", "Web GIS"),
+        )
+        self._modification_header = built_menu.menu.insertSection(
+            built_menu.actions[2],
+            QCoreApplication.translate(
+                "ResourceContextMenuFactory", "Web GIS resource modification"
+            ).replace("Web GIS", "Web GIS"),
+        )
+        if self._add_to_web_gis_separator is not None:
+            built_menu.menu.removeAction(self._add_to_web_gis_separator)
+            self._add_to_web_gis_separator = None
         self.set_add_to_web_gis_actions_enabled(False)
         return built_menu.menu
 
@@ -686,6 +769,10 @@ class ResourceContextMenuController(QObject):
             return
 
         built_menu = self._menu_factory.create(layout, context)
+        for action in built_menu.actions:
+            if action.data() == ResourceMenuAction.PASTE_STYLE:
+                action.setVisible(context.can_paste_style)
+                action.setEnabled(context.can_paste_style)
         self._connect_actions(built_menu.actions)
 
         built_menu.menu.exec(global_position)
@@ -728,6 +815,13 @@ class ResourceContextMenuController(QObject):
             action_id = action.data()
             is_available = action_id in available_actions
             action.setIcon(self._menu_factory.action_icon(action_id, context))
+            action.setText(
+                self._menu_factory.action_text(
+                    action_id,
+                    context,
+                    ResourceMenuActionTextMode.STANDALONE_IMPORT,
+                )
+            )
             action.setVisible(is_available)
             action.setEnabled(is_available)
             if action_id != ResourceMenuAction.ADD_TO_QGIS and is_available:
@@ -791,10 +885,32 @@ class ResourceContextMenuController(QObject):
             if not isinstance(action_id, ResourceMenuAction):
                 continue
 
+            is_applicable = self._policy.is_add_to_web_gis_action_applicable(
+                context,
+                action_id,
+            )
+            action.setText(self._menu_factory.action_text(action_id, context))
+            action.setVisible(is_applicable)
             action.setEnabled(
-                self._policy.is_add_to_web_gis_action_available(
+                is_applicable
+                and self._policy.is_add_to_web_gis_action_available(
                     context,
                     action_id,
+                )
+            )
+
+        if self._add_to_web_gis_separator is not None:
+            upload_actions = self._add_to_web_gis_actions[:2]
+            style_actions = self._add_to_web_gis_actions[2:]
+            self._add_to_web_gis_separator.setVisible(
+                any(action.isVisible() for action in upload_actions)
+                and any(action.isVisible() for action in style_actions)
+            )
+        if self._modification_header is not None:
+            self._modification_header.setVisible(
+                any(
+                    action.isVisible()
+                    for action in self._add_to_web_gis_actions[2:]
                 )
             )
 
