@@ -298,6 +298,96 @@ def test_batch_import_can_be_cancelled_before_execution(qgis_app) -> None:
     assert result.added_layer_ids == ()
 
 
+@pytest.mark.parametrize(
+    ("layer_count", "accepted", "confirmed", "expects_warning", "cancelled"),
+    [
+        (29, False, False, False, False),
+        (30, False, False, True, True),
+        (31, False, False, True, True),
+        (30, True, False, True, False),
+        (30, False, True, False, False),
+    ],
+)
+def test_large_batch_confirmation_before_layer_creation(
+    qgis_app,
+    layer_count,
+    accepted,
+    confirmed,
+    expects_warning,
+    cancelled,
+) -> None:
+    del qgis_app
+    interaction = mock.Mock()
+    interaction.confirm_large_import.return_value = accepted
+    model = _ResourceModelProbe()
+    importer = QgisResourceBatchImporter(
+        model,
+        [],
+        _insertion_point(),
+        interaction,
+        bulk_import_confirmed=confirmed,
+    )
+
+    def collect_params():
+        importer._QgisResourceBatchImporter__layers_params = dict.fromkeys(
+            range(layer_count)
+        )
+
+    importer._QgisResourceBatchImporter__collect_layers_params = collect_params
+    create_layers = mock.Mock()
+    importer._QgisResourceBatchImporter__create_layers = create_layers
+    importer._QgisResourceBatchImporter__extent_coordinator = mock.Mock()
+
+    result = importer.execute()
+
+    if expects_warning:
+        interaction.confirm_large_import.assert_called_once_with(layer_count)
+    else:
+        interaction.confirm_large_import.assert_not_called()
+    if cancelled:
+        create_layers.assert_not_called()
+        assert result.status == ResourceBatchImportStatus.CANCELLED
+    else:
+        create_layers.assert_called_once()
+        assert result.status == ResourceBatchImportStatus.SUCCEEDED
+    assert result.added_layer_ids == ()
+
+
+@pytest.mark.parametrize("is_root", [True, False])
+@pytest.mark.parametrize("accepted", [True, False])
+def test_import_confirmation_defaults_to_no(
+    qgis_app, monkeypatch, is_root, accepted
+) -> None:
+    del qgis_app
+    message_box = mock.Mock()
+    message_box.exec.return_value = (
+        QMessageBox.StandardButton.Yes
+        if accepted
+        else QMessageBox.StandardButton.No
+    )
+    factory = mock.Mock(return_value=message_box)
+    factory.Icon = QMessageBox.Icon
+    factory.StandardButton = QMessageBox.StandardButton
+    monkeypatch.setattr(interaction_module, "QMessageBox", factory)
+    interaction = interaction_module.QgisResourceImportInteraction(
+        lambda text: text
+    )
+
+    result = (
+        interaction.confirm_root_import()
+        if is_root
+        else interaction.confirm_large_import(30)
+    )
+
+    assert result is accepted
+    message_box.setDefaultButton.assert_called_once_with(
+        QMessageBox.StandardButton.No
+    )
+    message_box.setIcon.assert_called_once_with(QMessageBox.Icon.Warning)
+    text = message_box.setText.call_args.args[0]
+    assert ("All resources" if is_root else "30 layers") in text
+
+
 def test_webmap_missing_resources_ignores_forbidden_ids(qgis_app) -> None:
     del qgis_app
 

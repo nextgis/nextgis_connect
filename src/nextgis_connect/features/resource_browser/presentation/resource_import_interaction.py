@@ -68,6 +68,32 @@ class QgisResourceImportInteraction:
         resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
         return resource.resource_id
 
+    def confirm_root_import(self) -> bool:
+        return self._confirm_import(
+            self._translate(
+                "All resources of the Web GIS will be added to QGIS. "
+                "Do you want to continue?"
+            )
+        )
+
+    def confirm_large_import(self, layer_count: int) -> bool:
+        return self._confirm_import(
+            self._translate(
+                "{} layers will be added to QGIS. Do you want to continue?"
+            ).format(layer_count)
+        )
+
+    def _confirm_import(self, message: str) -> bool:
+        message_box = QMessageBox()
+        message_box.setWindowTitle(self._translate("Warning"))
+        message_box.setIcon(QMessageBox.Icon.Warning)
+        message_box.setText(message)
+        message_box.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        message_box.setDefaultButton(QMessageBox.StandardButton.No)
+        return message_box.exec() == QMessageBox.StandardButton.Yes
+
     @staticmethod
     def _default_translate(text: str) -> str:
         return QCoreApplication.translate("QgisResourceBatchImporter", text)

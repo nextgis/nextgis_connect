@@ -3975,6 +3975,14 @@ NextGIS Web: {ngw_version}</translation>
 <context>
     <name>QgisResourceBatchImporter</name>
     <message>
+        <source>All resources of the Web GIS will be added to QGIS. Do you want to continue?</source>
+        <translation>В QGIS будут добавлены все ресурсы Веб ГИС. Вы готовы продолжить?</translation>
+    </message>
+    <message>
+        <source>{} layers will be added to QGIS. Do you want to continue?</source>
+        <translation>В QGIS будут добавлены слои: {}. Вы готовы продолжить?</translation>
+    </message>
+    <message>
         <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="294"/>
         <source>Resources can&apos;t be added to the map</source>
         <translation>Невозможно добавить ресурсы на карту</translation>

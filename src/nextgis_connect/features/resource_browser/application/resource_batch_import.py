@@ -17,6 +17,8 @@
 from dataclasses import dataclass
 from typing import Hashable, Optional, Protocol, Tuple
 
+LARGE_BATCH_IMPORT_WARNING_THRESHOLD = 30
+
 
 class ResourceImportCancelledError(Exception):
     """Stop batch resource import after an explicit user cancellation."""
@@ -34,6 +36,9 @@ class ResourceAddingErrorContext:
 
 class ResourceBatchImportInteraction(Protocol):
     """Define user decisions required by the batch import workflow."""
+
+    def confirm_large_import(self, layer_count: int) -> bool:
+        """Return whether the user accepts importing a large layer batch."""
 
     def select_default_style(
         self,

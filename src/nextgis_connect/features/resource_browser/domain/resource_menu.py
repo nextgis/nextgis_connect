@@ -839,8 +839,7 @@ class ResourceMenuPolicy:
         resources: Sequence[ResourceMenuItem],
     ) -> bool:
         return len(resources) > 0 and all(
-            not resource.is_root and resource.kind in self._DOWNLOADABLE_KINDS
-            for resource in resources
+            resource.kind in self._DOWNLOADABLE_KINDS for resource in resources
         )
 
     def _can_manipulate_resource_styles(

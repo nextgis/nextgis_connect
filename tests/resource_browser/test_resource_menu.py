@@ -490,9 +490,9 @@ class TestResourceMenuPolicy:
         layout = ResourceMenuPolicy().create_layout(context)
 
         all_actions = self._all_actions(layout)
-        assert ResourceMenuAction.ADD_TO_QGIS not in all_actions
+        assert ResourceMenuAction.ADD_TO_QGIS in all_actions
         assert ResourceMenuAction.DELETE_RESOURCE not in all_actions
-        assert layout.sections[1].submenus[0].sections == (
+        assert layout.sections[2].submenus[0].sections == (
             ResourceMenuSubmenuSection(
                 label=ResourceMenuSectionLabel.CREATE_IN_RESOURCE,
                 actions=(
