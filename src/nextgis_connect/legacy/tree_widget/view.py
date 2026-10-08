@@ -61,6 +61,7 @@ class QNGWResourceTreeView(QTreeView):
     copy_requested = pyqtSignal()
     paste_requested = pyqtSignal()
     cut_requested = pyqtSignal()
+    create_group_requested = pyqtSignal()
     overlay_action_requested = pyqtSignal(object)
     overlay_visibility_changed = pyqtSignal(bool)
 
@@ -515,7 +516,30 @@ class QNGWResourceTreeView(QTreeView):
 
         super().wheelEvent(event)
 
+    @staticmethod
+    def _is_create_group_key(event: QKeyEvent) -> bool:
+        return event.key() == Qt.Key.Key_N and event.modifiers() == (
+            Qt.KeyboardModifier.ControlModifier
+            | Qt.KeyboardModifier.ShiftModifier
+        )
+
+    def event(self, event: Optional[QEvent]) -> bool:
+        if (
+            event is not None
+            and event.type() == QEvent.Type.ShortcutOverride
+            and isinstance(event, QKeyEvent)
+            and self._is_create_group_key(event)
+        ):
+            event.accept()
+            return True
+        return super().event(event)
+
     def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
+        if event is not None and self._is_create_group_key(event):
+            self.create_group_requested.emit()
+            event.accept()
+            return
+
         if event.matches(QKeySequence.StandardKey.Cut):
             self.cut_requested.emit()
             event.accept()

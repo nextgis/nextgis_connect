@@ -638,6 +638,9 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
 
         # ngw resources view
         self.resources_tree_view = QNGWResourceTreeView(self)
+        self.resources_tree_view.create_group_requested.connect(
+            self.__create_group_shortcut
+        )
         search_help_host = self.resources_tree_view.viewport()
         assert search_help_host is not None
         self.search_panel.set_help_host(search_help_host)
@@ -802,6 +805,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         self.__safe_disconnect(
             self.resources_tree_view.copy_requested,
             self.__copy_resource_style_shortcut,
+        )
+        self.__safe_disconnect(
+            self.resources_tree_view.create_group_requested,
+            self.__create_group_shortcut,
         )
         self.__safe_disconnect(
             self.resources_tree_view.cut_requested,
@@ -5803,6 +5810,12 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             self.__search_menu.actions()[1].setChecked(True)
             self.search_panel.set_type(SearchType.ByDisplayName)
             self.search_action.setMenu(None)
+
+    @pyqtSlot()
+    def __create_group_shortcut(self) -> None:
+        action = self.resource_creation_action(ResourceMenuAction.CREATE_GROUP)
+        if action.isEnabled():
+            action.trigger()
 
     def __create_resource_creation_action(self) -> None:
         menu = self.__resource_menu_controller.create_resource_creation_menu()
