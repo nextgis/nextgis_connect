@@ -1,0 +1,16 @@
+{
+  "title": "Material Symbols",
+  "description": {
+    "de": "Icon-Set, das in Schaltflaechen, Menues und Statusindikatoren des Plugins verwendet wird.",
+    "en": "Icon set used by plugin buttons, menus, and state indicators.",
+    "es": "Conjunto de iconos utilizado en los botones, menus e indicadores de estado del plugin.",
+    "fr": "Jeu d'icones utilise dans les boutons, les menus et les indicateurs d'etat du plugin.",
+    "it": "Set di icone usato nei pulsanti, nei menu e negli indicatori di stato del plugin.",
+    "pt": "Conjunto de icones usado nos botoes, menus e indicadores de estado do plugin.",
+    "ru": "Набор иконок, который используется в кнопках, меню и индикаторах состояния плагина."
+  },
+  "license": "Apache-2.0",
+  "license_file": "LICENSE",
+  "license_url": "https://www.apache.org/licenses/LICENSE-2.0",
+  "project_url": "https://fonts.google.com/icons"
+}

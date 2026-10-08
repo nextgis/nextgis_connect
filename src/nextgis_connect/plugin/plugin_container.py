@@ -653,7 +653,9 @@ class PluginContainer:
     def __open_about(self) -> None:
         dialog = AboutDialog(
             str(self.plugin_dir.name),
-            components_path=self.plugin_dir / "assets" / "components.json",
+            components_path=(
+                self.plugin_dir / "assets" / "components" / "index.json"
+            ),
         )
         dialog.exec()
 

@@ -62,7 +62,7 @@ def _iface() -> "QgisInterface":
 def open_plugin_help():
     """Open the plugin help dialog."""
     package_path = Path(__file__).resolve().parents[2]
-    components_path = package_path / "assets" / "components.json"
+    components_path = package_path / "assets" / "components" / "index.json"
     dialog = AboutDialog(PACKAGE_NAME, components_path=components_path)
     dialog.exec()
 
