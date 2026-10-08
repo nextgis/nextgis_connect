@@ -51,6 +51,7 @@ from qgis.PyQt.QtCore import (
     QIODevice,
     QItemSelection,
     QItemSelectionModel,
+    QMimeData,
     QModelIndex,
     QPoint,
     Qt,
@@ -2509,6 +2510,7 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             ResourceMenuAction.UPDATE_STYLE: self.update_style,
             ResourceMenuAction.ADD_STYLE: self.add_style,
             ResourceMenuAction.OPEN_IN_WEB_GIS: self.open_ngw_resource_page,
+            ResourceMenuAction.COPY_RESOURCE_LINK: self.__copy_resource_link,
             ResourceMenuAction.VIEW_IN_BROWSER: self.__open_in_web,
             ResourceMenuAction.OPEN_LAYER_HISTORY: self.open_layer_history,
             ResourceMenuAction.EXPAND_ALL: (
@@ -2595,6 +2597,21 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ngw_resource = index.data(QNGWResourceItem.NGWResourceRole)
         if isinstance(ngw_resource, NGWWebMap):
             self.__open_in_web()
+
+    def __copy_resource_link(self) -> None:
+        selected_index = self.proxy_model.mapToSource(
+            self.resources_tree_view.selectionModel().currentIndex()
+        )
+        if not selected_index.isValid():
+            return
+
+        resource = selected_index.data(QNGWResourceItem.NGWResourceRole)
+        if not isinstance(resource, NGWResource):
+            return
+
+        mime_data = QMimeData()
+        mime_data.setText(resource.get_absolute_url())
+        Clipboard().set_mime_data(mime_data)
 
     def open_ngw_resource_page(self):
         sel_index = self.proxy_model.mapToSource(

@@ -4194,8 +4194,12 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="268"/>
-        <source>Open resource page</source>
-        <translation>Открыть страницу ресурса</translation>
+        <source>Open resource in browser</source>
+        <translation>Открыть ресурс в браузере</translation>
+    </message>
+    <message>
+        <source>Copy resource link</source>
+        <translation>Копировать ссылку на ресурс</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="267"/>

@@ -235,6 +235,7 @@ class ResourceContextMenuFactory(QObject):
         ResourceMenuAction.VIEW_IN_BROWSER: "actions/open_map.svg",
     }
     _QGIS_ICON_NAMES: ClassVar[Dict[ResourceMenuAction, str]] = {
+        ResourceMenuAction.COPY_RESOURCE_LINK: "mActionEditCopy.svg",
         ResourceMenuAction.OPEN_LAYER_HISTORY: "mIconHistory.svg",
         ResourceMenuAction.EXPAND_ALL: "mActionExpandTree.svg",
         ResourceMenuAction.COLLAPSE_ALL: "mActionCollapseTree.svg",
@@ -265,7 +266,12 @@ class ResourceContextMenuFactory(QObject):
             ResourceMenuAction.UPLOAD_PROJECT: self.tr("Upload all"),
             ResourceMenuAction.UPDATE_STYLE: self.tr("Update layer style"),
             ResourceMenuAction.ADD_STYLE: self.tr("Add new style to layer"),
-            ResourceMenuAction.OPEN_IN_WEB_GIS: self.tr("Open resource page"),
+            ResourceMenuAction.OPEN_IN_WEB_GIS: self.tr(
+                "Open resource in browser"
+            ),
+            ResourceMenuAction.COPY_RESOURCE_LINK: self.tr(
+                "Copy resource link"
+            ),
             ResourceMenuAction.VIEW_IN_BROWSER: self.tr("View in browser"),
             ResourceMenuAction.OPEN_LAYER_HISTORY: self.tr("Layer history"),
             ResourceMenuAction.EXPAND_ALL: self.tr("Expand All"),

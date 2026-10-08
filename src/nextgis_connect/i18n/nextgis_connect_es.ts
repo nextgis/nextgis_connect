@@ -4186,8 +4186,12 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="268"/>
-        <source>Open resource page</source>
-        <translation>Abrir página del recurso</translation>
+        <source>Open resource in browser</source>
+        <translation>Abrir recurso en el navegador</translation>
+    </message>
+    <message>
+        <source>Copy resource link</source>
+        <translation>Copiar enlace al recurso</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="267"/>

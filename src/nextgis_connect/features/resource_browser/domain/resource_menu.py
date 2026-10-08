@@ -65,6 +65,7 @@ class ResourceMenuAction(Enum):
     UPDATE_STYLE = auto()
     ADD_STYLE = auto()
     OPEN_IN_WEB_GIS = auto()
+    COPY_RESOURCE_LINK = auto()
     VIEW_IN_BROWSER = auto()
     OPEN_LAYER_HISTORY = auto()
     EXPAND_ALL = auto()
@@ -678,9 +679,15 @@ class ResourceMenuPolicy:
         self,
         resource: ResourceMenuItem,
     ) -> ResourceMenuSection:
-        actions = [ResourceMenuAction.OPEN_IN_WEB_GIS]
+        actions = []
         if resource.is_preview_supported:
             actions.append(ResourceMenuAction.VIEW_IN_BROWSER)
+        actions.extend(
+            (
+                ResourceMenuAction.OPEN_IN_WEB_GIS,
+                ResourceMenuAction.COPY_RESOURCE_LINK,
+            )
+        )
         if (
             resource.kind == ResourceKind.VECTOR_LAYER
             and resource.is_versioning_enabled

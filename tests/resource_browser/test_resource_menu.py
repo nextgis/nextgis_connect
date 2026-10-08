@@ -170,8 +170,9 @@ class TestResourceMenuPolicy:
             ResourceMenuAction.ADD_EXPERIMENTAL_NGW_LAYER,
         )
         assert layout.sections[1].actions == (
-            ResourceMenuAction.OPEN_IN_WEB_GIS,
             ResourceMenuAction.VIEW_IN_BROWSER,
+            ResourceMenuAction.OPEN_IN_WEB_GIS,
+            ResourceMenuAction.COPY_RESOURCE_LINK,
             ResourceMenuAction.OPEN_LAYER_HISTORY,
         )
         assert layout.sections[2].submenus[0].kind == (
@@ -764,8 +765,9 @@ class TestResourceContextMenuFactory:
             "Add to QGIS",
             "Add to QGIS as",
             "<separator>",
-            "Open resource page",
             "View in browser",
+            "Open resource in browser",
+            "Copy resource link",
             "<separator>",
             "Create",
             "Duplicate resource",
