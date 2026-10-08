@@ -26,7 +26,7 @@ from qgis.PyQt.QtCore import (
     QTimer,
     pyqtSignal,
 )
-from qgis.PyQt.QtGui import QKeyEvent, QWheelEvent
+from qgis.PyQt.QtGui import QKeyEvent, QKeySequence, QWheelEvent
 from qgis.PyQt.QtWidgets import (
     QDialog,
     QHeaderView,
@@ -58,6 +58,8 @@ __all__ = ["QNGWResourceTreeView"]
 
 class QNGWResourceTreeView(QTreeView):
     itemDoubleClicked = pyqtSignal(QModelIndex)
+    copy_requested = pyqtSignal()
+    paste_requested = pyqtSignal()
     overlay_action_requested = pyqtSignal(object)
     overlay_visibility_changed = pyqtSignal(bool)
 
@@ -513,6 +515,16 @@ class QNGWResourceTreeView(QTreeView):
         super().wheelEvent(event)
 
     def keyPressEvent(self, event: Optional[QKeyEvent]) -> None:
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self.copy_requested.emit()
+            event.accept()
+            return
+
+        if event.matches(QKeySequence.StandardKey.Paste):
+            self.paste_requested.emit()
+            event.accept()
+            return
+
         if event.key() == Qt.Key.Key_Escape:
             selection_model = self.selectionModel()
             if selection_model is not None:

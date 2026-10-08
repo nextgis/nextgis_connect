@@ -1963,6 +1963,20 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
 </context>
 <context>
     <name>NgConnectDock</name>
+    <message><source>Modify QGIS layer</source><translation>Modificar capa QGIS</translation></message>
+    <message><source>Adding to QGIS</source><translation>Añadir a QGIS</translation></message>
+    <message><source>{action} to Web GIS</source><translation>{action} a Web GIS</translation></message>
+    <message><source>Replace resource data in Web GIS</source><translation>Reemplazar datos del recurso en Web GIS</translation></message>
+    <message><source>Add style to Web GIS…</source><translation>Añadir estilo a Web GIS…</translation></message>
+    <message><source>Replace layer style in Web GIS</source><translation>Reemplazar estilo de capa en Web GIS</translation></message>
+    <message><source>Modify layer</source><translation>Modificar capa</translation></message>
+    <message><source>Apply style</source><translation>Aplicar estilo</translation></message>
+    <message><source>Add new style…</source><translation>Añadir nuevo estilo…</translation></message>
+    <message><source>Add new style</source><translation>Añadir nuevo estilo</translation></message>
+    <message><source>Replace styles</source><translation>Reemplazar estilos</translation></message>
+    <message><source>No QGIS styles are available</source><translation>No hay estilos QGIS disponibles</translation></message>
+    <message><source>All styles of this QGIS layer will be replaced with styles from Web GIS. Local style changes will be lost. Continue?</source><translation>Todos los estilos de esta capa QGIS se reemplazarán por estilos de Web GIS. Se perderán los cambios locales. ¿Continuar?</translation></message>
+    <message><source>The current QGIS layer style will be replaced. Continue?</source><translation>Se reemplazará el estilo actual de la capa QGIS. ¿Continuar?</translation></message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="354"/>
         <source>Open in Web GIS</source>
@@ -2180,8 +2194,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
-        <source>Save QML</source>
-        <translation>Guardar QML</translation>
+        <source>Export to QML</source>
+        <translation>Exportar a QML</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
@@ -2686,8 +2700,8 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
-        <source>Save NGFP</source>
-        <translation>Guardar NGFP</translation>
+        <source>Export to NGFP</source>
+        <translation>Exportar a NGFP</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
@@ -2790,6 +2804,25 @@ Ejecute el diagnóstico para comprobar la configuración de conexión y la dispo
         <source>Searching...</source>
         <translation>Buscando...</translation>
     </message>
+    <message><source>New style</source><translation>Nuevo estilo</translation></message>
+    <message><source>Name</source><translation>Nombre</translation></message>
+    <message><source>Creating style</source><translation>Creando estilo</translation></message>
+    <message><source>Replacing style</source><translation>Reemplazando estilo</translation></message>
+    <message><source>Style copied</source><translation>Estilo copiado</translation></message>
+    <message><source>Style updated</source><translation>Estilo actualizado</translation></message>
+    <message><source>The style in the clipboard is not compatible with the selected resource.</source><translation>El estilo del portapapeles no es compatible con el recurso seleccionado.</translation></message>
+    <message><source>Replace style</source><translation>Reemplazar estilo</translation></message>
+    <message><source>The style will be replaced with the contents of the clipboard. Continue?</source><translation>El estilo se reemplazará con el contenido del portapapeles. ¿Continuar?</translation></message>
+    <message><source>Replace</source><translation>Reemplazar</translation></message>
+    <message><source>Duplicate resource</source><translation>Duplicar recurso</translation></message>
+    <message><source>{name} copy</source><translation>copia de {name}</translation></message>
+    <message><source>Create a copy of this resource?</source><translation>¿Crear una copia de este recurso?</translation></message>
+    <message><source>Replace resource style</source><translation>Reemplazar estilo del recurso</translation></message>
+    <message><source>Style</source><translation>Estilo</translation></message>
+    <message><source>Style &quot;{name}&quot; in Web GIS will be replaced with the current QGIS layer style. Continue?</source><translation>El estilo «{name}» de Web GIS se reemplazará con el estilo actual de la capa QGIS. ¿Continuar?</translation></message>
+    <message><source>Add resource style</source><translation>Añadir estilo al recurso</translation></message>
+    <message><source>Enter style name</source><translation>Introduzca el nombre del estilo</translation></message>
+    <message><source>Resource already exists</source><translation>El recurso ya existe</translation></message>
 </context>
 <context>
     <name>NgConnectOptionsErrorPageWidget</name>
@@ -4164,10 +4197,34 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
 </context>
 <context>
     <name>ResourceContextMenuFactory</name>
+    <message><source>Web GIS upload</source><translation>Cargar a Web GIS</translation></message>
+    <message><source>Web GIS resource modification</source><translation>Modificar recurso de Web GIS</translation></message>
+    <message><source>Modify Web GIS resource</source><translation>Modificar recurso de Web GIS</translation></message>
+    <message><source>Upload to Web GIS</source><translation>Cargar a Web GIS</translation></message>
+    <message><source>Upload layer</source><translation>Cargar capa</translation></message>
+    <message><source>Upload group</source><translation>Cargar grupo</translation></message>
+    <message><source>Upload selected</source><translation>Cargar selección</translation></message>
+    <message><source>Replace data</source><translation>Reemplazar datos</translation></message>
+    <message><source>Add style…</source><translation>Añadir estilo…</translation></message>
+    <message><source>Replace style</source><translation>Reemplazar estilo</translation></message>
+    <message><source>Add as vector layer</source><translation>Añadir como capa vectorial</translation></message>
+    <message><source>Add as raster layer</source><translation>Añadir como capa ráster</translation></message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="264"/>
-        <source>Upload selected</source>
-        <translation>Cargar seleccionados</translation>
+        <source>Upload to Web GIS</source>
+        <translation>Cargar a Web GIS</translation>
+    </message>
+    <message>
+        <source>Upload layer to Web GIS</source>
+        <translation>Cargar capa a Web GIS</translation>
+    </message>
+    <message>
+        <source>Upload group to Web GIS</source>
+        <translation>Cargar grupo a Web GIS</translation>
+    </message>
+    <message>
+        <source>Upload selected to Web GIS</source>
+        <translation>Cargar selección a Web GIS</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="265"/>
@@ -4176,13 +4233,13 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="266"/>
-        <source>Update layer style</source>
-        <translation>Actualizar estilo de capa</translation>
+        <source>Replace resource style</source>
+        <translation>Reemplazar estilo del recurso</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="267"/>
-        <source>Add new style to layer</source>
-        <translation>Añadir nuevo estilo a la capa</translation>
+        <source>Add resource style…</source>
+        <translation>Añadir estilo al recurso…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="268"/>
@@ -4215,28 +4272,32 @@ Para solucionarlo, cambie el tipo de geometría de su(s) capa(s) y vuelva a crea
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="273"/>
-        <source>Download as QML</source>
-        <translation>Descargar como QML</translation>
+        <source>Export to QML…</source>
+        <translation>Exportar a QML…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="274"/>
-        <source>Download as NGFP</source>
-        <translation>Descargar como NGFP</translation>
+        <source>Export to NGFP…</source>
+        <translation>Exportar a NGFP…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="275"/>
-        <source>Copy style</source>
-        <translation>Copiar estilo</translation>
+        <source>Copy</source>
+        <translation>Copiar</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>Pegar</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="276"/>
-        <source>Overwrite with current layer</source>
-        <translation>Sobrescribir con la capa actual</translation>
+        <source>Replace resource data</source>
+        <translation>Reemplazar datos del recurso</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="279"/>
-        <source>Duplicate resource</source>
-        <translation>Duplicar recurso</translation>
+        <source>Duplicate resource…</source>
+        <translation>Duplicar recurso…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="282"/>

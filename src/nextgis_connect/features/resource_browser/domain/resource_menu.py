@@ -53,6 +53,15 @@ class LayerKind(Enum):
     RASTER = auto()
 
 
+class QgisSelectionKind(Enum):
+    """Identify the QGIS tree selection for upload action labels."""
+
+    NONE = auto()
+    LAYER = auto()
+    GROUP = auto()
+    MULTIPLE = auto()
+
+
 class ResourceMenuAction(Enum):
     """Identify commands exposed by the resource tree context menu."""
 
@@ -73,6 +82,7 @@ class ResourceMenuAction(Enum):
     DOWNLOAD_QML = auto()
     DOWNLOAD_NGFP = auto()
     COPY_STYLE = auto()
+    PASTE_STYLE = auto()
     OVERWRITE_LAYER = auto()
     DUPLICATE_RESOURCE = auto()
     CREATE_GROUP = auto()
@@ -144,11 +154,13 @@ class ResourceMenuContext:
 
     resources: Tuple[ResourceMenuItem, ...]
     current_layer_kind: LayerKind = LayerKind.NONE
+    qgis_selection_kind: QgisSelectionKind = QgisSelectionKind.NONE
     is_developer_mode: bool = False
     has_qgis_selection: bool = False
     has_project_layers: bool = False
     can_update_style: bool = False
     can_add_style: bool = False
+    can_paste_style: bool = False
 
 
 @dataclass(frozen=True)
@@ -339,9 +351,9 @@ class ResourceMenuPolicy:
             ResourceMenuAction.UPLOAD_PROJECT,
         ),
         (
+            ResourceMenuAction.OVERWRITE_LAYER,
             ResourceMenuAction.ADD_STYLE,
             ResourceMenuAction.UPDATE_STYLE,
-            ResourceMenuAction.OVERWRITE_LAYER,
         ),
     )
     _ADD_TO_WEB_GIS_ACTIONS: Tuple[ResourceMenuAction, ...] = (
@@ -551,6 +563,46 @@ class ResourceMenuPolicy:
 
         return False
 
+    def is_add_to_web_gis_action_applicable(
+        self,
+        context: ResourceMenuContext,
+        action_id: ResourceMenuAction,
+    ) -> bool:
+        """Return whether an upload-menu action applies to the resource."""
+        if action_id in (
+            ResourceMenuAction.UPLOAD_SELECTED,
+            ResourceMenuAction.UPLOAD_PROJECT,
+        ):
+            return True
+        if len(context.resources) != 1:
+            return False
+
+        resource = context.resources[0]
+        if action_id == ResourceMenuAction.ADD_STYLE:
+            return (
+                resource.kind
+                in (ResourceKind.VECTOR_LAYER, ResourceKind.RASTER_LAYER)
+                and resource.has_geometry
+            )
+        if action_id == ResourceMenuAction.UPDATE_STYLE:
+            return (
+                resource.kind
+                in (
+                    ResourceKind.VECTOR_LAYER,
+                    ResourceKind.RASTER_LAYER,
+                    ResourceKind.QGIS_VECTOR_STYLE,
+                    ResourceKind.QGIS_RASTER_STYLE,
+                )
+                and resource.has_geometry
+            )
+        if action_id == ResourceMenuAction.OVERWRITE_LAYER:
+            return resource.kind in (
+                ResourceKind.VECTOR_LAYER,
+                ResourceKind.RASTER_LAYER,
+            )
+
+        return False
+
     def is_resource_creation_action_available(
         self,
         context: ResourceMenuContext,
@@ -621,11 +673,11 @@ class ResourceMenuPolicy:
 
         sections.append(self._navigation_section(resource))
 
-        content_section = self._content_section(resource)
+        content_section = self._content_section(context)
         if content_section is not None:
             sections.append(content_section)
 
-        sections.append(self._management_section(resource))
+        sections.append(self._management_section(context))
 
         if not resource.is_root:
             sections.append(
@@ -641,14 +693,6 @@ class ResourceMenuPolicy:
                 entries=(self._tree_submenu(),),
             )
         )
-
-        if context.is_developer_mode:
-            sections.append(
-                ResourceMenuSection(
-                    kind=ResourceMenuSectionKind.DEVELOPER,
-                    entries=(ResourceMenuAction.SHOW_PROPERTIES,),
-                )
-            )
 
         return ResourceMenuLayout(sections=tuple(sections))
 
@@ -701,9 +745,12 @@ class ResourceMenuPolicy:
 
     def _content_section(
         self,
-        resource: ResourceMenuItem,
+        context: ResourceMenuContext,
     ) -> Optional[ResourceMenuSection]:
-        actions = self._content_actions(resource)
+        actions = self._content_actions(
+            context.resources[0],
+            context.can_paste_style,
+        )
         if len(actions) == 0:
             return None
 
@@ -714,33 +761,57 @@ class ResourceMenuPolicy:
 
     def _management_section(
         self,
-        resource: ResourceMenuItem,
+        context: ResourceMenuContext,
     ) -> ResourceMenuSection:
+        resource = context.resources[0]
         entries = (
             *self._compact_submenus(self._creation_submenus(resource)),
             *self._duplicate_actions(resource),
             ResourceMenuAction.RENAME_RESOURCE,
+            *self._export_actions(resource),
+            *self._properties_actions(context),
         )
         return ResourceMenuSection(
             kind=ResourceMenuSectionKind.MANAGEMENT,
             entries=entries,
         )
 
+    def _properties_actions(
+        self,
+        context: ResourceMenuContext,
+    ) -> Tuple[ResourceMenuAction, ...]:
+        if context.is_developer_mode:
+            return (ResourceMenuAction.SHOW_PROPERTIES,)
+        return ()
+
     def _content_actions(
         self,
         resource: ResourceMenuItem,
+        can_paste_style: bool,
     ) -> List[ResourceMenuAction]:
         actions: List[ResourceMenuAction] = []
-        if resource.kind in self._QGIS_STYLE_KINDS:
+        if resource.kind in self._QGIS_STYLE_KINDS and resource.has_geometry:
             actions.extend(
                 [
-                    ResourceMenuAction.DOWNLOAD_QML,
                     ResourceMenuAction.COPY_STYLE,
                 ]
             )
-        if resource.kind == ResourceKind.FORM:
-            actions.append(ResourceMenuAction.DOWNLOAD_NGFP)
-
+        if (
+            can_paste_style
+            and resource.has_geometry
+            and resource.kind in self._QGIS_STYLE_KINDS
+        ):
+            actions.append(ResourceMenuAction.PASTE_STYLE)
+        if (
+            can_paste_style
+            and resource.has_geometry
+            and resource.kind
+            in (
+                ResourceKind.VECTOR_LAYER,
+                ResourceKind.RASTER_LAYER,
+            )
+        ):
+            actions.append(ResourceMenuAction.PASTE_STYLE)
         return actions
 
     def _compact_submenus(
@@ -771,10 +842,22 @@ class ResourceMenuPolicy:
         if resource.kind in (
             ResourceKind.VECTOR_LAYER,
             ResourceKind.RASTER_LAYER,
+            ResourceKind.QGIS_VECTOR_STYLE,
+            ResourceKind.QGIS_RASTER_STYLE,
         ):
             actions.append(ResourceMenuAction.DUPLICATE_RESOURCE)
 
         return actions
+
+    def _export_actions(
+        self,
+        resource: ResourceMenuItem,
+    ) -> Tuple[ResourceMenuAction, ...]:
+        if resource.kind in self._QGIS_STYLE_KINDS:
+            return (ResourceMenuAction.DOWNLOAD_QML,)
+        if resource.kind == ResourceKind.FORM:
+            return (ResourceMenuAction.DOWNLOAD_NGFP,)
+        return ()
 
     def _creation_submenus(
         self,

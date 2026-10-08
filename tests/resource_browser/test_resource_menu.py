@@ -22,6 +22,7 @@ from qgis.PyQt.QtWidgets import QLabel, QMenu, QWidget
 
 from nextgis_connect.features.resource_browser.domain import (
     LayerKind,
+    QgisSelectionKind,
     ResourceKind,
     ResourceMenuAction,
     ResourceMenuContext,
@@ -156,6 +157,7 @@ class TestResourceMenuPolicy:
             has_project_layers=True,
             can_update_style=True,
             can_add_style=True,
+            can_paste_style=True,
         )
 
         layout = ResourceMenuPolicy().create_layout(context)
@@ -175,10 +177,11 @@ class TestResourceMenuPolicy:
             ResourceMenuAction.COPY_RESOURCE_LINK,
             ResourceMenuAction.OPEN_LAYER_HISTORY,
         )
-        assert layout.sections[2].submenus[0].kind == (
+        assert layout.sections[2].actions == (ResourceMenuAction.PASTE_STYLE,)
+        assert layout.sections[3].submenus[0].kind == (
             ResourceMenuSubmenuKind.CREATE
         )
-        assert layout.sections[2].submenus[0].sections == (
+        assert layout.sections[3].submenus[0].sections == (
             ResourceMenuSubmenuSection(
                 label=ResourceMenuSectionLabel.CREATE_IN_RESOURCE,
                 actions=(ResourceMenuAction.CREATE_FORM,),
@@ -193,33 +196,31 @@ class TestResourceMenuPolicy:
                 ),
             ),
         )
-        assert layout.sections[2].actions == (
+        assert layout.sections[3].actions == (
             ResourceMenuAction.DUPLICATE_RESOURCE,
             ResourceMenuAction.RENAME_RESOURCE,
+            ResourceMenuAction.SHOW_PROPERTIES,
         )
-        assert layout.sections[3].actions == (
+        assert layout.sections[4].actions == (
             ResourceMenuAction.DELETE_RESOURCE,
         )
-        assert layout.sections[4].submenus[0].kind == (
+        assert layout.sections[5].submenus[0].kind == (
             ResourceMenuSubmenuKind.TREE
         )
-        assert layout.sections[4].submenus[0].actions == (
+        assert layout.sections[5].submenus[0].actions == (
             ResourceMenuAction.EXPAND_ALL,
             ResourceMenuAction.COLLAPSE_ALL,
-        )
-        assert layout.sections[5].actions == (
-            ResourceMenuAction.SHOW_PROPERTIES,
         )
         assert tuple(section.kind for section in layout.sections) == (
             ResourceMenuSectionKind.QGIS_IMPORT,
             ResourceMenuSectionKind.NAVIGATION,
+            ResourceMenuSectionKind.CONTENT,
             ResourceMenuSectionKind.MANAGEMENT,
             ResourceMenuSectionKind.DESTRUCTIVE,
             ResourceMenuSectionKind.TREE,
-            ResourceMenuSectionKind.DEVELOPER,
         )
 
-    def test_form_resource_exposes_ngfp_download(self) -> None:
+    def test_form_resource_exposes_ngfp_export_after_rename(self) -> None:
         context = ResourceMenuContext(
             resources=(ResourceMenuItem(kind=ResourceKind.FORM),)
         )
@@ -227,6 +228,7 @@ class TestResourceMenuPolicy:
         layout = ResourceMenuPolicy().create_layout(context)
 
         assert layout.sections[1].actions == (
+            ResourceMenuAction.RENAME_RESOURCE,
             ResourceMenuAction.DOWNLOAD_NGFP,
         )
 
@@ -239,7 +241,10 @@ class TestResourceMenuPolicy:
 
         layout = ResourceMenuPolicy().create_layout(context)
 
-        create_submenu = layout.sections[2].submenus[0]
+        create_submenu = self._first_submenu(
+            layout,
+            ResourceMenuSubmenuKind.CREATE,
+        )
         assert create_submenu.sections == (
             ResourceMenuSubmenuSection(
                 label=ResourceMenuSectionLabel.CREATE_IN_RESOURCE,
@@ -331,7 +336,8 @@ class TestResourceMenuPolicy:
 
     def test_create_for_style_actions_are_grouped(self) -> None:
         context = ResourceMenuContext(
-            resources=(ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),)
+            resources=(ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),),
+            can_paste_style=True,
         )
 
         layout = ResourceMenuPolicy().create_layout(context)
@@ -353,6 +359,7 @@ class TestResourceMenuPolicy:
             resource_kind: policy.alternative_resource_import_actions(
                 ResourceMenuContext(
                     resources=(ResourceMenuItem(kind=resource_kind),),
+                    can_paste_style=True,
                 )
             )
             for resource_kind in (
@@ -544,14 +551,15 @@ class TestResourceMenuPolicy:
 
     def test_qgis_style_groups_transfer_and_creation_actions(self) -> None:
         context = ResourceMenuContext(
-            resources=(ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),)
+            resources=(ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),),
+            can_paste_style=True,
         )
 
         layout = ResourceMenuPolicy().create_layout(context)
 
         assert layout.sections[2].actions == (
-            ResourceMenuAction.DOWNLOAD_QML,
             ResourceMenuAction.COPY_STYLE,
+            ResourceMenuAction.PASTE_STYLE,
         )
         assert layout.sections[3].submenus[0].sections == (
             ResourceMenuSubmenuSection(
@@ -561,6 +569,57 @@ class TestResourceMenuPolicy:
                     ResourceMenuAction.CREATE_WMS_SERVICE,
                 ),
             ),
+        )
+
+    def test_style_paste_is_available_for_layers_and_qgis_styles(self) -> None:
+        policy = ResourceMenuPolicy()
+
+        for resource_kind in (
+            ResourceKind.VECTOR_LAYER,
+            ResourceKind.RASTER_LAYER,
+            ResourceKind.QGIS_VECTOR_STYLE,
+            ResourceKind.QGIS_RASTER_STYLE,
+        ):
+            layout = policy.create_layout(
+                ResourceMenuContext(
+                    resources=(ResourceMenuItem(kind=resource_kind),),
+                    can_paste_style=True,
+                )
+            )
+
+            assert layout.contains_action(ResourceMenuAction.PASTE_STYLE)
+
+    def test_style_paste_is_hidden_without_a_compatible_clipboard_style(
+        self,
+    ) -> None:
+        layout = ResourceMenuPolicy().create_layout(
+            ResourceMenuContext(
+                resources=(
+                    ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),
+                ),
+            )
+        )
+
+        assert layout.contains_action(ResourceMenuAction.COPY_STYLE)
+        assert not layout.contains_action(ResourceMenuAction.PASTE_STYLE)
+
+    def test_style_copy_and_paste_are_grouped_before_management(self) -> None:
+        layout = ResourceMenuPolicy().create_layout(
+            ResourceMenuContext(
+                resources=(
+                    ResourceMenuItem(kind=ResourceKind.QGIS_VECTOR_STYLE),
+                ),
+                can_paste_style=True,
+            )
+        )
+
+        assert layout.sections[2].actions == (
+            ResourceMenuAction.COPY_STYLE,
+            ResourceMenuAction.PASTE_STYLE,
+        )
+        assert layout.sections[3].actions[-2:] == (
+            ResourceMenuAction.RENAME_RESOURCE,
+            ResourceMenuAction.DOWNLOAD_QML,
         )
 
     def test_add_to_web_gis_availability_uses_shared_context(self) -> None:
@@ -603,6 +662,7 @@ class TestResourceMenuPolicy:
             current_layer_kind=LayerKind.VECTOR,
             can_update_style=True,
             can_add_style=True,
+            can_paste_style=True,
         )
         policy = ResourceMenuPolicy()
 
@@ -691,6 +751,33 @@ class TestResourceMenuPolicy:
             ResourceMenuAction.UPLOAD_PROJECT,
         )
 
+    def test_upload_actions_are_disabled_without_resource_selection(
+        self,
+    ) -> None:
+        policy = ResourceMenuPolicy()
+        context = ResourceMenuContext(
+            resources=(),
+            has_qgis_selection=True,
+            has_project_layers=True,
+        )
+
+        assert policy.is_add_to_web_gis_action_applicable(
+            context,
+            ResourceMenuAction.UPLOAD_SELECTED,
+        )
+        assert not policy.is_add_to_web_gis_action_available(
+            context,
+            ResourceMenuAction.UPLOAD_SELECTED,
+        )
+        assert policy.is_add_to_web_gis_action_applicable(
+            context,
+            ResourceMenuAction.UPLOAD_PROJECT,
+        )
+        assert not policy.is_add_to_web_gis_action_available(
+            context,
+            ResourceMenuAction.UPLOAD_PROJECT,
+        )
+
     def test_single_creation_action_is_not_wrapped_in_submenu(self) -> None:
         context = ResourceMenuContext(
             resources=(ResourceMenuItem(kind=ResourceKind.MAPSERVER_STYLE),)
@@ -736,6 +823,61 @@ class TestResourceMenuPolicy:
 
 
 class TestResourceContextMenuFactory:
+    def test_hidden_section_widget_does_not_overlap_visible_heading(
+        self,
+        qgis_app,
+    ) -> None:
+        parent = QWidget()
+        controller = ResourceContextMenuController(parent)
+        menu = controller.create_add_to_web_gis_menu()
+        for kind in (
+            ResourceKind.GROUP,
+            ResourceKind.VECTOR_LAYER,
+            ResourceKind.GROUP,
+        ):
+            controller.update_add_to_web_gis_actions(
+                ResourceMenuContext(resources=(ResourceMenuItem(kind=kind),))
+            )
+            menu.show()
+            qgis_app.processEvents()
+            for action in menu.actions():
+                if isinstance(action, ResourceMenuSectionAction):
+                    assert all(
+                        widget.isVisible() == action.isVisible()
+                        for widget in action.createdWidgets()
+                    )
+            menu.hide()
+        parent.deleteLater()
+
+    def test_upload_label_reflects_qgis_selection(self, qgis_app) -> None:
+        del qgis_app
+        parent = QWidget()
+        factory = ResourceContextMenuFactory(parent)
+
+        texts = {
+            selection_kind: factory.create_action(
+                ResourceMenuAction.UPLOAD_SELECTED,
+                parent,
+                ResourceMenuContext(
+                    resources=(),
+                    qgis_selection_kind=selection_kind,
+                ),
+            ).text()
+            for selection_kind in (
+                QgisSelectionKind.LAYER,
+                QgisSelectionKind.GROUP,
+                QgisSelectionKind.MULTIPLE,
+            )
+        }
+
+        assert texts == {
+            QgisSelectionKind.LAYER: "Upload layer",
+            QgisSelectionKind.GROUP: "Upload group",
+            QgisSelectionKind.MULTIPLE: "Upload selected",
+        }
+
+        parent.deleteLater()
+
     def test_builds_ordered_sections_and_submenus(self, qgis_app) -> None:
         del qgis_app
         parent = QWidget()
@@ -751,6 +893,7 @@ class TestResourceContextMenuFactory:
             has_project_layers=True,
             can_update_style=True,
             can_add_style=True,
+            can_paste_style=True,
         )
         layout = ResourceMenuPolicy().create_layout(context)
 
@@ -769,8 +912,10 @@ class TestResourceContextMenuFactory:
             "Open resource in browser",
             "Copy resource link",
             "<separator>",
+            "Paste",
+            "<separator>",
             "Create",
-            "Duplicate resource",
+            "Duplicate resource…",
             "Rename",
             "<separator>",
             "Delete",
@@ -967,7 +1112,7 @@ class TestResourceContextMenuFactory:
             if action.isVisible() and not action.isSeparator()
         ]
         expected_action_texts = [
-            "Add to QGIS",
+            "Add as vector layer",
         ]
         if is_mvt_supported():
             expected_action_texts.append("Add as MVT")
@@ -982,7 +1127,7 @@ class TestResourceContextMenuFactory:
         ] == expected_action_texts
         default_action = controller.default_resource_import_action(context)
         assert default_action is not None
-        assert default_action.text() == "Add to QGIS"
+        assert default_action.text() == "Add as vector layer"
         assert default_action in menu.actions()
         assert any(
             action.isVisible() and action.isSeparator()
@@ -1102,7 +1247,7 @@ class TestResourceContextMenuFactory:
             action.text()
             for action in menu.actions()
             if action.isVisible() and not action.isSeparator()
-        ] == ["Add to QGIS"]
+        ] == ["Add as vector layer"]
         assert all(
             not action.isVisible()
             for action in menu.actions()
@@ -1136,22 +1281,107 @@ class TestResourceContextMenuFactory:
         controller.update_add_to_web_gis_actions(context)
 
         menu_items = [
-            "<separator>" if action.isSeparator() else action.text()
+            "<separator>"
+            if action.isSeparator() and not action.text()
+            else action.text()
             for action in menu.actions()
         ]
         assert menu_items == [
+            "Web GIS upload",
             "Upload selected",
             "Upload all",
-            "<separator>",
-            "Add new style to layer",
-            "Update layer style",
-            "Overwrite with current layer",
+            "Web GIS resource modification",
+            "Replace data",
+            "Add style…",
+            "Replace style",
         ]
         assert [
             action.isEnabled()
             for action in menu.actions()
             if not action.isSeparator()
+            and not isinstance(action, ResourceMenuSectionAction)
         ] == [False, False, True, True, True]
+
+        parent.deleteLater()
+
+    def test_web_gis_toolbar_hides_inapplicable_style_actions(
+        self,
+        qgis_app,
+    ) -> None:
+        del qgis_app
+        parent = QWidget()
+        controller = ResourceContextMenuController(parent)
+        controller.create_add_to_web_gis_menu()
+        context = ResourceMenuContext(
+            resources=(ResourceMenuItem(kind=ResourceKind.GROUP),),
+        )
+
+        controller.update_add_to_web_gis_actions(context)
+
+        assert controller.add_to_web_gis_action(
+            ResourceMenuAction.UPLOAD_SELECTED
+        ).isVisible()
+        assert not controller.add_to_web_gis_action(
+            ResourceMenuAction.ADD_STYLE
+        ).isVisible()
+        assert not controller.add_to_web_gis_action(
+            ResourceMenuAction.UPDATE_STYLE
+        ).isVisible()
+        assert not controller.add_to_web_gis_action(
+            ResourceMenuAction.OVERWRITE_LAYER
+        ).isVisible()
+
+        parent.deleteLater()
+
+    def test_layer_upload_action_stays_visible_when_unavailable(
+        self,
+        qgis_app,
+    ) -> None:
+        del qgis_app
+        parent = QWidget()
+        controller = ResourceContextMenuController(parent)
+        controller.create_add_to_web_gis_menu()
+
+        controller.update_add_to_web_gis_actions(
+            ResourceMenuContext(resources=()),
+        )
+
+        action = controller.add_to_web_gis_action(
+            ResourceMenuAction.UPLOAD_SELECTED,
+        )
+        assert action.isVisible()
+        assert not action.isEnabled()
+        project_action = controller.add_to_web_gis_action(
+            ResourceMenuAction.UPLOAD_PROJECT,
+        )
+        assert project_action.isVisible()
+        assert not project_action.isEnabled()
+
+        parent.deleteLater()
+
+    def test_web_gis_toolbar_disables_applicable_unavailable_actions(
+        self,
+        qgis_app,
+    ) -> None:
+        del qgis_app
+        parent = QWidget()
+        controller = ResourceContextMenuController(parent)
+        controller.create_add_to_web_gis_menu()
+        context = ResourceMenuContext(
+            resources=(ResourceMenuItem(kind=ResourceKind.VECTOR_LAYER),),
+            current_layer_kind=LayerKind.NONE,
+        )
+
+        controller.update_add_to_web_gis_actions(context)
+
+        for action_id in (
+            ResourceMenuAction.ADD_STYLE,
+            ResourceMenuAction.UPDATE_STYLE,
+            ResourceMenuAction.OVERWRITE_LAYER,
+        ):
+            action = controller.add_to_web_gis_action(action_id)
+            assert action.isVisible()
+            assert not action.isEnabled()
 
         parent.deleteLater()
 
@@ -1180,6 +1410,8 @@ class TestResourceContextMenuFactory:
             ResourceMenuAction.COLLAPSE_ALL,
             ResourceMenuAction.RENAME_RESOURCE,
             ResourceMenuAction.DUPLICATE_RESOURCE,
+            ResourceMenuAction.COPY_STYLE,
+            ResourceMenuAction.PASTE_STYLE,
         ):
             factory.create_action(action_id, parent)
 
@@ -1188,6 +1420,8 @@ class TestResourceContextMenuFactory:
             "mActionCollapseTree.svg",
             "mActionToggleEditing.svg",
             "mActionDuplicateLayer.svg",
+            "mActionEditCopy.svg",
+            "mActionEditPaste.svg",
         ]
 
         parent.deleteLater()

@@ -1963,6 +1963,21 @@ If a layer contains important changes that were not sent to the server, they wil
 </context>
 <context>
     <name>NgConnectDock</name>
+    <message><source>Modify QGIS layer</source><translation>Изменение слоя QGIS</translation></message>
+    <message><source>Adding to QGIS</source><translation>Добавление в QGIS</translation></message>
+    <message><source>{action} to Web GIS</source><translation>{action} в Веб ГИС</translation></message>
+    <message><source>Replace resource data in Web GIS</source><translation>Заменить данные ресурса в Веб ГИС</translation></message>
+    <message><source>Add style to Web GIS…</source><translation>Добавить стиль в Веб ГИС…</translation></message>
+    <message><source>Replace layer style in Web GIS</source><translation>Заменить стиль слоя в Веб ГИС</translation></message>
+    <message><source>Modify layer</source><translation>Изменение слоя</translation></message>
+    <message><source>Apply style</source><translation>Применить стиль</translation></message>
+    <message><source>Add new style…</source><translation>Добавить новый стиль…</translation></message>
+    <message><source>Add new style</source><translation>Добавить новый стиль</translation></message>
+    <message><source>Replace styles</source><translation>Заменить стили</translation></message>
+    <message><source>No QGIS styles are available</source><translation>Нет доступных стилей QGIS</translation></message>
+    <message><source>All styles of this QGIS layer will be replaced with styles from Web GIS. Local style changes will be lost. Continue?</source><translation>Все стили слоя QGIS будут заменены стилями из Веб ГИС. Локальные изменения стилей будут потеряны. Продолжить?</translation></message>
+    <message><source>The current QGIS layer style will be replaced. Continue?</source><translation>Текущий стиль слоя QGIS будет заменён. Продолжить?</translation></message>
+    <message><source>{action} in Web GIS</source><translation>{action} в Веб ГИС</translation></message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="354"/>
         <source>Open in Web GIS</source>
@@ -2180,8 +2195,8 @@ If a layer contains important changes that were not sent to the server, they wil
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
-        <source>Save QML</source>
-        <translation>Сохранить QML</translation>
+        <source>Export to QML</source>
+        <translation>Экспорт в QML</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4400"/>
@@ -2686,8 +2701,8 @@ If a layer contains important changes that were not sent to the server, they wil
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
-        <source>Save NGFP</source>
-        <translation>Сохранить NGFP</translation>
+        <source>Export to NGFP</source>
+        <translation>Экспорт в NGFP</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="4436"/>
@@ -2790,6 +2805,25 @@ Run diagnostics to check the connection settings and server availability.</sourc
         <source>Searching...</source>
         <translation>Поиск...</translation>
     </message>
+    <message><source>New style</source><translation>Новый стиль</translation></message>
+    <message><source>Name</source><translation>Название</translation></message>
+    <message><source>Creating style</source><translation>Создание стиля</translation></message>
+    <message><source>Replacing style</source><translation>Замена стиля</translation></message>
+    <message><source>Style copied</source><translation>Стиль скопирован</translation></message>
+    <message><source>Style updated</source><translation>Стиль обновлён</translation></message>
+    <message><source>The style in the clipboard is not compatible with the selected resource.</source><translation>Стиль в буфере обмена несовместим с выбранным ресурсом.</translation></message>
+    <message><source>Replace style</source><translation>Заменить стиль</translation></message>
+    <message><source>The style will be replaced with the contents of the clipboard. Continue?</source><translation>Стиль будет заменён содержимым буфера обмена. Продолжить?</translation></message>
+    <message><source>Replace</source><translation>Заменить</translation></message>
+    <message><source>Duplicate resource</source><translation>Дублировать ресурс</translation></message>
+    <message><source>{name} copy</source><translation>{name} — копия</translation></message>
+    <message><source>Create a copy of this resource?</source><translation>Создать копию этого ресурса?</translation></message>
+    <message><source>Replace resource style</source><translation>Заменить стиль ресурса</translation></message>
+    <message><source>Style</source><translation>Стиль</translation></message>
+    <message><source>Style &quot;{name}&quot; in Web GIS will be replaced with the current QGIS layer style. Continue?</source><translation>Стиль «{name}» в Веб ГИС будет заменён текущим стилем слоя QGIS. Продолжить?</translation></message>
+    <message><source>Add resource style</source><translation>Добавить стиль ресурса</translation></message>
+    <message><source>Enter style name</source><translation>Введите название стиля</translation></message>
+    <message><source>Resource already exists</source><translation>Ресурс уже существует</translation></message>
 </context>
 <context>
     <name>NgConnectOptionsErrorPageWidget</name>
@@ -4172,10 +4206,34 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
 </context>
 <context>
     <name>ResourceContextMenuFactory</name>
+    <message><source>Web GIS upload</source><translation>Загрузка в Веб ГИС</translation></message>
+    <message><source>Web GIS resource modification</source><translation>Изменение ресурса Веб ГИС</translation></message>
+    <message><source>Modify Web GIS resource</source><translation>Изменение ресурса Веб ГИС</translation></message>
+    <message><source>Add as vector layer</source><translation>Добавить как векторный слой</translation></message>
+    <message><source>Add as raster layer</source><translation>Добавить как растровый слой</translation></message>
+    <message><source>Upload to Web GIS</source><translation>Загрузка в Веб ГИС</translation></message>
+    <message><source>Upload layer</source><translation>Загрузить слой</translation></message>
+    <message><source>Upload group</source><translation>Загрузить группу</translation></message>
+    <message><source>Upload selected</source><translation>Загрузить выбранное</translation></message>
+    <message><source>Replace data</source><translation>Заменить данные</translation></message>
+    <message><source>Add style…</source><translation>Добавить стиль…</translation></message>
+    <message><source>Replace style</source><translation>Заменить стиль</translation></message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="264"/>
-        <source>Upload selected</source>
-        <translation>Загрузить выбранное</translation>
+        <source>Upload to Web GIS</source>
+        <translation>Загрузить в Веб ГИС</translation>
+    </message>
+    <message>
+        <source>Upload layer to Web GIS</source>
+        <translation>Загрузить слой в Веб ГИС</translation>
+    </message>
+    <message>
+        <source>Upload group to Web GIS</source>
+        <translation>Загрузить группу в Веб ГИС</translation>
+    </message>
+    <message>
+        <source>Upload selected to Web GIS</source>
+        <translation>Загрузить выбранное в Веб ГИС</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="265"/>
@@ -4184,13 +4242,13 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="266"/>
-        <source>Update layer style</source>
-        <translation>Обновить стиль слоя</translation>
+        <source>Replace resource style</source>
+        <translation>Заменить стиль ресурса</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="267"/>
-        <source>Add new style to layer</source>
-        <translation>Добавить новый стиль к слою</translation>
+        <source>Add resource style…</source>
+        <translation>Добавить стиль ресурса…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="268"/>
@@ -4223,28 +4281,32 @@ To fix this, change geometry type of your layer(s) and recreate WFS service.</so
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="273"/>
-        <source>Download as QML</source>
-        <translation>Скачать как QML</translation>
+        <source>Export to QML…</source>
+        <translation>Экспорт в QML…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="274"/>
-        <source>Download as NGFP</source>
-        <translation>Скачать как NGFP</translation>
+        <source>Export to NGFP…</source>
+        <translation>Экспорт в NGFP…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="275"/>
-        <source>Copy style</source>
-        <translation>Копировать стиль</translation>
+        <source>Copy</source>
+        <translation>Копировать</translation>
+    </message>
+    <message>
+        <source>Paste</source>
+        <translation>Вставить</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="276"/>
-        <source>Overwrite with current layer</source>
-        <translation>Перезаписать текущим слоем</translation>
+        <source>Replace resource data</source>
+        <translation>Заменить данные ресурса</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="279"/>
-        <source>Duplicate resource</source>
-        <translation>Дублировать ресурс</translation>
+        <source>Duplicate resource…</source>
+        <translation>Дублировать ресурс…</translation>
     </message>
     <message>
         <location filename="../features/resource_browser/presentation/resource_context_menu.py" line="282"/>
