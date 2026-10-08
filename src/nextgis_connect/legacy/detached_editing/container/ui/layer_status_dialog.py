@@ -193,11 +193,30 @@ class DetachedLayerStatusDialog(QDialog, WIDGET):
 
         state = self.__container.state
         self.stateLabel.setText(states[state])
+        metadata = self.__container.metadata
+        self.versioningStateLabel.setText(
+            self.__enabled_state_text(
+                metadata.is_versioning_enabled
+                if metadata is not None
+                else None
+            )
+        )
+        self.automaticSynchronizationStateLabel.setText(
+            self.__enabled_state_text(
+                metadata.is_auto_sync_enabled if metadata is not None else None
+            )
+        )
         is_error = state == DetachedLayerState.Error
         self.line.setVisible(is_error)
         self.errorLabel.setVisible(is_error)
         if is_error and self.__container.error is not None:
             self.errorLabel.setText(self.__container.error.user_message)
+
+    def __enabled_state_text(self, value: Optional[bool]) -> str:
+        if value is None:
+            return "—"
+
+        return self.tr("Enabled") if value else self.tr("Disabled")
 
     def __fill_changes(self) -> None:
         changes = self.__container.changes_info

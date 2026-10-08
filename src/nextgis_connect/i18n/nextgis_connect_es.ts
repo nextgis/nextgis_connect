@@ -1032,6 +1032,16 @@ El trabajo posterior con la capa solo es posible después de restablecer la capa
         <translation>La sincronización no es posible mientras la capa esté en modo de edición</translation>
     </message>
     <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="219"/>
+        <source>Enabled</source>
+        <translation>Habilitado</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="219"/>
+        <source>Disabled</source>
+        <translation>Deshabilitado</translation>
+    </message>
+    <message>
         <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="159"/>
         <source>The layer contains changes. If you continue, you will lose them forever.
 
@@ -1097,6 +1107,16 @@ Are you sure you want to continue?</source>
         <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="206"/>
         <source>Close</source>
         <translation>Cerrar</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="59"/>
+        <source>Feature versioning:</source>
+        <translation>Versionado de entidades:</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="73"/>
+        <source>Automatic synchronization:</source>
+        <translation>Sincronización automática:</translation>
     </message>
 </context>
 <context>

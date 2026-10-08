@@ -268,6 +268,14 @@ class DetachedContainer(QObject):
         return self.__metadata.sync_date if self.__metadata else None
 
     @property
+    def is_auto_sync_enabled(self) -> bool:
+        return (
+            self.__metadata.is_auto_sync_enabled
+            if self.__metadata is not None
+            else True
+        )
+
+    @property
     def layers_count(self) -> int:
         return len(self.__detached_layers)
 

@@ -36,6 +36,8 @@ from tests.ng_connect_testcase import NgConnectTestCase
 
 class _Metadata:
     has_changes = False
+    is_versioning_enabled = False
+    is_auto_sync_enabled = True
 
 
 class _ChangesInfo:
@@ -109,6 +111,32 @@ class TestDetachedLayerStatusDialog(NgConnectTestCase):
             self.assertFalse(dialog.syncButton.defaultAction().icon().isNull())
             self.assertFalse(
                 dialog.syncButton.menu().actions()[0].icon().isNull()
+            )
+        finally:
+            if old_plugin is None:
+                qgis_utils.plugins.pop(PACKAGE_NAME, None)
+            else:
+                qgis_utils.plugins[PACKAGE_NAME] = old_plugin
+
+            if "dialog" in locals():
+                dialog.close()
+                dialog.deleteLater()
+
+    def test_shows_versioning_and_automatic_sync_settings(self) -> None:
+        old_plugin = qgis_utils.plugins.get(PACKAGE_NAME)
+        qgis_utils.plugins[PACKAGE_NAME] = SimpleNamespace(
+            path=Path(__file__).resolve().parents[2] / "src/nextgis_connect"
+        )
+        container = _Container()
+        container.metadata.is_versioning_enabled = True
+        container.metadata.is_auto_sync_enabled = False
+        try:
+            dialog = DetachedLayerStatusDialog(container)
+
+            self.assertEqual(dialog.versioningStateLabel.text(), "Enabled")
+            self.assertEqual(
+                dialog.automaticSynchronizationStateLabel.text(),
+                "Disabled",
             )
         finally:
             if old_plugin is None:
