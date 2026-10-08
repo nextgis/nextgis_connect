@@ -1032,6 +1032,16 @@ Further work with the layer is possible only after the layer reset. You can do t
         <translation>Синхронизация невозможна, пока слой находится в режиме редактирования</translation>
     </message>
     <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="219"/>
+        <source>Enabled</source>
+        <translation>Включено</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="219"/>
+        <source>Disabled</source>
+        <translation>Выключено</translation>
+    </message>
+    <message>
         <location filename="../legacy/detached_editing/container/ui/layer_status_dialog.py" line="159"/>
         <source>The layer contains changes. If you continue, you will lose them forever.
 
@@ -1097,6 +1107,16 @@ Are you sure you want to continue?</source>
         <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="206"/>
         <source>Close</source>
         <translation>Закрыть</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="59"/>
+        <source>Feature versioning:</source>
+        <translation>Версионирование объектов:</translation>
+    </message>
+    <message>
+        <location filename="../legacy/detached_editing/container/ui/layer_status_dialog_base.ui" line="73"/>
+        <source>Automatic synchronization:</source>
+        <translation>Автоматическая синхронизация:</translation>
     </message>
 </context>
 <context>

@@ -35,6 +35,7 @@ class _Source:
     sync_date: Optional[datetime] = None
     check_date: Optional[datetime] = None
     error_code: ErrorCode = ErrorCode.NoError
+    is_auto_sync_enabled: bool = True
 
 
 class TestDetachedLayerIndicatorStateResolver:
@@ -85,6 +86,39 @@ class TestDetachedLayerIndicatorStateResolver:
         assert state.is_animation_enabled is False
         assert state.tooltip.startswith("Synchronization error!")
         assert "Click to see more details" in state.tooltip
+
+    def test_resolves_manual_icon_when_auto_sync_is_disabled(
+        self,
+        qgis_app,
+    ) -> None:
+        del qgis_app
+
+        resolver = DetachedLayerIndicatorStateResolver()
+        state = resolver.resolve(
+            _Source(
+                state=DetachedLayerState.Synchronized,
+                is_auto_sync_enabled=False,
+            )
+        )
+
+        assert state.icon_path == "synchronization/manual.svg"
+        assert state.is_animation_enabled is False
+
+    def test_keeps_not_synchronized_icon_when_auto_sync_is_disabled(
+        self,
+        qgis_app,
+    ) -> None:
+        del qgis_app
+
+        resolver = DetachedLayerIndicatorStateResolver()
+        state = resolver.resolve(
+            _Source(
+                state=DetachedLayerState.NotSynchronized,
+                is_auto_sync_enabled=False,
+            )
+        )
+
+        assert state.icon_path == "synchronization/not_synchronized.svg"
 
 
 class TestDetachedLayerIndicatorPresenter:

@@ -47,6 +47,11 @@ class DetachedLayerIndicatorStateSource(Protocol):
         """Return current detached layer error code."""
         ...
 
+    @property
+    def is_auto_sync_enabled(self) -> bool:
+        """Return whether automatic synchronization is enabled."""
+        ...
+
 
 @dataclass(frozen=True)
 class DetachedLayerIndicatorState:
@@ -74,6 +79,7 @@ class DetachedLayerIndicatorStateResolver(QObject):
     SYNCHRONIZATION_ICON_PATH = "synchronization/synchronization.svg"
     SYNCHRONIZATION_BLINK_ICON_PATH = "synchronization/empty.svg"
     ERROR_ICON_PATH = "synchronization/error.svg"
+    MANUAL_ICON_PATH = "synchronization/manual.svg"
 
     def resolve(
         self,
@@ -100,7 +106,7 @@ class DetachedLayerIndicatorStateResolver(QObject):
         if state == DetachedLayerState.Synchronized:
             status_tooltip = self.tr("Layer is synchronized")
             return DetachedLayerIndicatorState(
-                icon_path=self.SYNCHRONIZED_ICON_PATH,
+                icon_path=self._synchronized_icon_path(source),
                 tooltip=f"{status_tooltip}{date_tooltip}",
             )
 
@@ -125,6 +131,15 @@ class DetachedLayerIndicatorStateResolver(QObject):
             icon_path=self.NOT_SYNCHRONIZED_ICON_PATH,
             tooltip=self.tr("NextGIS Web Layer"),
         )
+
+    def _synchronized_icon_path(
+        self,
+        source: DetachedLayerIndicatorStateSource,
+    ) -> str:
+        if not source.is_auto_sync_enabled:
+            return self.MANUAL_ICON_PATH
+
+        return self.SYNCHRONIZED_ICON_PATH
 
     def _date_tooltip(
         self,
