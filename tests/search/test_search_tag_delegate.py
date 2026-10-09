@@ -28,7 +28,9 @@ from nextgis_connect.legacy.search.text_search_line_edit import (
     "key", [Qt.Key.Key_Tab, Qt.Key.Key_Return, Qt.Key.Key_Enter]
 )
 @pytest.mark.parametrize("target", ["popup", "input"])
-def test_metadata_completion_consumes_accept_key(qgis_app, key, target):
+def test_metadata_completion_consumes_accept_key(
+    qgis_app, key, target, monkeypatch
+):
     widget = TextSearchLineEdit(None)
     widget.show()
     searches = []
@@ -43,11 +45,20 @@ def test_metadata_completion_consumes_accept_key(qgis_app, key, target):
         widget._TextSearchLineEdit__completer_model.TAG_DESCRIPTION_ROLE
     )
     popup.setCurrentIndex(index)
+    popup_calls = []
+    completer_popup = type(widget._completer).popup
+
+    def track_popup_access(completer):
+        popup_calls.append(completer)
+        return completer_popup(completer)
+
+    monkeypatch.setattr(type(widget._completer), "popup", track_popup_access)
     QTest.keyClick(popup if target == "popup" else widget, key)
     qgis_app.processEvents()
     assert widget.text() == "@metadata["
     assert not searches
     assert not popup.isVisible()
+    assert not popup_calls
     widget.close()
 
 

@@ -19,7 +19,12 @@ from typing import Optional
 
 from qgis.PyQt.QtCore import QEvent, QObject, Qt, pyqtSignal, pyqtSlot
 from qgis.PyQt.QtGui import QKeyEvent
-from qgis.PyQt.QtWidgets import QCompleter, QLineEdit, QWidget
+from qgis.PyQt.QtWidgets import (
+    QAbstractItemView,
+    QCompleter,
+    QLineEdit,
+    QWidget,
+)
 
 from nextgis_connect.ui_kit.widgets.search_clear_action import (
     install_search_clear_action,
@@ -44,6 +49,7 @@ class AbstractSearchLineEdit(QLineEdit, metaclass=MetaLineEdit):
     reset_requested = pyqtSignal()
 
     _completer: QCompleter
+    _completion_popup: Optional[QAbstractItemView]
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -54,8 +60,12 @@ class AbstractSearchLineEdit(QLineEdit, metaclass=MetaLineEdit):
         self._completer = SearchCompleter(self)
         self._completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.setCompleter(self._completer)
+        # Accessing QCompleter.popup() from its event filter can re-enter the
+        # filter on Qt 5 (QGIS 3.32).
+        self._completion_popup = None
+        self._completion_popup = self._completer.popup()
         self.installEventFilter(self)
-        self._completer.popup().installEventFilter(self)
+        self._completion_popup.installEventFilter(self)
 
         # Search
         self.returnPressed.connect(self.search)
@@ -72,7 +82,9 @@ class AbstractSearchLineEdit(QLineEdit, metaclass=MetaLineEdit):
     def _accept_completion_event(
         self, watched: Optional[QObject], event: Optional[QEvent]
     ) -> bool:
-        popup = self._completer.popup()
+        popup = self._completion_popup
+        if popup is None:
+            return False
         if (
             watched in (self, popup)
             and isinstance(event, QKeyEvent)
