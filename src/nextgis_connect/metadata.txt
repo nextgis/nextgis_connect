@@ -39,7 +39,7 @@ about[ru]=NextGIS Connect превращает QGIS в многопользов�
 	NextGIS Web на GitHub: https://github.com/nextgis/nextgisweb
 
 	Связаться с нами: https://nextgis.ru/contact
-version=4.2.0
+version=4.2.1
 author=NextGIS
 email=info@nextgis.com
 
@@ -56,6 +56,9 @@ deprecated=False
 supportsQt6=True
 
 changelog=
+	4.2.1
+		- Fixed a crash in QGIS 3.32
+		! Supported NGW versions: 5.4.0 - 5.7.0
 	4.2.0
 		- Added cut and paste for moving resources between groups
 		- Added a shortcut for creating resource groups
