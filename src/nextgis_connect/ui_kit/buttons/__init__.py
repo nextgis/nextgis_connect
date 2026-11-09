@@ -16,6 +16,7 @@
 
 from .cancel import CancelButton
 from .highlightable import HighlightablePushButton, HighlightableToolButton
+from .news_banner import NewsBannerButton
 from .primary import PrimaryButton
 from .secondary import SecondaryButton
 from .shining import ShiningButton
@@ -24,6 +25,7 @@ __all__ = [
     "CancelButton",
     "HighlightablePushButton",
     "HighlightableToolButton",
+    "NewsBannerButton",
     "PrimaryButton",
     "SecondaryButton",
     "ShiningButton",

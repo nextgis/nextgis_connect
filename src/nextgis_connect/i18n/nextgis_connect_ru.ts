@@ -2102,6 +2102,11 @@ If a layer contains important changes that were not sent to the server, they wil
 <context>
     <name>NgConnectDock</name>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="6020"/>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
         <source>Move resource</source>
         <translation>Перемещение ресурса</translation>
     </message>
@@ -2621,11 +2626,6 @@ If a layer contains important changes that were not sent to the server, they wil
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1055"/>
         <source>View in browser</source>
         <translation>Просмотр в браузере</translation>
-    </message>
-    <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="5696"/>
-        <source>&lt;b&gt;50% off&lt;/b&gt; all subscriptions and data</source>
-        <translation>&lt;b&gt;50% скидка&lt;/b&gt; на подписки и данные</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="382"/>

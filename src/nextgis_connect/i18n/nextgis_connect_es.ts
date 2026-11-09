@@ -2102,6 +2102,11 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
 <context>
     <name>NgConnectDock</name>
     <message>
+        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="6020"/>
+        <source>Close</source>
+        <translation>Cerrar</translation>
+    </message>
+    <message>
         <source>Move resource</source>
         <translation>Mover recurso</translation>
     </message>
@@ -2616,11 +2621,6 @@ Si la capa contiene cambios importantes que no se enviaron al servidor, se perde
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="1055"/>
         <source>View in browser</source>
         <translation>Ver en navegador</translation>
-    </message>
-    <message>
-        <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="5696"/>
-        <source>&lt;b&gt;50% off&lt;/b&gt; all subscriptions and data</source>
-        <translation>&lt;b&gt;50% de descuento&lt;/b&gt; en todas las suscripciones y datos</translation>
     </message>
     <message>
         <location filename="../legacy/shell/presentation/dock/ng_connect_dock.py" line="382"/>

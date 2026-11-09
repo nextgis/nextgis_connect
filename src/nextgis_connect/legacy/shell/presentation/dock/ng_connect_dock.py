@@ -22,7 +22,6 @@ import tempfile
 import urllib.parse
 import uuid
 from dataclasses import dataclass, replace
-from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Set, Tuple, cast
@@ -58,6 +57,7 @@ from qgis.PyQt.QtCore import (
     QModelIndex,
     QPersistentModelIndex,
     QPoint,
+    QSize,
     Qt,
     QTemporaryFile,
     QTimer,
@@ -77,7 +77,6 @@ from qgis.PyQt.QtWidgets import (
     QFrame,
     QHBoxLayout,
     QInputDialog,
-    QLabel,
     QLineEdit,
     QMainWindow,
     QMenu,
@@ -85,7 +84,6 @@ from qgis.PyQt.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QToolButton,
-    QVBoxLayout,
 )
 from qgis.PyQt.QtXml import QDomDocument
 
@@ -226,6 +224,11 @@ from nextgis_connect.legacy.search.search_panel import SearchPanel
 from nextgis_connect.legacy.search.search_settings import SearchSettings
 from nextgis_connect.legacy.search.utils import SearchType
 from nextgis_connect.legacy.settings import NgConnectSettings
+from nextgis_connect.legacy.shell.presentation.dock.promo_banner import (
+    BLACK_FRIDAY_2026_CAMPAIGN_ID,
+    BlackFriday2026Banner,
+    is_black_friday_2026_active,
+)
 from nextgis_connect.legacy.shell.presentation.dock.resource_delete_confirmation_dialog import (
     ResourceDeleteConfirmationDialog,
 )
@@ -255,17 +258,15 @@ from nextgis_connect.platform.qgis.errors import (
     NgwError,
 )
 from nextgis_connect.plugin.plugin_interface import NgConnectInterface
-from nextgis_connect.shared.constants import PACKAGE_NAME, PLUGIN_NAME
+from nextgis_connect.shared.constants import PLUGIN_NAME
 from nextgis_connect.shell.presentation.plugin_panel import (
     PluginPanelToolBar,
     PluginPanelToolBarActions,
 )
 from nextgis_connect.ui_kit.buttons.shining import ShiningButton
 from nextgis_connect.ui_kit.icons import (
-    icon_to_base64,
     material_icon,
     plugin_icon,
-    plugin_icon_file_path,
     qgis_icon,
 )
 from nextgis_connect.ui_kit.widgets.information_notice import InformationNotice
@@ -5990,101 +5991,50 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         )
 
     def __add_banner(self) -> None:
-        black_friday_start = datetime(
-            year=2025, month=12, day=1, hour=6, minute=1, tzinfo=timezone.utc
-        ).timestamp()
-        black_friday_finish = datetime(
-            year=2025, month=12, day=6, hour=5, minute=59, tzinfo=timezone.utc
-        ).timestamp()
-        black_friday_tag = "black-friday25"
-        nextgis_domain = utils.nextgis_domain()
-        lang_page = "en" if nextgis_domain.endswith("com") else "ru"
-        promo_base_url = f"{nextgis_domain}/black-friday-2025/{lang_page}/"
-        promo_campaign = black_friday_tag
-
-        promo_text = self.tr("<b>50% off</b> all subscriptions and data")
-
-        now = datetime.now().timestamp()
-
-        settings = NgConnectSettings()
-
-        is_black_friday = black_friday_start <= now <= black_friday_finish
-        if not is_black_friday or settings.is_promo_dismissed(
-            black_friday_tag
-        ):
+        locale = utils.locale()
+        if not is_black_friday_2026_active(locale=locale):
             return
 
-        utm_template = "&".join(
-            [
-                "utm_source=qgis_plugin",
-                "utm_medium=banner",
-                f"utm_campaign={promo_campaign}",
-                f"utm_term={PACKAGE_NAME}",
-                f"utm_content={utils.locale()}",
-            ]
-        )
-        promo_url = f"{promo_base_url}?{utm_template}"
+        settings = NgConnectSettings()
+        if settings.is_promo_dismissed(BLACK_FRIDAY_2026_CAMPAIGN_ID):
+            return
 
         banner_container = QFrame(self.content)
         banner_container.setFrameShape(QFrame.Shape.NoFrame)
-        banner_layout = QVBoxLayout(banner_container)
-        banner_layout.setContentsMargins(0, 4, 0, 4)
+        layout = QHBoxLayout(banner_container)
+        layout.setContentsMargins(0, 4, 0, 4)
+        layout.setSpacing(4)
 
-        banner = QFrame(banner_container)
-        banner.setObjectName("NgConnectBanner")
-        banner.setFrameShape(QFrame.Shape.StyledPanel)
-        banner.setFrameShadow(QFrame.Shadow.Raised)
+        banner = BlackFriday2026Banner(
+            locale=locale,
+            parent=banner_container,
+        )
+        layout.addWidget(banner, 1)
 
-        banner.setLayout(QHBoxLayout())
-        banner.layout().setContentsMargins(6, 6, 6, 6)
-
-        banner_label = QLabel(banner)
-        banner_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        icon_path = plugin_icon_file_path("promo/fire.png")
-        close_icon = icon_to_base64(material_icon("close_small", size=16))
-
-        html = f"""
-            <html>
-            <head>
-            </head>
-            <body>
-                <table width="100%">
-                    <tr>
-                        <td style="text-align: right">
-                            <img src="{icon_path}">
-                        </td>
-                        <td width="1%" style="text-align: center;">
-                            &nbsp;<a href="#open">{promo_text}</a>
-                        </td>
-                        <td style="text-align: right;" valign="middle">
-                            <a href="#close"><img src="{close_icon}"></a>
-                        </td>
-                    </tr>
-                </table>
-            </body>
-            </html>
-        """
-        banner_label.setText(html)
-
-        banner.layout().addWidget(banner_label)
-        banner_layout.addWidget(banner)
+        close_button = QToolButton(banner_container)
+        close_button.setAutoRaise(True)
+        close_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        close_button.setIcon(material_icon("close_small", size=16))
+        close_button.setIconSize(QSize(16, 16))
+        close_button.setFixedSize(30, 30)
+        close_button.setToolTip(self.tr("Close"))
+        layout.addWidget(
+            close_button,
+            0,
+            Qt.AlignmentFlag.AlignVCenter,
+        )
 
         self.__promo_banner_container = banner_container
         self.content.layout().addWidget(banner_container)
         self.__update_promo_banner_visibility()
 
-        def open_link(url: str) -> None:
-            if url == "#close":
-                self.__promo_banner_container = None
-                banner_container.deleteLater()
-                settings.dismiss_promo(promo_campaign)
-                logger.debug(f"Dismissed promo {promo_campaign}")
-                return
+        def dismiss_banner() -> None:
+            self.__promo_banner_container = None
+            banner_container.deleteLater()
+            settings.dismiss_promo(BLACK_FRIDAY_2026_CAMPAIGN_ID)
+            logger.debug(f"Dismissed promo {BLACK_FRIDAY_2026_CAMPAIGN_ID}")
 
-            logger.debug(f"Open promo in browser: {promo_url}")
-            QDesktopServices.openUrl(QUrl(promo_url))
-
-        banner_label.linkActivated.connect(open_link)
+        close_button.clicked.connect(dismiss_banner)
 
     def __init_title(self) -> None:
         title = PLUGIN_NAME

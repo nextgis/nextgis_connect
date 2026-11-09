@@ -625,7 +625,7 @@ class QgisPluginBuilder:
         if qgis in ("Vanilla", "VanillaFlatpak"):
             qgis_profiles = Path("QGIS/QGIS4/profiles")
         elif qgis == "NextGIS":
-            qgis_profiles = Path("NextGIS/NGQ3/profiles")
+            qgis_profiles = Path("NextGIS/QGIS/3/ltr/profiles")
         elif qgis == "NextGISFlatpak":
             qgis_profiles = Path("NextGIS/ngqgis/profiles")
         else:
