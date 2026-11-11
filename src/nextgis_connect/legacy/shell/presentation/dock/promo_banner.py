@@ -59,6 +59,7 @@ BLACK_FRIDAY_2026_FINISH = {
 BLACK_FRIDAY_2026_LANDING_PAGES = {
     "ru": "https://nextgis.ru/extra/black-friday-2026/ru/",
     "en": "https://nextgis.com/extra/black-friday-2026/en/",
+    "es": "https://nextgis.es/black-friday/",
 }
 
 BLACK_FRIDAY_2026_BANNER_TEXTS = {
@@ -142,7 +143,7 @@ class BlackFriday2026Banner(NewsBannerButton):
         )
         full_text = texts[0]
         compact_text = texts[1] if len(texts) > 1 else None
-        landing_locale = locale if locale == "ru" else "en"
+        landing_locale = locale if locale in ("ru", "es") else "en"
         landing_url = BLACK_FRIDAY_2026_LANDING_PAGES[landing_locale]
         utm = utils.utm_tags(
             "banner",
