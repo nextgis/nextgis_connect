@@ -24,6 +24,7 @@ from nextgis_connect.legacy.ngw.core import (
     NGWPostgisLayer,
     NGWQGISStyle,
     NGWRasterLayer,
+    NGWRasterMosaic,
     NGWResource,
     NGWTileset,
     NGWVectorLayer,
@@ -50,6 +51,7 @@ SERVICE_LAYER_RESOURCE_TYPES = (NGWPostgisLayer, NGWWmsLayer, NGWWfsLayer)
 VECTOR_RESOURCE_TYPES = (NGWWfsLayer, NGWPostgisLayer)
 RASTER_RESOURCE_TYPES = (
     NGWRasterLayer,
+    NGWRasterMosaic,
     *TMS_LAYER_RESOURCE_TYPES,
     NGWWmsLayer,
 )

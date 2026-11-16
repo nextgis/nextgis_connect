@@ -41,6 +41,7 @@ class ResourceKind(Enum):
     TMS_LAYER = auto()
     TMS_CONNECTION = auto()
     TILESET = auto()
+    RASTER_MOSAIC = auto()
     WEB_MAP = auto()
     FORM = auto()
 
@@ -308,6 +309,7 @@ class ResourceMenuPolicy:
             ResourceKind.TMS_LAYER,
             ResourceKind.TMS_CONNECTION,
             ResourceKind.TILESET,
+            ResourceKind.RASTER_MOSAIC,
             ResourceKind.WEB_MAP,
         }
     )
