@@ -4421,6 +4421,11 @@ NextGIS Web: {ngw_version}</translation>
         <translation>Выберите стиль</translation>
     </message>
     <message>
+        <location filename="../features/resource_browser/infrastructure/qgis_resource_batch_import.py" line="1081"/>
+        <source>A raster style is required to add this raster mosaic as TMS</source>
+        <translation>Для добавления мозаики растров как TMS требуется растровый стиль</translation>
+    </message>
+    <message>
         <location filename="../features/resource_browser/presentation/resource_import_interaction.py" line="65"/>
         <source>Warning</source>
         <translation type="obsolete">Предупреждение</translation>

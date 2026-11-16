@@ -42,6 +42,9 @@ from nextgis_connect.features.resource_browser.application.resource_batch_import
 from nextgis_connect.features.resource_browser.domain import (
     ResourceBatchImportResult,
     ResourceBatchImportStatus,
+    ResourceImportMode,
+    ResourceImportRequest,
+    ResourceImportSource,
     ResourceImportWarning,
 )
 from nextgis_connect.features.resource_browser.infrastructure.legacy_resource_adapter import (
@@ -67,6 +70,9 @@ from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batc
 from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_batch_style import (
     QgisResourceBatchStyleApplicator,
 )
+from nextgis_connect.features.resource_browser.infrastructure.qgis_resource_import import (
+    TmsResourceLayerImportStrategy,
+)
 from nextgis_connect.features.resource_browser.infrastructure.resource_dependency_analyzer import (
     ResourceDependencyAnalyzer,
 )
@@ -85,6 +91,7 @@ from nextgis_connect.legacy.ngw.core import (
     NGWPostgisLayer,
     NGWRasterLayer,
     NGWRasterMosaic,
+    NGWRasterStyle,
     NGWResource,
     NGWVectorLayer,
     NGWWebMap,
@@ -644,10 +651,12 @@ class QgisResourceBatchImporter(QObject):
     def __add_webmap_layer(
         self, webmap: NGWWebMap, webmap_layer: NGWWebMapLayer
     ) -> None:
-        if (
-            webmap_layer.layer_style_id in self.__skipped_resources
-            or webmap_layer.style_parent_id in self.__skipped_resources
-        ):
+        """Insert a prepared Web Map layer using its logical source resource.
+
+        :param webmap: Web Map owning the layer reference.
+        :param webmap_layer: Web Map layer to insert.
+        """
+        if id(webmap_layer) in self.__skipped_resources:
             return
 
         if id(webmap_layer) not in self.__layers:
@@ -663,29 +672,30 @@ class QgisResourceBatchImporter(QObject):
         layer = self.__layers[id(webmap_layer)]
         layer.setName(webmap_layer.display_name)
 
+        layer_resource = self.__model.resource(webmap_layer.style_parent_id)
         style_resource = self.__model.resource(webmap_layer.layer_style_id)
+        source_resource = (
+            layer_resource if is_layer(layer_resource) else style_resource
+        )
+        assert isinstance(source_resource, NGWResource)
+
         if is_style(style_resource):
             self.__style_applicator.replace_default(
                 style_resource,
                 layer,
             )  # type: ignore
-            layer_resource_id = webmap_layer.style_parent_id
-            assert layer_resource_id is not None
-        else:
-            layer_resource_id = webmap_layer.layer_style_id
 
-        layer_resource = self.__model.resource(layer_resource_id)
-        if isinstance(layer_resource, NGWAbstractVectorResource):
+        if isinstance(source_resource, NGWAbstractVectorResource):
             assert isinstance(layer, QgsVectorLayer)
             self.__vector_layer_metadata_applicator.apply(
-                layer_resource,
+                source_resource,
                 layer,
             )
 
         self.__set_ngw_layer_properties(
             layer,
             webmap.connection_id,
-            layer_resource_id,
+            source_resource.resource_id,
         )
 
         layer_node = insertion_point.group.insertLayer(
@@ -949,8 +959,13 @@ class QgisResourceBatchImporter(QObject):
         self,
         context: ResourceAddingErrorContext,
     ) -> None:
+        """Skip one insertion item, falling back to resource IDs when needed.
+
+        :param context: Error context describing the failed insertion.
+        """
         if context.insertion_id is not None:
             self.__skipped_resources.add(context.insertion_id)
+            return
 
         for resource_id in context.resource_ids:
             self.__skipped_resources.add(resource_id)
@@ -1039,7 +1054,11 @@ class QgisResourceBatchImporter(QObject):
                 )
 
     def __collect_params_for_layer_index(self, index: QModelIndex) -> None:
-        resource: NGWVectorLayer = index.data(QNGWResourceItem.NGWResourceRole)
+        """Collect provider parameters for one layer resource tree item.
+
+        :param index: Source-model index of the layer resource.
+        """
+        resource: NGWResource = index.data(QNGWResourceItem.NGWResourceRole)
         params = self.__collect_params_for_layer_resource(resource)
 
         styles = self.__style_applicator.style_resources(index)
@@ -1058,6 +1077,53 @@ class QgisResourceBatchImporter(QObject):
             self.__adding_error_context_for_resource(resource, index),
         )
 
+    def __collect_params_for_raster_mosaic(
+        self, mosaic: NGWRasterMosaic
+    ) -> LayerParams:
+        """Return TMS parameters for a mosaic and its selected raster style.
+
+        :param mosaic: Mosaic selected for import.
+        :raises NgConnectError: If the mosaic has no raster styles.
+        :raises ResourceImportCancelledError: If style selection is cancelled
+            or produces an invalid result.
+        """
+        styles = tuple(
+            resource
+            for resource in self.__model.children_resources(mosaic.resource_id)
+            if isinstance(resource, NGWRasterStyle)
+        )
+        if len(styles) == 0:
+            raise NgConnectError(
+                "Raster mosaic has no raster style",
+                user_message=self.tr(
+                    "A raster style is required to add this raster mosaic as TMS"
+                ),
+                code=ErrorCode.AddingError,
+            )
+
+        if len(styles) == 1:
+            return self.__collect_params_for_tms_resource(
+                mosaic,
+                styles[0].resource_id,
+            )
+
+        mosaic_index = self.__model.index_from_id(mosaic.resource_id)
+        assert mosaic_index is not None and mosaic_index.isValid()
+        style_id = self.__interaction.select_default_style(
+            self.tr("Select style"),
+            mosaic_index,
+            self.__model,
+        )
+        style = self.__model.resource(style_id)
+        if (
+            not isinstance(style, NGWRasterStyle)
+            or style.parent_id != mosaic.resource_id
+        ):
+            raise ResourceImportCancelledError
+        return self.__collect_params_for_tms_resource(
+            mosaic, style.resource_id
+        )
+
     def __collect_params_for_style_index(self, index: QModelIndex) -> None:
         resource: NGWVectorLayer = index.parent().data(
             QNGWResourceItem.NGWResourceRole
@@ -1073,6 +1139,13 @@ class QgisResourceBatchImporter(QObject):
     def __collect_params_for_layer_resource(
         self, resource: NGWResource
     ) -> LayerParams:
+        """Return provider parameters for an importable resource.
+
+        :param resource: Resource selected for import.
+        :raises NgConnectError: If the resource has no supported QGIS import.
+        """
+        if isinstance(resource, NGWRasterMosaic):
+            return self.__collect_params_for_raster_mosaic(resource)
         if isinstance(resource, NGWVectorLayer):
             return self.__collect_params_for_detached_layer(resource)
         if isinstance(resource, SERVICE_LAYER_RESOURCE_TYPES):
@@ -1086,6 +1159,34 @@ class QgisResourceBatchImporter(QObject):
             f"Unsupported resource: {resource!r}",
             code=ErrorCode.AddingError,
         )
+
+    def __collect_params_for_tms_resource(
+        self,
+        source_resource: NGWResource,
+        render_resource_id: int,
+    ) -> LayerParams:
+        """Return TMS provider parameters for a logical resource and renderer.
+
+        :param source_resource: Resource represented by the QGIS layer.
+        :param render_resource_id: Server resource ID used to render tiles.
+        """
+        connection = source_resource.connection.connection
+        request = ResourceImportRequest(
+            mode=ResourceImportMode.TMS,
+            source=ResourceImportSource(
+                connection_url=connection.url,
+                connection_id=connection.id,
+                connection_instance_id=connection.domain_uuid,
+                resource_id=source_resource.resource_id,
+                display_name=source_resource.display_name,
+                auth_config_id=connection.auth_config_id,
+            ),
+            render_resource_id=render_resource_id,
+        )
+        definition = TmsResourceLayerImportStrategy().create_definition(
+            request
+        )
+        return definition.uri, definition.name, definition.provider_key
 
     def __collect_params_for_webmap(self, index: QModelIndex) -> None:
         webmap: NGWWebMap = index.data(QNGWResourceItem.NGWResourceRole)
@@ -1118,12 +1219,34 @@ class QgisResourceBatchImporter(QObject):
     def __collect_params_for_webmap_layer(
         self, webmap: NGWWebMap, webmap_layer: NGWWebMapLayer
     ) -> None:
+        """Prepare provider parameters for one layer referenced by a Web Map.
+
+        :param webmap: Web Map owning the layer reference.
+        :param webmap_layer: Web Map layer to import.
+        :raises ResourcePermissionError: If a referenced resource is forbidden.
+        :raises NgConnectError: If the referenced resources are unsupported.
+        """
         self.__raise_if_webmap_layer_forbidden(webmap, webmap_layer)
 
         layer_resource = self.__model.resource(webmap_layer.style_parent_id)
         style_resource = self.__model.resource(webmap_layer.layer_style_id)
 
-        if is_layer(layer_resource):
+        if isinstance(layer_resource, NGWRasterMosaic):
+            if (
+                not isinstance(style_resource, NGWRasterStyle)
+                or style_resource.parent_id != layer_resource.resource_id
+            ):
+                self.__raise_unsupported_webmap_layer_resources(
+                    webmap_layer,
+                    layer_resource,
+                    style_resource,
+                )
+            params = self.__collect_params_for_tms_resource(
+                layer_resource,
+                style_resource.resource_id,
+            )
+
+        elif is_layer(layer_resource):
             assert layer_resource is not None
             params = self.__collect_params_for_layer_resource(layer_resource)
 
@@ -1131,31 +1254,44 @@ class QgisResourceBatchImporter(QObject):
             assert style_resource is not None
             params = self.__collect_params_for_layer_resource(style_resource)
 
-        elif isinstance(layer_resource, NGWRasterMosaic):
-            assert webmap_layer.style_parent_id is not None
-            self.__skipped_resources.add(webmap_layer.style_parent_id)
-            return
-
         else:
-            error = NgConnectError(
-                "Unsupported resources",
-                user_message=self.tr(
-                    'Layer "{}" can\'t be added to the map'
-                ).format(webmap_layer.display_name),
-                detail=self.tr(
-                    "The linked layer or style resource is not available."
-                ),
-                code=ErrorCode.AddingError,
+            self.__raise_unsupported_webmap_layer_resources(
+                webmap_layer,
+                layer_resource,
+                style_resource,
             )
-            error.add_note(f"Style parent: {layer_resource!r}")
-            error.add_note(f"Style: {style_resource!r}")
-            raise error
 
         self.__store_layer_params(
             id(webmap_layer),
             params,
             self.__adding_error_context_for_webmap_layer(webmap, webmap_layer),
         )
+
+    def __raise_unsupported_webmap_layer_resources(
+        self,
+        webmap_layer: NGWWebMapLayer,
+        layer_resource: Optional[NGWResource],
+        style_resource: Optional[NGWResource],
+    ) -> None:
+        """Raise an import error for an unresolved Web Map layer reference.
+
+        :param webmap_layer: Web Map layer with unresolved resources.
+        :param layer_resource: Resource referenced as the style parent.
+        :param style_resource: Resource referenced as the layer style.
+        """
+        error = NgConnectError(
+            "Unsupported resources",
+            user_message=self.tr(
+                'Layer "{}" can\'t be added to the map'
+            ).format(webmap_layer.display_name),
+            detail=self.tr(
+                "The linked layer or style resource is not available."
+            ),
+            code=ErrorCode.AddingError,
+        )
+        error.add_note(f"Style parent: {layer_resource!r}")
+        error.add_note(f"Style: {style_resource!r}")
+        raise error
 
     def __collect_params_for_webmap_group(
         self, webmap: NGWWebMap, webmap_group: NGWWebMapGroup
