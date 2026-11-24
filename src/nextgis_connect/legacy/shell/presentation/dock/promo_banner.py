@@ -57,35 +57,33 @@ BLACK_FRIDAY_2026_FINISH = {
 }
 
 BLACK_FRIDAY_2026_LANDING_PAGES = {
-    "ru": "https://nextgis.ru/extra/black-friday-2026/ru/",
-    "en": "https://nextgis.com/extra/black-friday-2026/en/",
-    "es": "https://nextgis.es/black-friday/",
+    "ru": "https://nextgis.ru/pricing-base/",
+    "en": "https://nextgis.com/pricing-base/",
+    "es": "https://nextgis.es/pricing-base/",
 }
 
 BLACK_FRIDAY_2026_BANNER_TEXTS = {
-    "ru": ("23 – 27 ноября · <b>−50% на данные и подписки</b>",),
-    "en": ("Nov 23 – 27 · <b>50% off data and subscriptions</b>",),
-    "es": ("23–27 nov. · <b>50% de descuento en datos y suscripciones</b>",),
+    "ru": ("23–27 ноября · <b>−50% на облачные подписки</b>",),
+    "en": ("Nov 23–27 · <b>50% off cloud subscriptions</b>",),
+    "bg": ("23–27 ноември · <b>50% отстъпка за облачни абонаменти</b>",),
+    "cs": ("23.–27. listopadu · <b>50% sleva na cloudová předplatná</b>",),
+    "de": ("23.–27. Nov. · <b>50% Rabatt auf Cloud-Abonnements</b>",),
+    "es": (
+        "23–27 nov. · <b>50% de descuento en suscripciones en la nube</b>",
+        "23–27 nov. · <b>Suscripciones cloud −50%</b>",
+    ),
     "fr": (
-        (
-            "23 - 27 novembre · <b>50% de reduction sur les données "
-            "et les abonnements</b>"
-        ),
-        "23–27 nov. · <b>Données et abonnements à −50 %</b>",
+        "23–27 novembre · <b>50 % de réduction sur les abonnements cloud</b>",
+        "23–27 nov. · <b>Abonnements cloud −50 %</b>",
     ),
-    "bg": ("23 – 27 ноември · <b>50% отстъпка за данни и абонаменти</b>",),
-    "cs": ("23. – 27. listopadu · <b>50% sleva na data a předplatné</b>",),
-    "de": ("23. – 27. Nov. · <b>50 % Rabatt auf Daten und Abonnements</b>",),
-    "it": ("23 – 27 nov. · <b>50% di sconto su dati e abbonamenti</b>",),
-    "ja": (
-        "11月23日～27日 · <b>データプランとサブスクリプションが50％オフ</b>",
-    ),
-    "zh": ("11月23日至27日 · <b>数据和订阅享五折优惠</b>",),
-    "pl": ("23–27 listopada · <b>50% zniżki na dane i subskrypcje</b>",),
+    "it": ("23–27 nov. · <b>50% di sconto sugli abbonamenti cloud</b>",),
+    "ja": ("11月23日～27日 · <b>クラウドサブスクリプションが50%オフ</b>",),
+    "pl": ("23–27 listopada · <b>50% zniżki na subskrypcje chmurowe</b>",),
     "pt": (
-        "23 a 27 de novembro · <b>50% de desconto em dados e assinaturas</b>",
-        "23–27 nov. · <b>Dados e assinaturas −50%</b>",
+        "23 a 27 de novembro · <b>50% de desconto em assinaturas na nuvem</b>",
+        "23–27 nov. · <b>Assinaturas cloud −50%</b>",
     ),
+    "zh": ("11月23日至27日 · <b>云订阅五折优惠</b>",),
 }
 
 
