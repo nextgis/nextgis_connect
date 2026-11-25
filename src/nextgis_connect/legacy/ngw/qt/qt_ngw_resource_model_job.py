@@ -23,6 +23,9 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, pyqtSignal
 
 from nextgis_connect.legacy.ngw.core.ngw_error import NGWError
 from nextgis_connect.legacy.ngw.core.ngw_group_resource import NGWGroupResource
+from nextgis_connect.legacy.ngw.core.ngw_point_cloud_layer import (
+    NGWPointCloudLayer,
+)
 from nextgis_connect.legacy.ngw.core.ngw_qgis_style import NGWQGISStyle
 from nextgis_connect.legacy.ngw.core.ngw_raster_layer import NGWRasterLayer
 from nextgis_connect.legacy.ngw.core.ngw_resource import (
@@ -63,7 +66,7 @@ from .qt_ngw_resource_model_job_error import (
 @dataclass(frozen=True)
 class UploadedLayerResource:
     qgs_map_layer: QgsMapLayer
-    ngw_resource: Union[NGWVectorLayer, NGWRasterLayer]
+    ngw_resource: Union[NGWVectorLayer, NGWRasterLayer, NGWPointCloudLayer]
 
 
 class NGWResourceModelJobResult:
@@ -109,7 +112,9 @@ class NGWResourceModelJobResult:
     def putUploadedLayerResource(
         self,
         qgs_map_layer: QgsMapLayer,
-        ngw_resource: Union[NGWVectorLayer, NGWRasterLayer],
+        ngw_resource: Union[
+            NGWVectorLayer, NGWRasterLayer, NGWPointCloudLayer
+        ],
     ) -> None:
         self.uploaded_layer_resources.append(
             UploadedLayerResource(qgs_map_layer, ngw_resource)
@@ -215,7 +220,9 @@ class NGWResourceModelJob(QObject):
     def putUploadedLayerResourceToResult(
         self,
         qgs_map_layer: QgsMapLayer,
-        ngw_resource: Union[NGWVectorLayer, NGWRasterLayer],
+        ngw_resource: Union[
+            NGWVectorLayer, NGWRasterLayer, NGWPointCloudLayer
+        ],
     ) -> None:
         self.result.putUploadedLayerResource(qgs_map_layer, ngw_resource)
 

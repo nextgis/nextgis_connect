@@ -510,6 +510,7 @@ class PluginContainer:
 
         layer_menu_icon = plugin_icon("branding/connect_logo.svg")
         for action in ng_layer_actions:
+            action_type = action.data()
             if isinstance(action.data(), ResourceMenuAction):
                 source_action = action
                 action = QAction(self.__ng_resources_tree_dock)
@@ -539,7 +540,10 @@ class PluginContainer:
                 source_action.changed.connect(sync_action)
                 action.triggered.connect(source_action.trigger)
                 sync_action()
-            for layer_type in (LayerType.Vector, LayerType.Raster):
+            layer_types = (LayerType.Vector, LayerType.Raster)
+            if action_type == ResourceMenuAction.UPLOAD_SELECTED:
+                layer_types += (LayerType.PointCloud,)
+            for layer_type in layer_types:
                 self.__layer_tree_action_registry.register(
                     action,
                     PLUGIN_NAME,

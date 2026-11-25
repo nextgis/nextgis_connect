@@ -82,6 +82,7 @@ from nextgis_connect.legacy.detached_editing.utils import (
 from nextgis_connect.legacy.ngw.core import (
     NGWGroupResource,
     NGWOgcfService,
+    NGWPointCloudLayer,
     NGWPostgisLayer,
     NGWRasterLayer,
     NGWRasterMosaic,
@@ -1079,6 +1080,8 @@ class QgisResourceBatchImporter(QObject):
             return self.__collect_params_for_service_layer(resource)
         if isinstance(resource, NGWRasterLayer):
             return self.__collect_params_for_cog_raster_layer(resource)
+        if isinstance(resource, NGWPointCloudLayer):
+            return resource.layer_params
         if isinstance(resource, TMS_LAYER_RESOURCE_TYPES):
             return resource.layer_params
 

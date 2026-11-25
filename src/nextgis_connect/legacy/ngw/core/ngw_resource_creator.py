@@ -16,7 +16,7 @@
 
 import configparser
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Optional
 
 from qgis.core import QgsApplication, QgsFeedback, QgsMapLayer
 
@@ -27,6 +27,7 @@ from nextgis_connect.legacy.settings import NgConnectSettings
 
 from .ngw_group_resource import NGWGroupResource
 from .ngw_ogcf_service import NGWOgcfService
+from .ngw_point_cloud_layer import NGWPointCloudLayer
 from .ngw_qgis_style import NGWQGISVectorStyle
 from .ngw_raster_layer import NGWRasterLayer
 from .ngw_resource import NGWResource
@@ -261,6 +262,67 @@ class ResourceCreator:
         parent_ngw_resource.common.children = True
 
         return NGWRasterLayer(parent_ngw_resource.res_factory, ngw_resource)
+
+    @staticmethod
+    def create_point_cloud_layer(
+        parent_ngw_resource: NGWGroupResource,
+        filename: str,
+        layer_name: str,
+        srs_id: Optional[int],
+        upload_callback: Callable[[int, int, Optional[int]], None],
+        create_callback: Callable[[], None],
+        metadata: Optional[Dict[str, str]] = None,
+        feedback: Optional[QgsFeedback] = None,
+    ) -> NGWPointCloudLayer:
+        """Create an NGW point-cloud layer from a prepared COPC file.
+
+        :param parent_ngw_resource: Group that will own the new resource.
+        :param filename: COPC file path to upload.
+        :param layer_name: Display name for the new resource.
+        :param srs_id: NGW SRS identifier when the source has an EPSG CRS.
+        :param upload_callback: Receives TUS upload progress.
+        :param create_callback: Runs before the server resource request.
+        :param metadata: Optional resource metadata to attach.
+        :param feedback: Feedback controlling cancellation of upload and creation.
+        :return: Newly created NGW point-cloud layer.
+        """
+        connection = parent_ngw_resource.res_factory.connection
+        point_cloud_file_desc = connection.tus_upload_file(
+            filename,
+            upload_callback,
+            feedback=feedback,
+        )
+
+        point_cloud_params: Dict[str, Any] = dict(source=point_cloud_file_desc)
+        if srs_id is not None:
+            point_cloud_params["srs"] = dict(id=srs_id)
+
+        url = parent_ngw_resource.get_api_collection_url()
+        params: Dict[str, Any] = dict(
+            resource=dict(
+                cls=NGWPointCloudLayer.type_id,
+                parent=dict(id=parent_ngw_resource.resource_id),
+                display_name=layer_name,
+            ),
+            point_cloud_layer=point_cloud_params,
+        )
+        ResourceCreator._add_metadata(params, metadata)
+        create_callback()
+        result = connection.post(
+            url,
+            params=params,
+            is_lunkwill=True,
+            feedback=feedback,
+        )
+        ngw_resource = NGWResource.receive_resource_obj(
+            connection,
+            result["id"],
+            feedback=feedback,
+        )
+        parent_ngw_resource.common.children = True
+        return NGWPointCloudLayer(
+            parent_ngw_resource.res_factory, ngw_resource
+        )
 
     @staticmethod
     def create_tileset(

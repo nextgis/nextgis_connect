@@ -26,6 +26,7 @@ class ResourceKind(Enum):
     GROUP = auto()
     VECTOR_LAYER = auto()
     RASTER_LAYER = auto()
+    POINT_CLOUD_LAYER = auto()
     POSTGIS_LAYER = auto()
     WFS_LAYER = auto()
     WFS_SERVICE = auto()
@@ -295,6 +296,7 @@ class ResourceMenuPolicy:
             ResourceKind.GROUP,
             ResourceKind.VECTOR_LAYER,
             ResourceKind.RASTER_LAYER,
+            ResourceKind.POINT_CLOUD_LAYER,
             ResourceKind.POSTGIS_LAYER,
             ResourceKind.WFS_LAYER,
             ResourceKind.WFS_SERVICE,
