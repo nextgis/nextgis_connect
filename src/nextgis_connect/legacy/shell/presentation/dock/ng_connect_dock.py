@@ -150,6 +150,7 @@ from nextgis_connect.legacy.ngw.core import (
     NGWQGISStyle,
     NGWQGISVectorStyle,
     NGWRasterLayer,
+    NGWRasterMosaic,
     NGWRasterStyle,
     NGWResource,
     NGWTileset,
@@ -2397,6 +2398,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 (NGWTmsConnection,),
             ),
             ResourceTypeBinding(ResourceKind.TILESET, (NGWTileset,)),
+            ResourceTypeBinding(
+                ResourceKind.RASTER_MOSAIC,
+                (NGWRasterMosaic,),
+            ),
             ResourceTypeBinding(ResourceKind.WEB_MAP, (NGWWebMap,)),
             ResourceTypeBinding(
                 ResourceKind.FORM,
