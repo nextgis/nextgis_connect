@@ -656,7 +656,10 @@ class QgisResourceBatchImporter(QObject):
         :param webmap: Web Map owning the layer reference.
         :param webmap_layer: Web Map layer to insert.
         """
-        if id(webmap_layer) in self.__skipped_resources:
+        if (
+            webmap_layer.layer_style_id in self.__skipped_resources
+            or webmap_layer.style_parent_id in self.__skipped_resources
+        ):
             return
 
         if id(webmap_layer) not in self.__layers:
@@ -959,13 +962,8 @@ class QgisResourceBatchImporter(QObject):
         self,
         context: ResourceAddingErrorContext,
     ) -> None:
-        """Skip one insertion item, falling back to resource IDs when needed.
-
-        :param context: Error context describing the failed insertion.
-        """
         if context.insertion_id is not None:
             self.__skipped_resources.add(context.insertion_id)
-            return
 
         for resource_id in context.resource_ids:
             self.__skipped_resources.add(resource_id)
@@ -1115,10 +1113,7 @@ class QgisResourceBatchImporter(QObject):
             self.__model,
         )
         style = self.__model.resource(style_id)
-        if (
-            not isinstance(style, NGWRasterStyle)
-            or style.parent_id != mosaic.resource_id
-        ):
+        if not isinstance(style, NGWRasterStyle):
             raise ResourceImportCancelledError
         return self.__collect_params_for_tms_resource(
             mosaic, style.resource_id
@@ -1232,10 +1227,7 @@ class QgisResourceBatchImporter(QObject):
         style_resource = self.__model.resource(webmap_layer.layer_style_id)
 
         if isinstance(layer_resource, NGWRasterMosaic):
-            if (
-                not isinstance(style_resource, NGWRasterStyle)
-                or style_resource.parent_id != layer_resource.resource_id
-            ):
+            if not isinstance(style_resource, NGWRasterStyle):
                 self.__raise_unsupported_webmap_layer_resources(
                     webmap_layer,
                     layer_resource,
