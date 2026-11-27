@@ -168,17 +168,32 @@ class QgisBatchLayerFactory:
         worker_parameters: Dict[BatchLayerId, QgisLayerCreationParameters] = {}
         gui_parameters: Dict[BatchLayerId, QgisLayerCreationParameters] = {}
         for insertion_id, layer_parameters in parameters.items():
-            destination = (
-                gui_parameters
-                if layer_parameters.provider_key.lower() == "copc"
-                else worker_parameters
-            )
-            destination[insertion_id] = layer_parameters
+            if layer_parameters.provider_key.lower() == "copc":
+                gui_parameters[insertion_id] = layer_parameters
+            else:
+                worker_parameters[insertion_id] = layer_parameters
 
-        if len(worker_parameters) == 0:
+        if not worker_parameters:
             return self._create_point_cloud_layers(gui_parameters)
 
-        task = QgisLayerCreatorTask(worker_parameters)
+        worker_layers = self._create_worker_layers(worker_parameters)
+        if self._cancel_requested:
+            worker_layers.clear()
+            return worker_layers
+
+        worker_layers.update(self._create_point_cloud_layers(gui_parameters))
+        return worker_layers
+
+    def _create_worker_layers(
+        self,
+        parameters: Mapping[BatchLayerId, QgisLayerCreationParameters],
+    ) -> Dict[BatchLayerId, QgsMapLayer]:
+        """Create vector and raster layers through a background QGIS task.
+
+        :param parameters: Provider arguments keyed by insertion target.
+        :return: Constructed layers keyed by insertion target.
+        """
+        task = QgisLayerCreatorTask(parameters)
         self._active_task = task
         event_loop = QEventLoop()
         task.taskCompleted.connect(event_loop.exit)
@@ -188,11 +203,6 @@ class QgisBatchLayerFactory:
         try:
             if task.isCanceled():
                 task.layers.clear()
-                return task.layers
-
-            # Route subsequent cancellation to the GUI phase.
-            self._active_task = None
-            task.layers.update(self._create_point_cloud_layers(gui_parameters))
             return task.layers
         finally:
             self._active_task = None
@@ -207,35 +217,66 @@ class QgisBatchLayerFactory:
         """
         layers: Dict[BatchLayerId, QgsMapLayer] = {}
         count = len(parameters)
-        for i, (insertion_id, layer_parameters) in enumerate(
+        for index, (insertion_id, layer_parameters) in enumerate(
             parameters.items()
         ):
             if self._cancel_requested:
                 break
 
-            counter = f"[{i + 1}/{count}] " if count > 1 else ""
-            logger.debug(
-                f"{counter}Creating {layer_parameters.provider_key} layer "
-                f'"{layer_parameters.name}"'
+            layer = self._create_point_cloud_layer(
+                layer_parameters,
+                index,
+                count,
             )
-            layer = QgsPointCloudLayer(*layer_parameters.as_arguments())
-            if self._cancel_requested:
-                layer.deleteLater()
+            if layer is None:
                 break
-
-            if not layer.isValid():
-                error = layer.error().summary()
-                logger.warning(
-                    f'Layer "{layer_parameters.name}" is not valid: {error}'
-                )
-            elif (
-                layer.renderer3D() is None
-                and layer.sync3DRendererTo2DRenderer()
-            ):
-                renderer_3d = QgsPointCloudLayer3DRenderer()
-                renderer_3d.convertFrom2DRenderer(layer.renderer())
-                layer.setRenderer3D(renderer_3d)
 
             layers[insertion_id] = layer
 
         return layers
+
+    def _create_point_cloud_layer(
+        self,
+        parameters: QgisLayerCreationParameters,
+        index: int,
+        count: int,
+    ) -> Optional[QgsPointCloudLayer]:
+        """Construct and configure one point-cloud layer in the GUI thread.
+
+        :param parameters: Provider arguments for the point-cloud layer.
+        :param index: Zero-based layer position in the batch.
+        :param count: Total number of point-cloud layers in the batch.
+        :return: Configured layer, or ``None`` when cancellation was requested.
+        """
+        counter = f"[{index + 1}/{count}] " if count > 1 else ""
+        logger.debug(
+            f"{counter}Creating {parameters.provider_key} layer "
+            f'"{parameters.name}"'
+        )
+        layer = QgsPointCloudLayer(*parameters.as_arguments())
+        if self._cancel_requested:
+            layer.deleteLater()
+            return None
+
+        if not layer.isValid():
+            error = layer.error().summary()
+            logger.warning(f'Layer "{parameters.name}" is not valid: {error}')
+            return layer
+
+        self._configure_point_cloud_renderer(layer)
+        return layer
+
+    @staticmethod
+    def _configure_point_cloud_renderer(layer: QgsPointCloudLayer) -> None:
+        """Initialize a 3D renderer from the layer's 2D renderer when possible.
+
+        :param layer: Valid point-cloud layer to configure.
+        """
+        if layer.renderer3D() is not None:
+            return
+        if not layer.sync3DRendererTo2DRenderer():
+            return
+
+        renderer_3d = QgsPointCloudLayer3DRenderer()
+        renderer_3d.convertFrom2DRenderer(layer.renderer())
+        layer.setRenderer3D(renderer_3d)

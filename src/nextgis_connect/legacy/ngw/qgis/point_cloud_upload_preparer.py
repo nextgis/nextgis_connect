@@ -213,17 +213,40 @@ class PointCloudUploadPreparer:
         :raises NgConnectError: If preparation is canceled.
         """
         self._raise_if_canceled()
+        self._validate_layer(layer)
+
+        source_path, source_url, auth_config_id = self._source(layer)
+        if source_path is not None:
+            return self._prepare_source_file(source_path)
+
+        return self._prepare_remote_source(layer, source_url, auth_config_id)
+
+    @staticmethod
+    def _validate_layer(layer: QgsPointCloudLayer) -> None:
+        """Validate a point-cloud layer before its source is read.
+
+        :param layer: Source QGIS point-cloud layer.
+        :raises DataPreparationError: If the layer or its CRS is invalid.
+        """
         if not layer.isValid():
             raise DataPreparationError("Point-cloud layer is not valid")
         if not layer.crs().isValid():
             raise DataPreparationError("Point-cloud layer CRS is not valid")
 
-        source_path, source_url, auth_config_id = self._source(layer)
-        if source_path is not None:
-            if self._is_copc(source_path):
-                return PreparedPointCloudFile(source_path, None)
-            return self._convert_to_copc(source_path)
+    def _prepare_remote_source(
+        self,
+        layer: QgsPointCloudLayer,
+        source_url: Optional[QUrl],
+        auth_config_id: str,
+    ) -> PreparedPointCloudFile:
+        """Download and prepare a remote point-cloud source.
 
+        :param layer: Source layer, possibly linked to an NGW resource.
+        :param source_url: Direct source URL when available.
+        :param auth_config_id: QGIS authentication configuration for the URL.
+        :return: COPC payload and its cleanup ownership.
+        :raises DataPreparationError: If the remote source cannot be accessed.
+        """
         temporary_directory = self._temporary_directory()
         try:
             if self._is_ngw_layer(layer):
@@ -241,13 +264,26 @@ class PointCloudUploadPreparer:
                     f"Cannot access point-cloud source for layer {layer.name()}"
                 )
 
-            if self._is_copc(source_path):
-                return PreparedPointCloudFile(source_path, temporary_directory)
-
-            return self._convert_to_copc(source_path, temporary_directory)
+            return self._prepare_source_file(source_path, temporary_directory)
         except Exception:
             shutil.rmtree(temporary_directory, ignore_errors=True)
             raise
+
+    def _prepare_source_file(
+        self,
+        source_path: Path,
+        temporary_directory: Optional[Path] = None,
+    ) -> PreparedPointCloudFile:
+        """Reuse COPC input or convert another source to COPC.
+
+        :param source_path: Existing local point-cloud source file.
+        :param temporary_directory: Directory owned by the returned payload.
+        :return: COPC payload and its cleanup ownership.
+        """
+        if self._is_copc(source_path):
+            return PreparedPointCloudFile(source_path, temporary_directory)
+
+        return self._convert_to_copc(source_path, temporary_directory)
 
     def _source(
         self,
@@ -258,14 +294,9 @@ class PointCloudUploadPreparer:
         :param layer: Layer whose provider URI is inspected.
         :return: Local path, remote URL, and optional QGIS auth configuration.
         """
-        source = layer.source()
-        source_path = Path(source)
-        if source_path.is_file():
-            return source_path, None, ""
-
-        source_url = QUrl(source)
-        if source_url.isValid() and source_url.scheme() in ("http", "https"):
-            return None, source_url, ""
+        source_reference = self._source_reference(layer.source(), "")
+        if source_reference[0] is not None or source_reference[1] is not None:
+            return source_reference
 
         provider_metadata = QgsProviderRegistry.instance().providerMetadata(
             layer.providerType()
@@ -274,23 +305,37 @@ class PointCloudUploadPreparer:
             return None, None, ""
 
         try:
-            uri_parts = provider_metadata.decodeUri(source)
+            uri_parts = provider_metadata.decodeUri(layer.source())
         except Exception:
             return None, None, ""
 
         source_value = uri_parts.get("path") or uri_parts.get("url")
+        auth_config_id = str(uri_parts.get("authcfg") or "")
         if not source_value:
-            return None, None, str(uri_parts.get("authcfg") or "")
+            return None, None, auth_config_id
 
-        source_text = str(source_value)
-        source_path = Path(source_text)
+        return self._source_reference(str(source_value), auth_config_id)
+
+    @staticmethod
+    def _source_reference(
+        source: str,
+        auth_config_id: str,
+    ) -> Tuple[Optional[Path], Optional[QUrl], str]:
+        """Classify a source value as a local file or supported remote URL.
+
+        :param source: Provider source value to inspect.
+        :param auth_config_id: QGIS authentication configuration for the source.
+        :return: Local path, remote URL, and the authentication configuration.
+        """
+        source_path = Path(source)
         if source_path.is_file():
-            return source_path, None, str(uri_parts.get("authcfg") or "")
+            return source_path, None, auth_config_id
 
-        source_url = QUrl(source_text)
+        source_url = QUrl(source)
         if source_url.isValid() and source_url.scheme() in ("http", "https"):
-            return None, source_url, str(uri_parts.get("authcfg") or "")
-        return None, None, str(uri_parts.get("authcfg") or "")
+            return None, source_url, auth_config_id
+
+        return None, None, auth_config_id
 
     @staticmethod
     def _is_copc(path: Path) -> bool:
@@ -388,14 +433,7 @@ class PointCloudUploadPreparer:
             auth_config_id,
             True,
         )
-
-        def on_progress(received: int, total: int) -> None:
-            if self._feedback is not None and total > 0:
-                self._feedback.setProgress(received * 100.0 / total)
-            if self._download_progress_callback is not None and total > 0:
-                self._download_progress_callback(int(received * 100 / total))
-
-        downloader.downloadProgress.connect(on_progress)
+        downloader.downloadProgress.connect(self._update_download_progress)
         downloader.downloadCompleted.connect(
             lambda _url: completed.append(True)
         )
@@ -407,6 +445,37 @@ class PointCloudUploadPreparer:
         downloader.startDownload()
         loop.exec()
         self._raise_if_canceled()
+        self._validate_download(source_url, output_path, completed, errors)
+
+    def _update_download_progress(self, received: int, total: int) -> None:
+        """Propagate download progress to the upload workflow.
+
+        :param received: Number of downloaded bytes.
+        :param total: Expected total number of bytes.
+        """
+        if total <= 0:
+            return
+
+        if self._feedback is not None:
+            self._feedback.setProgress(received * 100.0 / total)
+        if self._download_progress_callback is not None:
+            self._download_progress_callback(int(received * 100 / total))
+
+    @staticmethod
+    def _validate_download(
+        source_url: QUrl,
+        output_path: Path,
+        completed: List[bool],
+        errors: List[str],
+    ) -> None:
+        """Validate the terminal state of a file download.
+
+        :param source_url: URL requested from the QGIS network stack.
+        :param output_path: Expected local destination path.
+        :param completed: Completion signals received from the downloader.
+        :param errors: Error messages received from the downloader.
+        :raises DataPreparationError: If the download did not produce a file.
+        """
         if errors:
             raise DataPreparationError("; ".join(errors))
         if (
@@ -440,28 +509,44 @@ class PointCloudUploadPreparer:
         if temporary_directory is None:
             temporary_directory = self._temporary_directory()
         try:
-            output_layers = self._run_create_copc(
-                source_path, temporary_directory
+            output_path = self._validate_copc_output(
+                source_path,
+                self._run_create_copc(source_path, temporary_directory),
             )
-            if len(output_layers) != 1:
-                raise DataPreparationError(
-                    f"Cannot create COPC from point-cloud source {source_path}"
-                )
-
-            output_path = Path(str(output_layers[0]))
-            if (
-                not self._is_copc(output_path)
-                or not output_path.is_file()
-                or output_path.stat().st_size == 0
-            ):
-                raise DataPreparationError(
-                    f"COPC output is invalid: {output_path}"
-                )
             return PreparedPointCloudFile(output_path, temporary_directory)
         except Exception:
             if owns_temporary_directory:
                 shutil.rmtree(temporary_directory, ignore_errors=True)
             raise
+
+    def _validate_copc_output(
+        self,
+        source_path: Path,
+        output_layers: List[str],
+    ) -> Path:
+        """Validate and return the single COPC output from Processing.
+
+        :param source_path: Input passed to the Create COPC algorithm.
+        :param output_layers: Paths reported by the Processing algorithm.
+        :return: Existing non-empty COPC output path.
+        :raises DataPreparationError: If Processing did not produce one valid COPC file.
+        """
+        if len(output_layers) != 1:
+            raise DataPreparationError(
+                f"Cannot create COPC from point-cloud source {source_path}"
+            )
+
+        output_path = Path(output_layers[0])
+        if (
+            not self._is_copc(output_path)
+            or not output_path.is_file()
+            or output_path.stat().st_size == 0
+        ):
+            raise DataPreparationError(
+                f"COPC output is invalid: {output_path}"
+            )
+
+        return output_path
 
     def _run_create_copc(
         self,
