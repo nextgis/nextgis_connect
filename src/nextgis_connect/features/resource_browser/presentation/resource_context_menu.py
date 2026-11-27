@@ -140,6 +140,7 @@ class ResourceImportIconResolver:
     _GENERIC_IMPORT_ICON = "mActionAddLayer.svg"
     _VECTOR_IMPORT_ICON = "mActionAddOgrLayer.svg"
     _RASTER_IMPORT_ICON = "mActionAddRasterLayer.svg"
+    _POINT_CLOUD_IMPORT_ICON = "mActionAddPointCloudLayer.svg"
     _TMS_IMPORT_ICON = "mActionAddXyzLayer.svg"
     _WFS_IMPORT_ICON = "mActionAddWfsLayer.svg"
     _WMS_IMPORT_ICON = "mActionAddWmsLayer.svg"
@@ -223,6 +224,8 @@ class ResourceImportIconResolver:
             return self._VECTOR_IMPORT_ICON
         if resource.kind in self._RASTER_RESOURCE_KINDS:
             return self._RASTER_IMPORT_ICON
+        if resource.kind == ResourceKind.POINT_CLOUD_LAYER:
+            return self._POINT_CLOUD_IMPORT_ICON
         if resource.kind in self._TMS_RESOURCE_KINDS:
             return self._TMS_IMPORT_ICON
         if resource.kind in self._WFS_RESOURCE_KINDS:

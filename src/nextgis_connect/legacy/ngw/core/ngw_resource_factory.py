@@ -34,6 +34,7 @@ from .ngw_eeko_storage import NGWEekoStorage
 from .ngw_group_resource import NGWGroupResource
 from .ngw_mapserver_style import NGWMapServerStyle
 from .ngw_ogcf_service import NGWOgcfService
+from .ngw_point_cloud_layer import NGWPointCloudLayer
 from .ngw_postgis_layer import NGWPostgisConnection, NGWPostgisLayer
 from .ngw_qgis_style import NGWQGISRasterStyle, NGWQGISVectorStyle
 from .ngw_raster_layer import NGWRasterLayer
@@ -77,6 +78,7 @@ class NGWResourceFactory:
             NGWBaseMap.type_id: NGWBaseMap,
             NGWPostgisConnection.type_id: NGWPostgisConnection,
             NGWPostgisLayer.type_id: NGWPostgisLayer,
+            NGWPointCloudLayer.type_id: NGWPointCloudLayer,
             NGWTmsConnection.type_id: NGWTmsConnection,
             NGWTmsLayer.type_id: NGWTmsLayer,
             NGWTileset.type_id: NGWTileset,

@@ -34,6 +34,9 @@ from nextgis_connect.legacy.ngw.core.ngw_base_map import (
 )
 from nextgis_connect.legacy.ngw.core.ngw_feature import NGWFeature
 from nextgis_connect.legacy.ngw.core.ngw_group_resource import NGWGroupResource
+from nextgis_connect.legacy.ngw.core.ngw_point_cloud_layer import (
+    NGWPointCloudLayer,
+)
 from nextgis_connect.legacy.ngw.core.ngw_qgis_style import (
     NGWQGISStyle,
     NGWQGISVectorStyle,
@@ -58,6 +61,10 @@ from nextgis_connect.legacy.ngw.core.ngw_webmap import (
 from nextgis_connect.legacy.ngw.core.ngw_wms_connection import NGWWmsConnection
 from nextgis_connect.legacy.ngw.core.ngw_wms_layer import NGWWmsLayer
 from nextgis_connect.legacy.ngw.core.ngw_wms_service import NGWWmsService
+from nextgis_connect.legacy.ngw.qgis.point_cloud_upload_preparer import (
+    PointCloudUploadPreparer,
+    PreparedPointCloudFile,
+)
 from nextgis_connect.legacy.ngw.qgis.qgis_ngw_connection import (
     NgwServerFeature,
     QgsNgwConnection,
@@ -108,6 +115,7 @@ from qgis.core import (
     QgsLayerTreeNode,
     QgsMapLayer,
     QgsPluginLayer,
+    QgsPointCloudLayer,
     QgsProject,
     QgsProviderRegistry,
     QgsRasterBlockFeedback,
@@ -389,6 +397,14 @@ class QGISResourceJob(NGWResourceModelJob):
                 self.importQgsRasterLayer(qgs_map_layer, ngw_parent_resource)
             ]
 
+        if layer_type == LayerType.PointCloud:
+            return [
+                self.importQgsPointCloudLayer(
+                    cast(QgsPointCloudLayer, qgs_map_layer),
+                    ngw_parent_resource,
+                )
+            ]
+
         elif layer_type == LayerType.Plugin:
             return self.importQgsPluginLayer(
                 qgs_map_layer, ngw_parent_resource
@@ -640,6 +656,78 @@ class QGISResourceJob(NGWResourceModelJob):
 
         return ngw_raster_layer
 
+    def importQgsPointCloudLayer(
+        self,
+        qgs_point_cloud_layer: QgsPointCloudLayer,
+        ngw_parent_resource: NGWGroupResource,
+    ) -> NGWPointCloudLayer:
+        """Create an NGW resource from a QGIS point-cloud layer.
+
+        :param qgs_point_cloud_layer: Layer to prepare and upload.
+        :param ngw_parent_resource: Destination NGW resource group.
+        :return: Newly created NGW point-cloud layer.
+        """
+        self._raise_if_canceled()
+        new_layer_name = self.unique_resource_name(
+            qgs_point_cloud_layer.name(), ngw_parent_resource
+        )
+        logger.debug(
+            '↑ Uploading point-cloud layer "%s" (with the name "%s")',
+            qgs_point_cloud_layer.name(),
+            new_layer_name,
+        )
+
+        def upload_file_callback(
+            total_size: int,
+            readed_size: int,
+            value: Optional[int] = None,
+        ) -> None:
+            percent = (
+                int(readed_size * 100 / total_size) if value is None else value
+            )
+            self._layer_status(
+                qgs_point_cloud_layer.name(),
+                QgsApplication.translate(
+                    "QGISResourceJob", "uploading ({}%)"
+                ).format(percent),
+            )
+
+        def create_layer_callback() -> None:
+            self._layer_status(
+                qgs_point_cloud_layer.name(),
+                QgsApplication.translate("QGISResourceJob", "creating"),
+            )
+
+        prepared_file = self.prepareImportPointCloudFile(qgs_point_cloud_layer)
+        try:
+            srs_id = qgs_point_cloud_layer.crs().postgisSrid()
+            ngw_point_cloud_layer = ResourceCreator.create_point_cloud_layer(
+                ngw_parent_resource,
+                str(prepared_file.upload_path),
+                new_layer_name,
+                srs_id if srs_id > 0 else None,
+                upload_file_callback,
+                create_layer_callback,
+                metadata=ResourceCreator.resource_creation_metadata(
+                    qgs_point_cloud_layer
+                ),
+                feedback=self._feedback,
+            )
+            self._raise_if_canceled()
+        finally:
+            prepared_file.cleanup()
+
+        self._layer_status(
+            qgs_point_cloud_layer.name(),
+            QgsApplication.translate("QGISResourceJob", "finishing"),
+        )
+        logger.debug(
+            "↑ Point-cloud layer %s was uploaded with id %s",
+            qgs_point_cloud_layer.name(),
+            ngw_point_cloud_layer.resource_id,
+        )
+        return ngw_point_cloud_layer
+
     def importQgsVectorLayer(
         self,
         qgs_vector_layer: QgsVectorLayer,
@@ -849,6 +937,33 @@ class QGISResourceJob(NGWResourceModelJob):
         )
 
         return prepared_file.is_temporary, str(prepared_file.upload_path)
+
+    def prepareImportPointCloudFile(
+        self,
+        qgs_point_cloud_layer: QgsPointCloudLayer,
+    ) -> PreparedPointCloudFile:
+        """Prepare a QGIS point-cloud layer for NGW upload.
+
+        :param qgs_point_cloud_layer: Layer to convert or download as COPC.
+        :return: Prepared COPC payload and cleanup ownership.
+        """
+        self._layer_status(
+            qgs_point_cloud_layer.name(),
+            QgsApplication.translate("QGISResourceJob", "preparing"),
+        )
+
+        def on_download_progress(percent: int) -> None:
+            self._layer_status(
+                qgs_point_cloud_layer.name(),
+                QgsApplication.translate(
+                    "QGISResourceJob", "downloading ({}%)"
+                ).format(percent),
+            )
+
+        return PointCloudUploadPreparer(
+            feedback=self._feedback,
+            download_progress_callback=on_download_progress,
+        ).prepare(qgs_point_cloud_layer)
 
     def checkGeometry(self, qgs_vector_layer):
         has_simple_geometries = False
@@ -1521,6 +1636,8 @@ class QGISResourcesUploader(QGISResourceJob):
                         else "wmsclient_layer"
                     )
                 return "raster_layer"
+            if isinstance(layer, QgsPointCloudLayer):
+                return "point_cloud_layer"
             if isinstance(layer, QgsPluginLayer):
                 return "basemap_layer"
             return None
@@ -1883,6 +2000,14 @@ class QGISResourcesUploader(QGISResourceJob):
                         layer_tree_item.isVisible(),
                         opacity=opacity,
                     )
+                )
+
+            elif ngw_resource.type_id == NGWPointCloudLayer.type_id:
+                qgs_map_layer = layer_tree_item.layer()
+                assert qgs_map_layer is not None
+                self.putUploadedLayerResourceToResult(
+                    qgs_map_layer,
+                    cast(NGWPointCloudLayer, ngw_resource),
                 )
 
     def update_layer(self, qgsLayerTreeItem, ngwVectorLayer):

@@ -20,6 +20,7 @@ from .ngw_error import NGWError
 from .ngw_group_resource import NGWGroupResource
 from .ngw_mapserver_style import NGWMapServerStyle
 from .ngw_ogcf_service import NGWOgcfService
+from .ngw_point_cloud_layer import NGWPointCloudLayer
 from .ngw_postgis_layer import NGWPostgisLayer
 from .ngw_qgis_style import (
     NGWQGISRasterStyle,
@@ -48,6 +49,7 @@ __all__ = [
     "NGWGroupResource",
     "NGWMapServerStyle",
     "NGWOgcfService",
+    "NGWPointCloudLayer",
     "NGWPostgisLayer",
     "NGWQGISRasterStyle",
     "NGWQGISStyle",

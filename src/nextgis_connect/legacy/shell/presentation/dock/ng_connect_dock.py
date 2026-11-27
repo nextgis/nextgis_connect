@@ -38,6 +38,7 @@ from qgis.core import (
     QgsMapLayer,
     QgsMapLayerStyle,
     QgsNetworkAccessManager,
+    QgsPointCloudLayer,
     QgsProject,
     QgsRasterLayer,
     QgsSettings,
@@ -145,6 +146,7 @@ from nextgis_connect.legacy.ngw.core import (
     NGWGroupResource,
     NGWMapServerStyle,
     NGWOgcfService,
+    NGWPointCloudLayer,
     NGWPostgisLayer,
     NGWQGISRasterStyle,
     NGWQGISStyle,
@@ -2369,6 +2371,10 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 (NGWRasterLayer,),
             ),
             ResourceTypeBinding(
+                ResourceKind.POINT_CLOUD_LAYER,
+                (NGWPointCloudLayer,),
+            ),
+            ResourceTypeBinding(
                 ResourceKind.POSTGIS_LAYER,
                 (NGWPostgisLayer,),
             ),
@@ -4010,9 +4016,14 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
             is_raster_layer = isinstance(
                 qgs_layer, QgsRasterLayer
             ) and isinstance(ngw_resource, NGWRasterLayer)
+            is_point_cloud_layer = isinstance(
+                qgs_layer, QgsPointCloudLayer
+            ) and isinstance(ngw_resource, NGWPointCloudLayer)
 
             if not is_project_layer or (
-                not is_vector_layer and not is_raster_layer
+                not is_vector_layer
+                and not is_raster_layer
+                and not is_point_cloud_layer
             ):
                 continue
 
@@ -4071,6 +4082,15 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
         ):
             self.__replace_uploaded_raster_layer_source(
                 qgs_layer, ngw_resource
+            )
+            return
+
+        if isinstance(qgs_layer, QgsPointCloudLayer) and isinstance(
+            ngw_resource, NGWPointCloudLayer
+        ):
+            self.__replace_uploaded_point_cloud_layer_source(
+                qgs_layer,
+                ngw_resource,
             )
             return
 
@@ -4172,6 +4192,20 @@ class NgConnectDock(QgsDockWidget, FORM_CLASS):
                 code=ErrorCode.AddingError,
             )
 
+        source, name, provider = ngw_layer.layer_params
+        self.__set_layer_source(qgs_layer, source, name, provider)
+        self.__set_ngw_layer_properties(qgs_layer, ngw_layer)
+
+    def __replace_uploaded_point_cloud_layer_source(
+        self,
+        qgs_layer: QgsPointCloudLayer,
+        ngw_layer: NGWPointCloudLayer,
+    ) -> None:
+        """Replace a local point-cloud source with its NGW COPC endpoint.
+
+        :param qgs_layer: Project layer whose source will be replaced.
+        :param ngw_layer: Newly uploaded NGW point-cloud resource.
+        """
         source, name, provider = ngw_layer.layer_params
         self.__set_layer_source(qgs_layer, source, name, provider)
         self.__set_ngw_layer_properties(qgs_layer, ngw_layer)

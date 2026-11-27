@@ -21,6 +21,7 @@ from qgis.PyQt.QtCore import QModelIndex
 from nextgis_connect.legacy.ngw.core import (
     NGWBaseMap,
     NGWOgcfService,
+    NGWPointCloudLayer,
     NGWPostgisLayer,
     NGWQGISStyle,
     NGWRasterLayer,
@@ -53,6 +54,7 @@ RASTER_RESOURCE_TYPES = (
     *TMS_LAYER_RESOURCE_TYPES,
     NGWWmsLayer,
 )
+POINT_CLOUD_RESOURCE_TYPES = (NGWPointCloudLayer,)
 VECTOR_SERVICE_TYPES = (NGWWfsService, NGWOgcfService)
 SERVICE_RESOURCE_TYPES = (*VECTOR_SERVICE_TYPES, NGWWmsService)
 CONNECTION_RESOURCE_TYPES = (NGWWmsConnection,)
@@ -79,7 +81,12 @@ def is_layer(
         resource = resource_from_index(resource)
     return isinstance(
         resource,
-        (NGWVectorLayer, *VECTOR_RESOURCE_TYPES, *RASTER_RESOURCE_TYPES),
+        (
+            NGWVectorLayer,
+            *VECTOR_RESOURCE_TYPES,
+            *RASTER_RESOURCE_TYPES,
+            *POINT_CLOUD_RESOURCE_TYPES,
+        ),
     )
 
 
